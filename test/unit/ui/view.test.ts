@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeTile } from '../../../src/engine/tile';
-import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, tileSizeFor, viewCenter, ZOOM_LEVELS, zoomBy } from '../../../src/ui/view';
+import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, tileSizeFor, viewCenter, ZOOM_LEVELS, zoomAt, zoomBy } from '../../../src/ui/view';
 
 const map = { width: 58, height: 72, tiles: Array.from({ length: 58 * 72 }, () => makeTile()) };
 
@@ -59,5 +59,15 @@ describe('view math', () => {
     expect(isTileInView(v, 23, 40)).toBe(true);
     expect(isTileInView(v, 23, 40, 1)).toBe(false);
     expect(isTileInView(v, 22, 40)).toBe(false);
+  });
+  it('zooms about a pixel: the square under the pointer stays under it', () => {
+    const v = makeView(map, 960, 768, 30, 40);
+    const under = screenToTile(v, map, 200, 600);
+    const out = zoomAt(v, map, -1, 200, 600);
+    expect(out.zoom).toBe(2);
+    expect(screenToTile(out, map, 200, 600)).toEqual(under);
+    expect(screenToTile(zoomAt(out, map, 1, 200, 600), map, 200, 600)).toEqual(under);
+    // at the last level nothing moves
+    expect(zoomAt(v, map, 1, 200, 600)).toEqual(v);
   });
 });

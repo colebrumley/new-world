@@ -118,6 +118,37 @@ canvas.minimap {
   min-height: 1.2em;
 }
 
+.command-bar {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+
+.command-bar button {
+  font: inherit;
+  font-size: 0.8rem;
+  color: inherit;
+  background: #232d3d;
+  border: 1px solid #5b4a2a;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.command-bar button:hover:not(:disabled) {
+  background: #34435a;
+}
+
+.command-bar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.command-bar .command-wide {
+  grid-column: 1 / -1;
+  border-color: #c9a650;
+}
+
 .sidebar-features,
 .sidebar-aboard,
 .sidebar-cargo {

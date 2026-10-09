@@ -37,11 +37,13 @@ import { openEuropeScreen } from '../ui/europe-screen';
 import { mapCommandFor, type MapCommand } from '../ui/keymap';
 import { minimapLayout, minimapToTile, renderMinimap } from '../ui/minimap';
 import { viewerIndex, renderGround, renderPieces } from '../ui/render';
-import { createSidebar, sidebarModel } from '../ui/sidebar';
+import { createSidebar, formatMoves, sidebarModel, unitLabel } from '../ui/sidebar';
+import { MENU_CHOICES, REPORT_CHOICES, createCommandBar, type BarChoice } from '../ui/command-bar';
+import { WHEEL_LINE, mapClick, mapDrag, wheelStep, type PointerMode } from '../ui/pointer';
 import { editRoute } from '../ui/trade-routes';
 import { createTileCache } from '../ui/tiles';
 import { needsOrders, nextUnit } from '../ui/unit-queue';
-import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, viewCenter, zoomBy, type View } from '../ui/view';
+import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, viewCenter, zoomAt, zoomBy, type View } from '../ui/view';
 import { readHintsSeen, readOptions, writeAutosave, writeHintsSeen, writeOptions } from './storage';
 import { COLONY_OPTIONS, GAME_OPTIONS, SOUND_OPTIONS, type Options } from '../ui/options';
 import { cuesFor } from '../ui/audio-cues';
@@ -63,9 +65,10 @@ const DIRECTIONS: Readonly<Record<string, readonly [number, number]>> = {
 const EDGE_SCROLL_MARGIN = 14; // pixels from the canvas edge
 const EDGE_SCROLL_SPEED = 14; // tiles per second
 const DRAG_THRESHOLD = 4; // pixels before a press becomes a drag
+const WHEEL_PAUSE_MS = 140; // least time between two zoom steps of the wheel
 
 /** move: keys drive the active unit. view: keys drive a cursor. goto: picking a Go To destination. */
-type Mode = 'move' | 'view' | 'goto';
+type Mode = PointerMode;
 
 export interface GameScreenDebug {
   /** Force `frames` full redraws and return the mean time of one, in milliseconds. */
@@ -195,7 +198,12 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   };
 
   let pointer: { x: number; y: number } | null = null;
-  let drag: { x: number; y: number; moved: boolean } | null = null;
+  /** A press on the map: `aim` when it began on the active unit, which is then being sent somewhere rather than the view panned. */
+  let drag: { x: number; y: number; moved: boolean; aim: boolean } | null = null;
+  /** The square an aimed drag is over. */
+  let aimAt: { x: number; y: number } | null = null;
+  let wheelKept = 0;
+  let wheelAt = 0;
   let lastTime = 0;
 
   const me = (): string => session.state.players[viewerIndex(session.state)]?.id ?? '';
@@ -1019,6 +1027,10 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
       case 'center':
         if (unit && unit.x >= 0) setView(centerOn(view, session.state.map, unit.x, unit.y));
         return;
+      case 'hiddenTerrain':
+        // from the command bar (the H key is handled as it is pressed): on until pressed again, or until the next key
+        setView({ ...view, showHidden: !view.showHidden });
+        return;
       case 'viewMode':
         mode = 'view';
         setCursorToCenter();
@@ -1231,42 +1243,131 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     return { x: event.clientX - box.left, y: event.clientY - box.top };
   };
 
+  /** Make one of our units the active one, asking which when the square holds several. Wakes it if it has orders. */
+  const selectUnit = async (unitIds: readonly UnitId[]): Promise<void> => {
+    let id = unitIds[0];
+    if (unitIds.length > 1) {
+      const labels = unitIds.map((u) => {
+        const unit = session.state.units[u];
+        return unit ? `${unitLabel(unit)}, moves ${formatMoves(unit.movesLeft)}` : u;
+      });
+      const pick = await ask(screen, { text: 'Which unit?', choices: [...labels, 'Cancel'], escape: unitIds.length });
+      id = unitIds[pick];
+    }
+    const picked = id ? session.state.units[id] : undefined;
+    if (!picked) return;
+    if (picked.orders !== 'none' && !dispatch({ type: 'setOrders', unitId: picked.id, orders: 'none' })) return;
+    const unit = session.state.units[picked.id];
+    if (!unit || !needsOrders(unit, me())) {
+      say(`${unitLabel(picked)} has no moves left this turn.`);
+      return;
+    }
+    waiting.delete(unit.id);
+    activeId = unit.id;
+    mode = 'move';
+    cursor = null;
+    dirty = true;
+  };
+
   canvas.addEventListener('mousedown', (event) => {
     if (event.button !== 0) return;
-    drag = { ...local(event, canvas), moved: false };
+    const p = local(event, canvas);
+    const tile = screenToTile(view, session.state.map, p.x, p.y);
+    const unit = activeUnit();
+    drag = { ...p, moved: false, aim: mode === 'move' && unit !== null && tile !== null && tile.x === unit.x && tile.y === unit.y };
     canvas.focus();
   });
   canvas.addEventListener('mousemove', (event) => {
     const p = local(event, canvas);
     pointer = p;
-    if (!drag) return;
+    if (!drag) {
+      // picking a Go To destination: the cursor goes where the pointer does
+      const tile = mode === 'goto' ? screenToTile(view, session.state.map, p.x, p.y) : null;
+      if (tile && (tile.x !== cursor?.x || tile.y !== cursor.y)) {
+        cursor = tile;
+        dirty = true;
+      }
+      return;
+    }
     const dx = p.x - drag.x;
     const dy = p.y - drag.y;
     if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-    drag = { x: p.x, y: p.y, moved: true };
+    if (drag.aim) {
+      drag.moved = true;
+      const tile = screenToTile(view, session.state.map, p.x, p.y);
+      if (tile?.x !== aimAt?.x || tile?.y !== aimAt?.y) {
+        aimAt = tile;
+        dirty = true;
+      }
+      return;
+    }
+    drag = { x: p.x, y: p.y, moved: true, aim: false };
     setView(panBy(view, session.state.map, -dx / view.tileSize, -dy / view.tileSize));
   });
   canvas.addEventListener('mouseup', (event) => {
     if (event.button !== 0 || !drag) return;
-    const wasDrag = drag.moved;
+    const { moved, aim } = drag;
     drag = null;
-    if (wasDrag) return;
+    aimAt = null;
+    dirty = true;
     const p = local(event, canvas);
     const tile = screenToTile(view, session.state.map, p.x, p.y);
+    const unit = activeUnit();
+    if (moved) {
+      // a drag from the active unit sends it where the button was let go; any other drag was a pan
+      const sent = aim && unit ? mapDrag(unit, tile) : null;
+      if (unit && sent?.kind === 'step') void tryMove(unit.id, sent.dx, sent.dy);
+      else if (unit && sent?.kind === 'goto') dispatch({ type: 'goTo', unitId: unit.id, x: sent.x, y: sent.y });
+      return;
+    }
     if (!tile) return;
-    if (mode === 'goto') {
-      confirmGoto(tile.x, tile.y);
-      return;
+    const click = mapClick(session.state, me(), unit, mode, tile);
+    switch (click.kind) {
+      case 'goto':
+        confirmGoto(click.x, click.y);
+        return;
+      case 'colony':
+        cursor = tile;
+        openColony(click.colonyId);
+        return;
+      case 'select':
+        void selectUnit(click.unitIds);
+        return;
+      case 'step':
+        if (unit) void tryMove(unit.id, click.dx, click.dy);
+        return;
+      default:
+        cursor = tile;
+        setView(centerOn(view, session.state.map, tile.x, tile.y));
     }
-    cursor = tile;
-    const clicked = colonyAt(session.state, tile.x, tile.y);
-    if (clicked && clicked.owner === me()) {
-      openColony(clicked.id);
-      return;
-    }
-    setView(centerOn(view, session.state.map, tile.x, tile.y));
-    dirty = true;
   });
+  canvas.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    const turned = wheelStep(wheelKept, event.deltaMode === 1 ? event.deltaY * WHEEL_LINE : event.deltaY);
+    wheelKept = turned.kept;
+    if (turned.step === 0 || event.timeStamp - wheelAt < WHEEL_PAUSE_MS) return;
+    wheelAt = event.timeStamp;
+    const p = local(event, canvas);
+    setView(zoomAt(view, session.state.map, turned.step, p.x, p.y));
+  }, { passive: false });
+
+  // --- the command bar: every map command as a button ---
+  const pickFrom = async (text: string, choices: readonly BarChoice[]): Promise<void> => {
+    const pick = await ask(screen, { text, choices: [...choices.map((c) => c.label), 'Cancel'], escape: choices.length });
+    const choice = choices[pick];
+    if (choice) await runCommand(choice.command, choice.key);
+  };
+  const commandBar = createCommandBar((button) => {
+    // nothing on the map answers while a question, a report or another screen is up
+    if (screen.querySelector('[role="dialog"]')) return;
+    canvas.focus();
+    if (view.showHidden && button.id !== 'hiddenTerrain') setView({ ...view, showHidden: false });
+    if (button.run === 'reports') void pickFrom('Which report?', REPORT_CHOICES);
+    else if (button.run === 'menus') void pickFrom('Which menu?', MENU_CHOICES);
+    else void runCommand(button.run.command, button.run.key);
+  });
+  sidebar.element.querySelector('.sidebar-info')?.after(commandBar.element);
+
   /** What the encyclopedia has to say about the thing under the pointer, on the map or on the colony screen. */
   const pediaTargetAt = (event: MouseEvent): PediaTarget | null => {
     const hit = event.target instanceof Element ? event.target : null;
@@ -1300,6 +1401,8 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   canvas.addEventListener('mouseleave', () => {
     pointer = null;
     drag = null;
+    if (aimAt) dirty = true;
+    aimAt = null;
   });
 
   sidebar.minimap.addEventListener('click', (event) => {
@@ -1312,7 +1415,8 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   });
 
   const edgeScroll = (dt: number): void => {
-    if (!pointer || drag) return;
+    // (a unit being dragged to its destination may need the view to scroll to reach it)
+    if (!pointer || (drag && !drag.aim)) return;
     const dx = pointer.x < EDGE_SCROLL_MARGIN ? -1 : pointer.x > view.width - EDGE_SCROLL_MARGIN ? 1 : 0;
     const dy = pointer.y < EDGE_SCROLL_MARGIN ? -1 : pointer.y > view.height - EDGE_SCROLL_MARGIN ? 1 : 0;
     if (dx === 0 && dy === 0) return;
@@ -1322,7 +1426,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
 
   const draw = (time = performance.now()): void => {
     const unit = activeUnit();
-    const showCursor = mode !== 'move' ? cursor : null;
+    const showCursor = aimAt ?? (mode !== 'move' ? cursor : null);
     shownBlink = blinkAt(time);
     shownWater = waterAt(time);
     if (unit && unit.x >= 0) lastSpot = { x: unit.x, y: unit.y };
@@ -1344,6 +1448,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     const focus = mode !== 'move' || !unit || unit.x < 0 ? cursor : { x: unit.x, y: unit.y };
     const status = notice || (unit ? '' : 'End of turn. Press Enter.');
     sidebar.update(sidebarModel(session.state, mode === 'view' ? null : unit, focus, revealAll, status));
+    commandBar.update(unit !== null && mode !== 'view');
   };
 
   const frame = (time: number): void => {

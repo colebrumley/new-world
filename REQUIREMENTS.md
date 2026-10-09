@@ -962,7 +962,7 @@ Legend:
   *Built:* `test/sim/balance.test.ts` writes `docs/BALANCE.md` (20 seeds, about 100 s). What it
   found, and what was done about it, is in the tuning items below.
 
-- [~] **R-1010 Mouse play on the map**
+- [x] **R-1010 Mouse play on the map**
   Goal G4 asks that the game be playable with the mouse; the map screen needed the keyboard for
   everything but panning. On the map: click one of our units to make it the active unit (waking it
   if it has standing orders; a list when several stand on the square); click a square beside the
@@ -975,6 +975,11 @@ Legend:
   **Verify:** unit: `pointer.test.ts` (what a click or a drag means), `command-bar.test.ts` (every
   button names a command its key reaches; snapshot); e2e `mouse.spec.ts`: a game played to a
   founded colony and an ended turn without touching the keyboard; wheel changes the zoom level.
+  *Built:* `src/ui/pointer.ts` (pure click, drag and wheel rules), `src/ui/command-bar.ts` (21
+  buttons; the report and menu lists are read from the keyboard table), `zoomAt` in `view.ts`, and
+  the handlers in `app/game-screen.ts`. A click on our colony still opens it, so a unit beside its
+  colony is walked in by dragging. The Terrain button toggles hidden terrain (H shows it until the
+  next key). Buttons do nothing while a question, report or other screen is up.
 
 ### Tuning items raised by R-1009
 
