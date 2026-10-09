@@ -1,10 +1,6 @@
-// Numbers the computer powers plan by (R-802). These are ours: the original's own planning was
-// only outlined, so they are tuned to give sensible play rather than copied.
+// Numbers the computer powers plan by (R-802) that are still ours: site choice, the first
+// colony, and a few limits. The tables below this one are as traced from the original program.
 export const AI_PLAN = {
-  /** Colonies wanted at the start, one more every so many turns, up to a limit; the leader's bent for expansion shifts it. */
-  coloniesAtStart: 4,
-  turnsPerExtraColony: 50,
-  coloniesMost: 8,
   /** New colonies keep this far from any other. */
   colonySpacing: 3,
   /** A site scores 2 for each workable square around it, 1 for sea or native land, 2 for a resource; below this it is passed over. */
@@ -19,10 +15,8 @@ export const AI_PLAN = {
   /** A colony of at least this many seats a statesman, and one more for every so many colonists (three at most), if it can still feed itself. */
   statesmanFrom: 3,
   colonistsPerStatesman: 3,
-  /** Soldiers settle too until the power has this many colonies; after that they stand guard. */
+  /** A power thinks of landings abroad only once it has this many colonies (ours). */
   coloniesBeforeGarrison: 2,
-  /** Beyond the garrison (see AI_CAMPAIGN) it arms this many more soldiers on the docks while a native people is hostile to it. */
-  reprisalParty: 4,
   /** A ship tries this many anchorages beside a site before giving it up for the turn. */
   berthsTried: 3,
   /** Gold kept back when paying a recruit's passage. */
@@ -157,17 +151,6 @@ export const AI_CAMPAIGN = {
   attackMovesLeast: 3,
   /** Soldiers and dragoons are not sent anywhere from a landmass where the power has fewer land units than this (or just this many and no colony). */
   companyLeast: 2,
-  /**
-   * When a colony is badly defended (as FreeCol reckons it): with no troops at all; never with
-   * more than `defendersMost`; otherwise when 20 x their summed defence strength is under
-   * 19 x its population - 50 (that is, strength < 0.95 x population - 2.5).
-   */
-  defendersMost: 5,
-  defenceTimes: 20,
-  defencePerColonist: 19,
-  defenceLess: 50,
-  /** Ours: soldiers armed beyond the garrison while an invasion is in view. */
-  expedition: 2,
 } as const;
 
 // Gold and purchases of the computer powers in Europe, as traced from the original program;
@@ -255,4 +238,148 @@ export const AI_COLONY = {
   chainStock: 100,
   /** Artillery is built while fewer than this many pieces stand in the colony. */
   artilleryBelow: 3,
+} as const;
+
+// How a computer power's colony sees to its own defence and its own numbers, as traced from the
+// original program; see docs/RULES.md "Computer powers: arming and taking in colonists".
+export const AI_MUSTER = {
+  /** Threat: foreign land units within this many squares count their attack value x (falloff - distance) / falloff... */
+  threatRange: 5,
+  threatFalloff: 8,
+  /** ...braves only from this tribal alarm and this alarm in their own village... */
+  tribeAlarmFrom: 25,
+  villageAlarmFrom: 128,
+  /** ...the sum divided by the colony's walls plus one, but never below itself up to this; a defender is wanted for every so much. */
+  threatFloor: 16,
+  threatPerDefender: 8,
+  /** Troops within this many squares, on the same landmass, belong to the colony nearest them. */
+  ownRange: 8,
+  /** Beyond those, more are wanted: (3 x people / 2 - bent - turn / `turnsPerStep` + quiet or defended bonus) / (bent + `divisor`, one more while the first want is unmet, one less where the land is to be taken). */
+  turnsPerStep: 128,
+  divisor: 5,
+  quietBonus: 2,
+  defendedBonus: 1,
+  /** With rival Europeans on a landmass that has native settlements, no more than this many extra. */
+  extraMostAmongRivals: 1,
+  /** ...except for this nation, which is not held to that. */
+  unbounded: 'spain',
+  /** A soldier takes this many muskets; he rides as a dragoon when the colony has `dragoonHorses`; a scout goes out from `scoutHorses`. */
+  muskets: 50,
+  dragoonHorses: 52,
+  scoutHorses: 102,
+  /** A scout only from a colony of this many, or one at its cap. */
+  scoutFrom: 10,
+  /** Now and then (one turn in `oftenOdds`) a quiet colony of more than `spareOver` sends someone out anyway. */
+  spareOver: 10,
+  oftenOdds: 4,
+  pioneerTools: 20,
+  /** Who goes: the veteran (or other expert of the calling) before criminals, servants, free colonists, and last the skilled. */
+  rank: { expert: 4, pettyCriminal: 3, indenturedServant: 2, freeColonist: 1 },
+  /** A colony wants colonists under `cap + 2 x hall` people while its people less `2 x hall` are fewer than its land squares, or under `idleBelow` when it has nothing to build; never from `most`. */
+  cap: 8,
+  hall: 2,
+  idleBelow: 10,
+  most: 32,
+  /** A colonist joins only while the colony's people and the units standing in it are fewer than `cap + joinOver`. */
+  joinOver: 2,
+} as const;
+
+// Whether a computer power's colonist founds a colony or joins one, as traced from the original
+// program; see docs/RULES.md "Computer powers: founding and joining".
+export const AI_SETTLE = {
+  /** No more colonies are founded once the world holds this many. */
+  coloniesInAll: 48,
+  /** Colonies still wanted when the power has none, or none of its colonies wants colonists. */
+  wantedWhenFull: 8,
+  /** Otherwise: a colony for every (this - bent) people beyond one each, moved half way to half the fleet's holds... */
+  peoplePerColony: 4,
+  /** ...less (least - average + 1) for each colony while the average colony is under `sizeLeast` - `sizePerBent` x bent. */
+  sizeLeast: 7,
+  sizePerBent: 3,
+  /** A landmass has room for a site to every so many squares; bonuses where no European has settled, and where the power has not. */
+  squaresPerSite: 12,
+  emptyBonus: 2,
+  newLandBonus: 4,
+  /** Willingness: +2 on land where the power has no colony, else distance to its nearest / 5 - 1... */
+  newLandWilling: 2,
+  distancePerStep: 5,
+  /** ...by what the unit is... */
+  pioneer: 2,
+  soldier: -2,
+  dragoon: -3,
+  colonist: -2,
+  skilled: -2,
+  convert: -20,
+  /** ...and +1 for every 16 turns since the power last founded, while it wants colonies. */
+  turnsShift: 4,
+  /** Choosing a port for passengers: (17 - population, 16 at most) squared counts fourfold; these for a landmass shared with the human, and for wanting colonists (against, when it does not); luck up to the last. */
+  portSizeFrom: 17,
+  portSharedBonus: 20,
+  portWantsBonus: 25,
+  portLuck: 8,
+} as const;
+
+// What a computer power's colonies get by themselves each turn, as traced from the original
+// program; see docs/RULES.md "Computer powers: upkeep of a colony".
+export const AI_UPKEEP = {
+  /** With fewer tools than this, the colony buys this many at their price level each, when it has land to improve or on every `toolsEvery`th turn. */
+  tools: 20,
+  toolsEvery: 10,
+  /** Land is improved for that many tools, except on every `restEvery`th turn, once the colony has waited the turns the work takes plus `waitExtra` (and `clearExtra` for clearing forest). */
+  restEvery: 7,
+  waitExtra: 2,
+  clearExtra: 2,
+  waitMost: 127,
+  /** A square a colonist works counts this many times over, and clearing where farmland is short as much again. */
+  workedTimes: 2,
+  /** An unskilled carpenter in a colony of this many becomes a master one turn in (`masterOdds` - difficulty level). */
+  masterFrom: 6,
+  masterOdds: 17,
+  /** A school trains one colonist after this many turns' wait for each of its levels (the third counting twice). */
+  schoolTurns: 4,
+  /** Paid training only while the tax rate is no more than this, and the treasury holds the fee and this much besides (the second is ours). */
+  trainTaxMost: 25,
+  trainGoldOver: 0,
+  /** From this turn a colony with fewer horses than this, with a ship or wagon in it, has them made up for this much gold. */
+  horses: 2,
+  horsesFromTurn: 40,
+  horsesGold: 10,
+} as const;
+
+// Supplies a computer power ships to its colonies, as traced from the original program; see
+// docs/RULES.md "Computer powers: supplies by ship".
+export const AI_SUPPLY = {
+  /** The goods it ships out, in the order it buys them. (Ours: the original buys a lot of every good on its cargo turns; we keep to the four a colony can ask for.) */
+  goods: ['muskets', 'tools', 'tradeGoods', 'horses'],
+  /** A colony asks for muskets under this many x (its leader's aggression + `musketLotsBase`), and at once under this many while it is short of defenders. */
+  muskets: 50,
+  musketLotsBase: 2,
+  /** It asks for horses under this many, and for tools under this many while it has land to improve. */
+  horses: 50,
+  tools: 20,
+  /** A lot bought in Europe; every `cargoEvery`th turn is a cargo turn, when nobody is fitted out and goods are bought whether asked for or not. */
+  lot: 100,
+  cargoEvery: 3,
+  /** Holds kept free on a turn when somebody was fitted out. */
+  holdsKept: 2,
+  /** The good a port asks for counts this much toward a ship's choosing it: 4 x (8 + turns since a ship called), which we do not keep, so 4 x 8. */
+  askedBonus: 32,
+} as const;
+
+// A computer power's business on the docks in Europe, as traced from the original program; see
+// docs/RULES.md "Computer powers: on the docks".
+export const AI_DOCKS = {
+  /** It recruits only while the colonies wanting colonists, less its colonists afoot, are at least its colonies / this... */
+  recruitColoniesShift: 1,
+  /** ...and it holds the fare and 2 x (this x its people - the turn) besides. */
+  reservePerPerson: 30,
+  reserveTimes: 2,
+  /** A colonist is armed on one throw in (2, or 3 if skilled) while muskets are wanted; from `lateFrom` also on one in (3, or 4) while colonies are wanted. */
+  soldierOdds: 2,
+  lateOdds: 3,
+  lateFrom: 100,
+  /** A pioneer on one throw in this many while colonies wanted outnumber its pioneers (a skilled man on one in `skilledPioneerOdds` besides); from `lateFrom` only with fewer pioneers than a throw of 0..`pioneersMost`. */
+  pioneerOdds: 3,
+  skilledPioneerOdds: 5,
+  pioneersMost: 2,
 } as const;

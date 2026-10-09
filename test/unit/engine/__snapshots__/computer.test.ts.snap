@@ -1,0 +1,21 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`upkeep rule table > matches the snapshot 1`] = `
+{
+  "clearExtra": 2,
+  "horses": 2,
+  "horsesFromTurn": 40,
+  "horsesGold": 10,
+  "masterFrom": 6,
+  "masterOdds": 17,
+  "restEvery": 7,
+  "schoolTurns": 4,
+  "tools": 20,
+  "toolsEvery": 10,
+  "trainGoldOver": 0,
+  "trainTaxMost": 25,
+  "waitExtra": 2,
+  "waitMost": 127,
+  "workedTimes": 2,
+}
+`;

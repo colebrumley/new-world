@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`muster rule table > matches the snapshot 1`] = `
+{
+  "cap": 8,
+  "defendedBonus": 1,
+  "divisor": 5,
+  "dragoonHorses": 52,
+  "extraMostAmongRivals": 1,
+  "hall": 2,
+  "idleBelow": 10,
+  "joinOver": 2,
+  "most": 32,
+  "muskets": 50,
+  "oftenOdds": 4,
+  "ownRange": 8,
+  "pioneerTools": 20,
+  "quietBonus": 2,
+  "rank": {
+    "expert": 4,
+    "freeColonist": 1,
+    "indenturedServant": 2,
+    "pettyCriminal": 3,
+  },
+  "scoutFrom": 10,
+  "scoutHorses": 102,
+  "spareOver": 10,
+  "threatFalloff": 8,
+  "threatFloor": 16,
+  "threatPerDefender": 8,
+  "threatRange": 5,
+  "tribeAlarmFrom": 25,
+  "turnsPerStep": 128,
+  "unbounded": "spain",
+  "villageAlarmFrom": 128,
+}
+`;

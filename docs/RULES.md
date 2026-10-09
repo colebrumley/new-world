@@ -1215,25 +1215,24 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
 
 ### Computer powers (R-802)
 
-The policy is ours; the original's AI was not traced. Numbers are in `src/engine/data/ai.ts`.
+Most of what a computer power does is now as traced from the original program, section by
+section below; what is still ours is said where it stands. Numbers are in `src/engine/data/ai.ts`.
 
 - **Same rules.** A computer power plays through the same actions as a person: nothing it does
   bypasses validation, and its turn is recorded in the session log like anyone's.
-- **Expansion.** It wants 4 colonies at the start and one more every 50 turns, up to 8; its
-  leader's expansion trait adds or removes one. A site must be flat open land on the coast, three
-  squares clear of any colony or native settlement, with enough workable land around it.
-- **Landing.** A ship carrying settlers makes for water beside the best site within reach; the
-  settlers step ashore and found the colony. Once it has the colonies it wants, newcomers join
-  the nearest one instead.
+- **Expansion.** Whether a colonist founds a colony or joins one is under "Computer powers:
+  founding and joining". A site must be flat open land on the coast, three squares clear of any
+  colony or native settlement, with enough workable land around it (the choice of site is ours).
+- **Landing.** A ship carrying founders makes for water beside the best site within reach; they
+  step ashore and found the colony. Passengers who are to join a colony are taken to a port
+  chosen as under "founding and joining".
 - **Colonies.** Who works at what and what is built are under "Computer powers: the colony";
   a colony's surplus of the export goods is sold from the colony itself as if it had a Custom
   House (the original's computer colonies sell this way too).
-- **Europe.** An empty ship sails home, sells what it carries, pays for a passage, and returns
-  with whoever waits on the docks. What it buys there, and the gold it is given, are under
-  "Computer powers: the treasury and the fleet".
-- **War.** Soldiers settle too until the power has two colonies; from then on they guard,
-  march and fight by the rules of "Computer powers: campaigns" (R-807), which replaced this
-  policy's own rules for war, reprisal and conquest.
+- **Europe.** An empty ship sails home. What a power does there is under "Computer powers: on
+  the docks"; what ships it buys, and the gold it is given, under "Computer powers: the treasury
+  and the fleet".
+- **War.** Troops guard, march and fight by the rules of "Computer powers: campaigns" (R-807).
 - **Independence.** A computer power is granted independence by colonist support under R-702.
 - **First colony.** Until it has one, a power counts distance six times over when weighing
   sites, so it settles the nearest fair place; a ship judges every site by how far it must
@@ -1244,10 +1243,9 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
 - **Liberty.** A colony of three or more keeps one colonist in its Town Hall as a statesman for
   every three it has (three at most), provided it still feeds itself (ours; it is part of the
   job plan of "Computer powers: the colony").
-- **Garrison.** Soldiers are armed on the docks in Europe from the colonists waiting there:
-  what its colonies want as garrison (see "Computer powers: campaigns"), four more while a native people on a landmass it has settled is at
-  75 alarm or more, and two more while there is a rival colony it would invade. A soldier brought
-  into port goes ashore as a soldier.
+- **Garrison.** How many defenders a colony wants, and how it arms its own people, are under
+  "Computer powers: arming and taking in colonists". A soldier brought into port goes ashore as
+  a soldier.
 - **Braves' calls.** A brave beside a colony at peace pays a call on about one turn in eight
   (the visit itself follows the original's rule; how often a brave comes by is ours).
 - Leader traits beyond expansion affect diplomacy (R-801) but not this policy.
@@ -1499,12 +1497,8 @@ level). The automatic placement it calls is that of "Automatic placement". Numbe
 - "Pays best" compares output x the good's price level; the original's weights for each
   indoor job were read only in outline.
 - The plan is worked out once a turn and carried through by ordinary job changes.
-- Left out: the original turns its own colonists into soldiers, dragoons, scouts and pioneers
-  inside the colony and back, promotes servants and criminals put to the carpenter's bench,
-  now and then makes an unskilled colonist an expert, buys 20 tools every tenth turn and two
-  horses after turn 40, and asks for goods to be shipped in. Its count of defenders wanted
-  (half the colony's people, more under threat) belongs with that arming and is not used;
-  ours stays as under "Computer powers: campaigns".
+- What the original's colony turn does besides is under "Computer powers: arming and taking in
+  colonists", "Computer powers: upkeep of a colony" and "Computer powers: supplies by ship".
 - This replaced our own rules: buildings in a fixed short order, and one colonist put to
   lumber and hammers on FreeCol's pattern.
 
@@ -1560,23 +1554,211 @@ Numbers are `AI_CAMPAIGN` in `src/engine/data/ai.ts`.
 - *Strengths* in the odds are the engine's (with terrain, fortification and the other
   modifiers), in whole units of strength; the original's further weighting by the cost of the
   units on each side, and its tripled eagerness in a contested region, are left out.
-- *Defenders wanted.* As FreeCol reckons a colony badly defended (`FreeCol
-  common/model/Colony.java`, `isBadlyDefended`): with no troops in it; never with more than
-  five; otherwise when their summed defence strength (the engine's, with walls and digging in)
-  is under 0.95 x population - 2.5. A colony keeps troops as garrison, in order, until it is no
-  longer badly defended, and is short by as many dug-in soldiers as would make it so. Asked for
-  all its colonies, not only ports. (The original keeps a per-colony count whose writer was not
-  traced; Revolution Now has no computer colonial powers.)
+- *Defenders wanted* is the original's count, under "Computer powers: arming and taking in
+  colonists"; a colony keeps that many of the troops standing in it as garrison (guns, then
+  soldiers, then dragoons) and asks for as many as it is short. Asked for all its colonies, not
+  only ports. This replaced FreeCol's "badly defended" test, used until the original's was traced.
 - A beach is not chosen on the map's unsailable outer ring, nor where there is no free square
   to step ashore; the planner's own ship lying on the beach does not cancel the request.
 - A troop with no request stays in the colony it is in, or walks to the colony with the fewest
   troops. Troops board only when enough of them are spare to fill the transport and an invasion
   is within its reach, so that the ship sails at once.
-- Soldiers still settle until the power has two colonies (R-802), and a ship makes no landing
-  before then.
+- A ship makes no landing until the power has two colonies (ours).
 - The original's "settle beside a rival" landings (a transport request where the planner has no
   colony on a thinly peopled landmass), its early-game exemption of unseen human colonies, and
   the extra priority where the human holds a whole landmass are left out.
+
+### Computer powers: founding and joining
+
+As traced from the original program (`AI_SETTLE`, `AI_MUSTER`).
+
+- **A colony wants colonists** while it has under 12 people and its people less 4 are fewer than
+  the squares it can work (the eight around it that are land, and the water too once it has
+  docks); or under 10 people when its building list has run out. Never from 32.
+- **Colonies still wanted** by a power: 0 once the world holds 48 colonies; 8 while it has no
+  colony, or none of its colonies wants colonists; otherwise q = (its people - its colonies) /
+  (4 - its leader's expansion trait), moved half way to half its fleet's cargo holds, less
+  (L - average colony size + 1) for each of its colonies while the average is under
+  L = 7 - 3 x the trait; never below 0. So a power founds nothing new while its colonies are
+  small: under 10 on average for the English, 7 for the Spanish and Dutch, 4 for the French.
+- **A landmass's appeal:** +1 if it has more room (its squares / 12) than native settlements
+  and colonies, -1 if less; +2 if no European colony stands on it; +4 if the power has none
+  there. 0 for a unit at sea.
+- **A unit's willingness** (never above 0): with a colony of the power's on its landmass, the
+  distance to the nearest / 5 - 1 (at sea, to any); +2 where it has none there. Pioneer +2,
+  soldier -2, dragoon -3, colonist -2, a skilled one -2 more, a convert -20 more. While
+  colonies are wanted, +1 for every 16 turns since the power last founded.
+- **Who founds:** a colonist, pioneer or soldier (never a veteran; a dragoon only where no rival
+  has a colony) for whom willingness + appeal + colonies wanted is above 0. Never a colonist
+  standing in a colony that wants colonists, never after the Declaration.
+- **Who joins what:** any other colonist joins the colony of the power's on his landmass that
+  wants colonists (any, for a convert) and has fewer than 10 people and colonist-type units in
+  it: the one with the lowest (distance / 2) x (8 - its people), or (distance / 2) x 2 at 8 or
+  more. With no such colony he goes to found one all the same.
+- **Which port a ship takes joiners to:** the highest of 4 x ((17 - people, 16 at most)^2 + 2)
+  + 2 x (8 - people) + 20 where the human has a colony on that landmass, + 25 if it wants
+  colonists and - 25 if not, - (distance / 2 + 1), with a throw of 0 to 8 added.
+
+**Source:** VICEROY 4000:a1c0, 4000:a282, 4000:a31c, 4000:a3f0 (colonies wanted, appeal,
+willingness), 4000:c15e-c39b (who founds), 4000:cc78-ce38 (joining), 4000:da58-dd3c (ports),
+5000:1d8e-1fd4 with 0000:6320, 0000:6334 (wanting colonists).
+
+**Notes:** Ours, or left out:
+- The choice of a site, and the first-colony rules of "Computer powers (R-802)".
+- In the original a colonist with no colony to join who stands in a colony becomes a pioneer,
+  to be shipped elsewhere; ours looks for a site on foot and, finding none, joins after all.
+- The quota of founders per landmass per turn, the terms for a blockaded port and for how long
+  since a ship last called, and a ship putting pioneers ashore on land it passes, are left out.
+- "Last founded" is the newest of the power's standing colonies.
+
+### Computer powers: arming and taking in colonists
+
+As traced from the original program (`AI_MUSTER`); done through the actions a human uses.
+
+- **Threat.** Every foreign land unit within 5 squares counts its attack value x (8 - distance)
+  / 8: braves only when their tribe's alarm toward the power is 25 or more and their own
+  village's 128 or more; Europeans only with attack above 1, the human's half again; halved
+  for a unit standing in a colony. The sum is divided by the colony's fortification level + 1,
+  but not below itself up to 16.
+- **Defenders wanted** = the larger of (people - 1) / 2 and threat / 8, at most people / 2;
+  one more after the Declaration; at least 1 while a unit that counts stands next to it and it
+  has more than one person. "People" are its colonists and the colonist-type units on its square.
+- **Extra troops wanted** = (3 x people / 2 - bent - turn / 128, +2 where the land is well
+  settled and quiet, +1 where it is to be defended) / (bent + 5, +1 while the defenders wanted
+  are not all standing in it, -1 where the land is to be taken), "bent" being the leader's
+  civilizing (+1) or militaristic (-1) trait. None on land with no natives, no rivals and room
+  to grow; no more than 1 where there are natives and rivals both (the Spanish excepted).
+  Against it are counted the troops that belong to the colony (those in it, and those within 8
+  squares on its land with no nearer colony of the power's) beyond the defenders wanted.
+- **Taken in,** by a colony that wants colonists: a plain colonist on its square always; a
+  soldier or dragoon when it has more troops than the extra it wants (one more than that when
+  the extra is over 1), one such a turn; a skilled man under arms whenever an unskilled man or
+  a veteran works inside; a scout when the land is quiet or it has under 52 horses; a pioneer
+  when the land is quiet or it has under 20 tools.
+- **Sent out,** one colonist a turn at most, from a colony of two or more with 50 muskets:
+  when its defenders wanted are not all standing in it, or it has fewer troops than the extra
+  it wants, or (a quiet colony of over 10 that wants no colonists) one turn in four. He is a
+  dragoon if it has 52 horses. The veteran goes first, then a criminal, a servant, a free
+  colonist; a man with another trade only while the defenders wanted are unmet, and he is a
+  free colonist from then on; a convert never. A colony with 102 horses that has 10 people or
+  is at its cap of 8, and wants no colonists, sends out a scout instead.
+
+**Source:** VICEROY 5000:17bb-1c19 (threat, defenders wanted), 5000:1db4-1f36 (extra troops),
+5000:204c-21bf (taken in), 5000:21bf-239c (sent out), 0000:6870 (people).
+
+**Notes:** Ours, or left out:
+- Region states come from "Computer powers: campaigns"; strength there is summed attack values.
+- A scout rides to the nearest friendly village on its land that the power has not spoken
+  with, and otherwise home (the original scores the squares around it).
+- Left out: a pioneer sent out one turn in four by a large quiet colony; the 50 muskets a
+  colony with 200 puts into a reserve its power arms recruits from in Europe; and the same
+  passage's decision to turn on a native people.
+- An unarmed brave's attack value of 1 falls to nothing at any distance, as read.
+
+### Computer powers: upkeep of a colony
+
+What the original gives its own colonies at the start of each turn (`AI_UPKEEP`); none of it
+is open to a human.
+
+- **Tools.** With under 20 tools, and ground to improve or on every tenth turn, the colony
+  buys 20 at their price level each, if the treasury can pay.
+- **Land.** With 20 tools, on turns not divisible by 7, one square of its ground is improved
+  and the tools used up, once it has waited as many turns since the last time as the work
+  takes plus 2 (plus 2 more for clearing forest). A square a colonist works comes first: the
+  plow where he raises a crop, a road otherwise. Forest is cleared only when the colony has
+  fewer open farm squares than a quarter of its people and more than one forest.
+- **Carpenters.** A servant or criminal at the carpenter's bench becomes a free colonist; in a
+  colony of 6 or more an unskilled carpenter becomes a master one turn in (17 - level).
+- **School.** A colony with a schoolhouse, after 4 turns' wait for each level of it (the third
+  counting twice), makes one colonist chosen at random the expert of the trade he is working.
+  The wait is the same count as the land's.
+- **Training.** A colony short of food (as for docks under "the colony"), while the tax rate is
+  25 or less, pays the fee to make its last unskilled colonist an expert fisherman (with docks)
+  or farmer, if it has none.
+- **Horses.** From turn 40 a colony with fewer than 2 horses and a ship or wagon in it has
+  them made up to 2 for 10 gold.
+
+**Source:** VICEROY 5000:24f1-255b (tools), 5000:25a8-2a07 (land), 5000:2e9d-2f6c (carpenters),
+5000:3b6b-3d22 (school), 5000:3d22-3e1f (training), 5000:3e1f-3e83 (horses).
+
+**Notes:** Ours, or read only in part:
+- Which square is improved: the original scores each by a terrain value we did not read, less
+  terms for a native owner's alarm; ours never touches native land.
+- School: the original first looks for a farmer or fisherman for a hungry colony and for a
+  trade the colony has a building for and no expert in; ours keeps only "the trade he works".
+- Training: the treasury threshold was not identified; ours asks only the fee.
+
+### Computer powers: supplies by ship
+
+As traced from the original program (`AI_SUPPLY`).
+
+- **A colony asks** for one good, the last of these that applies, and only one it holds less
+  of than its warehouse takes and does not make: muskets under 50 x (its leader's aggression +
+  2); trade goods as under "wagon trains"; horses under 50; tools under 20 with ground to
+  improve; and muskets again, before all but tools, with under 50 while it is short of
+  defenders (before tools too while the defenders wanted are not all standing in it).
+- **A power's want** of a good is the number of its colonies asking for it; muskets count
+  twice, and once more for every colony with none.
+- **In port** a ship of the power's puts everything in her hold ashore.
+- **Where cargo goes:** a ship with supplies and nobody to deliver takes them to the port, other
+  than the one she lies in, with the highest sum over what she carries of (warehouse capacity
+  - stock - 1), less 4 x price level x anything over capacity, + 32 for the good the port asks
+  for, all divided by distance / 4 + 1; not a port that makes a good she carries and has 100.
+
+**Source:** VICEROY 5000:239c-24f1 with 5000:1726 (asking), 5000:0c1a-0c5e (the power's want),
+4000:cee4-cf0f (unloading), 4000:ddfa-e168 (where cargo goes).
+
+**Notes:** Ours, or left out:
+- With no port to take them a ship carries her supplies back to Europe and sells them (the
+  original turns them into gold where she lies).
+- The original's ships also load a colony's surplus and carry it to Europe; ours still sell it
+  from the colony (R-802).
+- The bonus for the good asked for grows with the turns since a ship last called, which we do
+  not keep: it stands at 4 x 8.
+
+### Computer powers: on the docks
+
+As traced from the original program (`AI_DOCKS`, `AI_SUPPLY`), after the buying of ships. Every
+third turn is a *cargo turn* for a power with a colony. *Short* is the fleet test of "the
+treasury and the fleet".
+
+1. **Selling.** Whatever a ship brought is sold.
+2. **A recruit.** Before the Declaration, with nobody on the docks, not short, not on a cargo
+   turn, while (its colonies wanting colonists - its colonists afoot) is at least half its
+   colonies, and it holds the fare and 2 x (30 x its people - the turn) besides: one of the
+   three in the pool, by lot.
+3. **Fitting out** each colonist waiting, the unskilled first, not on a cargo turn. A soldier:
+   on one throw in 2 (3 for a skilled man) while the power wants muskets, or from turn 100 on
+   one in 3 (4) while it wants colonies, if not short and it can pay; he takes a horse too if
+   it can pay for that. Else a pioneer: on one throw in 3 while it wants more colonies than it
+   has pioneers and none waits already (a skilled man on one in 5 besides; from turn 100 only
+   with fewer pioneers than a throw of 0 to 2). Arming one counts one off the muskets wanted,
+   and after any fitting-out no more colonies count as wanted that turn. Missionaries as under
+   "missions".
+4. **Dragoons.** With an armed man waiting, not short, not on a cargo turn, before the
+   Declaration: recruits are paid for one after another and armed and mounted, while the docks
+   hold fewer than its largest ship carries and the gold lasts.
+5. **Supplies.** Each ship, while holds are left over from those waiting, not short, and the
+   power has a colony, buys a lot of 100 of each supply (muskets, tools, trade goods, horses)
+   that at least as many colonies want as there are people on the docks (one more on odd
+   turns); on a cargo turn, of each whether wanted or not. Two holds are kept free on a turn
+   when somebody was fitted out.
+6. **Sailing.** Every ship sails that turn, loaded or not, with whoever waits.
+
+**Source:** VICEROY 5000:0082-016c (recruit), 5000:016c-053f (fitting out), 5000:065f-093a
+(dragoons), 5000:093d-0b7d (ships).
+
+**Notes:** Ours, or left out:
+- Prices are the engine's for everyone. The original gives computer powers their own fare
+  (no floor, cheaper with crosses), free arms from the musket and horse reserves, and mounts a
+  drafted dragoon even when it cannot pay.
+- On a cargo turn the original buys a lot of every good there is, muskets first; ours keeps to
+  the four supplies a colony can ask for.
+- Holds are kept for everyone waiting (the original keeps two, on fitting-out turns only).
+- Left out: veterans made by a power with a college; the second artillery rule (one for the
+  largest ship when an armed man waits), ours being the one under "the treasury and the fleet".
+- This replaced our own rules: a recruit whenever a ship had room and gold allowed, and
+  soldiers armed up to a garrison for every colony.
 
 ### Foreign Affairs report (R-803)
 

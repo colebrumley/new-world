@@ -67,11 +67,9 @@ describe('when a missionary is made', () => {
     expect(ordain(waiting(56), me(waiting(56)))).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'missionary' });
     // made on the docks without a ship in port, and it is the whole of the business in Europe that turn
     // (turn 119: after 1600, so that the colony is not first set to building a wagon train)
-    const guarded = withUnit(waiting(119), { id: 'g', type: 'soldier', x: 2, y: 4, orders: 'fortified' });
+    const guarded = withUnit(waiting(119), { id: 'g', type: 'artillery', profession: null, x: 2, y: 4, orders: 'fortified' });
     expect(policy(guarded)).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'missionary' });
     expect(act(guarded, policy(guarded)).units['w']).toMatchObject({ type: 'missionary' });
-    // a colony still without its guard comes first
-    expect(policy(waiting(119))).toEqual({ type: 'endTurn' });
   });
 
   it('from turn 200 on only one time in four', () => {
@@ -98,14 +96,6 @@ describe('when a missionary is made', () => {
     // somebody else's is no concern
     const theirs = withUnit(waiting(56), { id: 'x', owner: 'b', type: 'missionary', x: 5, y: 5 });
     expect(due(theirs)).toBe(true);
-  });
-
-  it('soldiers are fitted out first', () => {
-    // a people that has turned on the power calls for soldiers, and the colonist on the docks is to be one
-    const angry = onDocks(land({ turn: 119, tribe: { alarm: { a: 90 } }, gold: 250 }), 'w');
-    const ship = withUnit(angry, { id: 'ship', type: 'caravel', profession: null, x: 0, y: 0 });
-    const inPort = { ...ship, units: { ...ship.units, ship: { ...u(ship, 'ship'), x: OFF_MAP, y: OFF_MAP, voyage: { phase: 'inEurope' as const, turnsLeft: 0, origin: [1, 4] as const } } } };
-    expect(policy(inPort)).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'soldier' });
   });
 });
 

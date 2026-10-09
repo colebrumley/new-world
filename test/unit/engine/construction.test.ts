@@ -167,7 +167,8 @@ describe('building', () => {
     const s = town({ ai: true, construction: B('printingPress'), hammers: 60, goods: { tools: 5 } });
     const r = applyAction(applyAction(s, { type: 'endTurn' }).state, { type: 'endTurn' });
     expect(col(r.state).buildings).toContain('printingPress');
-    expect(col(r.state).goods.tools ?? 0).toBe(0);
+    // (its upkeep bought it twenty that turn: the five it had and fifteen given went into the building)
+    expect(col(r.state).goods.tools ?? 0).toBe(5);
   });
 
   it('keeps hammers when the project is changed, and the project stays selected once built', () => {

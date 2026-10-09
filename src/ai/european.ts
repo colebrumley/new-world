@@ -3,31 +3,34 @@
 // ending the turn when nothing useful is left. Nothing is remembered between calls: standing
 // Go To orders carry intentions from turn to turn.
 //
-// What it does: lands its people on good coastal sites and founds colonies there; sends newcomers
-// on to found more, up to a number that grows with the years, and then to swell the colonies it
-// has; keeps its ships ferrying immigrants from Europe and selling what they carry; recruits when
-// it has gold to spare; sets its colonies building; and garrisons them. Its wagon trains, its
-// missionaries, its warships and its campaigns by land and sea are in the modules beside this one.
+// What it does: lands its people on good coastal sites and founds colonies there; sends each
+// newcomer to found another or to join a colony that wants him (settle.ts); has its colonies
+// arm their own people (muster.ts); keeps its ships ferrying immigrants and supplies from
+// Europe (supply.ts) and does its business on the docks there; and sets its colonies building.
+// Its wagon trains, missionaries, warships and campaigns are in the modules beside this one.
 import { applyAction, validateAction, type Action, type GameEvent } from '../engine/actions';
 import { holdsFree } from '../engine/cargo';
 import { landmassAt } from '../engine/regions';
 import { coloniesOf, checkColonySite } from '../engine/colony';
-import { AI_CAMPAIGN, AI_FLEET, AI_PLAN } from '../engine/data/ai';
+import { AI_DOCKS, AI_FLEET, AI_MISSIONS, AI_MUSTER, AI_PLAN, AI_SETTLE, AI_SUPPLY } from '../engine/data/ai';
 import { fleetCensus, fleetWants } from '../engine/fleet';
 import { GOOD_IDS } from '../engine/data/goods';
-import { NATIONS } from '../engine/data/nations';
 import { UNSKILLED } from '../engine/data/professions';
 import { UNIT_TYPES } from '../engine/data/units';
 import { docksOf, shipsInEurope } from '../engine/europe';
 import { recruitPrice } from '../engine/immigration';
+import { askPrice } from '../engine/market';
 import { isInlandLake } from '../engine/movement';
 import { tribalAlarm } from '../engine/alarm';
 import { colonyAt, type Colony, type GameState, type Job, type Player, type Unit } from '../engine/state';
 import { isWater, type Tile } from '../engine/tile';
-import { defendersWanted, garrisons, invadeRequests, invasionFor, isFull, isQuiet, isTroop, landAttackChoice, landingStep, landOrders } from './campaign';
+import { garrisons, invasionFor, isFull, isQuiet, isTroop, landAttackChoice, landingStep, landOrders } from './campaign';
 import { missionaryAction, ordain, villageVisit, type Chances } from './missions';
 import { isWarship, privateersCarry, warshipAction } from './navy';
 import { buildAction, jobAction, jobPlan } from './colony';
+import { musterAction } from './muster';
+import { coloniesStillWanted, deliveryPort, joinTarget, mayFound, wantsColonists } from './settle';
+import { cargoPort, powerWants } from './supply';
 import { aiRng, parleyAction, wagonAction } from './wagons';
 
 const DIRS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]] as const;
@@ -38,12 +41,6 @@ const ok = (state: GameState, action: Action): boolean => validateAction(state, 
 const isShip = (u: Unit): boolean => UNIT_TYPES[u.type].domain === 'sea';
 const isSettler = (u: Unit): boolean => UNIT_TYPES[u.type].colonistRole && u.type !== 'missionary' && u.profession !== null && u.profession !== 'indianConvert';
 const isFighter = (u: Unit): boolean => UNIT_TYPES[u.type].domain === 'land' && UNIT_TYPES[u.type].attack > 1;
-
-/** How many colonies a power wants by now: a few at first, more as the years pass and for an expansionist leader. */
-export function coloniesWanted(state: GameState, player: Player): number {
-  const bent = NATIONS[player.nation].leaderTraits.expansionist;
-  return Math.min(AI_PLAN.coloniesMost, AI_PLAN.coloniesAtStart + bent + Math.floor(state.turn / AI_PLAN.turnsPerExtraColony));
-}
 
 /** How good a place for a colony this is; 0 if it will not do. Coast, workable land, room, and no neighbours too close. */
 export function siteScore(state: GameState, x: number, y: number): number {
@@ -140,21 +137,6 @@ function nearestColony(mine: readonly Colony[], x: number, y: number): Colony | 
 }
 
 /**
- * Does the power still want soldiers armed on the docks? The garrison of every colony, more
- * while a native people on its doorstep has turned on it, and a landing party while there is
- * a rival colony it would invade.
- */
-function guardsWanted(state: GameState, player: Player): boolean {
-  const mine = coloniesOf(state, player.id);
-  const soldiers = Object.values(state.units).filter((u) => u.owner === player.id && isFighter(u)).length;
-  const lands = new Set(mine.map((c) => landmassAt(state.map, c.x, c.y)));
-  const threatened = Object.values(state.settlements).some((s) => tribalAlarm(state, s.tribe, player.id) >= AI_CAMPAIGN.settlementAlarmFrom && lands.has(landmassAt(state.map, s.x, s.y)));
-  const abroad = mine.length >= AI_PLAN.coloniesBeforeGarrison && invadeRequests(state, player).length > 0;
-  const garrison = mine.reduce((n, c) => n + defendersWanted(state, c), 0);
-  return soldiers < garrison + (threatened ? AI_PLAN.reprisalParty : 0) + (abroad ? AI_CAMPAIGN.expedition : 0);
-}
-
-/**
  * The round of buying in Europe (docs/RULES.md "Computer powers: the treasury and the fleet"):
  * at most one ship a turn, the first on the list that applies and can be paid for, and now and
  * then a piece of artillery besides. `done` keeps what has been seen to this turn; tests put
@@ -197,48 +179,136 @@ export function fleetPurchase(state: GameState, player: Player, done: Set<string
   return null;
 }
 
+/** How many times a marker of this kind has been set this turn. */
+const tally = (done: Set<string>, mark: string): number => [...done].filter((m) => m.startsWith(mark)).length;
+
+/**
+ * The power's business on the docks (docs/RULES.md "Computer powers: on the docks"): what its
+ * ships brought is sold; it may pay one recruit's fare; those waiting may be armed or made
+ * pioneers or missionaries; with an armed man waiting it recruits dragoons to fill its largest
+ * ship; goods its colonies ask for are bought; and every ship sails.
+ */
 function europeAction(state: GameState, player: Player, done: Set<string>): Action | null {
   const bought = fleetPurchase(state, player, done);
   if (bought) return bought;
-  // a missionary is made of someone waiting on the docks, ship or no ship, once the soldiers are found
-  const blessing = guardsWanted(state, player) ? null : ordain(state, player);
-  if (blessing) return blessing;
-  const ships = shipsInEurope(state, player.id).filter((s) => s.repair === 0);
-  if (ships.length === 0) return null;
+  const mine = coloniesOf(state, player.id);
+  const ships = shipsInEurope(state, player.id).filter((s) => s.repair === 0).sort((a, b) => (a.id < b.id ? -1 : 1));
   for (const ship of ships) {
+    if (done.has(`#laden:${ship.id}`)) continue;
     for (const good of GOOD_IDS) {
       const amount = Math.min(100, ship.cargo[good] ?? 0);
       const sale: Action = { type: 'sellGoods', unitId: ship.id, good, amount };
       if (amount > 0 && ok(state, sale)) return sale;
     }
   }
-  const waiting = docksOf(state, player.id);
-  const room = ships.reduce((n, s) => n + UNIT_TYPES[s.type].holds, 0);
-  // a privateer or man-of-war does not wait on the docks for passengers
-  for (const ship of ships) {
-    const sail: Action = { type: 'sailFromEurope', unitId: ship.id };
-    if ((ship.type === 'manOWar' || (ship.type === 'privateer' && !privateersCarry(state, player))) && ok(state, sail)) return sail;
+  const rng = (label: string): ReturnType<typeof aiRng> => aiRng(state, `${player.id}:docks:${label}`);
+  const before = state.crownPlayer === null;
+  const short = fleetWants(state, player.id).short;
+  const cargoTurn = state.turn % AI_SUPPLY.cargoEvery === 0 && mine.length > 0;
+  const waiting = docksOf(state, player.id).sort((a, b) => (a.id < b.id ? -1 : 1));
+  const plain = (u: Unit): boolean => u.type === 'colonist' && u.profession !== null;
+  const unskilled = (u: Unit): boolean => UNSKILLED.includes(u.profession ?? 'freeColonist');
+  const mineAll = Object.values(state.units).filter((u) => u.owner === player.id);
+
+  // a recruit, while the docks are empty and colonies want people
+  if (!done.has('#recruit')) {
+    done.add('#recruit');
+    const wanting = mine.filter((c) => wantsColonists(state, c)).length;
+    const people = mine.reduce((n, c) => n + c.colonists.length, 0) + mineAll.filter((u) => UNIT_TYPES[u.type].colonistRole).length;
+    const reserve = Math.max(0, AI_DOCKS.reserveTimes * (AI_DOCKS.reservePerPerson * people - state.turn));
+    const order: Action = { type: 'recruit', slot: rng('recruit').int(0, 2) };
+    if (before && waiting.length === 0 && !short && !cargoTurn && wanting - mineAll.filter((u) => u.type === 'colonist').length >= mine.length >> AI_DOCKS.recruitColoniesShift
+      && player.gold >= recruitPrice(state, player.id) + reserve && ok(state, order)) return order;
   }
-  if (waiting.length < room && player.gold >= recruitPrice(state, player.id) + AI_PLAN.goldReserve) {
-    // the most useful of the three: anyone with a trade before the unskilled
-    const order = [0, 1, 2].sort((a, b) => rank(player.pool[b]) - rank(player.pool[a]));
-    for (const slot of order) if (ok(state, { type: 'recruit', slot })) return { type: 'recruit', slot };
-  }
-  // a guard for every colony, and more when a native people has turned on us: arm those waiting on the docks
-  if (guardsWanted(state, player)) {
-    for (const unit of waiting) {
-      if (unit.type !== 'colonist' || !UNSKILLED.includes(unit.profession ?? 'freeColonist')) continue;
-      const arm: Action = { type: 'equipInEurope', unitId: unit.id, role: 'soldier' };
-      if (ok(state, arm)) return arm;
+
+  // a man just armed takes a horse if there is one to be had; a recruit raised for the dragoons is armed and mounted
+  for (const unit of waiting) {
+    if (done.has(`#mount:${unit.id}`)) {
+      done.delete(`#mount:${unit.id}`);
+      const mount: Action = { type: 'equipInEurope', unitId: unit.id, role: 'dragoon' };
+      if (ok(state, mount)) return mount;
+    }
+    if (done.has('#draft') && plain(unit) && !done.has(`#fit:${unit.id}`)) {
+      done.delete('#draft');
+      done.add(`#fit:${unit.id}`);
+      for (const role of ['dragoon', 'soldier'] as const) {
+        const arm: Action = { type: 'equipInEurope', unitId: unit.id, role };
+        if (ok(state, arm)) return arm;
+      }
     }
   }
-  if (waiting.length > 0) {
-    const sail: Action = { type: 'sailFromEurope', unitId: (ships[0] as Unit).id };
+  // fitting out those who wait: the unskilled first
+  for (const unit of [...waiting.filter(unskilled), ...waiting.filter((u) => !unskilled(u))]) {
+    if (!plain(unit) || done.has(`#fit:${unit.id}`) || cargoTurn) continue;
+    done.add(`#fit:${unit.id}`);
+    const k = unskilled(unit) ? 0 : 1;
+    const throws = rng(unit.id);
+    const one = (odds: number): boolean => throws.int(1, odds) === 1;
+    const fitted = tally(done, '#fitted:');
+    const stillWanted = fitted > 0 ? 0 : coloniesStillWanted(state, player);
+    const muskets = powerWants(state, player).muskets - tally(done, '#fitted:soldier');
+    const arm: Action = { type: 'equipInEurope', unitId: unit.id, role: 'soldier' };
+    const byWant = muskets > 0 && one(AI_DOCKS.soldierOdds + k);
+    const byYear = stillWanted !== 0 && one(AI_DOCKS.lateOdds + k) && state.turn >= AI_DOCKS.lateFrom;
+    if ((byWant || byYear) && !short && ok(state, arm)) {
+      done.add(`#fitted:soldier:${unit.id}`);
+      done.add(`#mount:${unit.id}`);
+      return arm;
+    }
+    const pioneers = mineAll.filter((u) => u.type === 'pioneer').length;
+    const tooled: Action = { type: 'equipInEurope', unitId: unit.id, role: 'pioneer' };
+    if (stillWanted > pioneers && one(AI_DOCKS.pioneerOdds) && !waiting.some((u) => u.type === 'pioneer') && (state.turn < AI_DOCKS.lateFrom || pioneers < throws.int(0, AI_DOCKS.pioneersMost))
+      && (k === 0 || one(AI_DOCKS.skilledPioneerOdds)) && ok(state, tooled)) {
+      done.add(`#fitted:pioneer:${unit.id}`);
+      return tooled;
+    }
+  }
+  const blessing = ordain(state, player);
+  if (blessing) return blessing;
+
+  // with an armed man waiting, recruits are raised as dragoons while the largest ship has room for them
+  const armed = waiting.filter(isFighter).length;
+  const largest = Math.max(0, ...ships.map((s) => UNIT_TYPES[s.type].holds));
+  if (before && !short && !cargoTurn && armed > 0 && largest - armed > 0 && waiting.length < largest) {
+    const order: Action = { type: 'recruit', slot: rng(`draft:${waiting.length}`).int(0, 2) };
+    const kit = AI_MUSTER.muskets * askPrice(state, player.id, 'muskets');
+    if (player.gold >= recruitPrice(state, player.id) + kit && ok(state, order)) {
+      done.add('#draft');
+      return order;
+    }
+  }
+  if (ships.length === 0) return null;
+
+  // goods the colonies ask for, a lot of each, while holds are left over from the passengers
+  const wants = powerWants(state, player);
+  const dockUnits = waiting.length + (state.turn % 2);
+  const someoneFitted = tally(done, '#fitted:') > 0 || waiting.some((u) => u.type === 'pioneer');
+  let seats = waiting.reduce((n, u) => n + UNIT_TYPES[u.type].size, 0);
+  for (const ship of ships) {
+    // a privateer or man-of-war carries nothing out
+    const carrier = ship.type !== 'manOWar' && (ship.type !== 'privateer' || privateersCarry(state, player));
+    const mayLoad = carrier && !short && mine.length > 0 && before;
+    for (const good of AI_SUPPLY.goods) {
+      if (!mayLoad || done.has(`#lot:${ship.id}:${good}`)) continue;
+      done.add(`#lot:${ship.id}:${good}`);
+      const free = holdsFree(state, ship) - Math.min(seats, holdsFree(state, ship));
+      if (free <= 0 || (someoneFitted && !cargoTurn && free <= AI_SUPPLY.holdsKept)) continue;
+      if (!cargoTurn && wants[good] - tally(done, `#bought:${good}:`) < Math.max(1, dockUnits)) continue;
+      const order: Action = { type: 'buyGoods', unitId: ship.id, good, amount: AI_SUPPLY.lot };
+      if (!ok(state, order)) continue;
+      done.add(`#laden:${ship.id}`);
+      done.add(`#bought:${good}:${ship.id}`);
+      return order;
+    }
+    seats -= Math.min(seats, holdsFree(state, ship));
+  }
+  // every ship sails, loaded or not
+  for (const ship of ships) {
+    const sail: Action = { type: 'sailFromEurope', unitId: ship.id };
     if (ok(state, sail)) return sail;
   }
   return null;
 }
-const rank = (profession: string | undefined): number => (profession === 'pettyCriminal' ? 0 : profession === 'indenturedServant' ? 1 : profession === 'freeColonist' ? 2 : 3);
 
 function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly Colony[]): Action | null {
   // warships fight and keep their stations; only when free of that do they do a transport's work
@@ -246,6 +316,13 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
   if (duty !== undefined) return duty;
   if (ship.repair > 0 || ship.orders === 'goto') return null;
   const riders = Object.values(state.units).filter((u) => u.aboard === ship.id);
+  // in one of our ports everything in the hold goes ashore
+  if (colonyAt(state, ship.x, ship.y)?.owner === player.id) {
+    for (const good of GOOD_IDS) {
+      const unload: Action = { type: 'unloadCargo', unitId: ship.id, good, amount: ship.cargo[good] ?? 0 };
+      if ((ship.cargo[good] ?? 0) > 0 && ok(state, unload)) return unload;
+    }
+  }
   // a full ship with soldiers aboard (or waiting on the quay to board as she sails) may make a landing beside a rival colony
   const quay = colonyAt(state, ship.x, ship.y)?.owner === player.id ? Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && isTroop(u)) : [];
   if (mine.length >= AI_PLAN.coloniesBeforeGarrison && (riders.some(isTroop) || quay.length > 0) && isFull(state, ship, quay.length)) {
@@ -260,16 +337,18 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
   const preaching = !riders.some(isSettler) && riders.some((u) => u.type === 'missionary') && mine.length > 0;
   if (riders.some(isSettler) || preaching) {
     // a missionary alone aboard is carried to a colony, never to a fresh site
-    const wanted = preaching ? 0 : coloniesWanted(state, player);
+    const founding = !preaching && riders.some((r) => mayFound(state, player, r));
     const inPort = colonyAt(state, ship.x, ship.y)?.owner === player.id;
-    // they will go ashore themselves: onto a site alongside, or into the colony if no more colonies are wanted
-    if ((!inPort && siteBeside(state, ship)) || (inPort && mine.length >= wanted)) return null;
-    // more colonies wanted: a fresh site; otherwise the nearest colony we have
-    const bySea = mine.length < wanted || mine.length === 0 ? seaDistances(state, ship.x, ship.y) : null;
+    // they will go ashore themselves: onto a site alongside, or into the colony when they have come to join one
+    if ((!inPort && founding && siteBeside(state, ship)) || (inPort && !founding)) return null;
+    // founders are taken to a fresh site; the rest to the colony that needs them most
+    const bySea = founding ? seaDistances(state, ship.x, ship.y) : null;
     // a power with no colony yet takes the nearest fair site rather than hold out for the best
     const haste = mine.length === 0 ? AI_PLAN.firstColonyHaste : 1;
-    const site = mine.length < wanted ? bestSite(state, ship.x, ship.y, AI_PLAN.shipSearch, bySea, haste) ?? bestSite(state, ship.x, ship.y, state.map.width, bySea, haste) : null;
-    const goal = site ?? nearestColony(mine, ship.x, ship.y) ?? bestSite(state, ship.x, ship.y, state.map.width, bySea, haste);
+    const site = founding ? bestSite(state, ship.x, ship.y, AI_PLAN.shipSearch, bySea, haste) ?? bestSite(state, ship.x, ship.y, state.map.width, bySea, haste) : null;
+    const ports = mine.filter((c) => ok(state, { type: 'goTo', unitId: ship.id, x: c.x, y: c.y }));
+    const luck = (c: Colony): number => aiRng(state, `${ship.id}:port:${c.id}`).int(0, AI_SETTLE.portLuck);
+    const goal = site ?? deliveryPort(state, ship, ports, luck) ?? nearestColony(mine, ship.x, ship.y);
     if (!goal) return null;
     if (colonyAt(state, goal.x, goal.y)) {
       const port: Action = { type: 'goTo', unitId: ship.id, x: goal.x, y: goal.y };
@@ -287,8 +366,12 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
     }
     return null;
   }
+  if (ship.movesLeft <= 0) return null;
+  // supplies in the hold go to the port that needs them most; with none to take them they go back to be sold
+  const needy = cargoPort(state, ship, mine.filter((c) => ok(state, { type: 'goTo', unitId: ship.id, x: c.x, y: c.y })));
+  if (needy) return { type: 'goTo', unitId: ship.id, x: needy.x, y: needy.y };
   // nobody aboard: make for Europe, where the immigrants are (the colonies sell their own surplus)
-  if (ship.movesLeft <= 0 || player.atWar) return null;
+  if (player.atWar) return null;
   // eastward along the lane is the way home, so those steps are tried first
   for (const [dx, dy] of [...DIRS].sort((a, b) => b[0] - a[0])) {
     const sail: Action = { type: 'moveUnit', unitId: ship.id, dx, dy, sail: true };
@@ -315,7 +398,7 @@ function riderAction(state: GameState, rider: Unit, player: Player, mine: readon
     // delivered: join, unless more colonies are wanted and this one can spare the hands
     const join: Action = { type: 'joinColony', unitId: rider.id };
     // a soldier stays a soldier once the power has its foothold, and a missionary a missionary: down the gangway on foot
-    if (rider.type === 'missionary' || (isFighter(rider) && mine.length >= AI_PLAN.coloniesBeforeGarrison)) {
+    if (rider.type === 'missionary' || (isFighter(rider) && !mayFound(state, player, rider))) {
       for (const [dx, dy] of DIRS) {
         const ashore: Action = { type: 'moveUnit', unitId: rider.id, dx, dy };
         const t = tileOf(state, ship.x + dx, ship.y + dy);
@@ -323,13 +406,14 @@ function riderAction(state: GameState, rider: Unit, player: Player, mine: readon
       }
       return null;
     }
-    if (isSettler(rider) && mine.length >= coloniesWanted(state, player) && ok(state, join)) return join;
-    // more colonies are wanted but the ship can reach no site: better a pair of hands here than a passenger for ever
+    // come to join: in he goes; founders stay aboard for the site, unless the ship can reach none
+    const founding = Object.values(state.units).some((u) => u.aboard === ship.id && mayFound(state, player, u));
+    if (isSettler(rider) && !founding && ok(state, join)) return join;
     if (isSettler(rider) && ok(state, join) && bestSite(state, ship.x, ship.y, state.map.width, seaDistances(state, ship.x, ship.y)) === null) return join;
     return null;
   }
   if (ship.orders === 'goto') return null;
-  const beside = siteBeside(state, ship);
+  const beside = mayFound(state, player, rider) || mine.length === 0 ? siteBeside(state, ship) : null;
   if (!beside) return null;
   const ashore: Action = { type: 'moveUnit', unitId: rider.id, dx: beside[0], dy: beside[1] };
   return ok(state, ashore) ? ashore : null;
@@ -348,12 +432,12 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
   if (visit) return visit;
   if (unit.orders === 'goto' || unit.orders === 'plow' || unit.orders === 'road') return null;
   const here = colonyAt(state, unit.x, unit.y);
-  const wanted = coloniesWanted(state, player);
+  const founding = mayFound(state, player, unit);
   const home = nearestColony(mine, unit.x, unit.y);
   const guards = (c: Colony): number => Object.values(state.units).filter((u) => u.x === c.x && u.y === c.y && u.owner === player.id && isFighter(u)).length;
 
   // soldiers hold what the power has once it has a foothold, and go where it wants fighting done
-  if (isFighter(unit) && (mine.length >= AI_PLAN.coloniesBeforeGarrison || !isSettler(unit))) {
+  if (isFighter(unit) && !founding) {
     const mineHere = here !== null && here.owner === player.id;
     if (garrisons(state, player).has(unit.id)) {
       const dig: Action = { type: 'setOrders', unitId: unit.id, orders: 'fortify' };
@@ -388,9 +472,26 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
     const back: Action | null = home && !here ? { type: 'goTo', unitId: unit.id, x: home.x, y: home.y } : null;
     return back && ok(state, back) ? back : null;
   }
-  // settlers: found while more colonies are wanted, then swell the ones there are
+  if (unit.type === 'scout') {
+    // ours: it rides to the nearest friendly village on its land that none of ours has spoken with, and otherwise home
+    const land = landmassAt(state.map, unit.x, unit.y);
+    const calls = Object.values(state.settlements)
+      .filter((v) => landmassAt(state.map, v.x, v.y) === land && !v.scouted.includes(player.id) && tribalAlarm(state, v.tribe, player.id) < AI_MISSIONS.visitAlarmBelow)
+      .sort((a, b) => far(a.x, a.y, unit.x, unit.y) - far(b.x, b.y, unit.x, unit.y));
+    for (const v of calls) {
+      for (const [dx, dy] of DIRS) {
+        const go: Action = { type: 'goTo', unitId: unit.id, x: v.x + dx, y: v.y + dy };
+        if (ok(state, go)) return go;
+      }
+    }
+    const back: Action | null = home && !here ? { type: 'goTo', unitId: unit.id, x: home.x, y: home.y } : null;
+    return back && ok(state, back) ? back : null;
+  }
+  // founders look for a site; so does a colonist no colony on his land has room for
   const found: Action = { type: 'foundColony', unitId: unit.id };
-  if (mine.length < wanted) {
+  const target = unit.type === 'colonist' && !founding ? joinTarget(state, player, unit) : null;
+  const crowdedOut = unit.type === 'colonist' && !founding && target === null && unit.profession !== 'indianConvert' && state.crownPlayer === null;
+  if (founding || crowdedOut || mine.length === 0) {
     if (!here && siteScore(state, unit.x, unit.y) > 0 && ok(state, found)) return found;
     for (const reach of [AI_PLAN.landSearch, 2 * AI_PLAN.landSearch]) {
       const site = bestSite(state, unit.x, unit.y, reach, null, mine.length === 0 ? AI_PLAN.firstColonyHaste : 1);
@@ -398,7 +499,13 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
       if (go && ok(state, go)) return go;
     }
   }
+  // the rest join the colony on their land that wants them most
   const join: Action = { type: 'joinColony', unitId: unit.id };
+  if (target && (target.x !== unit.x || target.y !== unit.y)) {
+    const go: Action = { type: 'goTo', unitId: unit.id, x: target.x, y: target.y };
+    if (ok(state, go)) return go;
+  }
+  // (with no site in reach either, better a pair of hands here than an idler)
   if (here && here.owner === player.id) return ok(state, join) ? join : null;
   const walk: Action | null = home ? { type: 'goTo', unitId: unit.id, x: home.x, y: home.y } : null;
   if (walk && ok(state, walk)) return walk;
@@ -420,6 +527,9 @@ export function europeanAction(state: GameState, idle: Set<string> = new Set()):
   // each colony in turn: what it builds, and who does what (docs/RULES.md "Computer powers: the colony")
   for (const colony of mine) {
     if (idle.has(`#colony:${colony.id}`)) continue;
+    // first who stands guard: units taken back in, and one colonist sent out armed
+    const guard = musterAction(state, colony, idle, aiRng(state, `${colony.id}:muster`));
+    if (guard) return guard;
     const build = buildAction(state, colony);
     if (build) return build;
     // the jobs are dealt out once a turn, when the project is settled, and then carried through
@@ -447,7 +557,7 @@ export function europeanAction(state: GameState, idle: Set<string> = new Set()):
 /** What an action was meant to change about its unit: used to notice orders that came to nothing. */
 const stamp = (state: GameState, id: string | undefined): string => {
   const u = id === undefined ? undefined : state.units[id];
-  return u ? `${u.x},${u.y},${u.movesLeft},${u.orders},${u.aboard},${u.type},${u.owner},${JSON.stringify(u.cargo)}` : 'gone';
+  return u ? `${u.x},${u.y},${u.movesLeft},${u.orders},${u.aboard},${u.type},${u.owner},${JSON.stringify(u.cargo)},${JSON.stringify(u.voyage)}` : 'gone';
 };
 
 /** Play out the turn of the power to move with this policy; stops after `cap` actions whatever happens. `watch` is shown each action it decides on, for the simulations. */

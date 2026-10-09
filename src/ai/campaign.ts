@@ -3,17 +3,16 @@
 // settlements to attack, colonies of its own to defend) and beaches to invade; its troops and
 // its full troop ships take what is nearest and matters most, as its warships do their stations.
 import { validateAction, type Action } from '../engine/actions';
-import { tribalAlarm } from '../engine/alarm';
 import { analyseAttack } from '../engine/analysis';
 import { holdsUsed } from '../engine/cargo';
 import { coloniesOf } from '../engine/colony';
-import { combatOdds, type Fighter } from '../engine/combat';
-import { AI_CAMPAIGN } from '../engine/data/ai';
-import { COMBAT } from '../engine/data/combat';
+import { tribalAlarm, settlementAlarm } from '../engine/alarm';
+import { AI_CAMPAIGN, AI_MUSTER } from '../engine/data/ai';
+import { chainLevel } from '../engine/data/buildings';
 import { UNIT_TYPES } from '../engine/data/units';
 import { isBorder, isInlandLake } from '../engine/movement';
 import { landmassAt, landmasses } from '../engine/regions';
-import { settlementAt, tribeOfOwner } from '../engine/settlements';
+import { homeOfBrave, settlementAt, tribeOfOwner, tribeOwner } from '../engine/settlements';
 import { colonyAt, type Colony, type GameState, type Player, type PlayerId, type Unit } from '../engine/state';
 import { isWater } from '../engine/tile';
 import { baseLoad, firmPeace } from './navy';
@@ -81,31 +80,58 @@ function troopsIn(state: GameState, colony: Colony): Unit[] {
     .sort((a, b) => rank(a) - rank(b) || byId(a, b));
 }
 
-/** What a troop is worth in defence where it stands, in the engine's eighths of a strength point (walls and digging in included). */
-function defenceOf(state: GameState, troop: Fighter): number {
-  const caller: Fighter = { type: 'soldier', profession: 'freeColonist', owner: '', orders: 'none', x: troop.x, y: troop.y, movesLeft: 0 };
-  return combatOdds(state, caller, troop).defense;
+/** What threatens a colony: the weight of foreign land units within five squares, and whether any that count stand next to it. */
+export function colonyThreat(state: GameState, colony: Colony): { readonly total: number; readonly adjacent: boolean } {
+  return memo(state, `threat:${colony.id}`, () => {
+    let total = 0;
+    let adjacent = false;
+    for (const u of Object.values(state.units)) {
+      if (u.owner === colony.owner || !isLand(u) || !onMap(u) || u.aboard !== null) continue;
+      const away = far(u.x, u.y, colony.x, colony.y);
+      if (away > AI_MUSTER.threatRange) continue;
+      let weight: number = UNIT_TYPES[u.type].attack;
+      const tribe = tribeOfOwner(u.owner);
+      if (tribe) {
+        // braves count only when their people, and their own village, have turned on us
+        const home = homeOfBrave(state, u.id);
+        if (tribalAlarm(state, tribe, colony.owner) < AI_MUSTER.tribeAlarmFrom || (home ? settlementAlarm(home, colony.owner) : 0) < AI_MUSTER.villageAlarmFrom) weight = 0;
+      } else {
+        if (weight <= 1) weight = 0;
+        else if (state.players.find((p) => p.id === u.owner)?.kind === 'human') weight += weight >> 1;
+      }
+      if (colonyAt(state, u.x, u.y)) weight >>= 1;
+      weight = Math.trunc((weight * (AI_MUSTER.threatFalloff - away)) / AI_MUSTER.threatFalloff);
+      if (weight !== 0 && away <= 1) adjacent = true;
+      total += weight;
+    }
+    // walls divide it, but never below what it was up to sixteen
+    total = Math.max(Math.trunc(total / (chainLevel(colony.buildings, 'fortification') + 1)), Math.min(total, AI_MUSTER.threatFloor));
+    return { total, adjacent };
+  });
+}
+
+/** A colony's people for these reckonings: its colonists and the colonist-type units standing on its square. */
+export function peopleAt(state: GameState, colony: Colony): number {
+  return colony.colonists.length + Object.values(state.units).filter((u) => u.owner === colony.owner && onMap(u) && u.aboard === null && u.x === colony.x && u.y === colony.y && UNIT_TYPES[u.type].colonistRole).length;
 }
 
 /**
- * Is the colony badly defended with these troops? With none it is; with more than five it is
- * not; otherwise when their summed defence strength is under 0.95 x its population - 2.5.
+ * Defenders a colony wants: half its people less one, or an eighth of the threat if that is
+ * more, but never over half its people; one more after the Declaration; at least one while a
+ * threat stands next to it and it has more than one person.
  */
-export function badlyDefended(state: GameState, colony: Colony, troops: readonly Fighter[]): boolean {
-  if (troops.length < 1) return true;
-  if (troops.length > AI_CAMPAIGN.defendersMost) return false;
-  const strength = troops.reduce((n, u) => n + defenceOf(state, u), 0);
-  return AI_CAMPAIGN.defenceTimes * strength < COMBAT.scale * (AI_CAMPAIGN.defencePerColonist * colony.colonists.length - AI_CAMPAIGN.defenceLess);
+export function defendersWanted(state: GameState, colony: Colony): number {
+  const people = peopleAt(state, colony);
+  const threat = colonyThreat(state, colony);
+  let wanted = Math.min(Math.max((people - 1) >> 1, Math.trunc(threat.total / AI_MUSTER.threatPerDefender)), people >> 1);
+  if (state.crownPlayer !== null) wanted += 1;
+  if (threat.adjacent && people > 1) wanted = Math.max(wanted, 1);
+  return Math.max(0, wanted);
 }
 
-/** Of the troops in a colony, those it keeps as garrison: taken in order until it is no longer badly defended. */
+/** Of the troops in a colony, those it keeps as garrison: as many as it wants, taken in order. */
 function garrisonOf(state: GameState, colony: Colony): Unit[] {
-  const kept: Unit[] = [];
-  for (const troop of troopsIn(state, colony)) {
-    if (!badlyDefended(state, colony, kept)) break;
-    kept.push(troop);
-  }
-  return kept;
+  return troopsIn(state, colony).slice(0, defendersWanted(state, colony));
 }
 
 /** The troops standing in the power's colonies that are their garrisons, and answer no other call. */
@@ -113,24 +139,9 @@ export function garrisons(state: GameState, player: Player): Set<string> {
   return memo(state, `garrisons:${player.id}`, () => new Set(coloniesOf(state, player.id).flatMap((c) => garrisonOf(state, c).map((u) => u.id))));
 }
 
-/** How many more troops a colony is short of: none if it is defended, else how many more soldiers dug in there would make it so. */
+/** How many more troops a colony is short of. */
 export function defendersShort(state: GameState, colony: Colony): number {
-  const kept = garrisonOf(state, colony);
-  if (!badlyDefended(state, colony, kept)) return 0;
-  // reckon each newcomer as a soldier dug in behind the colony's walls
-  const recruit: Fighter = { type: 'soldier', profession: 'freeColonist', owner: colony.owner, orders: 'fortified', x: colony.x, y: colony.y, movesLeft: 0 };
-  let short = 0;
-  const all: Fighter[] = [...kept];
-  while (badlyDefended(state, colony, all) && all.length <= AI_CAMPAIGN.defendersMost) {
-    all.push(recruit);
-    short++;
-  }
-  return short;
-}
-
-/** Defenders a colony wants in all: those it keeps and those it is short of. */
-export function defendersWanted(state: GameState, colony: Colony): number {
-  return garrisonOf(state, colony).length + defendersShort(state, colony);
+  return Math.max(0, defendersWanted(state, colony) - troopsIn(state, colony).length);
 }
 
 /** What the power wants done on land this turn, the most pressing first. */
@@ -333,6 +344,42 @@ export function landingStep(state: GameState, rider: Unit, ship: Unit, player: P
 
 // --- quiet regions ---------------------------------------------------------------------------------
 
+/** Who on this landmass the power is at odds with: rival powers not at firm peace with it, and native peoples that have turned on it. */
+function enemiesOn(state: GameState, player: Player, land: number): string[] {
+  const rivals = new Set<PlayerId>();
+  for (const c of Object.values(state.colonies)) if (c.owner !== player.id && isPower(state, c.owner) && landOf(state, c) === land) rivals.add(c.owner);
+  for (const u of Object.values(state.units)) if (u.owner !== player.id && isPower(state, u.owner) && isLand(u) && onMap(u) && u.aboard === null && landOf(state, u) === land) rivals.add(u.owner);
+  const out: string[] = [...rivals].filter((o) => !firmPeace(state, player, o));
+  for (const s of Object.values(state.settlements)) {
+    if (landOf(state, s) === land && tribalAlarm(state, s.tribe, player.id) >= AI_CAMPAIGN.settlementAlarmFrom && !out.includes(tribeOwner(s.tribe))) out.push(tribeOwner(s.tribe));
+  }
+  return out;
+}
+
+/** Summed attack values of an owner's land units on a landmass. */
+const strengthOf = (state: GameState, owner: string, land: number): number =>
+  Object.values(state.units).reduce((n, u) => n + (u.owner === owner && isLand(u) && onMap(u) && u.aboard === null && landOf(state, u) === land ? UNIT_TYPES[u.type].attack : 0), 0);
+
+/**
+ * How a landmass stands for the power: 0 well settled and quiet, 6 room to grow, 4 to be
+ * taken (somebody it is at odds with is there and it is the stronger or has no colony, or it
+ * has nothing there at all), 3 to be defended (such an enemy is at least as strong and it has a colony).
+ */
+export function regionState(state: GameState, player: Player, land: number): 0 | 3 | 4 | 6 {
+  return memo(state, `region:${player.id}:${land}`, () => {
+    if (!presentOn(state, player, land)) return 4;
+    const all = Object.values(state.colonies).filter((c) => isPower(state, c.owner) && landOf(state, c) === land);
+    const mine = all.filter((c) => c.owner === player.id).length;
+    const foes = enemiesOn(state, player, land);
+    if (foes.length > 0) {
+      const ours = strengthOf(state, player.id, land);
+      const theirs = Math.max(...foes.map((o) => strengthOf(state, o, land)));
+      return ours > theirs || mine === 0 ? 4 : 3;
+    }
+    return AI_CAMPAIGN.quietTimes * (mine + all.length) > landmassSize(state, land) ? 0 : 6;
+  });
+}
+
 /**
  * Is this landmass quiet for the power: well settled, and nobody on it that it is at odds with?
  * Troops with nothing to do in a quiet region are free to be shipped elsewhere.
@@ -340,12 +387,7 @@ export function landingStep(state: GameState, rider: Unit, ship: Unit, player: P
 export function isQuiet(state: GameState, player: Player, land: number): boolean {
   const all = Object.values(state.colonies).filter((c) => isPower(state, c.owner) && landOf(state, c) === land);
   const mine = all.filter((c) => c.owner === player.id).length;
-  if (AI_CAMPAIGN.quietTimes * (mine + all.length) <= landmassSize(state, land)) return false;
-  const rivals = new Set<PlayerId>();
-  for (const c of all) if (c.owner !== player.id) rivals.add(c.owner);
-  for (const u of Object.values(state.units)) if (u.owner !== player.id && isPower(state, u.owner) && isLand(u) && onMap(u) && u.aboard === null && landOf(state, u) === land) rivals.add(u.owner);
-  for (const o of rivals) if (!firmPeace(state, player, o)) return false;
-  return !Object.values(state.settlements).some((s) => landOf(state, s) === land && tribalAlarm(state, s.tribe, player.id) >= AI_CAMPAIGN.settlementAlarmFrom);
+  return AI_CAMPAIGN.quietTimes * (mine + all.length) > landmassSize(state, land) && enemiesOn(state, player, land).length === 0;
 }
 
 // --- fighting on land ------------------------------------------------------------------------------

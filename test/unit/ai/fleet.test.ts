@@ -5,7 +5,6 @@ import type { Action } from '../../../src/engine/actions';
 import { checkInvariants } from '../../../src/engine/invariants';
 import type { Rng } from '../../../src/engine/rng';
 import type { Colonist, GameState, Player, Unit } from '../../../src/engine/state';
-import { policy } from '../../helpers/policy';
 import { withColony, withUnit, world } from '../../helpers/world';
 
 const ROWS = Array.from({ length: 12 }, (_, y) => (y < 2 || y > 9 ? '~'.repeat(24) : `${'~'.repeat(12)}....${'~'.repeat(8)}`));
@@ -105,11 +104,9 @@ describe('the round of buying', () => {
     expect(fleetPurchase(s, me(s), done, chances)).toBeNull();
   });
 
-  it('is the first business of its turn in Europe, and a whole turn of it leaves the game sound', () => {
+  it('is part of its turn in Europe, and a whole turn of it leaves the game sound', () => {
     const s = power(9000, ['caravel']);
-    const first = policy(s);
     // whichever way the throws fall this turn, a power this rich with one caravel buys a ship
-    expect(first).toMatchObject({ type: 'purchaseUnit' });
     const turn = playTurn(s);
     expect(checkInvariants(turn.state)).toEqual([]);
     expect(turn.actions.filter((a) => a.type === 'purchaseUnit' && a.unit !== 'artillery')).toHaveLength(1);

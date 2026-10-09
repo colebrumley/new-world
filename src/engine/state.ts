@@ -318,6 +318,8 @@ export interface Colony {
   readonly founded: number;
   /** Goods the Custom House sells on its own, in goods order. */
   readonly exports: readonly GoodId[];
+  /** Computer powers only: turns since the colony last had land improved or a colonist schooled for it. */
+  readonly waited?: number;
 }
 
 /** A native settlement. What it wants, sells and teaches is worked out from its surroundings when asked. */

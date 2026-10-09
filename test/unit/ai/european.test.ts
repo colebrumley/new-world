@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {coloniesWanted, playTurn, siteScore } from '../../../src/ai/european';
+import { playTurn, siteScore } from '../../../src/ai/european';
 import { applyAction, validateAction } from '../../../src/engine/actions';
 import { AI_PLAN } from '../../../src/engine/data/ai';
 import { DEFAULT_WORLD } from '../../../src/engine/data/mapgen';
@@ -18,7 +18,6 @@ const base = (nation: 'england' | 'france' = 'france', turn = 0): GameState => (
   ...world({ rows: ROWS, players: [{ id: 'a', kind: 'ai', nation }, { id: 'b', kind: 'ai', nation: 'spain' }] }),
   turn,
 });
-const me = (s: GameState): Player => s.players[0] as Player;
 const patch = (s: GameState, change: Partial<Player>): GameState => ({ ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, ...change } : p)) });
 const inEurope = (s: GameState, id: string): GameState => ({ ...s, units: { ...s.units, [id]: { ...(s.units[id] as Unit), x: OFF_MAP, y: OFF_MAP, voyage: { phase: 'inEurope', turnsLeft: 0, origin: [1, 3] } } } });
 
@@ -28,14 +27,7 @@ describe('AI plan table', () => {
   });
 });
 
-describe('what a computer power wants', () => {
-  it('more colonies as the years pass, and more for an expansionist leader', () => {
-    expect(coloniesWanted(base('france', 0), me(base('france')))).toBe(5);
-    expect(coloniesWanted(base('england', 0), me(base('england')))).toBe(3);
-    expect(coloniesWanted(base('england', 100), me(base('england')))).toBe(5);
-    expect(coloniesWanted(base('france', 400), me(base('france')))).toBe(8);
-  });
-
+describe('where a computer power settles', () => {
   it('a site on the coast with land to work, away from other colonies and from native settlements', () => {
     const s = base();
     expect(siteScore(s, 6, 3)).toBeGreaterThan(0); // on the shore
@@ -92,14 +84,14 @@ describe('what it does next', () => {
     expect(policy(afield)).toMatchObject({ type: 'goTo', unitId: 'u' });
   });
 
-  it('soldiers guard its colonies once it has a foothold', () => {
+  it('soldiers guard its colonies: one for a colony of three', () => {
     let s = base();
     [[6, 1], [6, 4]].forEach(([x, y], i) => {
-      s = withColony(s, { id: `c${i}`, x: x!, y: y!, name: `C${i}`, colonists: people(1, `p${i}`), construction: { kind: 'building', id: 'stockade' } });
+      s = withColony(s, { id: `c${i}`, x: x!, y: y!, name: `C${i}`, colonists: people(3, `p${i}`), construction: { kind: 'building', id: 'stockade' } });
     });
-    const inside = withUnit(s, { id: 'g', type: 'soldier', x: 6, y: 1 });
+    const inside = withUnit(s, { id: 'g', type: 'soldier', profession: 'veteranSoldier', x: 6, y: 1 });
     expect(policy(inside)).toEqual({ type: 'setOrders', unitId: 'g', orders: 'fortify' });
-    const outside = withUnit(s, { id: 'g', type: 'soldier', x: 10, y: 5 });
+    const outside = withUnit(s, { id: 'g', type: 'soldier', profession: 'veteranSoldier', x: 10, y: 5 });
     expect(policy(outside)).toMatchObject({ type: 'goTo', unitId: 'g' });
   });
 
@@ -117,15 +109,16 @@ describe('what it does next', () => {
     expect(policy(setTile(dug, 11, 3, { relief: 'hills' })).type).not.toBe('attack');
   });
 
-  it('in Europe it sells its cargo, pays a passage when it can, and sails when someone is waiting', () => {
+  it('in Europe it sells its cargo, pays a passage when it can, and every ship sails', () => {
     let s = withUnit(base(), { id: 'ship', type: 'caravel', profession: null, x: 0, y: 0, cargo: { furs: 100 } });
     s = inEurope(s, 'ship');
     expect(policy(s)).toEqual({ type: 'sellGoods', unitId: 'ship', good: 'furs', amount: 100 });
     const empty = { ...s, units: { ...s.units, ship: { ...s.units['ship']!, cargo: {} } } };
-    expect(policy(empty)).toEqual({ type: 'endTurn' }); // nobody to carry, nothing to pay with
+    expect(policy(empty)).toEqual({ type: 'sailFromEurope', unitId: 'ship' }); // nothing to pay with: she sails empty
     const rich = patch(empty, { gold: 5000, pool: ['pettyCriminal', 'expertFarmer', 'freeColonist'] });
-    expect(policy(rich)).toEqual({ type: 'recruit', slot: 1 });
-    const waiting = inEurope(withUnit(empty, { id: 'w', x: 0, y: 0, orders: 'sentry' }), 'w');
+    expect(policy(rich)).toMatchObject({ type: 'recruit' });
+    // nobody is recruited while someone still waits on the docks
+    const waiting = inEurope(withUnit(rich, { id: 'w', x: 0, y: 0, orders: 'sentry' }), 'w');
     expect(policy(waiting)).toEqual({ type: 'sailFromEurope', unitId: 'ship' });
   });
 
@@ -149,15 +142,26 @@ describe('keeping house and keeping guard', () => {
   const settled = (pop: number, extra: Partial<Parameters<typeof withColony>[1]> = {}): GameState =>
     withColony(base(), { id: 'col', x: 6, y: 3, name: 'C', colonists: people(pop), buildings: ['townHall'], construction: { kind: 'building', id: 'stockade' }, goods: { food: 100 }, ...extra });
 
-  it('arms a colonist on the docks while it has fewer soldiers than colonies', () => {
+  it('arms a colonist on the docks, some turns, while a colony has no muskets; never on a cargo turn or when the fleet is short', () => {
     let s = withUnit(settled(1), { id: 'ship', type: 'caravel', profession: null, x: 0, y: 0 });
     s = inEurope(withUnit(inEurope(s, 'ship'), { id: 'w', x: 0, y: 0 }), 'w');
-    s = patch(s, { gold: 250 }); // enough for muskets, not for another passage
-    expect(policy(s)).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'soldier' });
-    const guarded = withUnit(s, { id: 'g', type: 'soldier', x: 6, y: 3, orders: 'fortified' });
-    expect(policy(guarded)).toEqual({ type: 'sailFromEurope', unitId: 'ship' });
-    // a hostile people calls for more
-    expect(policy({ ...guarded, turn: 120, settlements: { v: village(0) }, tribes: { sioux: { ...guarded.tribes.sioux!, alarm: { a: 80 } } } })).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'soldier' });
+    s = patch(s, { gold: 250 });
+    const first = (turn: number, state: GameState = s): string => {
+      const action = policy({ ...state, turn });
+      return action.type === 'equipInEurope' ? action.role : action.type;
+    };
+    const turns = Array.from({ length: 60 }, (_, i) => i + 1);
+    const armed = turns.filter((t) => first(t) === 'soldier');
+    // about one turn in two of those that are not cargo turns
+    expect(armed.length).toBeGreaterThan(10);
+    expect(armed.length).toBeLessThan(30);
+    expect(armed.every((t) => t % 3 !== 0)).toBe(true);
+    // with muskets in the colony, and no colonies wanted, nobody is armed
+    const stocked = { ...s, colonies: { col: { ...s.colonies['col']!, goods: { food: 100, muskets: 150 } } } };
+    expect(turns.some((t) => first(t, stocked) === 'soldier')).toBe(false);
+    // a fleet too small for its people carries no soldiers
+    const crowded = { ...s, colonies: { col: { ...s.colonies['col']!, colonists: people(12) } } };
+    expect(turns.some((t) => first(t, crowded) === 'soldier')).toBe(false);
   });
 
   it('a soldier brought into port goes ashore as a soldier and is not put to work', () => {
@@ -170,16 +174,17 @@ describe('keeping house and keeping guard', () => {
     expect(applyAction(s, step).state.units['g']).toMatchObject({ type: 'soldier', aboard: null });
   });
 
-  it('a spare soldier marches on the settlement of a people that has turned on us; a lone guard stays', () => {
-    let s = settled(1);
-    s = withColony(s, { id: 'c2', x: 6, y: 6, name: 'D', colonists: people(1, 'q'), construction: { kind: 'building', id: 'stockade' } });
+  it('a spare gun marches on the settlement of a people that has turned on us; a lone guard stays', () => {
+    let s = settled(3);
+    s = withColony(s, { id: 'c2', x: 6, y: 6, name: 'D', colonists: people(3, 'q'), construction: { kind: 'building', id: 'stockade' } });
     s = { ...s, turn: 120, settlements: { v: village(0) }, tribes: { sioux: { ...s.tribes.sioux!, alarm: { a: 80 } } } }; // after 1600: no wagon train is thought of
-    const lone = withUnit(s, { id: 'g1', type: 'soldier', x: 6, y: 3 });
+    const gun = (id: string, y: number, orders: 'none' | 'fortified' = 'none') => ({ id, type: 'artillery', profession: null, x: 6, y, orders }) as const;
+    const lone = withUnit(s, gun('g1', 3));
     expect(policy(lone)).toEqual({ type: 'setOrders', unitId: 'g1', orders: 'fortify' });
-    const guarded = withUnit(s, { id: 'g0', type: 'soldier', x: 6, y: 6, orders: 'fortified' });
-    const two = withUnit(withUnit(guarded, { id: 'g1', type: 'soldier', x: 6, y: 3, orders: 'fortified' }), { id: 'g2', type: 'soldier', x: 6, y: 3 });
+    const guarded = withUnit(s, gun('g0', 6, 'fortified'));
+    const two = withUnit(withUnit(guarded, gun('g1', 3, 'fortified')), gun('g2', 3));
     // (with the other colony unguarded, its defence would come first)
-    expect(policy(withUnit(withUnit(s, { id: 'g1', type: 'soldier', x: 6, y: 3, orders: 'fortified' }), { id: 'g2', type: 'soldier', x: 6, y: 3 }))).toEqual({ type: 'goTo', unitId: 'g2', x: 6, y: 6 });
+    expect(policy(withUnit(withUnit(s, gun('g1', 3, 'fortified')), gun('g2', 3)))).toEqual({ type: 'goTo', unitId: 'g2', x: 6, y: 6 });
     const march = policy(two) as { type: string; unitId: string; x: number; y: number };
     expect(march.type).toBe('goTo');
     expect(Math.max(Math.abs(march.x - 11), Math.abs(march.y - 5))).toBe(1); // a square beside the settlement
@@ -190,19 +195,19 @@ describe('keeping house and keeping guard', () => {
 
 describe('reprisal and footholds', () => {
   const village = (alarm: number): GameState['settlements'][string] => ({ id: 'v', tribe: 'sioux', x: 11, y: 5, capital: false, population: 2, growth: 0, taught: false, tributePaid: false, alarm: { a: alarm }, mission: null, scouted: [], lastBought: null, lastSold: null, haggleMemory: null });
-  /** Two colonies, two soldiers in the first, and the Sioux at the given tribal alarm, for the given nation. */
+  /** Two colonies, two guns in the first, and the Sioux at the given tribal alarm, for the given nation. */
   // (after 1600 by default, so that no colony thinks of building a wagon train for them)
   const guarded = (nation: 'england' | 'spain' | 'netherlands', tribal: number, turn = 120): GameState => {
     let s: GameState = { ...world({ rows: ROWS, players: [{ id: 'a', kind: 'ai', nation }, { id: 'b', kind: 'ai', nation: 'france' }] }), turn };
-    s = withColony(s, { id: 'col', x: 6, y: 3, name: 'C', colonists: people(1), construction: { kind: 'building', id: 'stockade' } });
-    s = withColony(s, { id: 'c2', x: 6, y: 6, name: 'D', colonists: people(1, 'q'), construction: { kind: 'building', id: 'stockade' } });
-    s = withUnit(withUnit(s, { id: 'g1', type: 'soldier', x: 6, y: 3, orders: 'fortified' }), { id: 'g2', type: 'soldier', x: 6, y: 3 });
-    s = withUnit(s, { id: 'g0', type: 'soldier', x: 6, y: 6, orders: 'fortified' }); // the second colony has its guard
+    s = withColony(s, { id: 'col', x: 6, y: 3, name: 'C', colonists: people(3), construction: { kind: 'building', id: 'stockade' } });
+    s = withColony(s, { id: 'c2', x: 6, y: 6, name: 'D', colonists: people(3, 'q'), construction: { kind: 'building', id: 'stockade' } });
+    s = withUnit(withUnit(s, { id: 'g1', type: 'artillery', profession: null, x: 6, y: 3, orders: 'fortified' }), { id: 'g2', type: 'artillery', profession: null, x: 6, y: 3 });
+    s = withUnit(s, { id: 'g0', type: 'artillery', profession: null, x: 6, y: 6, orders: 'fortified' }); // the second colony has its guard
     return { ...s, settlements: { v: village(0) }, tribes: { sioux: { ...s.tribes.sioux!, alarm: { a: tribal } } } };
   };
   const marches = (s: GameState): boolean => policy(s).type === 'goTo';
 
-  it('a spare soldier marches on a people only once its alarm reaches 75, whatever the leader\'s temperament', () => {
+  it('a spare gun marches on a people only once its alarm reaches 75, whatever the leader\'s temperament', () => {
     // tribal alarm 30 is "restless", 55 "angry", 80 "at war"
     for (const nation of ['spain', 'england', 'netherlands'] as const) {
       expect([30, 55, 74, 75, 80].map((alarm) => marches(guarded(nation, alarm)))).toEqual([false, false, false, true, true]);
@@ -252,8 +257,8 @@ describe('playing a turn', () => {
       expect(checkInvariants(turn.state)).toEqual([]);
       state = turn.state;
     }
-    // within a few turns the party has landed and founded its colonies
-    expect(Object.values(state.colonies).filter((c) => c.owner === 'a').length).toBeGreaterThanOrEqual(2);
+    // within a few turns the party has landed and founded its colony
+    expect(Object.values(state.colonies).filter((c) => c.owner === 'a').length).toBeGreaterThanOrEqual(1);
   });
 
   it('a march that is blocked is stepped around rather than repeated', () => {
