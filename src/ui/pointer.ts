@@ -36,13 +36,14 @@ export function unitsToPick(state: GameState, playerId: string, x: number, y: nu
 /**
  * What a click on a square asks for. In order: a Go To destination; our colony (it opens); a unit
  * of ours other than the active one (it is selected); a square beside the active unit (it steps
- * there); otherwise the view centres on the square.
+ * there); otherwise the view centres on the square. Outside move mode the active unit can be picked
+ * like any other, which is how the mouse gives it back the orders.
  */
 export function mapClick(state: GameState, playerId: string, active: Unit | null, mode: PointerMode, tile: { x: number; y: number }): MapClick {
   if (mode === 'goto') return { kind: 'goto', x: tile.x, y: tile.y };
   const colony = colonyAt(state, tile.x, tile.y);
   if (colony && colony.owner === playerId) return { kind: 'colony', colonyId: colony.id };
-  const others = unitsToPick(state, playerId, tile.x, tile.y).filter((u) => u.id !== active?.id);
+  const others = unitsToPick(state, playerId, tile.x, tile.y).filter((u) => mode !== 'move' || u.id !== active?.id);
   if (others.length > 0) return { kind: 'select', unitIds: others.map((u) => u.id) };
   if (mode === 'move' && active && active.voyage === null) {
     const dx = tile.x - active.x;

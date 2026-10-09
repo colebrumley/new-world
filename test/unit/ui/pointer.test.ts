@@ -30,6 +30,14 @@ describe('map clicks', () => {
     expect(mapClick(s, 'a', unit(s, 'u1'), 'view', { x: 4, y: 2 }).kind).toBe('select');
   });
 
+  it('in view mode the active unit can be picked too, which gives it back the orders', () => {
+    const s = base();
+    expect(mapClick(s, 'a', unit(s, 'u1'), 'view', { x: 2, y: 2 })).toEqual({ kind: 'select', unitIds: ['u1', 'u4'] });
+    const alone = withUnit(world({ rows: ROWS }), { id: 'u1', x: 2, y: 2 });
+    expect(mapClick(alone, 'a', unit(alone, 'u1'), 'view', { x: 2, y: 2 })).toEqual({ kind: 'select', unitIds: ['u1'] });
+    expect(mapClick(alone, 'a', unit(alone, 'u1'), 'move', { x: 2, y: 2 }).kind).toBe('center');
+  });
+
   it('does not offer units that are carried or belong to someone else', () => {
     let s = base();
     s = withUnit(s, { id: 'u20', x: 5, y: 3, aboard: 'u21' });

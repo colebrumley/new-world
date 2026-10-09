@@ -91,7 +91,21 @@ canvas.map {
   flex-direction: column;
   gap: 10px;
   font-size: 0.95rem;
-  overflow: hidden;
+  /* a short window scrolls rather than cuts off; no bar, which would narrow the New World view */
+  overflow: hidden auto;
+  scrollbar-width: none;
+}
+
+.sidebar > * {
+  flex-shrink: 0;
+}
+
+.sidebar-status {
+  margin: 0;
+}
+
+.sidebar-status:empty {
+  display: none;
 }
 
 canvas.minimap {

@@ -980,6 +980,11 @@ Legend:
   the handlers in `app/game-screen.ts`. A click on our colony still opens it, so a unit beside its
   colony is walked in by dragging. The Terrain button toggles hidden terrain (H shows it until the
   next key). Buttons do nothing while a question, report or other screen is up.
+  After review: End turn always ends the turn (Enter's other meanings are not the button's), and
+  Go to reads Cancel while a square is being picked; in view mode a click on the active unit
+  returns to move mode; the Go To cursor and the drag marker are recomputed when the view moves
+  under the pointer (edge-scroll, wheel); a drag orders only the unit it began on; the sidebar
+  scrolls in a short window, with the status line directly under the buttons (seen at 1024x640).
 
 ### Tuning items raised by R-1009
 

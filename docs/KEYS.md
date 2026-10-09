@@ -50,11 +50,11 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | Alt+O | Colony report options: labels, and which colony news is reported | works |
 | Esc | Cancel (Go To targeting, panels) | works |
 | Click / drag / pointer at edge | Centre on a square (or open your colony there) / pan / scroll the view | works |
-| Click on your unit | Make it the active unit, waking it if it has orders (a list if several stand there) | works |
+| Click on your unit | Make it the active unit, waking it if it has orders (a list if several stand there); in view mode this also returns to move mode | works |
 | Click beside the active unit | Move it one square | works |
 | Drag from the active unit | Send it to the square where the button is let go: one step if adjacent, Go To if farther | works |
 | Wheel | Zoom in / zoom out about the pointer | works |
-| Sidebar buttons | Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard | works |
+| Sidebar buttons | Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel | works |
 | Enter (view mode, on your colony) | Open the colony | works |
 | Click on the New World view | Centre the view there | works |
 

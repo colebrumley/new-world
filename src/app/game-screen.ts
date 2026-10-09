@@ -199,7 +199,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
 
   let pointer: { x: number; y: number } | null = null;
   /** A press on the map: `aim` when it began on the active unit, which is then being sent somewhere rather than the view panned. */
-  let drag: { x: number; y: number; moved: boolean; aim: boolean } | null = null;
+  let drag: { x: number; y: number; moved: boolean; aim: boolean; unitId: UnitId | null } | null = null;
   /** The square an aimed drag is over. */
   let aimAt: { x: number; y: number } | null = null;
   let wheelKept = 0;
@@ -1269,24 +1269,42 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     dirty = true;
   };
 
+  /**
+   * Put the destination marker on the square under the pointer: the Go To cursor while a destination
+   * is being picked, the aim of a drag begun on the active unit. Called when the pointer moves and
+   * when the view moves under it (edge-scroll, the wheel), so the marker is always the square a
+   * click or a release would take.
+   */
+  const retarget = (): void => {
+    if (!pointer) return;
+    const tile = screenToTile(view, session.state.map, pointer.x, pointer.y);
+    if (drag?.aim && drag.moved) {
+      // the drag is dropped if its unit is no longer the one being ordered about
+      const held = drag.unitId === activeId && mode === 'move' ? tile : null;
+      if (held?.x !== aimAt?.x || held?.y !== aimAt?.y) {
+        aimAt = held;
+        dirty = true;
+      }
+    } else if (!drag && mode === 'goto' && tile && (tile.x !== cursor?.x || tile.y !== cursor.y)) {
+      cursor = tile;
+      dirty = true;
+    }
+  };
+
   canvas.addEventListener('mousedown', (event) => {
     if (event.button !== 0) return;
     const p = local(event, canvas);
     const tile = screenToTile(view, session.state.map, p.x, p.y);
     const unit = activeUnit();
-    drag = { ...p, moved: false, aim: mode === 'move' && unit !== null && tile !== null && tile.x === unit.x && tile.y === unit.y };
+    const aim = mode === 'move' && unit !== null && tile !== null && tile.x === unit.x && tile.y === unit.y;
+    drag = { ...p, moved: false, aim, unitId: aim ? unit.id : null };
     canvas.focus();
   });
   canvas.addEventListener('mousemove', (event) => {
     const p = local(event, canvas);
     pointer = p;
     if (!drag) {
-      // picking a Go To destination: the cursor goes where the pointer does
-      const tile = mode === 'goto' ? screenToTile(view, session.state.map, p.x, p.y) : null;
-      if (tile && (tile.x !== cursor?.x || tile.y !== cursor.y)) {
-        cursor = tile;
-        dirty = true;
-      }
+      retarget();
       return;
     }
     const dx = p.x - drag.x;
@@ -1294,19 +1312,15 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
     if (drag.aim) {
       drag.moved = true;
-      const tile = screenToTile(view, session.state.map, p.x, p.y);
-      if (tile?.x !== aimAt?.x || tile?.y !== aimAt?.y) {
-        aimAt = tile;
-        dirty = true;
-      }
+      retarget();
       return;
     }
-    drag = { x: p.x, y: p.y, moved: true, aim: false };
+    drag = { x: p.x, y: p.y, moved: true, aim: false, unitId: null };
     setView(panBy(view, session.state.map, -dx / view.tileSize, -dy / view.tileSize));
   });
   canvas.addEventListener('mouseup', (event) => {
     if (event.button !== 0 || !drag) return;
-    const { moved, aim } = drag;
+    const { moved, aim, unitId } = drag;
     drag = null;
     aimAt = null;
     dirty = true;
@@ -1314,10 +1328,13 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     const tile = screenToTile(view, session.state.map, p.x, p.y);
     const unit = activeUnit();
     if (moved) {
-      // a drag from the active unit sends it where the button was let go; any other drag was a pan
-      const sent = aim && unit ? mapDrag(unit, tile) : null;
-      if (unit && sent?.kind === 'step') void tryMove(unit.id, sent.dx, sent.dy);
-      else if (unit && sent?.kind === 'goto') dispatch({ type: 'goTo', unitId: unit.id, x: sent.x, y: sent.y });
+      // a drag from the active unit sends it where the button was let go; any other drag was a pan.
+      // The order is for the unit the drag began on: if another has become the active one since
+      // (a key pressed with the button held), or it is somewhere else in the game, the drag is dropped.
+      const dragged = aim && unit && unit.id === unitId && mode === 'move' && !screen.querySelector('[role="dialog"]') ? unit : null;
+      const sent = dragged ? mapDrag(dragged, tile) : null;
+      if (dragged && sent?.kind === 'step') void tryMove(dragged.id, sent.dx, sent.dy);
+      else if (dragged && sent?.kind === 'goto') dispatch({ type: 'goTo', unitId: dragged.id, x: sent.x, y: sent.y });
       return;
     }
     if (!tile) return;
@@ -1349,6 +1366,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     wheelAt = event.timeStamp;
     const p = local(event, canvas);
     setView(zoomAt(view, session.state.map, turned.step, p.x, p.y));
+    retarget();
   }, { passive: false });
 
   // --- the command bar: every map command as a button ---
@@ -1362,7 +1380,13 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     if (screen.querySelector('[role="dialog"]')) return;
     canvas.focus();
     if (view.showHidden && button.id !== 'hiddenTerrain') setView({ ...view, showHidden: false });
-    if (button.run === 'reports') void pickFrom('Which report?', REPORT_CHOICES);
+    if (button.id === 'endTurn') {
+      // the button does what it says: Enter's other meanings (confirm a Go To, open the colony under the view cursor) are not its own
+      mode = 'move';
+      cursor = null;
+      dispatch({ type: 'endTurn' });
+    } else if (button.id === 'goTo' && mode === 'goto') void runCommand('cancel', 'Escape');
+    else if (button.run === 'reports') void pickFrom('Which report?', REPORT_CHOICES);
     else if (button.run === 'menus') void pickFrom('Which menu?', MENU_CHOICES);
     else void runCommand(button.run.command, button.run.key);
   });
@@ -1422,6 +1446,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     if (dx === 0 && dy === 0) return;
     const step = EDGE_SCROLL_SPEED * Math.min(dt, 0.05);
     setView(panBy(view, session.state.map, dx * step, dy * step));
+    retarget();
   };
 
   const draw = (time = performance.now()): void => {
@@ -1448,7 +1473,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     const focus = mode !== 'move' || !unit || unit.x < 0 ? cursor : { x: unit.x, y: unit.y };
     const status = notice || (unit ? '' : 'End of turn. Press Enter.');
     sidebar.update(sidebarModel(session.state, mode === 'view' ? null : unit, focus, revealAll, status));
-    commandBar.update(unit !== null && mode !== 'view');
+    commandBar.update(unit !== null && mode !== 'view', mode === 'goto');
   };
 
   const frame = (time: number): void => {

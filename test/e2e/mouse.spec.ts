@@ -168,3 +168,148 @@ test('the wheel zooms about the pointer, and the Go To cursor follows it', async
   await page.mouse.click(box.x + target.x, box.y + target.y);
   await expect(canvas).toHaveAttribute('data-mode', 'move');
 });
+
+test('End turn ends the turn while a Go To square is being picked, and Go to reads Cancel meanwhile', async ({ page }) => {
+  await page.goto('/?seed=7');
+  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  const canvas = page.locator('canvas.map');
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  const start = await spot(page);
+  const box = (await canvas.boundingBox())!;
+  const far = await pixel(canvas, start.x - 3, start.y + 1);
+
+  // Cancel gives the targeting up and orders nothing
+  await command(page, 'goTo').click();
+  await expect(canvas).toHaveAttribute('data-mode', 'goto');
+  await expect(command(page, 'goTo')).toHaveText('Cancel');
+  await page.mouse.move(box.x + far.x, box.y + far.y);
+  await command(page, 'goTo').click();
+  await expect(canvas).toHaveAttribute('data-mode', 'move');
+  await expect(command(page, 'goTo')).toHaveText('Go to');
+  await expect(field(page, 'location')).toHaveText(`(${start.x}, ${start.y})`);
+  await expect(field(page, 'orders')).toHaveText('No orders');
+
+  // End turn with a destination under the pointer: the turn ends and the ship has not been sent anywhere
+  await command(page, 'goTo').click();
+  await page.mouse.move(box.x + far.x, box.y + far.y);
+  await expect(field(page, 'location')).toHaveText(`(${start.x - 3}, ${start.y + 1})`);
+  await command(page, 'endTurn').click();
+  await expect(canvas).toHaveAttribute('data-turn', '1');
+  await expect(canvas).toHaveAttribute('data-mode', 'move');
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  await expect(field(page, 'location')).toHaveText(`(${start.x}, ${start.y})`);
+  await expect(field(page, 'orders')).toHaveText('No orders');
+});
+
+test('in view mode a click on the active unit gives it back the orders', async ({ page }) => {
+  await page.goto('/?seed=7');
+  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  const canvas = page.locator('canvas.map');
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  const start = await spot(page);
+  await page.keyboard.press('v');
+  await expect(canvas).toHaveAttribute('data-mode', 'view');
+  await expect(command(page, 'wait')).toBeDisabled();
+  await clickSquare(page, canvas, start.x, start.y);
+  await expect(canvas).toHaveAttribute('data-mode', 'move');
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  await expect(command(page, 'wait')).toBeEnabled();
+});
+
+test('the destination marker stays under the pointer while the view scrolls beneath it', async ({ page }) => {
+  await page.goto('/?reveal');
+  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  const canvas = page.locator('canvas.map');
+  await expect(canvas).toHaveAttribute('data-view', /tileSize/);
+  const box = (await canvas.boundingBox())!;
+  /** The square under a canvas pixel, by the view as it now is. */
+  const squareAt = async (x: number, y: number): Promise<string> => {
+    const v = await viewOf(canvas);
+    return `(${Math.floor(v.originX + x / v.tileSize)}, ${Math.floor(v.originY + y / v.tileSize)})`;
+  };
+
+  await command(page, 'goTo').click();
+  await expect(canvas).toHaveAttribute('data-mode', 'goto');
+  // rest at the left edge: the view scrolls west, and the cursor goes with the pointer
+  const before = await viewOf(canvas);
+  await page.mouse.move(box.x + 300, box.y + 300);
+  await page.mouse.move(box.x + 5, box.y + 300);
+  await expect.poll(async () => (await viewOf(canvas)).originX).toBeLessThan(before.originX - 3);
+  // (the view may still be moving: read both in one frame's time, until they agree)
+  await expect.poll(async () => (await field(page, 'location').textContent()) === (await squareAt(5, 300))).toBe(true);
+  await page.mouse.move(box.x + 300, box.y + 300);
+  await settled(page);
+  await expect(field(page, 'location')).toHaveText(await squareAt(300, 300));
+
+  // the wheel moves the map under the pointer too
+  await page.mouse.move(box.x + 700, box.y + 500);
+  await page.mouse.wheel(0, 120);
+  await expect.poll(async () => (await viewOf(canvas)).zoom).toBe(2);
+  await settled(page);
+  await expect(field(page, 'location')).toHaveText(await squareAt(700, 500));
+});
+
+test('a drag orders the unit it began on, and is dropped if another has become the active one', async ({ page }) => {
+  await page.goto('/?seed=7');
+  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  const canvas = page.locator('canvas.map');
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  const dialog = page.getByRole('dialog');
+  for (let step = 0; step < 12 && !(await dialog.isVisible()); step++) {
+    if ((await field(page, 'unit').textContent()) === 'No active unit') {
+      await command(page, 'endTurn').click();
+      await settled(page);
+    }
+    const at = await spot(page);
+    await clickSquare(page, canvas, at.x - 1, at.y);
+  }
+  await dialog.getByRole('button', { name: 'Make landfall' }).click();
+  await expect(field(page, 'unit')).toHaveText('Soldier');
+  const ship = await spot(page);
+  const box = (await canvas.boundingBox())!;
+  const from = await pixel(canvas, ship.x, ship.y);
+  const to = await pixel(canvas, ship.x - 1, ship.y);
+
+  // the soldier is dragged toward the shore; W, with the button still down, brings up the pioneer
+  await page.mouse.move(box.x + from.x, box.y + from.y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + to.x, box.y + to.y, { steps: 5 });
+  await page.keyboard.press('w');
+  await expect(field(page, 'unit')).toHaveText('Pioneer');
+  await page.mouse.up();
+  await settled(page);
+  // nobody has gone ashore: both are still aboard and still to be given orders
+  await expect(field(page, 'unit')).toHaveText('Pioneer');
+  await expect(field(page, 'location')).toHaveText(`(${ship.x}, ${ship.y})`);
+  // (the ship may come up in between)
+  for (let i = 0; i < 4 && (await field(page, 'unit').textContent()) !== 'Soldier'; i++) {
+    await page.keyboard.press('w');
+    await settled(page);
+  }
+  await expect(field(page, 'unit')).toHaveText('Soldier');
+  await expect(field(page, 'location')).toHaveText(`(${ship.x}, ${ship.y})`);
+
+  // the same drag left alone puts the soldier ashore
+  await page.mouse.move(box.x + from.x, box.y + from.y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + to.x, box.y + to.y, { steps: 5 });
+  await page.mouse.up();
+  await expect(field(page, 'unit')).toHaveText('Pioneer');
+});
+
+test('at 1024x640 the sidebar keeps what the game says in sight', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 640 });
+  await page.goto('/?seed=7');
+  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  await command(page, 'road').click();
+  const status = field(page, 'status');
+  await expect(status).not.toHaveText('');
+  await expect(status).toBeInViewport({ ratio: 1 });
+  // the passengers can be reached by scrolling the sidebar
+  const sidebar = page.locator('.sidebar');
+  const last = page.locator('.sidebar-aboard li').last();
+  await sidebar.hover();
+  await page.mouse.wheel(0, 400);
+  await expect(last).toBeInViewport({ ratio: 1 });
+});

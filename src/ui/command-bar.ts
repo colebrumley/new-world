@@ -53,6 +53,9 @@ export interface BarChoice extends BarCommand {
 
 const title = (action: string): string => action.split(':')[0] ?? action;
 
+/** What the Go to button reads while a destination is being picked. */
+export const CANCEL_LABEL = 'Cancel';
+
 /** The ten reports, in function-key order. */
 export const REPORT_CHOICES: readonly BarChoice[] = KEYMAP
   .filter((b) => b.context === 'map' && b.command === 'report')
@@ -69,8 +72,11 @@ export const MENU_CHOICES: readonly BarChoice[] = [
 
 export interface CommandBar {
   readonly element: HTMLElement;
-  /** Enable or disable the orders, according to whether a unit is waiting for them. */
-  update(hasUnit: boolean): void;
+  /**
+   * Enable or disable the orders, according to whether a unit is waiting for them. While a Go To
+   * destination is being picked the Go to button reads Cancel, and gives the targeting up.
+   */
+  update(hasUnit: boolean, targeting: boolean): void;
 }
 
 export function createCommandBar(onPick: (button: CommandButton) => void): CommandBar {
@@ -79,6 +85,7 @@ export function createCommandBar(onPick: (button: CommandButton) => void): Comma
   element.setAttribute('role', 'toolbar');
   element.setAttribute('aria-label', 'Commands');
   const orders: HTMLButtonElement[] = [];
+  let goTo: HTMLButtonElement | null = null;
   for (const button of COMMAND_BUTTONS) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -90,15 +97,23 @@ export function createCommandBar(onPick: (button: CommandButton) => void): Comma
     b.addEventListener('mousedown', (event) => event.preventDefault());
     b.addEventListener('click', () => onPick(button));
     if (button.needsUnit) orders.push(b);
+    if (button.id === 'goTo') goTo = b;
     element.append(b);
   }
-  let shown: boolean | null = null;
+  let shown: string | null = null;
   return {
     element,
-    update(hasUnit) {
-      if (shown === hasUnit) return;
-      shown = hasUnit;
+    update(hasUnit, targeting) {
+      const state = `${hasUnit}${targeting}`;
+      if (shown === state) return;
+      shown = state;
       for (const b of orders) b.disabled = !hasUnit;
+      if (goTo) {
+        const label = targeting ? CANCEL_LABEL : (COMMAND_BUTTONS.find((c) => c.id === 'goTo')?.label ?? '');
+        goTo.textContent = label;
+        goTo.title = targeting ? `${CANCEL_LABEL} (Esc)` : `${label} (G)`;
+        goTo.disabled = !hasUnit && !targeting;
+      }
     },
   };
 }
