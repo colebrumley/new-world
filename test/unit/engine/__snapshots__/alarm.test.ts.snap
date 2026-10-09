@@ -1,0 +1,68 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`alarm tables > match the snapshot 1`] = `
+{
+  "ALARM": {
+    "aiLevel": 1,
+    "buildingsAllowed": 8,
+    "buildingsShift": 2,
+    "burnOdds": 11,
+    "colonyEasyPopulation": 6,
+    "colonyRange": 6,
+    "cooledCap": [
+      32,
+      96,
+    ],
+    "coolingDie": 13,
+    "coolingStep": 5,
+    "goodwillPerPoint": 8,
+    "militaryAttackOver": 1,
+    "missionCalm": 3,
+    "missionGoodwill": [
+      1,
+      4,
+    ],
+    "tribalShare": 5,
+  },
+  "BUILDING_ALARM": {
+    "conquistador": [
+      1,
+      1,
+    ],
+    "discoverer": [
+      1,
+      2,
+    ],
+    "explorer": [
+      3,
+      4,
+    ],
+    "governor": [
+      3,
+      2,
+    ],
+    "viceroy": [
+      2,
+      1,
+    ],
+  },
+  "MISSION_ALARM": {
+    "foreign": [
+      3,
+      2,
+    ],
+    "foreignExpert": [
+      2,
+      1,
+    ],
+    "own": [
+      3,
+      4,
+    ],
+    "ownExpert": [
+      1,
+      2,
+    ],
+  },
+}
+`;

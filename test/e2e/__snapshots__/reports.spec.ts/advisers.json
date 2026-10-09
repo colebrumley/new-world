@@ -1,0 +1,873 @@
+{
+  "Terrain Information": [
+    {
+      "heading": "Open land",
+      "rows": [
+        [
+          "Terrain",
+          "Move",
+          "Defence",
+          "Food",
+          "Sugar",
+          "Tobacco",
+          "Cotton",
+          "Furs",
+          "Lumber",
+          "Ore",
+          "Silver",
+          "Fish"
+        ],
+        [
+          "Tundra",
+          "1",
+          "-",
+          "2",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "2",
+          "-",
+          "-"
+        ],
+        [
+          "Desert",
+          "1",
+          "-",
+          "1",
+          "-",
+          "-",
+          "1",
+          "-",
+          "-",
+          "2",
+          "-",
+          "-"
+        ],
+        [
+          "Plains",
+          "1",
+          "-",
+          "4",
+          "-",
+          "-",
+          "2",
+          "-",
+          "-",
+          "1",
+          "-",
+          "-"
+        ],
+        [
+          "Prairie",
+          "1",
+          "-",
+          "2",
+          "-",
+          "-",
+          "3",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Grassland",
+          "1",
+          "-",
+          "2",
+          "-",
+          "3",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Savannah",
+          "1",
+          "-",
+          "3",
+          "3",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Marsh",
+          "2",
+          "+25%",
+          "2",
+          "-",
+          "2",
+          "-",
+          "-",
+          "-",
+          "2",
+          "-",
+          "-"
+        ],
+        [
+          "Swamp",
+          "2",
+          "+25%",
+          "2",
+          "2",
+          "-",
+          "-",
+          "-",
+          "-",
+          "2",
+          "-",
+          "-"
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "Forest",
+      "rows": [
+        [
+          "Terrain",
+          "Move",
+          "Defence",
+          "Food",
+          "Sugar",
+          "Tobacco",
+          "Cotton",
+          "Furs",
+          "Lumber",
+          "Ore",
+          "Silver",
+          "Fish"
+        ],
+        [
+          "Boreal Forest",
+          "2",
+          "+50%",
+          "1",
+          "-",
+          "-",
+          "-",
+          "3",
+          "2",
+          "1",
+          "-",
+          "-"
+        ],
+        [
+          "Scrub Forest",
+          "1",
+          "+50%",
+          "1",
+          "-",
+          "-",
+          "1",
+          "2",
+          "1",
+          "1",
+          "-",
+          "-"
+        ],
+        [
+          "Mixed Forest",
+          "2",
+          "+50%",
+          "2",
+          "-",
+          "-",
+          "1",
+          "3",
+          "3",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Broadleaf Forest",
+          "2",
+          "+50%",
+          "1",
+          "-",
+          "-",
+          "1",
+          "2",
+          "2",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Conifer Forest",
+          "2",
+          "+50%",
+          "1",
+          "-",
+          "1",
+          "-",
+          "2",
+          "3",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Tropical Forest",
+          "2",
+          "+50%",
+          "2",
+          "1",
+          "-",
+          "-",
+          "2",
+          "2",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Wetland Forest",
+          "3",
+          "+50%",
+          "1",
+          "-",
+          "1",
+          "-",
+          "2",
+          "2",
+          "1",
+          "-",
+          "-"
+        ],
+        [
+          "Rain Forest",
+          "3",
+          "+75%",
+          "1",
+          "1",
+          "-",
+          "-",
+          "1",
+          "2",
+          "1",
+          "-",
+          "-"
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "Other",
+      "rows": [
+        [
+          "Terrain",
+          "Move",
+          "Defence",
+          "Food",
+          "Sugar",
+          "Tobacco",
+          "Cotton",
+          "Furs",
+          "Lumber",
+          "Ore",
+          "Silver",
+          "Fish"
+        ],
+        [
+          "Arctic",
+          "2",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Ocean",
+          "1",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "3"
+        ],
+        [
+          "Sea Lane",
+          "1",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "3"
+        ],
+        [
+          "Mountains",
+          "3",
+          "+150%",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "4",
+          "1",
+          "-"
+        ],
+        [
+          "Hills",
+          "2",
+          "+100%",
+          "1",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "4",
+          "-",
+          "-"
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "Notes",
+      "rows": [
+        [
+          "Yields are what a free colonist brings in from an unimproved square; experts, plowing, rivers, roads and special resources add to them."
+        ]
+      ],
+      "note": null
+    }
+  ],
+  "Religious Adviser": [
+    {
+      "heading": "Religious unrest in Europe",
+      "rows": [
+        [
+          "Crosses",
+          "9 of 10",
+          "1 more needed: about 1 turns"
+        ],
+        [
+          "Crosses each turn",
+          "2"
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "Waiting on the docks to come over",
+      "rows": [
+        [
+          "Indentured Servant"
+        ],
+        [
+          "Free Colonist"
+        ],
+        [
+          "Expert Farmer"
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "Missions (1)",
+      "rows": [
+        [
+          "Sioux capital",
+          "(10, 4)",
+          "Mission"
+        ]
+      ],
+      "note": null
+    }
+  ],
+  "Continental Congress": [
+    {
+      "heading": "Members (1 of 25)",
+      "rows": [
+        [
+          "Peter Minuit",
+          "Trade",
+          "Natives no longer ask payment for their land."
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "Next session",
+      "rows": [
+        [
+          "No candidate has been named yet: the Congress meets when the first bells are rung."
+        ],
+        [
+          "Liberty bells",
+          "0 of 161"
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "Rebel sentiment",
+      "rows": [
+        [
+          "Sons of Liberty",
+          "15%",
+          "Half our people must be with us before independence can be declared."
+        ],
+        [
+          "Tories",
+          "85%"
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "Royal Expeditionary Force",
+      "rows": [
+        [
+          "Regulars",
+          "31"
+        ],
+        [
+          "Cavalry",
+          "15"
+        ],
+        [
+          "Artillery",
+          "14"
+        ],
+        [
+          "Men-of-War",
+          "8"
+        ]
+      ],
+      "note": null
+    }
+  ],
+  "Labor Adviser": [
+    {
+      "heading": "Colonists by occupation (3)",
+      "rows": [
+        [
+          "Occupation",
+          "Number",
+          "Where"
+        ],
+        [
+          "Free Colonists",
+          "3",
+          "Jamestown 1, Plymouth 1, outside colonies 1"
+        ]
+      ],
+      "note": null
+    }
+  ],
+  "Economic Adviser": [
+    {
+      "heading": "Treasury",
+      "rows": [
+        [
+          "Gold",
+          "2500"
+        ],
+        [
+          "Tax rate",
+          "12%"
+        ],
+        [
+          "Boycotts",
+          "none"
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "Trade with Europe",
+      "rows": [
+        [
+          "Cargo",
+          "Europe pays",
+          "Europe asks",
+          "Net sold to date",
+          "In our stores and holds",
+          "Change each turn"
+        ],
+        [
+          "Food",
+          "0",
+          "8",
+          "0",
+          "80",
+          "+2"
+        ],
+        [
+          "Sugar",
+          "5",
+          "7",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "Tobacco",
+          "3",
+          "5",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "Cotton",
+          "3",
+          "5",
+          "0",
+          "0",
+          "+4"
+        ],
+        [
+          "Furs",
+          "3",
+          "5",
+          "0",
+          "220",
+          "0"
+        ],
+        [
+          "Lumber",
+          "1",
+          "6",
+          "0",
+          "45",
+          "0"
+        ],
+        [
+          "Ore",
+          "3",
+          "6",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "Silver",
+          "19",
+          "20",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "Horses",
+          "1",
+          "2",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "Rum",
+          "11",
+          "12",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "Cigars",
+          "11",
+          "12",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "Cloth",
+          "10",
+          "11",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "Coats",
+          "10",
+          "11",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "Trade Goods",
+          "2",
+          "3",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "Tools",
+          "1",
+          "2",
+          "0",
+          "30",
+          "0"
+        ],
+        [
+          "Muskets",
+          "2",
+          "3",
+          "0",
+          "0",
+          "0"
+        ]
+      ],
+      "note": null
+    }
+  ],
+  "Colony Adviser": [
+    {
+      "heading": "Colonies (2)",
+      "rows": [
+        [
+          "Colony",
+          "People",
+          "Sons of Liberty",
+          "Building",
+          "Units here"
+        ],
+        [
+          "Jamestown",
+          "1",
+          "30%",
+          "Stockade",
+          "0"
+        ],
+        [
+          "Plymouth",
+          "1",
+          "0%",
+          "nothing",
+          "0"
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "Warehouses",
+      "rows": [
+        [
+          "Colony",
+          "Food",
+          "Suga",
+          "Toba",
+          "Cott",
+          "Furs",
+          "Lumb",
+          "Ore",
+          "Silv",
+          "Hors",
+          "Rum",
+          "Ciga",
+          "Clot",
+          "Coat",
+          "Trad",
+          "Tool",
+          "Musk"
+        ],
+        [
+          "Jamestown",
+          "80",
+          "-",
+          "-",
+          "-",
+          "120",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "30",
+          "-"
+        ],
+        [
+          "Plymouth",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "45",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-"
+        ]
+      ],
+      "note": null
+    }
+  ],
+  "Naval Adviser": [
+    {
+      "heading": "Ships (1)",
+      "rows": [
+        [
+          "Ship",
+          "Where",
+          "Bound for",
+          "Carrying"
+        ],
+        [
+          "Merchantman",
+          "at sea (1, 5)",
+          "-",
+          "100 furs"
+        ]
+      ],
+      "note": null
+    }
+  ],
+  "Foreign Affairs": [
+    {
+      "heading": "War and peace",
+      "rows": [
+        [
+          "",
+          "Eng.",
+          "Fr."
+        ],
+        [
+          "England",
+          "-",
+          "No contact"
+        ],
+        [
+          "France",
+          "No contact",
+          "-"
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "The powers compared",
+      "rows": [],
+      "note": "Our adviser knows little of the other powers' colonies. A Congress with Jan de Witt in it would be better informed."
+    }
+  ],
+  "Indian Adviser": [
+    {
+      "heading": "Native peoples",
+      "rows": [
+        [
+          "People",
+          "Relations",
+          "Mood",
+          "Settlements",
+          "Our missions",
+          ""
+        ],
+        [
+          "Sioux",
+          "at peace",
+          "content",
+          "1 known",
+          "1 missions",
+          ""
+        ]
+      ],
+      "note": null
+    }
+  ],
+  "Colonial Score": [
+    {
+      "heading": "Score",
+      "rows": [
+        [
+          "Specialists",
+          "0",
+          "0"
+        ],
+        [
+          "Free colonists",
+          "3",
+          "6"
+        ],
+        [
+          "Servants, criminals and converts",
+          "0",
+          "0"
+        ],
+        [
+          "Founding Fathers",
+          "1",
+          "5"
+        ],
+        [
+          "Treasury",
+          "2500 gold",
+          "2"
+        ],
+        [
+          "Rebel sentiment",
+          "15%",
+          "15"
+        ],
+        [
+          "Total",
+          "",
+          "28"
+        ]
+      ],
+      "note": null
+    },
+    {
+      "heading": "Colonial rating",
+      "rows": [
+        [
+          "Rating",
+          "0%"
+        ],
+        [
+          "Posterity has named a goat track after you."
+        ]
+      ],
+      "note": null
+    }
+  ]
+}

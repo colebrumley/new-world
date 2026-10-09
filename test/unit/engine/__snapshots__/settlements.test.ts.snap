@@ -1,0 +1,43 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`placement tables > match the snapshot 1`] = `
+{
+  "SETTLEMENT_PLACEMENT": {
+    "capitalApart": 90,
+    "capitalApartFloor": 8,
+    "capitalEaseEvery": 4,
+    "capitalMargin": [
+      8,
+      12,
+    ],
+    "capitalTries": 12000,
+    "cell": 5,
+    "cellCore": 1,
+    "siteSpacing": [
+      {
+        "apart": 3,
+        "untilTry": 33,
+      },
+      {
+        "apart": 2,
+        "untilTry": 66,
+      },
+      {
+        "apart": 1,
+        "untilTry": 100,
+      },
+    ],
+    "siteTries": 100,
+    "spreadTries": 2160,
+    "westwardDivisor": 8,
+  },
+  "SETTLEMENT_TERRAIN": [
+    "tundra",
+    "plains",
+    "prairie",
+    "grassland",
+    "savannah",
+    "marsh",
+  ],
+}
+`;

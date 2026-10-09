@@ -1,0 +1,78 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`learning tables > match the snapshot 1`] = `
+{
+  "LEARNING": {
+    "fisherDie": 20,
+    "foodShare": [
+      [
+        1,
+        2,
+      ],
+      [
+        3,
+        4,
+      ],
+      [
+        1,
+        1,
+      ],
+      [
+        1,
+        1,
+      ],
+    ],
+    "incaSilver": [
+      3,
+      2,
+    ],
+    "needsLevel": [
+      [
+        "coats",
+        1,
+      ],
+      [
+        "ore",
+        1,
+      ],
+      [
+        "cloth",
+        2,
+      ],
+      [
+        "cigars",
+        2,
+      ],
+      [
+        "silver",
+        2,
+      ],
+      [
+        "rum",
+        3,
+      ],
+    ],
+    "refusalAlarm": 3,
+    "refusedFrom": 50,
+    "scoutEvery": 3,
+    "slowBase": 99,
+    "slowFrom": 25,
+    "slowPerLevel": 200,
+  },
+  "SKILL_FOR_GOOD": {
+    "cloth": "masterWeaver",
+    "coats": "masterFurTrader",
+    "cotton": "masterCottonPlanter",
+    "food": "expertFarmer",
+    "furs": "expertFurTrapper",
+    "ore": "expertOreMiner",
+    "silver": "expertSilverMiner",
+    "sugar": "masterSugarPlanter",
+    "tobacco": "masterTobaccoPlanter",
+  },
+  "TEACHABLE": [
+    "freeColonist",
+    "indenturedServant",
+  ],
+}
+`;

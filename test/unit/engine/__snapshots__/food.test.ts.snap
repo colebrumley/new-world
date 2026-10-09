@@ -1,0 +1,25 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`eating and saving > each colonist eats 2; the rest of the harvest is stored 1`] = `
+{
+  "FOOD": {
+    "aiIgnoredShortfall": 3,
+    "growthAt": 200,
+    "lowWarningTurns": 4,
+    "mercyOdds": {
+      "discoverer": 3,
+      "explorer": 2,
+    },
+    "mercyUntilYear": 1520,
+    "perColonist": 2,
+  },
+  "HORSES": {
+    "herdSize": 50,
+    "herdSizeWithStable": 25,
+    "minimumHerd": 2,
+    "perHerd": 2,
+    "stable": "stable",
+    "surplusPerHorse": 2,
+  },
+}
+`;

@@ -1,0 +1,235 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`rule tables > match their snapshots 1`] = `
+{
+  "CENTER_TILE": {
+    "food": {
+      "arctic": 0,
+      "boreal": 2,
+      "broadleaf": 2,
+      "conifer": 2,
+      "desert": 1,
+      "hills": 2,
+      "mixed": 2,
+      "mountains": 2,
+      "rain": 2,
+      "scrub": 1,
+      "tropical": 2,
+      "wetland": 2,
+    },
+    "foodByDifficulty": {
+      "conquistador": 0,
+      "discoverer": 2,
+      "explorer": 1,
+      "governor": 0,
+      "viceroy": 0,
+    },
+    "foodDefault": 3,
+    "foodResources": [
+      "oasis",
+      "wheat",
+      "game",
+    ],
+    "majorRiver": 2,
+    "minorRiver": 1,
+    "plowFood": 1,
+    "resourceFood": 2,
+    "secondaryByDifficulty": {
+      "conquistador": 0,
+      "discoverer": 1,
+      "explorer": 0,
+      "governor": 0,
+      "viceroy": 0,
+    },
+    "secondaryGoods": [
+      "sugar",
+      "tobacco",
+      "cotton",
+      "furs",
+      "ore",
+      "silver",
+    ],
+  },
+  "DEPLETION": {
+    "threshold": 50,
+    "weight": {
+      "mineralsOre": 1,
+      "mineralsSilver": 2,
+      "silverDepositSilver": 1,
+    },
+  },
+  "RESOURCE_BONUS": {
+    "beaver": {
+      "furs": {
+        "kind": "add",
+        "n": 3,
+      },
+    },
+    "depletedMine": {},
+    "fishery": {
+      "fish": {
+        "kind": "add",
+        "n": 3,
+      },
+    },
+    "game": {
+      "food": {
+        "kind": "add",
+        "n": 2,
+      },
+      "furs": {
+        "kind": "add",
+        "n": 2,
+      },
+    },
+    "minerals": {
+      "ore": {
+        "kind": "add",
+        "n": 3,
+      },
+      "silver": {
+        "kind": "add",
+        "n": 1,
+      },
+    },
+    "oasis": {
+      "food": {
+        "kind": "add",
+        "n": 2,
+      },
+    },
+    "oreDeposit": {
+      "ore": {
+        "kind": "add",
+        "n": 2,
+      },
+    },
+    "primeCotton": {
+      "cotton": {
+        "kind": "double",
+      },
+    },
+    "primeSugar": {
+      "sugar": {
+        "kind": "double",
+      },
+    },
+    "primeTimber": {
+      "lumber": {
+        "kind": "add",
+        "n": 2,
+      },
+    },
+    "primeTobacco": {
+      "tobacco": {
+        "kind": "double",
+      },
+    },
+    "silverDeposit": {
+      "silver": {
+        "kind": "add",
+        "n": 2,
+      },
+    },
+    "wheat": {
+      "food": {
+        "kind": "add",
+        "n": 2,
+      },
+    },
+  },
+  "RESOURCE_TERRAINS": {
+    "beaver": [
+      "mixed",
+    ],
+    "depletedMine": [
+      "mountains",
+    ],
+    "fishery": [
+      "ocean",
+    ],
+    "game": [
+      "boreal",
+      "broadleaf",
+    ],
+    "minerals": [
+      "tundra",
+      "marsh",
+      "swamp",
+      "wetland",
+      "rain",
+    ],
+    "oasis": [
+      "desert",
+      "scrub",
+    ],
+    "oreDeposit": [
+      "hills",
+    ],
+    "primeCotton": [
+      "prairie",
+    ],
+    "primeSugar": [
+      "savannah",
+    ],
+    "primeTimber": [
+      "conifer",
+      "tropical",
+    ],
+    "primeTobacco": [
+      "grassland",
+    ],
+    "silverDeposit": [
+      "mountains",
+    ],
+    "wheat": [
+      "plains",
+    ],
+  },
+  "YIELD_RULES": {
+    "bareSilver": 1,
+    "convertBonus": 1,
+    "convertGoods": [
+      "food",
+      "sugar",
+      "tobacco",
+      "cotton",
+      "furs",
+      "fish",
+    ],
+    "expertMultiplier": 2,
+    "fishByWaterNeighbors": [
+      [
+        8,
+        -2,
+      ],
+      [
+        6,
+        -1,
+      ],
+      [
+        0,
+        1,
+      ],
+    ],
+    "foodExpertAdd": 2,
+    "fursMajorRiverPre": 2,
+    "fursMinorRiverPre": 1,
+    "fursRoadPre": 1,
+    "hudsonFursMultiplier": 2,
+    "plowGoods": [
+      "food",
+      "sugar",
+      "tobacco",
+      "cotton",
+    ],
+    "roadGoods": [
+      "furs",
+      "lumber",
+      "ore",
+      "silver",
+      "fish",
+    ],
+  },
+}
+`;

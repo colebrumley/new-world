@@ -1,0 +1,27 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`options > are the eight game options, the ten colony report options and the three sound options 1`] = `
+{
+  "autosave": true,
+  "backgroundMusic": false,
+  "buildingLabels": true,
+  "cargoLabels": true,
+  "combatAnalysis": true,
+  "endOfTurn": true,
+  "eventMusic": true,
+  "fastPieceSlide": false,
+  "reportFood": true,
+  "reportInefficient": true,
+  "reportNewCargo": true,
+  "reportRawMaterials": true,
+  "reportRebelMajority": true,
+  "reportSonsOfLiberty": true,
+  "reportTools": true,
+  "reportTrained": true,
+  "showForeignMoves": true,
+  "showIndianMoves": true,
+  "soundEffects": true,
+  "tutorialHints": true,
+  "waterShimmer": true,
+}
+`;

@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`land table > matches the snapshot 1`] = `
+{
+  "aiBase": 12,
+  "aiBuysAtHalves": 3,
+  "aiUnit": 50,
+  "humanBase": 3,
+  "roadAlarm": 3,
+  "smallPowerColonists": 10,
+  "takeAlarm": 5,
+  "unit": 65,
+}
+`;

@@ -1,0 +1,99 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`nations table > matches the snapshot 1`] = `
+{
+  "NATIONS": {
+    "england": {
+      "abbreviation": "Eng.",
+      "adjective": "English",
+      "colonyName": "New England",
+      "color": "#c8322b",
+      "colorIndex": 12,
+      "homePort": "London",
+      "independentName": "United States of America",
+      "leader": "Walter Raleigh",
+      "leaderTraits": {
+        "aggressive": 1,
+        "civilizing": 0,
+        "expansionist": -1,
+      },
+      "missionPrefix": "Church of",
+      "name": "England",
+      "ruler": "Queen",
+      "strength": "Immigration: a third fewer crosses bring each new colonist.",
+    },
+    "france": {
+      "abbreviation": "Fr.",
+      "adjective": "French",
+      "colonyName": "New France",
+      "color": "#2f5fc4",
+      "colorIndex": 9,
+      "homePort": "La Rochelle",
+      "independentName": "Republic of Quebec",
+      "leader": "Jacques Cartier",
+      "leaderTraits": {
+        "aggressive": 0,
+        "civilizing": 0,
+        "expansionist": 1,
+      },
+      "missionPrefix": "Sainte Marie de",
+      "name": "France",
+      "ruler": "King",
+      "strength": "Cooperation: native alarm rises half as fast.",
+    },
+    "netherlands": {
+      "abbreviation": "Dutch",
+      "adjective": "Dutch",
+      "colonyName": "New Netherlands",
+      "color": "#d9812e",
+      "colorIndex": 13,
+      "homePort": "Amsterdam",
+      "independentName": "Republic of Surinam",
+      "leader": "Michiel De Ruyter",
+      "leaderTraits": {
+        "aggressive": -1,
+        "civilizing": 1,
+        "expansionist": 0,
+      },
+      "missionPrefix": "Church of",
+      "name": "Netherlands",
+      "ruler": "Stadtholder",
+      "strength": "Trade: prices in Amsterdam fall more slowly and recover sooner.",
+    },
+    "spain": {
+      "abbreviation": "Span.",
+      "adjective": "Spanish",
+      "colonyName": "New Spain",
+      "color": "#d9c23c",
+      "colorIndex": 14,
+      "homePort": "Seville",
+      "independentName": "Republic of Mexico",
+      "leader": "Christopher Columbus",
+      "leaderTraits": {
+        "aggressive": 1,
+        "civilizing": -1,
+        "expansionist": 0,
+      },
+      "missionPrefix": "Santa Maria del",
+      "name": "Spain",
+      "ruler": "King",
+      "strength": "Conquest: half again the strength when attacking native settlements.",
+    },
+  },
+  "STARTING_FORCE": {
+    "hardyPioneer": [
+      "france",
+    ],
+    "humanVeteranBelowLevel": 2,
+    "ship": {
+      "england": "caravel",
+      "france": "caravel",
+      "netherlands": "merchantman",
+      "spain": "caravel",
+    },
+    "veteranSoldier": [
+      "spain",
+    ],
+  },
+}
+`;

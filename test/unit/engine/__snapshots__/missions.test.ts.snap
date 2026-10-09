@@ -1,0 +1,39 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`mission tables > match the snapshot 1`] = `
+{
+  "capitalStanding": 16,
+  "capitalSwing": 8,
+  "capitalThrow": 20,
+  "convertBase": 2,
+  "convertDie": 16,
+  "convertPatience": 8,
+  "forcedBase": 4,
+  "forcedBonus": 4,
+  "forcedDie": 13,
+  "forcedExpert": 8,
+  "inciteAlarm": 100,
+  "inciteAlarmBase": 75,
+  "inciteCapitalDiscount": 500,
+  "inciteExpertMissionDiscount": 1000,
+  "inciteFrenchFactor": [
+    2,
+    3,
+  ],
+  "inciteJesuitDiscount": 1500,
+  "inciteMightDivisor": 8,
+  "inciteMinimum": 500,
+  "inciteMissionDiscount": 250,
+  "incitePerHerd": 2,
+  "incitePerMight": 2,
+  "incitePerMusket": 2,
+  "incitePerSettlement": 6,
+  "perMission": 8,
+  "welcome": [
+    25,
+    15,
+    10,
+    5,
+  ],
+}
+`;

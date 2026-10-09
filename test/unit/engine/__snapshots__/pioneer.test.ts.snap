@@ -1,0 +1,26 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`job length > matches the table: road = improvement value, clear or plow = that + 2, hardy = half rounded down 1`] = `
+{
+  "PIONEER_WORK": {
+    "hardyDivisor": 2,
+    "hardyLumberMultiplier": 2,
+    "lumberLot": 20,
+    "lumberMill": "lumberMill",
+    "lumberRange": 3,
+    "noPlow": [
+      "hills",
+      "mountains",
+    ],
+    "plowExtraTurns": 2,
+  },
+  "WAREHOUSE": {
+    "base": 100,
+    "buildings": [
+      "warehouse",
+      "warehouseExpansion",
+    ],
+    "step": 100,
+  },
+}
+`;

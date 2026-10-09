@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`suggestPlacement > feeds the colony first: a hungry colony sends the newcomer to the best food square 1`] = `
+{
+  "carpenterFromPopulation": 3,
+  "closeness": 7,
+  "expertMultiplier": 2,
+  "hungerMultiplier": 32,
+  "yieldWeight": 8,
+}
+`;

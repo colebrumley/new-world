@@ -1,0 +1,74 @@
+[
+  {
+    "heading": "War and peace",
+    "rows": [
+      [
+        "",
+        "Eng.",
+        "Fr.",
+        "Span."
+      ],
+      [
+        "England",
+        "-",
+        "Peace",
+        "No contact"
+      ],
+      [
+        "France",
+        "Peace",
+        "-",
+        "War"
+      ],
+      [
+        "Spain",
+        "No contact",
+        "War",
+        "-"
+      ]
+    ],
+    "note": null
+  },
+  {
+    "heading": "The powers compared",
+    "rows": [
+      [
+        "",
+        "Colonies",
+        "Population",
+        "Average colony",
+        "Military",
+        "Naval",
+        "Merchant marine"
+      ],
+      [
+        "England",
+        "1",
+        "1",
+        "1.0",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "France",
+        "1",
+        "1",
+        "1.0",
+        "2",
+        "0",
+        "0"
+      ],
+      [
+        "Spain",
+        "0",
+        "0",
+        "0.0",
+        "0",
+        "0",
+        "0"
+      ]
+    ],
+    "note": null
+  }
+]

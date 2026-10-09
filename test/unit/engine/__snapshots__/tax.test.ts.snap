@@ -1,0 +1,66 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`when the King reviews the tax > every 18 turns before 1600, 15 after, 12 after 1700 and 9 after 1750, two fewer per harder level 1`] = `
+{
+  "TAX": {
+    "enemies": [
+      "Holy Roman Empire",
+      "Portuguese",
+      "Ottoman Turks",
+      "Barbary Pirates",
+      "Russia",
+      "Prussia",
+      "Sweden",
+      "Denmark",
+    ],
+    "firstTurn": 30,
+    "max": 75,
+    "maxWeddings": 30,
+    "partyAmount": 100,
+    "period": [
+      18,
+      15,
+      12,
+      9,
+    ],
+    "periodEraYears": [
+      1600,
+      1700,
+      1750,
+    ],
+    "periodStepPerDifficulty": 2,
+  },
+  "TAX_BANDS": [
+    {
+      "max": -2,
+      "min": -5,
+      "reason": "victory",
+      "under": "100",
+    },
+    {
+      "max": 1,
+      "min": 1,
+      "reason": "wedding",
+      "under": "650",
+    },
+    {
+      "max": 2,
+      "min": 2,
+      "reason": "war",
+      "under": "950",
+    },
+    {
+      "max": 4,
+      "min": 3,
+      "reason": "navigationAct",
+      "under": "1100",
+    },
+    {
+      "max": 8,
+      "min": 5,
+      "reason": "stampAct",
+      "under": "Infinity",
+    },
+  ],
+}
+`;

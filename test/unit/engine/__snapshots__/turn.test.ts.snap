@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`calendar landmarks > finds the first turn of a year on both sides of 1600 1`] = `
+{
+  "charterYear": 1600,
+  "retireYear": 1800,
+  "startYear": 1492,
+  "twoSeasonsFrom": 1600,
+  "warLimitYear": 1850,
+}
+`;

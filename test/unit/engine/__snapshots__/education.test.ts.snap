@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`who may teach > takes the teaching level from the profession table 1`] = `
+{
+  "EDUCATION": {
+    "counterMax": 15,
+    "ladder": {
+      "indenturedServant": "freeColonist",
+      "pettyCriminal": "indenturedServant",
+    },
+    "maxPerTurn": 3,
+    "turnsByLevel": [
+      0,
+      4,
+      6,
+      8,
+    ],
+  },
+  "ON_THE_JOB": {
+    "goods": [
+      "sugar",
+      "tobacco",
+      "cotton",
+      "furs",
+    ],
+    "odds": {
+      "freeColonist": 100,
+      "indenturedServant": 200,
+      "pettyCriminal": 300,
+    },
+  },
+}
+`;

@@ -1,0 +1,80 @@
+[
+  {
+    "heading": "Score",
+    "rows": [
+      [
+        "Specialists",
+        "0",
+        "0"
+      ],
+      [
+        "Free colonists",
+        "2",
+        "4"
+      ],
+      [
+        "Servants, criminals and converts",
+        "0",
+        "0"
+      ],
+      [
+        "Founding Fathers",
+        "3",
+        "15"
+      ],
+      [
+        "Treasury",
+        "42000 gold",
+        "42"
+      ],
+      [
+        "Rebel sentiment",
+        "40%",
+        "40"
+      ],
+      [
+        "Total",
+        "",
+        "101"
+      ]
+    ],
+    "note": null
+  },
+  {
+    "heading": "Colonial rating",
+    "rows": [
+      [
+        "Rating",
+        "3%"
+      ],
+      [
+        "Posterity has named a tavern after you."
+      ]
+    ],
+    "note": null
+  },
+  {
+    "heading": "Hall of Fame",
+    "rows": [
+      [
+        "",
+        "Leader",
+        "Level",
+        "Ended",
+        "Score",
+        "Rating",
+        "Remembered by"
+      ],
+      [
+        "1",
+        "Walter Raleigh of England",
+        "Conquistador",
+        "Spring 1800",
+        "101",
+        "3%",
+        "a tavern"
+      ]
+    ],
+    "note": null
+  }
+]

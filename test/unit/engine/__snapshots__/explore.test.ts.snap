@@ -1,0 +1,17 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`sight radius > is 1 by default, 2 for scouts and the listed ships, +1 with De Soto 1`] = `
+{
+  "deSoto": "hernandoDeSoto",
+  "deSotoBonus": 1,
+  "default": 1,
+  "extended": 2,
+  "extendedUnits": [
+    "scout",
+    "galleon",
+    "privateer",
+    "frigate",
+  ],
+  "foreignUnitRange": 1,
+}
+`;

@@ -1,0 +1,45 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`diplomacy table > matches the snapshot 1`] = `
+{
+  "aiTalkEvery": 3,
+  "aiWarFromTurn": 40,
+  "aiWarPopulation": 7,
+  "allianceSteps": [
+    10,
+    200,
+  ],
+  "audienceEvery": 16,
+  "breakOdds": 4,
+  "bullyColonies": 3,
+  "bullyFromTurn": 80,
+  "cutToFitAbove": 300,
+  "demandSteps": [
+    0,
+    400,
+  ],
+  "earlyTurns": [
+    50,
+    100,
+  ],
+  "foreignSale": [
+    3,
+    4,
+  ],
+  "goldStep": 50,
+  "kingsWarDemand": 500,
+  "piracyGrievanceOdds": 101,
+  "provokeAbove": 100,
+  "siegeAlways": 12,
+  "siegeOdds": 5,
+  "siegeRelief": 100,
+  "siegeShare": 4,
+  "smallPower": [
+    2,
+    8,
+  ],
+  "truceLevels": 6,
+  "withdrawMinimum": 100,
+  "withdrawPrice": 25,
+}
+`;

@@ -1,0 +1,3812 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the encyclopedia > matches the snapshot 1`] = `
+[
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "1 to 3 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Found on",
+        "Tundra, Desert, Plains, Prairie, Grassland, Savannah, Marsh, Swamp, Boreal Forest, Scrub Forest, Mixed Forest, Broadleaf Forest, Conifer Forest, Tropical Forest, Wetland Forest, Rain Forest and Hills",
+      ],
+    ],
+    "id": "food",
+    "prose": [
+      "Every colonist eats two a turn. What is left over is stored, and a colony with 200 in store raises a new colonist.",
+    ],
+    "title": "Food",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "4 to 7 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made into",
+        "Rum by a Distiller",
+      ],
+      [
+        "Found on",
+        "Savannah, Swamp, Tropical Forest and Rain Forest",
+      ],
+    ],
+    "id": "sugar",
+    "prose": [
+      "A cash crop of warm, wet land. Sold raw, or distilled into rum.",
+    ],
+    "title": "Sugar",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "3 to 5 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made into",
+        "Cigars by a Tobacconist",
+      ],
+      [
+        "Found on",
+        "Grassland, Marsh, Conifer Forest and Wetland Forest",
+      ],
+    ],
+    "id": "tobacco",
+    "prose": [
+      "A cash crop of grassland. Sold raw, or rolled into cigars.",
+    ],
+    "title": "Tobacco",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "2 to 5 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made into",
+        "Cloth by a Weaver",
+      ],
+      [
+        "Found on",
+        "Desert, Plains, Prairie, Scrub Forest, Mixed Forest and Broadleaf Forest",
+      ],
+    ],
+    "id": "cotton",
+    "prose": [
+      "A cash crop of prairie. Sold raw, or woven into cloth.",
+    ],
+    "title": "Cotton",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "4 to 6 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made into",
+        "Coats by a Fur Trader",
+      ],
+      [
+        "Found on",
+        "Boreal Forest, Scrub Forest, Mixed Forest, Broadleaf Forest, Conifer Forest, Tropical Forest, Wetland Forest and Rain Forest",
+      ],
+    ],
+    "id": "furs",
+    "prose": [
+      "Trapped in forest. Sold raw, or made up into coats.",
+    ],
+    "title": "Furs",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "2 to 2 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made into",
+        "Hammers by a Carpenter",
+      ],
+      [
+        "Found on",
+        "Boreal Forest, Scrub Forest, Mixed Forest, Broadleaf Forest, Conifer Forest, Tropical Forest, Wetland Forest and Rain Forest",
+      ],
+    ],
+    "id": "lumber",
+    "prose": [
+      "Cut in forest. Carpenters turn it into hammers, which is how anything gets built.",
+    ],
+    "title": "Lumber",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "3 to 6 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made into",
+        "Tools by a Blacksmith",
+      ],
+      [
+        "Found on",
+        "Tundra, Desert, Plains, Marsh, Swamp, Boreal Forest, Scrub Forest, Wetland Forest, Rain Forest, Mountains and Hills",
+      ],
+    ],
+    "id": "ore",
+    "prose": [
+      "Dug from hills, mountains and swamp. Blacksmiths turn it into tools.",
+    ],
+    "title": "Ore",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "20 to 20 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Found on",
+        "Mountains",
+      ],
+    ],
+    "id": "silver",
+    "prose": [
+      "Mined in the mountains, best where a lode has been found.",
+    ],
+    "title": "Silver",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "2 to 3 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+    ],
+    "id": "horses",
+    "prose": [
+      "They breed by themselves in a colony that holds at least 2 and has food to spare, twice as fast with a Stable. Fifty mount a scout or a dragoon.",
+    ],
+    "title": "Horses",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "11 to 13 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made from",
+        "Sugar by a Distiller",
+      ],
+    ],
+    "id": "rum",
+    "prose": [
+      "Distilled from sugar, and worth more in Europe than the sugar that went into it.",
+    ],
+    "title": "Rum",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "11 to 13 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made from",
+        "Tobacco by a Tobacconist",
+      ],
+    ],
+    "id": "cigars",
+    "prose": [
+      "Rolled from tobacco, and worth more in Europe than the leaf.",
+    ],
+    "title": "Cigars",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "11 to 13 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made from",
+        "Cotton by a Weaver",
+      ],
+    ],
+    "id": "cloth",
+    "prose": [
+      "Woven from cotton. Europe and the native peoples both pay well for it.",
+    ],
+    "title": "Cloth",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "11 to 13 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made from",
+        "Furs by a Fur Trader",
+      ],
+    ],
+    "id": "coats",
+    "prose": [
+      "Made up from furs, and worth more in Europe than the pelts.",
+    ],
+    "title": "Coats",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "2 to 3 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+    ],
+    "id": "tradeGoods",
+    "prose": [
+      "Made in Europe and wanted by the native peoples; nothing in the colonies produces them.",
+    ],
+    "title": "Trade Goods",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "2 to 2 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made from",
+        "Ore by a Blacksmith",
+      ],
+      [
+        "Made into",
+        "Muskets by a Gunsmith",
+      ],
+    ],
+    "id": "tools",
+    "prose": [
+      "Forged from ore. Pioneers use twenty for each piece of work, larger buildings need them, and gunsmiths turn them into muskets.",
+    ],
+    "title": "Tools",
+  },
+  {
+    "category": "cargo",
+    "facts": [
+      [
+        "Opening price in Europe",
+        "3 to 3 (what the port pays)",
+      ],
+      [
+        "A full hold",
+        "100",
+      ],
+      [
+        "Made from",
+        "Tools by a Gunsmith",
+      ],
+    ],
+    "id": "muskets",
+    "prose": [
+      "Made from tools. Fifty arm a soldier.",
+    ],
+    "title": "Muskets",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "1",
+      ],
+      [
+        "Attack",
+        "0",
+      ],
+      [
+        "Defence",
+        "1",
+      ],
+    ],
+    "id": "colonist",
+    "prose": [
+      "A person. Inside a colony he works; outside it he can be given equipment and a task.",
+    ],
+    "title": "Colonist",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "1",
+      ],
+      [
+        "Attack",
+        "2",
+      ],
+      [
+        "Defence",
+        "2",
+      ],
+      [
+        "Carries",
+        "50 muskets",
+      ],
+    ],
+    "id": "soldier",
+    "prose": [
+      "A colonist equipped for a task. Lay the equipment down in a colony and he is a colonist again; his skill, if he has one, is what he brings to the task.",
+    ],
+    "title": "Soldier",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "1",
+      ],
+      [
+        "Attack",
+        "0",
+      ],
+      [
+        "Defence",
+        "1",
+      ],
+      [
+        "Carries",
+        "100 tools",
+      ],
+    ],
+    "id": "pioneer",
+    "prose": [
+      "A colonist equipped for a task. Lay the equipment down in a colony and he is a colonist again; his skill, if he has one, is what he brings to the task.",
+    ],
+    "title": "Pioneer",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "2",
+      ],
+      [
+        "Attack",
+        "0",
+      ],
+      [
+        "Defence",
+        "1",
+      ],
+    ],
+    "id": "missionary",
+    "prose": [
+      "A person. Inside a colony he works; outside it he can be given equipment and a task.",
+    ],
+    "title": "Missionary",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "4",
+      ],
+      [
+        "Attack",
+        "3",
+      ],
+      [
+        "Defence",
+        "3",
+      ],
+      [
+        "Carries",
+        "50 muskets and 50 horses",
+      ],
+    ],
+    "id": "dragoon",
+    "prose": [
+      "A colonist equipped for a task. Lay the equipment down in a colony and he is a colonist again; his skill, if he has one, is what he brings to the task.",
+    ],
+    "title": "Dragoon",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "4",
+      ],
+      [
+        "Attack",
+        "1",
+      ],
+      [
+        "Defence",
+        "1",
+      ],
+      [
+        "Carries",
+        "50 horses",
+      ],
+    ],
+    "id": "scout",
+    "prose": [
+      "A colonist equipped for a task. Lay the equipment down in a colony and he is a colonist again; his skill, if he has one, is what he brings to the task.",
+    ],
+    "title": "Scout",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "1",
+      ],
+      [
+        "Attack",
+        "5",
+      ],
+      [
+        "Defence",
+        "5",
+      ],
+    ],
+    "id": "regular",
+    "prose": [
+      "Not a person: it cannot join a colony or be given other work.",
+    ],
+    "title": "King's Regular",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "4",
+      ],
+      [
+        "Attack",
+        "5",
+      ],
+      [
+        "Defence",
+        "5",
+      ],
+    ],
+    "id": "continentalCavalry",
+    "prose": [
+      "Not a person: it cannot join a colony or be given other work.",
+    ],
+    "title": "Continental Cavalry",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "4",
+      ],
+      [
+        "Attack",
+        "6",
+      ],
+      [
+        "Defence",
+        "6",
+      ],
+    ],
+    "id": "cavalry",
+    "prose": [
+      "Not a person: it cannot join a colony or be given other work.",
+    ],
+    "title": "King's Cavalry",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "1",
+      ],
+      [
+        "Attack",
+        "4",
+      ],
+      [
+        "Defence",
+        "4",
+      ],
+    ],
+    "id": "continentalArmy",
+    "prose": [
+      "Not a person: it cannot join a colony or be given other work.",
+    ],
+    "title": "Continental Army",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "1",
+      ],
+      [
+        "Attack",
+        "0",
+      ],
+      [
+        "Defence",
+        "0",
+      ],
+    ],
+    "id": "treasure",
+    "prose": [
+      "Not a person: it cannot join a colony or be given other work.",
+      "Gold found in the New World. It must be carried to a coastal colony and then to Europe, by a galleon or by the Crown for a share.",
+    ],
+    "title": "Treasure Train",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "1",
+      ],
+      [
+        "Attack",
+        "7",
+      ],
+      [
+        "Defence",
+        "5",
+      ],
+      [
+        "Built in a colony for",
+        "192 hammers and 40 tools",
+      ],
+      [
+        "Bought in Europe from",
+        "500 gold",
+      ],
+    ],
+    "id": "artillery",
+    "prose": [
+      "Not a person: it cannot join a colony or be given other work.",
+      "Strong in a colony, weak in the open. Beaten once it is damaged; beaten again it is lost.",
+    ],
+    "title": "Artillery",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "1",
+      ],
+      [
+        "Attack",
+        "5",
+      ],
+      [
+        "Defence",
+        "3",
+      ],
+    ],
+    "id": "damagedArtillery",
+    "prose": [
+      "Not a person: it cannot join a colony or be given other work.",
+    ],
+    "title": "Damaged Artillery",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "2",
+      ],
+      [
+        "Attack",
+        "0",
+      ],
+      [
+        "Defence",
+        "1",
+      ],
+      [
+        "Cargo holds",
+        "2",
+      ],
+      [
+        "Built in a colony for",
+        "40 hammers",
+      ],
+    ],
+    "id": "wagonTrain",
+    "prose": [
+      "Not a person: it cannot join a colony or be given other work.",
+      "Carries cargo overland between colonies and to native settlements. A power may keep one for each colony it has.",
+    ],
+    "title": "Wagon Train",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "4",
+      ],
+      [
+        "Attack",
+        "0",
+      ],
+      [
+        "Defence",
+        "2",
+      ],
+      [
+        "Cargo holds",
+        "2",
+      ],
+      [
+        "Built in a colony for",
+        "128 hammers and 40 tools",
+      ],
+      [
+        "Bought in Europe from",
+        "1000 gold",
+      ],
+    ],
+    "id": "caravel",
+    "prose": [
+      "A cargo ship: it carries goods and people, and cannot attack.",
+    ],
+    "title": "Caravel",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "5",
+      ],
+      [
+        "Attack",
+        "0",
+      ],
+      [
+        "Defence",
+        "6",
+      ],
+      [
+        "Cargo holds",
+        "4",
+      ],
+      [
+        "Built in a colony for",
+        "192 hammers and 80 tools",
+      ],
+      [
+        "Bought in Europe from",
+        "2000 gold",
+      ],
+    ],
+    "id": "merchantman",
+    "prose": [
+      "A cargo ship: it carries goods and people, and cannot attack.",
+    ],
+    "title": "Merchantman",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "6",
+      ],
+      [
+        "Attack",
+        "0",
+      ],
+      [
+        "Defence",
+        "10",
+      ],
+      [
+        "Cargo holds",
+        "6",
+      ],
+      [
+        "Built in a colony for",
+        "320 hammers and 100 tools",
+      ],
+      [
+        "Bought in Europe from",
+        "3000 gold",
+      ],
+    ],
+    "id": "galleon",
+    "prose": [
+      "A cargo ship: it carries goods and people, and cannot attack.",
+    ],
+    "title": "Galleon",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "8",
+      ],
+      [
+        "Attack",
+        "8",
+      ],
+      [
+        "Defence",
+        "8",
+      ],
+      [
+        "Cargo holds",
+        "2",
+      ],
+      [
+        "Built in a colony for",
+        "256 hammers and 120 tools",
+      ],
+      [
+        "Bought in Europe from",
+        "2000 gold",
+      ],
+    ],
+    "id": "privateer",
+    "prose": [
+      "A ship that can both carry and fight.",
+    ],
+    "title": "Privateer",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "6",
+      ],
+      [
+        "Attack",
+        "16",
+      ],
+      [
+        "Defence",
+        "16",
+      ],
+      [
+        "Cargo holds",
+        "4",
+      ],
+      [
+        "Built in a colony for",
+        "512 hammers and 200 tools",
+      ],
+      [
+        "Bought in Europe from",
+        "5000 gold",
+      ],
+    ],
+    "id": "frigate",
+    "prose": [
+      "A ship that can both carry and fight.",
+    ],
+    "title": "Frigate",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "5",
+      ],
+      [
+        "Attack",
+        "24",
+      ],
+      [
+        "Defence",
+        "24",
+      ],
+      [
+        "Cargo holds",
+        "6",
+      ],
+    ],
+    "id": "manOWar",
+    "prose": [
+      "A ship that can both carry and fight.",
+    ],
+    "title": "Man-O-War",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "1",
+      ],
+      [
+        "Attack",
+        "1",
+      ],
+      [
+        "Defence",
+        "1",
+      ],
+    ],
+    "id": "brave",
+    "prose": [
+      "A band of one of the native peoples. It belongs to a settlement and returns there to take up what muskets and horses its people have.",
+    ],
+    "title": "Braves",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "1",
+      ],
+      [
+        "Attack",
+        "2",
+      ],
+      [
+        "Defence",
+        "2",
+      ],
+      [
+        "Carries",
+        "50 muskets",
+      ],
+    ],
+    "id": "armedBrave",
+    "prose": [
+      "A band of one of the native peoples. It belongs to a settlement and returns there to take up what muskets and horses its people have.",
+    ],
+    "title": "Armed Braves",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "4",
+      ],
+      [
+        "Attack",
+        "2",
+      ],
+      [
+        "Defence",
+        "2",
+      ],
+      [
+        "Carries",
+        "50 horses",
+      ],
+    ],
+    "id": "mountedBrave",
+    "prose": [
+      "A band of one of the native peoples. It belongs to a settlement and returns there to take up what muskets and horses its people have.",
+    ],
+    "title": "Mounted Braves",
+  },
+  {
+    "category": "units",
+    "facts": [
+      [
+        "Moves",
+        "4",
+      ],
+      [
+        "Attack",
+        "3",
+      ],
+      [
+        "Defence",
+        "3",
+      ],
+      [
+        "Carries",
+        "50 muskets and 50 horses",
+      ],
+    ],
+    "id": "mountedWarrior",
+    "prose": [
+      "A band of one of the native peoples. It belongs to a settlement and returns there to take up what muskets and horses its people have.",
+    ],
+    "title": "Mounted Warriors",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "1",
+      ],
+      [
+        "Defence bonus",
+        "none",
+      ],
+      [
+        "A free colonist brings in",
+        "2 food and 2 ore",
+      ],
+      [
+        "Turns for a pioneer to plow",
+        "4",
+      ],
+    ],
+    "id": "tundra",
+    "prose": [
+      "Open land. Plowing raises what it grows; a river or a road raises it further.",
+    ],
+    "title": "Tundra",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "1",
+      ],
+      [
+        "Defence bonus",
+        "none",
+      ],
+      [
+        "A free colonist brings in",
+        "1 food, 1 cotton and 2 ore",
+      ],
+      [
+        "Turns for a pioneer to plow",
+        "3",
+      ],
+    ],
+    "id": "desert",
+    "prose": [
+      "Open land. Plowing raises what it grows; a river or a road raises it further.",
+    ],
+    "title": "Desert",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "1",
+      ],
+      [
+        "Defence bonus",
+        "none",
+      ],
+      [
+        "A free colonist brings in",
+        "4 food, 2 cotton and 1 ore",
+      ],
+      [
+        "Turns for a pioneer to plow",
+        "3",
+      ],
+    ],
+    "id": "plains",
+    "prose": [
+      "Open land. Plowing raises what it grows; a river or a road raises it further.",
+    ],
+    "title": "Plains",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "1",
+      ],
+      [
+        "Defence bonus",
+        "none",
+      ],
+      [
+        "A free colonist brings in",
+        "2 food and 3 cotton",
+      ],
+      [
+        "Turns for a pioneer to plow",
+        "3",
+      ],
+    ],
+    "id": "prairie",
+    "prose": [
+      "Open land. Plowing raises what it grows; a river or a road raises it further.",
+    ],
+    "title": "Prairie",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "1",
+      ],
+      [
+        "Defence bonus",
+        "none",
+      ],
+      [
+        "A free colonist brings in",
+        "2 food and 3 tobacco",
+      ],
+      [
+        "Turns for a pioneer to plow",
+        "3",
+      ],
+    ],
+    "id": "grassland",
+    "prose": [
+      "Open land. Plowing raises what it grows; a river or a road raises it further.",
+    ],
+    "title": "Grassland",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "1",
+      ],
+      [
+        "Defence bonus",
+        "none",
+      ],
+      [
+        "A free colonist brings in",
+        "3 food and 3 sugar",
+      ],
+      [
+        "Turns for a pioneer to plow",
+        "3",
+      ],
+    ],
+    "id": "savannah",
+    "prose": [
+      "Open land. Plowing raises what it grows; a river or a road raises it further.",
+    ],
+    "title": "Savannah",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "2",
+      ],
+      [
+        "Defence bonus",
+        "+25%",
+      ],
+      [
+        "A free colonist brings in",
+        "2 food, 2 tobacco and 2 ore",
+      ],
+      [
+        "Turns for a pioneer to plow",
+        "5",
+      ],
+    ],
+    "id": "marsh",
+    "prose": [
+      "Open land. Plowing raises what it grows; a river or a road raises it further.",
+    ],
+    "title": "Marsh",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "2",
+      ],
+      [
+        "Defence bonus",
+        "+25%",
+      ],
+      [
+        "A free colonist brings in",
+        "2 food, 2 sugar and 2 ore",
+      ],
+      [
+        "Turns for a pioneer to plow",
+        "7",
+      ],
+    ],
+    "id": "swamp",
+    "prose": [
+      "Open land. Plowing raises what it grows; a river or a road raises it further.",
+    ],
+    "title": "Swamp",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "2",
+      ],
+      [
+        "Defence bonus",
+        "+50%",
+      ],
+      [
+        "A free colonist brings in",
+        "1 food, 3 furs, 2 lumber and 1 ore",
+      ],
+      [
+        "Turns for a pioneer to clear",
+        "4",
+      ],
+    ],
+    "id": "boreal",
+    "prose": [
+      "Forest. It gives lumber and furs; cleared by a pioneer it becomes open land fit for crops.",
+    ],
+    "title": "Boreal Forest",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "1",
+      ],
+      [
+        "Defence bonus",
+        "+50%",
+      ],
+      [
+        "A free colonist brings in",
+        "1 food, 1 cotton, 2 furs, 1 lumber and 1 ore",
+      ],
+      [
+        "Turns for a pioneer to clear",
+        "4",
+      ],
+    ],
+    "id": "scrub",
+    "prose": [
+      "Forest. It gives lumber and furs; cleared by a pioneer it becomes open land fit for crops.",
+    ],
+    "title": "Scrub Forest",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "2",
+      ],
+      [
+        "Defence bonus",
+        "+50%",
+      ],
+      [
+        "A free colonist brings in",
+        "2 food, 1 cotton, 3 furs and 3 lumber",
+      ],
+      [
+        "Turns for a pioneer to clear",
+        "4",
+      ],
+    ],
+    "id": "mixed",
+    "prose": [
+      "Forest. It gives lumber and furs; cleared by a pioneer it becomes open land fit for crops.",
+    ],
+    "title": "Mixed Forest",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "2",
+      ],
+      [
+        "Defence bonus",
+        "+50%",
+      ],
+      [
+        "A free colonist brings in",
+        "1 food, 1 cotton, 2 furs and 2 lumber",
+      ],
+      [
+        "Turns for a pioneer to clear",
+        "4",
+      ],
+    ],
+    "id": "broadleaf",
+    "prose": [
+      "Forest. It gives lumber and furs; cleared by a pioneer it becomes open land fit for crops.",
+    ],
+    "title": "Broadleaf Forest",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "2",
+      ],
+      [
+        "Defence bonus",
+        "+50%",
+      ],
+      [
+        "A free colonist brings in",
+        "1 food, 1 tobacco, 2 furs and 3 lumber",
+      ],
+      [
+        "Turns for a pioneer to clear",
+        "4",
+      ],
+    ],
+    "id": "conifer",
+    "prose": [
+      "Forest. It gives lumber and furs; cleared by a pioneer it becomes open land fit for crops.",
+    ],
+    "title": "Conifer Forest",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "2",
+      ],
+      [
+        "Defence bonus",
+        "+50%",
+      ],
+      [
+        "A free colonist brings in",
+        "2 food, 1 sugar, 2 furs and 2 lumber",
+      ],
+      [
+        "Turns for a pioneer to clear",
+        "6",
+      ],
+    ],
+    "id": "tropical",
+    "prose": [
+      "Forest. It gives lumber and furs; cleared by a pioneer it becomes open land fit for crops.",
+    ],
+    "title": "Tropical Forest",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "3",
+      ],
+      [
+        "Defence bonus",
+        "+50%",
+      ],
+      [
+        "A free colonist brings in",
+        "1 food, 1 tobacco, 2 furs, 2 lumber and 1 ore",
+      ],
+      [
+        "Turns for a pioneer to clear",
+        "6",
+      ],
+    ],
+    "id": "wetland",
+    "prose": [
+      "Forest. It gives lumber and furs; cleared by a pioneer it becomes open land fit for crops.",
+    ],
+    "title": "Wetland Forest",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "3",
+      ],
+      [
+        "Defence bonus",
+        "+75%",
+      ],
+      [
+        "A free colonist brings in",
+        "1 food, 1 sugar, 1 furs, 2 lumber and 1 ore",
+      ],
+      [
+        "Turns for a pioneer to clear",
+        "7",
+      ],
+    ],
+    "id": "rain",
+    "prose": [
+      "Forest. It gives lumber and furs; cleared by a pioneer it becomes open land fit for crops.",
+    ],
+    "title": "Rain Forest",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "2",
+      ],
+      [
+        "Defence bonus",
+        "none",
+      ],
+      [
+        "A free colonist brings in",
+        "nothing",
+      ],
+    ],
+    "id": "arctic",
+    "prose": [
+      "Rough ground: slow to cross and good to defend.",
+    ],
+    "title": "Arctic",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "1",
+      ],
+      [
+        "Defence bonus",
+        "none",
+      ],
+      [
+        "A free colonist brings in",
+        "3 fish",
+      ],
+    ],
+    "id": "ocean",
+    "prose": [
+      "Water. Ships sail it; a colony beside it can fish once it has Docks.",
+    ],
+    "title": "Ocean",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "1",
+      ],
+      [
+        "Defence bonus",
+        "none",
+      ],
+      [
+        "A free colonist brings in",
+        "3 fish",
+      ],
+    ],
+    "id": "seaLane",
+    "prose": [
+      "Water. Ships sail it; a colony beside it can fish once it has Docks.",
+    ],
+    "title": "Sea Lane",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "3",
+      ],
+      [
+        "Defence bonus",
+        "+150%",
+      ],
+      [
+        "A free colonist brings in",
+        "4 ore and 1 silver",
+      ],
+    ],
+    "id": "mountains",
+    "prose": [
+      "Rough ground: slow to cross and good to defend.",
+    ],
+    "title": "Mountains",
+  },
+  {
+    "category": "terrain",
+    "facts": [
+      [
+        "Movement cost",
+        "2",
+      ],
+      [
+        "Defence bonus",
+        "+100%",
+      ],
+      [
+        "A free colonist brings in",
+        "1 food and 4 ore",
+      ],
+    ],
+    "id": "hills",
+    "prose": [
+      "Rough ground: slow to cross and good to defend.",
+    ],
+    "title": "Hills",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at producing",
+        "Food",
+      ],
+      [
+        "Taught in",
+        "a Schoolhouse or better",
+      ],
+      [
+        "Trained in Europe from",
+        "1100 gold",
+      ],
+      [
+        "Also learned",
+        "in a native settlement that practises it",
+      ],
+    ],
+    "id": "expertFarmer",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Expert Farmer",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at producing",
+        "Sugar",
+      ],
+      [
+        "Taught in",
+        "a College or better",
+      ],
+      [
+        "Also learned",
+        "in a native settlement that practises it",
+      ],
+    ],
+    "id": "masterSugarPlanter",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Master Sugar Planter",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at producing",
+        "Tobacco",
+      ],
+      [
+        "Taught in",
+        "a College or better",
+      ],
+      [
+        "Also learned",
+        "in a native settlement that practises it",
+      ],
+    ],
+    "id": "masterTobaccoPlanter",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Master Tobacco Planter",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at producing",
+        "Cotton",
+      ],
+      [
+        "Taught in",
+        "a College or better",
+      ],
+      [
+        "Also learned",
+        "in a native settlement that practises it",
+      ],
+    ],
+    "id": "masterCottonPlanter",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Master Cotton Planter",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at producing",
+        "Furs",
+      ],
+      [
+        "Taught in",
+        "a Schoolhouse or better",
+      ],
+      [
+        "Also learned",
+        "in a native settlement that practises it",
+      ],
+    ],
+    "id": "expertFurTrapper",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Expert Fur Trapper",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at producing",
+        "Lumber",
+      ],
+      [
+        "Taught in",
+        "a Schoolhouse or better",
+      ],
+      [
+        "Trained in Europe from",
+        "700 gold",
+      ],
+    ],
+    "id": "expertLumberjack",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Expert Lumberjack",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at producing",
+        "Ore",
+      ],
+      [
+        "Taught in",
+        "a Schoolhouse or better",
+      ],
+      [
+        "Trained in Europe from",
+        "600 gold",
+      ],
+      [
+        "Also learned",
+        "in a native settlement that practises it",
+      ],
+    ],
+    "id": "expertOreMiner",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Expert Ore Miner",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at producing",
+        "Silver",
+      ],
+      [
+        "Taught in",
+        "a Schoolhouse or better",
+      ],
+      [
+        "Trained in Europe from",
+        "900 gold",
+      ],
+      [
+        "Also learned",
+        "in a native settlement that practises it",
+      ],
+    ],
+    "id": "expertSilverMiner",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Expert Silver Miner",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at producing",
+        "Fish",
+      ],
+      [
+        "Taught in",
+        "a Schoolhouse or better",
+      ],
+      [
+        "Trained in Europe from",
+        "1000 gold",
+      ],
+      [
+        "Also learned",
+        "in a native settlement that practises it",
+      ],
+    ],
+    "id": "expertFisherman",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Expert Fisherman",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at making",
+        "Rum from sugar",
+      ],
+      [
+        "Taught in",
+        "a College or better",
+      ],
+      [
+        "Trained in Europe from",
+        "1100 gold",
+      ],
+    ],
+    "id": "masterDistiller",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Master Distiller",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at making",
+        "Cigars from tobacco",
+      ],
+      [
+        "Taught in",
+        "a College or better",
+      ],
+      [
+        "Trained in Europe from",
+        "1200 gold",
+      ],
+    ],
+    "id": "masterTobacconist",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Master Tobacconist",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at making",
+        "Cloth from cotton",
+      ],
+      [
+        "Taught in",
+        "a College or better",
+      ],
+      [
+        "Trained in Europe from",
+        "1300 gold",
+      ],
+    ],
+    "id": "masterWeaver",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Master Weaver",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at making",
+        "Coats from furs",
+      ],
+      [
+        "Taught in",
+        "a College or better",
+      ],
+      [
+        "Trained in Europe from",
+        "950 gold",
+      ],
+    ],
+    "id": "masterFurTrader",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Master Fur Trader",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at making",
+        "Hammers from lumber",
+      ],
+      [
+        "Taught in",
+        "a Schoolhouse or better",
+      ],
+      [
+        "Trained in Europe from",
+        "1000 gold",
+      ],
+    ],
+    "id": "masterCarpenter",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Master Carpenter",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at making",
+        "Tools from ore",
+      ],
+      [
+        "Taught in",
+        "a College or better",
+      ],
+      [
+        "Trained in Europe from",
+        "1050 gold",
+      ],
+    ],
+    "id": "masterBlacksmith",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Master Blacksmith",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at making",
+        "Muskets from tools",
+      ],
+      [
+        "Taught in",
+        "a College or better",
+      ],
+      [
+        "Trained in Europe from",
+        "850 gold",
+      ],
+    ],
+    "id": "masterGunsmith",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Master Gunsmith",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at making",
+        "Crosses",
+      ],
+      [
+        "Taught in",
+        "a University",
+      ],
+      [
+        "Trained in Europe from",
+        "1500 gold",
+      ],
+    ],
+    "id": "firebrandPreacher",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Firebrand Preacher",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert at making",
+        "Liberty Bells",
+      ],
+      [
+        "Taught in",
+        "a University",
+      ],
+      [
+        "Trained in Europe from",
+        "1900 gold",
+      ],
+    ],
+    "id": "elderStatesman",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Elder Statesman",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert as a",
+        "Teacher",
+      ],
+      [
+        "Taught in",
+        "no school",
+      ],
+    ],
+    "id": "expertTeacher",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Expert Teacher",
+  },
+  {
+    "category": "skills",
+    "facts": [],
+    "id": "freeColonist",
+    "prose": [
+      "An ordinary colonist with no trade. He can do any work, learn any trade, and is the measure the tables are written for.",
+    ],
+    "title": "Free Colonist",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert as a",
+        "pioneer",
+      ],
+      [
+        "Taught in",
+        "a Schoolhouse or better",
+      ],
+      [
+        "Trained in Europe from",
+        "1200 gold",
+      ],
+    ],
+    "id": "hardyPioneer",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Hardy Pioneer",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert as a",
+        "soldier",
+      ],
+      [
+        "Taught in",
+        "a College or better",
+      ],
+      [
+        "Trained in Europe from",
+        "2000 gold",
+      ],
+    ],
+    "id": "veteranSoldier",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Veteran Soldier",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert as a",
+        "scout",
+      ],
+      [
+        "Taught in",
+        "a Schoolhouse or better",
+      ],
+      [
+        "Also learned",
+        "in a native settlement that practises it",
+      ],
+    ],
+    "id": "seasonedScout",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Seasoned Scout",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert as a",
+        "dragoon",
+      ],
+      [
+        "Taught in",
+        "a College or better",
+      ],
+    ],
+    "id": "veteranDragoon",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Veteran Dragoon",
+  },
+  {
+    "category": "skills",
+    "facts": [
+      [
+        "Expert as a",
+        "missionary",
+      ],
+      [
+        "Taught in",
+        "a University",
+      ],
+      [
+        "Trained in Europe from",
+        "1400 gold",
+      ],
+    ],
+    "id": "jesuitMissionary",
+    "prose": [
+      "A specialist: in his own trade he does about twice the work of a free colonist, and he can teach it in a school of the right standing.",
+    ],
+    "title": "Jesuit Missionary",
+  },
+  {
+    "category": "skills",
+    "facts": [],
+    "id": "indenturedServant",
+    "prose": [
+      "Bound to service. As good as anyone in the fields; poor at a craft and poorer still in an office. Schooling or battle can make him free.",
+    ],
+    "title": "Indentured Servant",
+  },
+  {
+    "category": "skills",
+    "facts": [],
+    "id": "pettyCriminal",
+    "prose": [
+      "Sent out from the jails. Fit for field work and little else until schooling or battle raises him.",
+    ],
+    "title": "Petty Criminal",
+  },
+  {
+    "category": "skills",
+    "facts": [],
+    "id": "indianConvert",
+    "prose": [
+      "One of the native peoples who has come to live in a colony. Better than a colonist on the land and the sea; he does not work indoors and cannot be schooled.",
+    ],
+    "title": "Indian Convert",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "3",
+      ],
+      [
+        "Line",
+        "Stockade, then Fort, then Fortress",
+      ],
+    ],
+    "id": "stockade",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Stockade",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "120 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "3",
+      ],
+      [
+        "Line",
+        "Stockade, then Fort, then Fortress",
+      ],
+    ],
+    "id": "fort",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Fort",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "320 hammers and 200 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "8",
+      ],
+      [
+        "Line",
+        "Stockade, then Fort, then Fortress",
+      ],
+    ],
+    "id": "fortress",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Fortress",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "52 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Armory, then Magazine, then Arsenal",
+      ],
+      [
+        "Work done here",
+        "Gunsmith: tools into muskets",
+      ],
+    ],
+    "id": "armory",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Armory",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "120 hammers and 50 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "8",
+      ],
+      [
+        "Line",
+        "Armory, then Magazine, then Arsenal",
+      ],
+      [
+        "Work done here",
+        "Gunsmith: tools into muskets",
+      ],
+    ],
+    "id": "magazine",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Magazine",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "240 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "8",
+      ],
+      [
+        "Line",
+        "Armory, then Magazine, then Arsenal",
+      ],
+      [
+        "Work done here",
+        "Gunsmith: tools into muskets",
+      ],
+      [
+        "Needs in the Congress",
+        "Adam Smith",
+      ],
+    ],
+    "id": "arsenal",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Arsenal",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "52 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Docks, then Drydock, then Shipyard",
+      ],
+      [
+        "Needs",
+        "a colony on the sea",
+      ],
+    ],
+    "id": "docks",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Docks",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "80 hammers and 50 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "4",
+      ],
+      [
+        "Line",
+        "Docks, then Drydock, then Shipyard",
+      ],
+      [
+        "Needs",
+        "a colony on the sea",
+      ],
+    ],
+    "id": "drydock",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Drydock",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "240 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "8",
+      ],
+      [
+        "Line",
+        "Docks, then Drydock, then Shipyard",
+      ],
+      [
+        "Needs",
+        "a colony on the sea",
+      ],
+    ],
+    "id": "shipyard",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Shipyard",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Town Hall",
+      ],
+      [
+        "Work done here",
+        "Statesman: liberty bells",
+      ],
+    ],
+    "id": "townHall",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Town Hall",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers and 50 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "4",
+      ],
+    ],
+    "id": "townHall2",
+    "prose": [
+      "Listed in the tables but never offered in play.",
+    ],
+    "title": "Town Hall",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "120 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "8",
+      ],
+    ],
+    "id": "townHall3",
+    "prose": [
+      "Listed in the tables but never offered in play.",
+    ],
+    "title": "Town Hall",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "4",
+      ],
+      [
+        "Line",
+        "Schoolhouse, then College, then University",
+      ],
+      [
+        "Work done here",
+        "Teacher",
+      ],
+    ],
+    "id": "schoolhouse",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Schoolhouse",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "160 hammers and 50 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "8",
+      ],
+      [
+        "Line",
+        "Schoolhouse, then College, then University",
+      ],
+      [
+        "Work done here",
+        "Teacher",
+      ],
+    ],
+    "id": "college",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "College",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "200 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "10",
+      ],
+      [
+        "Line",
+        "Schoolhouse, then College, then University",
+      ],
+      [
+        "Work done here",
+        "Teacher",
+      ],
+    ],
+    "id": "university",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "University",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "80 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Warehouse, then Warehouse Expansion",
+      ],
+    ],
+    "id": "warehouse",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Warehouse",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "80 hammers and 20 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Warehouse, then Warehouse Expansion",
+      ],
+    ],
+    "id": "warehouseExpansion",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Warehouse Expansion",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Stable",
+      ],
+    ],
+    "id": "stable",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Stable",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "160 hammers and 50 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Custom House",
+      ],
+      [
+        "Needs in the Congress",
+        "Peter Stuyvesant",
+      ],
+    ],
+    "id": "customHouse",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Custom House",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "52 hammers and 20 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Printing Press, then Newspaper",
+      ],
+    ],
+    "id": "printingPress",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Printing Press",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "120 hammers and 50 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "4",
+      ],
+      [
+        "Line",
+        "Printing Press, then Newspaper",
+      ],
+    ],
+    "id": "newspaper",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Newspaper",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Weaver's House, then Weaver's Shop, then Textile Mill",
+      ],
+      [
+        "Work done here",
+        "Weaver: cotton into cloth",
+      ],
+    ],
+    "id": "weaversHouse",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Weaver's House",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers and 20 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Weaver's House, then Weaver's Shop, then Textile Mill",
+      ],
+      [
+        "Work done here",
+        "Weaver: cotton into cloth",
+      ],
+    ],
+    "id": "weaversShop",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Weaver's Shop",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "160 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "8",
+      ],
+      [
+        "Line",
+        "Weaver's House, then Weaver's Shop, then Textile Mill",
+      ],
+      [
+        "Work done here",
+        "Weaver: cotton into cloth",
+      ],
+      [
+        "Needs in the Congress",
+        "Adam Smith",
+      ],
+    ],
+    "id": "textileMill",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Textile Mill",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Tobacconist's House, then Tobacconist's Shop, then Cigar Factory",
+      ],
+      [
+        "Work done here",
+        "Tobacconist: tobacco into cigars",
+      ],
+    ],
+    "id": "tobacconistsHouse",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Tobacconist's House",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers and 20 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Tobacconist's House, then Tobacconist's Shop, then Cigar Factory",
+      ],
+      [
+        "Work done here",
+        "Tobacconist: tobacco into cigars",
+      ],
+    ],
+    "id": "tobacconistsShop",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Tobacconist's Shop",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "160 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "8",
+      ],
+      [
+        "Line",
+        "Tobacconist's House, then Tobacconist's Shop, then Cigar Factory",
+      ],
+      [
+        "Work done here",
+        "Tobacconist: tobacco into cigars",
+      ],
+      [
+        "Needs in the Congress",
+        "Adam Smith",
+      ],
+    ],
+    "id": "cigarFactory",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Cigar Factory",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Rum Distiller's House, then Rum Distillery, then Rum Factory",
+      ],
+      [
+        "Work done here",
+        "Distiller: sugar into rum",
+      ],
+    ],
+    "id": "rumDistillersHouse",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Rum Distiller's House",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers and 20 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Rum Distiller's House, then Rum Distillery, then Rum Factory",
+      ],
+      [
+        "Work done here",
+        "Distiller: sugar into rum",
+      ],
+    ],
+    "id": "rumDistillery",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Rum Distillery",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "160 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "8",
+      ],
+      [
+        "Line",
+        "Rum Distiller's House, then Rum Distillery, then Rum Factory",
+      ],
+      [
+        "Work done here",
+        "Distiller: sugar into rum",
+      ],
+      [
+        "Needs in the Congress",
+        "Adam Smith",
+      ],
+    ],
+    "id": "rumFactory",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Rum Factory",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "400 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "16",
+      ],
+    ],
+    "id": "capitol",
+    "prose": [
+      "Listed in the tables but never offered in play.",
+    ],
+    "title": "Capitol",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "400 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "16",
+      ],
+    ],
+    "id": "capitolExpansion",
+    "prose": [
+      "Listed in the tables but never offered in play.",
+    ],
+    "title": "Capitol Expansion",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "56 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Fur Trader's House, then Fur Trading Post, then Fur Factory",
+      ],
+      [
+        "Work done here",
+        "Fur Trader: furs into coats",
+      ],
+    ],
+    "id": "furTradersHouse",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Fur Trader's House",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "56 hammers and 20 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Fur Trader's House, then Fur Trading Post, then Fur Factory",
+      ],
+      [
+        "Work done here",
+        "Fur Trader: furs into coats",
+      ],
+    ],
+    "id": "furTradingPost",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Fur Trading Post",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "160 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "6",
+      ],
+      [
+        "Line",
+        "Fur Trader's House, then Fur Trading Post, then Fur Factory",
+      ],
+      [
+        "Work done here",
+        "Fur Trader: furs into coats",
+      ],
+      [
+        "Needs in the Congress",
+        "Adam Smith",
+      ],
+    ],
+    "id": "furFactory",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Fur Factory",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "39 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Carpenter's Shop, then Lumber Mill",
+      ],
+      [
+        "Work done here",
+        "Carpenter: lumber into hammers",
+      ],
+    ],
+    "id": "carpentersShop",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Carpenter's Shop",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "52 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "3",
+      ],
+      [
+        "Line",
+        "Carpenter's Shop, then Lumber Mill",
+      ],
+      [
+        "Work done here",
+        "Carpenter: lumber into hammers",
+      ],
+    ],
+    "id": "lumberMill",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Lumber Mill",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "3",
+      ],
+      [
+        "Line",
+        "Church, then Cathedral",
+      ],
+      [
+        "Work done here",
+        "Preacher: crosses",
+      ],
+    ],
+    "id": "church",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Church",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "176 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "8",
+      ],
+      [
+        "Line",
+        "Church, then Cathedral",
+      ],
+      [
+        "Work done here",
+        "Preacher: crosses",
+      ],
+    ],
+    "id": "cathedral",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Cathedral",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Blacksmith's House, then Blacksmith's Shop, then Iron Works",
+      ],
+      [
+        "Work done here",
+        "Blacksmith: ore into tools",
+      ],
+    ],
+    "id": "blacksmithsHouse",
+    "prose": [
+      "The first building of its line. Up to three colonists can work in it.",
+    ],
+    "title": "Blacksmith's House",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "64 hammers and 20 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "1",
+      ],
+      [
+        "Line",
+        "Blacksmith's House, then Blacksmith's Shop, then Iron Works",
+      ],
+      [
+        "Work done here",
+        "Blacksmith: ore into tools",
+      ],
+    ],
+    "id": "blacksmithsShop",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Blacksmith's Shop",
+  },
+  {
+    "category": "buildings",
+    "facts": [
+      [
+        "Cost",
+        "240 hammers and 100 tools",
+      ],
+      [
+        "Colonists needed to build it",
+        "8",
+      ],
+      [
+        "Line",
+        "Blacksmith's House, then Blacksmith's Shop, then Iron Works",
+      ],
+      [
+        "Work done here",
+        "Blacksmith: ore into tools",
+      ],
+      [
+        "Needs in the Congress",
+        "Adam Smith",
+      ],
+    ],
+    "id": "ironWorks",
+    "prose": [
+      "An improvement on the building before it in its line: the same work, done better.",
+    ],
+    "title": "Iron Works",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Trade",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "adamSmith",
+    "prose": [
+      "Factories and the Arsenal can be built: half again the goods from the same materials.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Adam Smith",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Trade",
+      ],
+      [
+        "Likely to be offered",
+        "in the middle years and late",
+      ],
+    ],
+    "id": "jakobFugger",
+    "prose": [
+      "Every boycott in Europe is lifted and back taxes forgiven.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Jakob Fugger",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Trade",
+      ],
+      [
+        "Likely to be offered",
+        "early and in the middle years",
+      ],
+    ],
+    "id": "peterMinuit",
+    "prose": [
+      "Natives no longer ask payment for their land.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Peter Minuit",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Trade",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "peterStuyvesant",
+    "prose": [
+      "Custom Houses can be built, selling goods without ships.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Peter Stuyvesant",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Trade",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "janDeWitt",
+    "prose": [
+      "Trade with foreign colonies; fuller Foreign Affairs report.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Jan de Witt",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Exploration",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "ferdinandMagellan",
+    "prose": [
+      "Ships move one square farther; Atlantic crossings are never slow.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Ferdinand Magellan",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Exploration",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "franciscoCoronado",
+    "prose": [
+      "Every colony on the map and its surroundings are revealed.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Francisco Coronado",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Exploration",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "hernandoDeSoto",
+    "prose": [
+      "Scouts never return from a rumor empty-handed; every unit sees one square farther.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Hernando de Soto",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Exploration",
+      ],
+      [
+        "Likely to be offered",
+        "early and in the middle years",
+      ],
+    ],
+    "id": "henryHudson",
+    "prose": [
+      "Fur trappers bring in twice the furs.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Henry Hudson",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Exploration",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "laSalle",
+    "prose": [
+      "Every colony of three or more gets a Stockade.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Sieur De La Salle",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Military",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "hernanCortes",
+    "prose": [
+      "Conquered settlements always yield treasure, more of it, and the Crown ships it for the tax alone.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Hernan Cortes",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Military",
+      ],
+      [
+        "Likely to be offered",
+        "in the middle years and late",
+      ],
+    ],
+    "id": "georgeWashington",
+    "prose": [
+      "Soldiers and dragoons that win a battle are always promoted.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "George Washington",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Military",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "paulRevere",
+    "prose": [
+      "A colony with no soldier arms a colonist from its muskets when attacked.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Paul Revere",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Military",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "francisDrake",
+    "prose": [
+      "Privateers fight half again as well.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Francis Drake",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Military",
+      ],
+      [
+        "Likely to be offered",
+        "in the middle years and late",
+      ],
+    ],
+    "id": "johnPaulJones",
+    "prose": [
+      "A Frigate sails from Europe to join the fleet.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "John Paul Jones",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Political",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "thomasJefferson",
+    "prose": [
+      "Liberty bell production rises by half.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Thomas Jefferson",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Political",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "pocahontas",
+    "prose": [
+      "All native tension is forgotten, and alarm grows half as fast.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Pocahontas",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Political",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "thomasPaine",
+    "prose": [
+      "Liberty bell production rises by the tax rate.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Thomas Paine",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Political",
+      ],
+      [
+        "Likely to be offered",
+        "in the middle years and late",
+      ],
+    ],
+    "id": "simonBolivar",
+    "prose": [
+      "Sons of Liberty membership rises by 20 points in every colony.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Simon Bolivar",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Political",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "benjaminFranklin",
+    "prose": [
+      "The King's wars in Europe no longer reach the colonies; rivals ask less in negotiations.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Benjamin Franklin",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Religious",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "williamBrewster",
+    "prose": [
+      "No criminals or servants emigrate, and you choose who comes.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "William Brewster",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Religious",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "williamPenn",
+    "prose": [
+      "Preachers produce half again as many crosses.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "William Penn",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Religious",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "jeanDeBrebeuf",
+    "prose": [
+      "Every mission, standing or new, works as a Jesuit mission.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Jean de Brebeuf",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Religious",
+      ],
+      [
+        "Likely to be offered",
+        "throughout the game",
+      ],
+    ],
+    "id": "juanDeSepulveda",
+    "prose": [
+      "Natives of defeated settlements more often convert and join you.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Juan de Sepulveda",
+  },
+  {
+    "category": "fathers",
+    "facts": [
+      [
+        "Field",
+        "Religious",
+      ],
+      [
+        "Likely to be offered",
+        "in the middle years and late",
+      ],
+    ],
+    "id": "bartolomeDeLasCasas",
+    "prose": [
+      "Every Indian convert, in a colony or out, becomes a Free Colonist.",
+      "A Founding Father joins the Continental Congress when the colonies have rung enough liberty bells, and his effect lasts for the rest of the game.",
+    ],
+    "title": "Bartolome de las Casas",
+  },
+  {
+    "category": "concepts",
+    "facts": [
+      [
+        "Key",
+        "Shift-D",
+      ],
+    ],
+    "id": "disband",
+    "prose": [
+      "Removes a unit from the game for good. The game asks first. A colonist is better put to work than disbanded; the order is for units that cost more to keep track of than they are worth.",
+    ],
+    "title": "Disband",
+  },
+  {
+    "category": "concepts",
+    "facts": [
+      [
+        "Key",
+        "F",
+      ],
+      [
+        "Bonus",
+        "+50% defence once dug in",
+      ],
+    ],
+    "id": "fortify",
+    "prose": [
+      "A unit told to fortify spends the rest of the turn digging in and from the next turn defends half again as well. It is not asked for orders again until it is woken. Inside a colony with a stockade or stronger works the works count instead.",
+    ],
+    "title": "Fortify",
+  },
+  {
+    "category": "concepts",
+    "facts": [
+      [
+        "Key",
+        "P",
+      ],
+      [
+        "Tools used",
+        "20",
+      ],
+    ],
+    "id": "plowing",
+    "prose": [
+      "A pioneer plows open land to raise its crops, or clears a forest square to make open land of it. How many turns it takes depends on the ground, and a hardy pioneer works twice as fast.",
+    ],
+    "title": "Plowing",
+  },
+  {
+    "category": "concepts",
+    "facts": [
+      [
+        "Key",
+        "R",
+      ],
+      [
+        "Tools used",
+        "20",
+      ],
+    ],
+    "id": "roads",
+    "prose": [
+      "A road lets units cross a square for a third of a move when they come from another road, and raises what the square gives in lumber, furs, ore and silver. Every colony square has one.",
+    ],
+    "title": "Roads",
+  },
+  {
+    "category": "concepts",
+    "facts": [
+      [
+        "Key",
+        "S",
+      ],
+    ],
+    "id": "sentry",
+    "prose": [
+      "A unit on sentry is passed over when orders are asked for. It wakes by itself when a foreign unit comes alongside, or, aboard a ship, when the ship reaches a colony.",
+    ],
+    "title": "Sentry",
+  },
+  {
+    "category": "concepts",
+    "facts": [
+      [
+        "Keys",
+        "Alt+T to define, T to assign",
+      ],
+    ],
+    "id": "tradeRoute",
+    "prose": [
+      "A list of colonies, with what to load and unload at each. A ship or wagon train put on a route carries it out turn after turn without further orders. Sea routes may call at Europe.",
+    ],
+    "title": "Trade Route",
+  },
+  {
+    "category": "concepts",
+    "facts": [
+      [
+        "Bonus",
+        "+50% in battle",
+      ],
+    ],
+    "id": "veteranUnits",
+    "prose": [
+      "A veteran soldier fights half again as well as a colonist given the same muskets. A colonist who wins a battle may be promoted in the field. After a Declaration of Independence, veterans in colonies that favour the cause form the Continental Army.",
+    ],
+    "title": "Veteran Units",
+  },
+  {
+    "category": "concepts",
+    "facts": [
+      [
+        "A full hold",
+        "100",
+      ],
+    ],
+    "id": "prices",
+    "prose": [
+      "Europe quotes two prices for each cargo: what it pays and, a little higher, what it asks. Selling a cargo pushes its price down and buying pushes it up, a little at a time, and the other powers trade in the same market. Manufactured goods fetch more than the raw materials they are made from.",
+    ],
+    "title": "Prices",
+  },
+  {
+    "category": "concepts",
+    "facts": [
+      [
+        "Custom House keeps back",
+        "50",
+      ],
+    ],
+    "id": "taxes",
+    "prose": [
+      "The Crown takes a share of every sale in Europe and raises it from time to time. A rise can be refused by throwing a cargo into the harbour, after which that cargo cannot be traded in Europe until the back taxes are paid. Nothing is owed once independence is declared.",
+    ],
+    "title": "Taxes",
+  },
+  {
+    "category": "concepts",
+    "facts": [
+      [
+        "To declare independence",
+        "50% rebel sentiment",
+      ],
+    ],
+    "id": "libertyBells",
+    "prose": [
+      "Rung by statesmen in a Town Hall, more with a Printing Press or Newspaper. Bells raise Sons of Liberty membership in the colony that rings them, which first removes a production penalty and then earns a bonus; the same bells bring Founding Fathers into the Congress.",
+    ],
+    "title": "Liberty Bells",
+  },
+  {
+    "category": "concepts",
+    "facts": [],
+    "id": "crosses",
+    "prose": [
+      "Made by a colony's church and its preachers. They stand for religious feeling in Europe: when enough have gathered, another immigrant comes forward on the docks, and each one that comes makes the next a little dearer.",
+    ],
+    "title": "Crosses",
+  },
+  {
+    "category": "concepts",
+    "facts": [],
+    "id": "hammers",
+    "prose": [
+      "What carpenters make from lumber. A colony spends them on whatever it is building; costly buildings need tools as well. Hammers are not cargo and cannot be moved or sold.",
+    ],
+    "title": "Hammers",
+  },
+]
+`;

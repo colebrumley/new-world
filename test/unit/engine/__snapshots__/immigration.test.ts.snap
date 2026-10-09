@@ -1,0 +1,82 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`immigration tables > match the snapshot 1`] = `
+{
+  "aiEighths": 8,
+  "aiLevel": 1,
+  "criminalOdds": 15,
+  "crossesBase": 8,
+  "crossesCap": 4000,
+  "crossesPerHead": 2,
+  "dragoonOdds": 5,
+  "emptyDocksBonus": 2,
+  "englandFactor": [
+    2,
+    3,
+  ],
+  "freeColonistOdds": 8,
+  "paidRecruitsCap": 180,
+  "poolSize": 3,
+  "priceFloor": 100,
+  "priceFloorDivisor": 5,
+  "priceMinimum": 10,
+  "priceOffset": 7,
+  "priceStep": 20,
+  "servantOdds": 10,
+  "skilledEvery": 4,
+  "waitingPenalty": 2,
+}
+`;
+
+exports[`immigration tables > match the snapshot 2`] = `
+{
+  "elderStatesman": 1,
+  "expertFarmer": 2,
+  "expertFisherman": 2,
+  "expertLumberjack": 2,
+  "expertOreMiner": 2,
+  "expertSilverMiner": 1,
+  "firebrandPreacher": 1,
+  "hardyPioneer": 1,
+  "jesuitMissionary": 1,
+  "masterBlacksmith": 1,
+  "masterCarpenter": 3,
+  "masterDistiller": 1,
+  "masterFurTrader": 1,
+  "masterGunsmith": 1,
+  "masterTobacconist": 1,
+  "masterWeaver": 1,
+  "seasonedScout": 2,
+  "veteranSoldier": 1,
+}
+`;
+
+exports[`immigration tables > match the snapshot 3`] = `
+{
+  "conquistador": [
+    "indenturedServant",
+    null,
+    null,
+  ],
+  "discoverer": [
+    "masterCarpenter",
+    "expertFarmer",
+    "seasonedScout",
+  ],
+  "explorer": [
+    "indenturedServant",
+    "expertFarmer",
+    "seasonedScout",
+  ],
+  "governor": [
+    "indenturedServant",
+    null,
+    null,
+  ],
+  "viceroy": [
+    "pettyCriminal",
+    null,
+    null,
+  ],
+}
+`;

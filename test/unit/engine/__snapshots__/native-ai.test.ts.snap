@@ -1,0 +1,21 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`native AI table > matches the snapshot 1`] = `
+{
+  "breedingCapBase": 25,
+  "callChance": 12,
+  "colonyNotice": 5,
+  "crownAlarm": 100,
+  "crownAlarmFrom": 25,
+  "crownRollPerAlarm": 400,
+  "maxSteps": 20,
+  "roam": [
+    4,
+    3,
+    3,
+    3,
+  ],
+  "visitUrge": 40,
+  "warRange": 9,
+}
+`;

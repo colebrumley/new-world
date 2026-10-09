@@ -1,0 +1,54 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`village tables > match the snapshot and name the nine actions of the rules file 1`] = `
+{
+  "VILLAGE": {
+    "chiefFavours": [
+      "promotion",
+      "tales",
+      "gift",
+    ],
+    "chiefRiskDivisor": 4,
+    "chiefRiskFrom": 25,
+    "chiefRoll": [
+      100,
+      140,
+    ],
+    "giftDie": 10,
+    "giftScale": 4,
+    "giftTimes": 6,
+    "hostileRoll": 500,
+    "talesRadius": 6,
+    "treatyRefusedAlarm": 100,
+    "tributeBase": 10,
+    "tributeLeast": 10,
+    "tributeMost": 100,
+    "tributePerSupply": 3,
+    "tributeRefusedFrom": 50,
+    "wariestOdds": 8,
+    "wariestTribe": "arawak",
+  },
+  "VILLAGE_ACTIONS": [
+    "trade",
+    "enterHostile",
+    "establishMission",
+    "denounce",
+    "liveAmong",
+    "speakWithChief",
+    "incite",
+    "demandTribute",
+    "attack",
+  ],
+  "VILLAGE_ACTION_NAMES": {
+    "attack": "Attack Village",
+    "demandTribute": "Demand Tribute",
+    "denounce": "Denounce Heresy",
+    "enterHostile": "Enter Hostile Village",
+    "establishMission": "Establish Mission",
+    "incite": "Incite Indians",
+    "liveAmong": "Live Among The Natives",
+    "speakWithChief": "Ask to Speak With Chief",
+    "trade": "Trade With Village",
+  },
+}
+`;

@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`defining routes > creates a route with a default name from its first stop 1`] = `
+{
+  "maxCargoesPerList": 6,
+  "maxRoutes": 12,
+  "maxStops": 4,
+  "nameSuffixes": [
+    "Run",
+    "Ferry",
+    "Cargo",
+    "Transport",
+    "Triangle",
+  ],
+}
+`;

@@ -1,0 +1,8 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`crosses > a colony makes 1 by itself, 2 with a Church, 3 with a Cathedral 1`] = `
+{
+  "perChurchLevel": 1,
+  "perColony": 1,
+}
+`;

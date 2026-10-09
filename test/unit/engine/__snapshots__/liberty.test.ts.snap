@@ -1,0 +1,26 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`membership percentage > is the floor of 100 n / d, capped, and nil for an empty bookkeeping 1`] = `
+{
+  "bolivar": "simonBolivar",
+  "bolivarPoints": 20,
+  "decayDivisor": 64,
+  "denominatorPerColonist": 2,
+  "freeBells": 1,
+  "initialDenominator": 100,
+  "jefferson": "thomasJefferson",
+  "majority": 50,
+  "paine": "thomasPaine",
+  "perColonist": 100,
+  "smallColonyDivisor": 20,
+  "toryThreshold": {
+    "conquistador": 8,
+    "discoverer": 10,
+    "explorer": 9,
+    "governor": 7,
+    "viceroy": 6,
+  },
+  "unanimous": 100,
+  "unanimousKeptAbove": 95,
+}
+`;

@@ -1,0 +1,37 @@
+[
+  {
+    "heading": "War and peace",
+    "rows": [
+      [
+        "",
+        "Eng.",
+        "Fr.",
+        "Span."
+      ],
+      [
+        "England",
+        "-",
+        "Peace",
+        "No contact"
+      ],
+      [
+        "France",
+        "Peace",
+        "-",
+        "War"
+      ],
+      [
+        "Spain",
+        "No contact",
+        "War",
+        "-"
+      ]
+    ],
+    "note": null
+  },
+  {
+    "heading": "The powers compared",
+    "rows": [],
+    "note": "Our adviser knows little of the other powers' colonies. A Congress with Jan de Witt in it would be better informed."
+  }
+]

@@ -1,0 +1,19 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`congress table > matches the snapshot 1`] = `
+{
+  "aiBase": 8,
+  "aiLevelFrom": 14,
+  "coronadoRadius": 5,
+  "dearerFrom": [
+    1600,
+    1650,
+    1700,
+    1750,
+  ],
+  "humanBase": 16,
+  "humanLevelOffset": 3,
+  "laSallePopulation": 3,
+  "scorePerFather": 5,
+}
+`;

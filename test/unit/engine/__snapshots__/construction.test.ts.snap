@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`what a colony may build > a new one-colonist port colony is offered the first level of each chain it qualifies for, and a wagon train 1`] = `
+{
+  "BUILDABLE_UNITS": {
+    "artillery": "armory",
+    "caravel": "shipyard",
+    "frigate": "shipyard",
+    "galleon": "shipyard",
+    "merchantman": "shipyard",
+    "privateer": "shipyard",
+    "wagonTrain": null,
+  },
+  "CONSTRUCTION": {
+    "firstProject": "warehouse",
+    "firstProjectPort": "docks",
+    "goldPerHammer": 13,
+    "noProgressMultiplier": 2,
+    "toolSurcharge": 4,
+  },
+}
+`;

@@ -1,0 +1,66 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`combat tables > match the snapshot 1`] = `
+{
+  "BRAVE_WITH_HORSES": {
+    "armedBrave": "mountedWarrior",
+    "brave": "mountedBrave",
+  },
+  "BRAVE_WITH_MUSKETS": {
+    "brave": "armedBrave",
+    "mountedBrave": "mountedWarrior",
+  },
+  "CAPTURED_WHEN_BEATEN": [
+    "colonist",
+    "wagonTrain",
+    "treasure",
+  ],
+  "COMBAT": {
+    "armsRetentionOdds": 2,
+    "artilleryOpenDivisor": 4,
+    "artilleryRaidFactor": 2,
+    "criminalHandicap": 10,
+    "damagedArtilleryPenalty": 2,
+    "fortifiedLimit": 5,
+    "fortifiedQuarters": 2,
+    "fullMove": 3,
+    "halfBonus": 2,
+    "heartlandBonus": 4,
+    "horsesReturned": 25,
+    "humanNudgeFrom": 4,
+    "refOpenPerLevel": 20,
+    "scale": 8,
+    "servantHandicap": 5,
+    "settledQuarters": 2,
+    "shieldTurns": 80,
+  },
+  "CONTINENTAL": {
+    "dragoon": "continentalCavalry",
+    "soldier": "continentalArmy",
+  },
+  "DEMOTION": {
+    "artillery": "damagedArtillery",
+    "cavalry": "regular",
+    "continentalArmy": "colonist",
+    "continentalCavalry": "continentalArmy",
+    "dragoon": "soldier",
+    "soldier": "colonist",
+  },
+  "DESTROYED_WHEN_BEATEN": [
+    "regular",
+    "damagedArtillery",
+    "scout",
+    "pioneer",
+    "missionary",
+    "brave",
+    "armedBrave",
+    "mountedBrave",
+    "mountedWarrior",
+  ],
+  "PROMOTION": {
+    "freeColonist": "veteranSoldier",
+    "indenturedServant": "freeColonist",
+    "pettyCriminal": "indenturedServant",
+  },
+}
+`;

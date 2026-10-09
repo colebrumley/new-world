@@ -1,0 +1,132 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`goods table > lists the 16 cargo types in the original order with names and opening bids 1`] = `
+{
+  "GOOD_IDS": [
+    "food",
+    "sugar",
+    "tobacco",
+    "cotton",
+    "furs",
+    "lumber",
+    "ore",
+    "silver",
+    "horses",
+    "rum",
+    "cigars",
+    "cloth",
+    "coats",
+    "tradeGoods",
+    "tools",
+    "muskets",
+  ],
+  "GOOD_NAMES": {
+    "bells": "Liberty Bells",
+    "cigars": "Cigars",
+    "cloth": "Cloth",
+    "coats": "Coats",
+    "cotton": "Cotton",
+    "crosses": "Crosses",
+    "food": "Food",
+    "furs": "Furs",
+    "hammers": "Hammers",
+    "horses": "Horses",
+    "lumber": "Lumber",
+    "muskets": "Muskets",
+    "ore": "Ore",
+    "rum": "Rum",
+    "silver": "Silver",
+    "sugar": "Sugar",
+    "tobacco": "Tobacco",
+    "tools": "Tools",
+    "tradeGoods": "Trade Goods",
+  },
+  "HOLD_CAPACITY": 100,
+  "NOT_AUTO_LOADED": [
+    "horses",
+    "tools",
+    "muskets",
+  ],
+  "ROLE_GOODS": {
+    "colonist": {},
+    "dragoon": {
+      "horses": 50,
+      "muskets": 50,
+    },
+    "missionary": {},
+    "pioneer": {},
+    "scout": {
+      "horses": 50,
+    },
+    "soldier": {
+      "muskets": 50,
+    },
+  },
+  "START_BID": {
+    "cigars": [
+      11,
+      13,
+    ],
+    "cloth": [
+      11,
+      13,
+    ],
+    "coats": [
+      11,
+      13,
+    ],
+    "cotton": [
+      2,
+      5,
+    ],
+    "food": [
+      1,
+      3,
+    ],
+    "furs": [
+      4,
+      6,
+    ],
+    "horses": [
+      2,
+      3,
+    ],
+    "lumber": [
+      2,
+      2,
+    ],
+    "muskets": [
+      3,
+      3,
+    ],
+    "ore": [
+      3,
+      6,
+    ],
+    "rum": [
+      11,
+      13,
+    ],
+    "silver": [
+      20,
+      20,
+    ],
+    "sugar": [
+      4,
+      7,
+    ],
+    "tobacco": [
+      3,
+      5,
+    ],
+    "tools": [
+      2,
+      2,
+    ],
+    "tradeGoods": [
+      2,
+      3,
+    ],
+  },
+}
+`;

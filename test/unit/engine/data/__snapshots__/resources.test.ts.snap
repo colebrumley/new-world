@@ -1,0 +1,58 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`resource table > matches the snapshot 1`] = `
+{
+  "beaver": {
+    "aiValue": 6,
+    "name": "Beaver",
+  },
+  "depletedMine": {
+    "aiValue": 6,
+    "name": "Depleted Mine",
+  },
+  "fishery": {
+    "aiValue": 5,
+    "name": "Fishery",
+  },
+  "game": {
+    "aiValue": 6,
+    "name": "Game",
+  },
+  "minerals": {
+    "aiValue": 4,
+    "name": "Minerals",
+  },
+  "oasis": {
+    "aiValue": 3,
+    "name": "Oasis",
+  },
+  "oreDeposit": {
+    "aiValue": 6,
+    "name": "Ore Deposit",
+  },
+  "primeCotton": {
+    "aiValue": 6,
+    "name": "Prime Cotton",
+  },
+  "primeSugar": {
+    "aiValue": 7,
+    "name": "Prime Sugar",
+  },
+  "primeTimber": {
+    "aiValue": 6,
+    "name": "Prime Timber",
+  },
+  "primeTobacco": {
+    "aiValue": 6,
+    "name": "Prime Tobacco",
+  },
+  "silverDeposit": {
+    "aiValue": 12,
+    "name": "Silver Deposit",
+  },
+  "wheat": {
+    "aiValue": 4,
+    "name": "Wheat",
+  },
+}
+`;

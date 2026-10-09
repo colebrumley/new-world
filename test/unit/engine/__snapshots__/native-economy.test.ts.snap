@@ -1,0 +1,106 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`native economy tables > match the snapshot 1`] = `
+{
+  "CAPITAL_DEMAND_DOUBLE": [
+    "food",
+    "sugar",
+    "tobacco",
+    "cotton",
+    "furs",
+    "lumber",
+    "ore",
+    "silver",
+  ],
+  "CAPITAL_DEMAND_HALF_MORE": [
+    "tradeGoods",
+    "tools",
+    "muskets",
+  ],
+  "CAPITAL_SUPPLY_DOUBLE": [
+    "silver",
+    "horses",
+    "rum",
+    "cigars",
+    "cloth",
+    "coats",
+    "tradeGoods",
+    "tools",
+    "muskets",
+  ],
+  "CENSUS_COLD": {
+    "arctic": 4,
+    "boreal": 2,
+    "mixed": 2,
+    "plains": 2,
+    "prairie": 2,
+    "scrub": 2,
+    "tundra": 3,
+  },
+  "CENSUS_CROPS": {
+    "cotton": {
+      "forest": {
+        "broadleaf": 2,
+      },
+      "open": {
+        "plains": 1,
+        "prairie": 4,
+      },
+    },
+    "sugar": {
+      "forest": {
+        "tropical": 2,
+      },
+      "open": {
+        "savannah": 4,
+        "swamp": 2,
+      },
+    },
+    "tobacco": {
+      "forest": {
+        "conifer": 2,
+      },
+      "open": {
+        "grassland": 4,
+        "marsh": 2,
+      },
+    },
+  },
+  "CENSUS_FOOD": {
+    "grassland": 3,
+    "marsh": 2,
+    "plains": 5,
+    "prairie": 3,
+    "savannah": 3,
+    "swamp": 2,
+  },
+  "CENSUS_HEAT": {
+    "desert": 4,
+    "grassland": 2,
+    "savannah": 2,
+  },
+  "CENSUS_ORE": {
+    "marsh": 1,
+    "swamp": 1,
+    "tundra": 2,
+  },
+  "FUR_FORESTS": [
+    "boreal",
+    "scrub",
+    "mixed",
+  ],
+  "NATIVE_ECONOMY": {
+    "blockRadius": 2,
+    "demandMax": 50,
+    "forestFood": 1,
+    "oceanFood": 2,
+    "oceanPer": 3,
+    "silverPerMountain": 4,
+    "silverPerMountainInca": 8,
+    "stockEffect": 2,
+    "stockSlack": 50,
+    "stockStep": 100,
+    "wanted": 3,
+  },
+}
+`;

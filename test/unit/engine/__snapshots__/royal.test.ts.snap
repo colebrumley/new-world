@@ -1,0 +1,61 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`royal tables > match the snapshot 1`] = `
+{
+  "frigateColonies": 3,
+  "frigatePeriod": 8,
+  "frigateTax": 10,
+  "independenceDrop": 5,
+  "independenceLevels": 8,
+  "independenceNear": 20,
+  "independenceStep": 10,
+  "kingsWarTurns": 16,
+  "mercenaryArtilleryWeight": 2,
+  "mercenaryLevelOffset": 4,
+  "mercenaryOdds": 21,
+  "mercenarySpread": 6,
+  "moneyBase": 10,
+  "moneyDoublingYears": [
+    1600,
+    1700,
+    1750,
+  ],
+  "moneyPerLevel": 8,
+  "refStart": {
+    "artillery": [
+      2,
+      6,
+    ],
+    "cavalry": [
+      5,
+      5,
+    ],
+    "regulars": [
+      15,
+      8,
+    ],
+    "ships": [
+      2,
+      3,
+    ],
+  },
+  "successionSentiment": 50,
+  "successionWeights": {
+    "colonies": 2,
+    "colonists": 1,
+    "ships": 3,
+  },
+  "threatRadius": 5,
+  "transportBase": 50,
+  "transportCap": 90,
+  "transportStep": 5,
+  "unitCost": 1800,
+  "warGold": 100,
+  "warGoldCap": 500,
+  "warGoldPerLead": 25,
+  "warMinimum": 800,
+  "warRollStep": 20,
+  "warSoldiersCap": 6,
+  "warSoldiersShift": 3,
+}
+`;

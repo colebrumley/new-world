@@ -1,0 +1,24 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`score tables > match the snapshot 1`] = `
+{
+  "bellsCap": 100,
+  "bellsPerPoint": 100,
+  "difficultyFactor": [
+    4,
+    5,
+    6,
+    8,
+    10,
+  ],
+  "earlyBefore": 1780,
+  "earlyPerYear": 2,
+  "expert": 4,
+  "free": 2,
+  "goldPerPoint": 1000,
+  "independenceBase": 8,
+  "lowly": 1,
+  "perFather": 5,
+  "ranks": 24,
+}
+`;

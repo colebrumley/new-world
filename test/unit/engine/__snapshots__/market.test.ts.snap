@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`opening prices > ordinary goods open inside the table range, the same for every power; processed goods open at their group level 1`] = `
+{
+  "backTaxUnits": 500,
+  "difficultyStepPercent": 16,
+  "dutchSaleShare": [
+    2,
+    3,
+  ],
+  "fursFashionYears": [
+    1600,
+    1700,
+  ],
+  "groupFactor": 3,
+  "lot": 100,
+  "maxTax": 75,
+  "middleDifficulty": 2,
+  "processed": [
+    "rum",
+    "cigars",
+    "cloth",
+    "coats",
+  ],
+  "raw": [
+    "sugar",
+    "tobacco",
+    "cotton",
+    "furs",
+  ],
+  "sharedDecayShift": 7,
+  "sharedVolume": [
+    600,
+    1000,
+  ],
+  "thresholdScale": 100,
+}
+`;

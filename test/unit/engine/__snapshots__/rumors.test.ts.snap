@@ -1,0 +1,53 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`rumor tables > match the snapshot 1`] = `
+{
+  "FOUNTAIN_TERRAIN": [
+    "grassland",
+    "savannah",
+    "marsh",
+    "swamp",
+  ],
+  "RUMORS": {
+    "burialDie": 8,
+    "burialEmptyUnder": 25,
+    "burialSkillBase": 5,
+    "burialTrinketsUnder": 50,
+    "burialTrinketsUnderPlain": 65,
+    "cibolaAfter": 1,
+    "cibolaDie": 20,
+    "cibolaMost": 7,
+    "cibolaPerSkill": 10,
+    "cibolaSotoOdds": 3,
+    "fountainAfter": 4,
+    "fountainImmigrants": 8,
+    "giftDie": 10,
+    "giftUnit": 8,
+    "ruinsDie": 8,
+    "ruinsUnit": 30,
+    "sacredAlarm": 100,
+    "sacredAtMost": 3,
+    "sacredBase": 5,
+    "shrineDie": 6,
+    "shrinePerLevel": 5,
+    "shrineRange": 2,
+    "shrinesUnder": 25,
+    "skillBonus": 10,
+    "spareColonies": 2,
+    "spareColonists": 4,
+    "sparePioneerColonists": 8,
+    "vanishUnder": 10,
+  },
+  "RUMOR_ROLLS": [
+    "fountain",
+    "cibola",
+    "ruins",
+    "burial",
+    "vanished",
+    "nothing",
+    "gift",
+    "shrines",
+    "survivors",
+  ],
+}
+`;

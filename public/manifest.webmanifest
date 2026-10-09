@@ -1,0 +1,12 @@
+{
+  "name": "New World",
+  "short_name": "New World",
+  "description": "A turn-based game of founding colonies in the New World and leading them to independence.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#10161f",
+  "theme_color": "#1b2330",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

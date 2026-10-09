@@ -1,0 +1,44 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`naval tables > match the snapshot 1`] = `
+{
+  "NAVAL": {
+    "bigFleet": 8,
+    "capturedSol": [
+      2,
+      3,
+    ],
+    "caravelExpendableFrom": 80,
+    "cargoPenalty": 1,
+    "evadeBase": 3,
+    "evadeGalleon": 3,
+    "evadePerCargo": 4,
+    "fortFirePerLevel": 4,
+    "fortSlow": 2,
+    "infiltrateBase": 6,
+    "infiltrateDie": 36,
+    "patrolCost": {
+      "frigate": 6,
+      "manOWar": 8,
+      "privateer": 4,
+    },
+    "patrolEdge": 2,
+    "repairBuilding": "drydock",
+    "revereMuskets": 50,
+    "scoutHorses": 100,
+    "transportFloor": [
+      3,
+      6,
+    ],
+    "warships": [
+      "privateer",
+      "frigate",
+      "manOWar",
+    ],
+  },
+  "REPAIR_HEAD_START": {
+    "frigate": 4,
+    "manOWar": 8,
+  },
+}
+`;

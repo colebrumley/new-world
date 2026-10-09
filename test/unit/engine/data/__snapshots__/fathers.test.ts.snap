@@ -1,0 +1,256 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Founding Fathers table > matches the snapshot: exactly 25, five to a category 1`] = `
+{
+  "adamSmith": {
+    "category": "trade",
+    "effect": "Factories and the Arsenal can be built: half again the goods from the same materials.",
+    "name": "Adam Smith",
+    "weights": [
+      2,
+      8,
+      6,
+    ],
+  },
+  "bartolomeDeLasCasas": {
+    "category": "religious",
+    "effect": "Every Indian convert, in a colony or out, becomes a Free Colonist.",
+    "name": "Bartolome de las Casas",
+    "weights": [
+      0,
+      5,
+      10,
+    ],
+  },
+  "benjaminFranklin": {
+    "category": "political",
+    "effect": "The King's wars in Europe no longer reach the colonies; rivals ask less in negotiations.",
+    "name": "Benjamin Franklin",
+    "weights": [
+      5,
+      5,
+      5,
+    ],
+  },
+  "ferdinandMagellan": {
+    "category": "exploration",
+    "effect": "Ships move one square farther; Atlantic crossings are never slow.",
+    "name": "Ferdinand Magellan",
+    "weights": [
+      2,
+      10,
+      10,
+    ],
+  },
+  "francisDrake": {
+    "category": "military",
+    "effect": "Privateers fight half again as well.",
+    "name": "Francis Drake",
+    "weights": [
+      4,
+      8,
+      6,
+    ],
+  },
+  "franciscoCoronado": {
+    "category": "exploration",
+    "effect": "Every colony on the map and its surroundings are revealed.",
+    "name": "Francisco Coronado",
+    "weights": [
+      3,
+      5,
+      7,
+    ],
+  },
+  "georgeWashington": {
+    "category": "military",
+    "effect": "Soldiers and dragoons that win a battle are always promoted.",
+    "name": "George Washington",
+    "weights": [
+      0,
+      4,
+      10,
+    ],
+  },
+  "henryHudson": {
+    "category": "exploration",
+    "effect": "Fur trappers bring in twice the furs.",
+    "name": "Henry Hudson",
+    "weights": [
+      10,
+      1,
+      0,
+    ],
+  },
+  "hernanCortes": {
+    "category": "military",
+    "effect": "Conquered settlements always yield treasure, more of it, and the Crown ships it for the tax alone.",
+    "name": "Hernan Cortes",
+    "weights": [
+      6,
+      5,
+      1,
+    ],
+  },
+  "hernandoDeSoto": {
+    "category": "exploration",
+    "effect": "Scouts never return from a rumor empty-handed; every unit sees one square farther.",
+    "name": "Hernando de Soto",
+    "weights": [
+      5,
+      10,
+      5,
+    ],
+  },
+  "jakobFugger": {
+    "category": "trade",
+    "effect": "Every boycott in Europe is lifted and back taxes forgiven.",
+    "name": "Jakob Fugger",
+    "weights": [
+      0,
+      5,
+      8,
+    ],
+  },
+  "janDeWitt": {
+    "category": "trade",
+    "effect": "Trade with foreign colonies; fuller Foreign Affairs report.",
+    "name": "Jan de Witt",
+    "weights": [
+      2,
+      6,
+      10,
+    ],
+  },
+  "jeanDeBrebeuf": {
+    "category": "religious",
+    "effect": "Every mission, standing or new, works as a Jesuit mission.",
+    "name": "Jean de Brebeuf",
+    "weights": [
+      6,
+      6,
+      1,
+    ],
+  },
+  "johnPaulJones": {
+    "category": "military",
+    "effect": "A Frigate sails from Europe to join the fleet.",
+    "name": "John Paul Jones",
+    "weights": [
+      0,
+      6,
+      7,
+    ],
+  },
+  "juanDeSepulveda": {
+    "category": "religious",
+    "effect": "Natives of defeated settlements more often convert and join you.",
+    "name": "Juan de Sepulveda",
+    "weights": [
+      3,
+      8,
+      3,
+    ],
+  },
+  "laSalle": {
+    "category": "exploration",
+    "effect": "Every colony of three or more gets a Stockade.",
+    "name": "Sieur De La Salle",
+    "weights": [
+      7,
+      5,
+      3,
+    ],
+  },
+  "paulRevere": {
+    "category": "military",
+    "effect": "A colony with no soldier arms a colonist from its muskets when attacked.",
+    "name": "Paul Revere",
+    "weights": [
+      10,
+      2,
+      1,
+    ],
+  },
+  "peterMinuit": {
+    "category": "trade",
+    "effect": "Natives no longer ask payment for their land.",
+    "name": "Peter Minuit",
+    "weights": [
+      9,
+      1,
+      0,
+    ],
+  },
+  "peterStuyvesant": {
+    "category": "trade",
+    "effect": "Custom Houses can be built, selling goods without ships.",
+    "name": "Peter Stuyvesant",
+    "weights": [
+      2,
+      4,
+      8,
+    ],
+  },
+  "pocahontas": {
+    "category": "political",
+    "effect": "All native tension is forgotten, and alarm grows half as fast.",
+    "name": "Pocahontas",
+    "weights": [
+      7,
+      5,
+      3,
+    ],
+  },
+  "simonBolivar": {
+    "category": "political",
+    "effect": "Sons of Liberty membership rises by 20 points in every colony.",
+    "name": "Simon Bolivar",
+    "weights": [
+      0,
+      4,
+      6,
+    ],
+  },
+  "thomasJefferson": {
+    "category": "political",
+    "effect": "Liberty bell production rises by half.",
+    "name": "Thomas Jefferson",
+    "weights": [
+      4,
+      5,
+      6,
+    ],
+  },
+  "thomasPaine": {
+    "category": "political",
+    "effect": "Liberty bell production rises by the tax rate.",
+    "name": "Thomas Paine",
+    "weights": [
+      1,
+      2,
+      8,
+    ],
+  },
+  "williamBrewster": {
+    "category": "religious",
+    "effect": "No criminals or servants emigrate, and you choose who comes.",
+    "name": "William Brewster",
+    "weights": [
+      7,
+      4,
+      1,
+    ],
+  },
+  "williamPenn": {
+    "category": "religious",
+    "effect": "Preachers produce half again as many crosses.",
+    "name": "William Penn",
+    "weights": [
+      8,
+      5,
+      2,
+    ],
+  },
+}
+`;

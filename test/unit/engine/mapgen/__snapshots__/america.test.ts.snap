@@ -1,0 +1,76 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`America map > matches the terrain snapshot and is deterministic 1`] = `
+"                                                       ~~~
+ ########################################################~
+ tttttt#ttth#T#T#Ttttt### ##   ## #     ## #  ######t# ##~
+ tthAhtttttttTThTTTMMmt       mmmMMhtttt     ttttttttt  ~~
+ ttAAAtttttttttttTTmmmt      mmmmmMhTtttt     htttttt   ~~
+ tthAhpppppttttttTTtmMtt    mhmmmmmTtttt       TTtt     ~~
+ tthAhppppppppththThtTT    mmmmtmmttttt                ~~~
+ tpAAArpppphpprrtTTTTThM  MMMtttttTttt               ~~~~~
+ gphAhrrprrppprrhRRRRPGMMh GGggghtTtT  tt         ~~~~~~~~
+ GPhAppppppppprrrRRRRPGhhMMGGGgggPPT   TTR        ~~~~~~~~
+ GGAAApphpphgpprrPRRPPGGhMMMMGggGPP               ~~~~~~~~
+ GGhAhppppppgpprrpRPhPGGMMMMGGhgGGP               ~~~~~~~~
+ gGhAhppppppppprrPPPPPG  MMMGGMGGG GG             ~~~~~~~~
+ ggAAApppphgggpppPPGGGGMM MMhGGhGG                ~~~~~~~~
+ gghAppppppgggpppGGGGGMMMMMMhGGGG                 ~~~~~~~~
+ pghAhddrrrrrrrrpRRPmMMMGMMMhGGGG                 ~~~~~~~~
+ hpAAAdddDDDRRRPPprRGMMMGGMhMGGG                  ~~~~~~~~
+ pphAhrdDDDDRRRRRrrhGGGGGGMhGGGG                  ~~~~~~~~
+  GhArRRDDhDDDDDrddRGGPGGGhGGGG                   ~~~~~~~~
+  GAAARRhRDDDDDdDddDPhPPPGhGGGG                   ~~~~~~~~
+   hAhDDRDdDDDDDdddDRRRRRhPhGGG                   ~~~~~~~~
+    RDDDDDdDdddddddDRRRRRhRPPG                    ~~~~~~~~
+~    DDDDDdddddddddhRRRPPRRRPP                    ~~~~~~~~
+~~    DDDDhddddddddDDDRRRRRRRG                    ~~~~~~~~
+~~~    dDhddddddddddD      ddr                    ~~~~~~~~
+~~~~    DDAddddddddd        gg                    ~~~~~~~~
+~~~~     ddhdddddddd        SS SWSh               ~~~~~~~~
+~~~~      ddAddhdddd           SSSSS              ~~~~~~~~
+~~~~       rdhDDhrddd   SS      GGSSs             ~~~~~~~~
+~~~~        ddADRddddg sSSS          shs          ~~~~~~~~
+~~~~          DDhdddrsssGSS          sssw         ~~~~~~~~
+~~~~            DdArrssgGGS               w   S   ~~~~~~~~
+~~~~               rrhSGggg                       ~~~~~~~~
+~~~~                  SGgggS                   s  ~~~~~~~~
+~~~~                    sssSS                     ~~~~~~~~
+~~~~                      ssSS                 S  ~~~~~~~~
+~~~~                       sSSSGRhR  SSwws     s  ~~~~~~~~
+~~~~                        AAhdhhGSWWWWWWWWWW     ~~~~~~~
+~~~~                        AAhdddGSWWWWWWWWWSGG    ~~~~~~
+~~~~                        AAhdddGSSWWWWWWSSSGGS    ~~~~~
+~~~~                       AAhrdddSsSSWWWWSSSSSSGG    ~~~~
+~~~~                       AAhrdddSSSWWWWWWWSSGGGGG    ~~~
+~~~~                       AAhRRrrSWWWWWWWWWWSSGGGSS    ~~
+~~~~                       AAhRGggWWWWWWWWWWWWSSSSGSh    ~
+~~~~                       ArhhGgghWWWWWWWWWWWWSSSGSRR   ~
+~~~~                        AAhGghSWWWWWWWWWWWSSSSGGDDD  ~
+~~~~                        AAhGrrhSWhWWWWWWWWSSSGRGDDD  ~
+~~~~                         AAhddhRRSWWWWWWWWSSGGGGdDD  ~
+~~~~                         AAhddRRRSSWWWWWWWSSGGGSrR   ~
+~~~~                          AAhDRRRSWWWWWWWWSGGGGgDd   ~
+~~~~                          AAhDDDDSSsssShhGDDDDDDD   ~~
+~~~~                           AAhRRRSWssSSSGGRRRDDDD   ~~
+~~~~                           AAhGGGWWSSSSSRRRRRDDD   ~~~
+~~~~                            AAhSSWSSSSSGrrrdddDD   ~~~
+~~~~                            AAhSSWSSSSSGrdddddD   ~~~~
+~~~~                             AAhSWSSSSSRhddddd    ~~~~
+~~~~                             AAhGWSSSSSRddddd    ~~~~~
+~~~~                             AAhGSSSSSGrrddd    ~~~~~~
+~~~~                             AAhGGGGPGrrrdd    ~~~~~~~
+~~~~                             AAhRPPPPPRRRD    ~~~~~~~~
+~~~~                              AAhPPRhRRRR     ~~~~~~~~
+~~~~                              AApRhRRRrr      ~~~~~~~~
+~~~~                              AAhrrRDDr       ~~~~~~~~
+~~~~                              AAhrrhdd        ~~~~~~~~
+~~~~                              AAhhddd         ~~~~~~~~
+~~~~                              AAhrdd          ~~~~~~~~
+~~~~                               AAhr           ~~~~~~~~
+~~~~                               Aphr           ~~~~~~~~
+~~~~                               Ppp            ~~~~~~~~
+~~#~   ##  #     ###  #    # ###### ### # #  # #  #~~~#~~~
+~########################################################~
+~~~~                                              ~~~~~~~~"
+`;

@@ -1,0 +1,50 @@
+import { describe, expect, it } from 'vitest';
+import { playTurn } from '../../src/ai/european';
+import { DEFAULT_WORLD } from '../../src/engine/data/mapgen';
+import { NATION_IDS } from '../../src/engine/data/nations';
+import { createGame } from '../../src/engine/game';
+import { checkInvariants } from '../../src/engine/invariants';
+import type { GameState } from '../../src/engine/state';
+
+export interface AiRun {
+  readonly state: GameState;
+  readonly coloniesAt100: Readonly<Record<string, number>>;
+  readonly slowestTurnMs: number;
+  readonly lowestGold: number;
+  readonly events: Readonly<Record<string, number>>;
+}
+
+/** Four computer powers play each other with the European policy; invariants are checked after every power's turn. */
+export function runPowers(seed: number, turns: number, america = false): AiRun {
+  const players = NATION_IDS.map((nation) => ({ id: nation, name: nation, kind: 'ai' as const, nation }));
+  let state = createGame({ seed, players, ...(america ? { scenario: 'america' as const } : { world: DEFAULT_WORLD }) });
+  const coloniesAt100: Record<string, number> = {};
+  const events: Record<string, number> = {};
+  let slowest = 0;
+  let lowestGold = 0;
+  while (state.turn < turns && !state.over) {
+    const began = performance.now();
+    const turn = playTurn(state);
+    slowest = Math.max(slowest, performance.now() - began);
+    state = turn.state;
+    for (const e of turn.events) events[e.type] = (events[e.type] ?? 0) + 1;
+    const problems = checkInvariants(state);
+    if (problems.length > 0) throw new Error(`seed ${seed}, turn ${state.turn}: ${problems.join('; ')}`);
+    for (const p of state.players) lowestGold = Math.min(lowestGold, p.gold);
+    if (state.turn === 100 && Object.keys(coloniesAt100).length === 0) {
+      for (const p of state.players) coloniesAt100[p.id] = Object.values(state.colonies).filter((c) => c.owner === p.id).length;
+    }
+  }
+  return { state, coloniesAt100, slowestTurnMs: slowest, lowestGold, events };
+}
+
+describe.skipIf(!process.env['SIM'])('the computer powers', () => {
+  it.each([11, 12, 13, 14, 15])('seed %i: four powers play 350 turns, each founding three colonies by turn 100', (seed) => {
+    const run = runPowers(seed, 350);
+    expect(run.state.turn).toBe(350);
+    for (const nation of NATION_IDS) expect(run.coloniesAt100[nation], `${nation} on seed ${seed}`).toBeGreaterThanOrEqual(3);
+    expect(run.lowestGold).toBeGreaterThanOrEqual(0);
+    expect(run.slowestTurnMs).toBeLessThan(200);
+    expect(run.events['colonyFounded']).toBeGreaterThanOrEqual(12);
+  }, 120_000);
+});

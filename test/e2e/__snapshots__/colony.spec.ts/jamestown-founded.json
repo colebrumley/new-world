@@ -1,0 +1,47 @@
+{
+  "header": [
+    "Population 1",
+    "Sons of Liberty 0%",
+    "Tories 100%"
+  ],
+  "buildings": [
+    "Town Hall: 0",
+    "Weaver's House: 0",
+    "Tobacconist's House: 0",
+    "Rum Distiller's House: 0",
+    "Fur Trader's House: 0",
+    "Carpenter's Shop: 0",
+    "Blacksmith's House: 0"
+  ],
+  "squares": [
+    "-1,-1 square-free",
+    "0,-1 square-worked",
+    "1,-1 square-free",
+    "-1,0 square-free",
+    "0,0 square-center",
+    "1,0 square-free",
+    "-1,1 square-free",
+    "0,1 square-free",
+    "1,1 square-free"
+  ],
+  "working": 1,
+  "warehouse": [
+    "Food0",
+    "Sugar0",
+    "Tobacco0",
+    "Cotton0",
+    "Furs0",
+    "Lumber0",
+    "Ore0",
+    "Silver0",
+    "Horses0",
+    "Rum0",
+    "Cigars0",
+    "Cloth0",
+    "Coats0",
+    "Trade Goods0",
+    "Tools0",
+    "Muskets50"
+  ],
+  "construction": "Production"
+}
