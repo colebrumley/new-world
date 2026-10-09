@@ -988,6 +988,11 @@ Legend:
   returns to move mode; the Go To cursor and the drag marker are recomputed when the view moves
   under the pointer (edge-scroll, wheel); a drag orders only the unit it began on; the sidebar
   scrolls in a short window, with the status line directly under the buttons (seen at 1024x640).
+  A pinch on a trackpad or a touch screen no longer magnifies the page (it cut the left and top
+  edges off the colony screen): the game element refuses Ctrl+wheel and Safari's gesture events
+  and sets `touch-action: pan-x pan-y`; over the map the wheel still zooms the map.
+  A page magnified all the same (browsers restore it with the page, and keep some gestures to
+  themselves) shows a notice naming the key that undoes it, Ctrl/Cmd+0 (`src/ui/magnified.ts`).
 
 ### Tuning items raised by R-1009
 

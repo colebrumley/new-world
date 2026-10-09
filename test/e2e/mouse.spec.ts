@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { field, settled } from './helpers';
+import { field, foundJamestown, settled } from './helpers';
 
 interface ViewData {
   zoom: number;
@@ -312,4 +312,41 @@ test('at 1024x640 the sidebar keeps what the game says in sight', async ({ page 
   await sidebar.hover();
   await page.mouse.wheel(0, 400);
   await expect(last).toBeInViewport({ ratio: 1 });
+});
+
+test('a trackpad pinch never magnifies the page, on the map or over the colony screen', async ({ page }) => {
+  await foundJamestown(page);
+  // a pinch reaches the page as a wheel event with Ctrl held; left alone, the browser zooms the page
+  const pinch = (selector: string): Promise<boolean> =>
+    page.locator(selector).first().evaluate((node) => !node.dispatchEvent(new WheelEvent('wheel', { deltaY: -4, ctrlKey: true, bubbles: true, cancelable: true })));
+  for (const place of ['.colony-screen', '.colony-screen .square', '.colony-warehouse']) expect(await pinch(place), place).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.colony-screen')).toHaveCount(0);
+  for (const place of ['canvas.map', '.sidebar', '.command-bar button']) expect(await pinch(place), place).toBe(true);
+  // an ordinary turn of the wheel still scrolls a list
+  const scroll = await page.locator('.sidebar').evaluate((node) => !node.dispatchEvent(new WheelEvent('wheel', { deltaY: 40, bubbles: true, cancelable: true })));
+  expect(scroll).toBe(false);
+  expect(await page.locator('.game').evaluate((node) => getComputedStyle(node).touchAction)).toBe('pan-x pan-y');
+});
+
+test('a magnified page says so, over the colony screen too, until it is set right', async ({ page }) => {
+  await foundJamestown(page);
+  const notice = page.locator('.magnified-notice');
+  await expect(notice).toBeHidden();
+  // no test can pinch: stand in for the browser's report of it
+  const magnify = (scale: number): Promise<void> =>
+    page.evaluate((s) => {
+      const viewport = window.visualViewport!;
+      Object.defineProperty(viewport, 'scale', { configurable: true, get: () => s });
+      Object.defineProperty(viewport, 'offsetLeft', { configurable: true, get: () => (s > 1 ? 17 : 0) });
+      viewport.dispatchEvent(new Event('resize'));
+    }, scale);
+  await magnify(1.012);
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText('Ctrl+0');
+  // drawn above the colony screen, and it does not take its clicks
+  expect(await notice.evaluate((n) => document.elementFromPoint(n.getBoundingClientRect().x + 4, n.getBoundingClientRect().y + 4)?.closest('.colony-screen') !== null)).toBe(true);
+  expect(await notice.evaluate((n) => Number(getComputedStyle(n).zIndex) > Number(getComputedStyle(document.querySelector('.colony-screen')!).zIndex))).toBe(true);
+  await magnify(1);
+  await expect(notice).toBeHidden();
 });

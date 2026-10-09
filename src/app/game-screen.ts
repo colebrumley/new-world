@@ -35,6 +35,7 @@ import { openColonyScreen } from '../ui/colony-screen';
 import { ask, askText } from '../ui/dialog';
 import { openEuropeScreen } from '../ui/europe-screen';
 import { mapCommandFor, type MapCommand } from '../ui/keymap';
+import { createMagnifiedNotice } from '../ui/magnified';
 import { minimapLayout, minimapToTile, renderMinimap } from '../ui/minimap';
 import { viewerIndex, renderGround, renderPieces } from '../ui/render';
 import { createSidebar, formatMoves, sidebarModel, unitLabel } from '../ui/sidebar';
@@ -101,6 +102,15 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     screen.dataset['cargoLabels'] = next.cargoLabels ? 'on' : 'off';
   };
   applyOptions(options);
+  // A pinch on a trackpad (a wheel event with Ctrl held) would magnify the page itself, and the game
+  // fills the window with nothing to scroll back to: the edges of every screen would be cut off.
+  // Over the map the wheel zooms the map; anywhere else in the game a pinch does nothing.
+  screen.addEventListener('wheel', (event) => {
+    if (event.ctrlKey) event.preventDefault();
+  }, { passive: false });
+  for (const gesture of ['gesturestart', 'gesturechange']) screen.addEventListener(gesture, (event) => event.preventDefault()); // Safari's pinch
+  // a page magnified all the same (restored that way, or by a gesture the browser keeps to itself) says so
+  const magnified = createMagnifiedNotice();
   const save = (): void => {
     if (options.autosave) writeAutosave(session);
   };
@@ -110,6 +120,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   const switchTo = (other: GameSession): void => {
     stopped = true;
     window.removeEventListener('resize', onResize);
+    magnified.stop();
     startGame(root, other);
   };
   /** Save/Load Game: the ten slots, and a file in or out. Stays open after a save so the player sees it took. */
@@ -148,7 +159,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   canvas.className = 'map';
   canvas.tabIndex = 0;
   const sidebar = createSidebar();
-  screen.append(canvas, sidebar.element);
+  screen.append(canvas, sidebar.element, magnified.element);
   root.replaceChildren(screen);
 
   const ctx = canvas.getContext('2d');
