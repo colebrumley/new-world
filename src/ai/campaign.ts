@@ -9,6 +9,7 @@ import { coloniesOf } from '../engine/colony';
 import { tribalAlarm, settlementAlarm } from '../engine/alarm';
 import { AI_CAMPAIGN, AI_MUSTER } from '../engine/data/ai';
 import { chainLevel } from '../engine/data/buildings';
+import { COLONY_LIMITS } from '../engine/data/colony';
 import { UNIT_TYPES } from '../engine/data/units';
 import { isBorder, isInlandLake } from '../engine/movement';
 import { landmassAt, landmasses } from '../engine/regions';
@@ -427,6 +428,8 @@ export function mayAttack(state: GameState, player: Player, x: number, y: number
   if (tribe) return tribalAlarm(state, tribe, player.id) >= AI_CAMPAIGN.settlementAlarmFrom && presentOn(state, player, landmassAt(state.map, x, y), true);
   const owner = colony?.owner ?? foe?.owner;
   if (owner === undefined || owner === player.id || spared(state, owner)) return false;
+  // (a power that already holds all the colonies one may hold takes no more)
+  if (colony && coloniesOf(state, player.id).length >= COLONY_LIMITS.maxColoniesPerPower) return false;
   return player.stance[owner] === 'war';
 }
 

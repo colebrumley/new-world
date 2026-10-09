@@ -14,7 +14,7 @@ import { DIFFICULTIES } from './data/yields';
 import { colonyProduction } from './economy';
 import { trainingPrice } from './europe';
 import { priceLevel } from './market';
-import { checkJobSite, jobTurns } from './pioneer';
+import { checkJobSite, jobTurns, type PioneerEvent } from './pioneer';
 import { createRng } from './rng';
 import { isNativeLand } from './settlements';
 import { tileAt, type Colonist, type Colony, type GameState, type PlayerId } from './state';
@@ -84,7 +84,7 @@ function tradeWorked(c: Colonist): ProfessionId | null {
 }
 
 /** The upkeep of every colony of a computer power, at the start of its turn. */
-export function computerColonies(state: GameState, playerId: PlayerId, events: CustomHouseEvent[] = []): GameState {
+export function computerColonies(state: GameState, playerId: PlayerId, events: (CustomHouseEvent | PioneerEvent)[] = []): GameState {
   const player = state.players.find((p) => p.id === playerId);
   if (!player || player.kind !== 'ai' || player.withdrawn) return state;
   let gold = player.gold;
@@ -111,6 +111,7 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: C
       const copy = [...tiles];
       copy[i] = work.job === 'road' ? { ...tile, road: true } : work.job === 'clear' ? { ...tile, forest: false } : { ...tile, plowed: true };
       tiles = copy;
+      events.push({ type: 'tileImproved', x: c.x + work.dx, y: c.y + work.dy, improvement: work.job === 'road' ? 'road' : work.job === 'clear' ? 'cleared' : 'plowed', unitId: c.id });
       c = { ...c, goods: addGoods(c.goods, 'tools', -AI_UPKEEP.tools), waited: 0 };
     }
 

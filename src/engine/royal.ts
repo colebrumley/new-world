@@ -351,7 +351,7 @@ export function royalTurn(state: GameState, playerId: PlayerId, taxed: boolean, 
   let next = taxed ? state : kingsWar(state, playerId, events as RoyalEvent[]);
   next = frigateOffer(next, playerId, events);
   next = computerTreasury(next, playerId, events as unknown as CustomHouseEvent[]);
-  next = computerColonies(next, playerId, events as unknown as CustomHouseEvent[]);
+  next = computerColonies(next, playerId, events as unknown as Parameters<typeof computerColonies>[2]);
   next = mercenaryOffer(next, playerId, events as RoyalEvent[]);
   next = growRef(next, playerId, events as RoyalEvent[]);
   next = succession(next, playerId, events as RoyalEvent[]);

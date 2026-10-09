@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { computerColonies, landWork } from '../../../src/engine/computer';
-import type { CustomHouseEvent } from '../../../src/engine/custom-house';
 import { AI_UPKEEP } from '../../../src/engine/data/ai';
 import { checkInvariants } from '../../../src/engine/invariants';
 import type { Colonist, Colony, GameState, Job } from '../../../src/engine/state';
@@ -19,8 +18,9 @@ function town(o: Spec = {}): GameState {
 }
 const col = (s: GameState): Colony => s.colonies['col'] as Colony;
 const gold = (s: GameState): number => s.players[0]?.gold ?? 0;
-const run = (s: GameState): { state: GameState; events: CustomHouseEvent[] } => {
-  const events: CustomHouseEvent[] = [];
+type Happened = NonNullable<Parameters<typeof computerColonies>[2]>;
+const run = (s: GameState): { state: GameState; events: Happened } => {
+  const events: Happened = [];
   const state = computerColonies(s, 'a', events);
   expect(checkInvariants(state)).toEqual([]);
   return { state, events };
@@ -57,7 +57,9 @@ describe('the upkeep of a computer power\'s colony', () => {
     // not yet
     expect(tileAt(run(farming).state.map, 4, 3)?.plowed).toBe(false);
     const ready = town({ colonists: [man('m', 'freeColonist', field(1, 0))], goods: { tools: 20 }, waited: wait - 1 });
-    const done = run(ready).state;
+    const improved = run(ready);
+    const done = improved.state;
+    expect(improved.events).toEqual([{ type: 'tileImproved', x: 4, y: 3, improvement: 'plowed', unitId: 'col' }]);
     expect(tileAt(done.map, 4, 3)?.plowed).toBe(true);
     expect(col(done).goods.tools ?? 0).toBe(0);
     expect(col(done).waited).toBe(0);
