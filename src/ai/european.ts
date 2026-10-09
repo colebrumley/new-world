@@ -6,26 +6,26 @@
 // What it does: lands its people on good coastal sites and founds colonies there; sends newcomers
 // on to found more, up to a number that grows with the years, and then to swell the colonies it
 // has; keeps its ships ferrying immigrants from Europe and selling what they carry; recruits when
-// it has gold to spare; sets its colonies building; garrisons them; and attacks only what it has
-// better than even odds against.
+// it has gold to spare; sets its colonies building; and garrisons them. Its wagon trains, its
+// missionaries, its warships and its campaigns by land and sea are in the modules beside this one.
 import { applyAction, validateAction, type Action, type GameEvent } from '../engine/actions';
-import { analyseAttack } from '../engine/analysis';
+import { holdsFree } from '../engine/cargo';
+import { landmassAt } from '../engine/regions';
 import { coloniesOf, checkColonySite } from '../engine/colony';
 import { availableItems } from '../engine/construction';
-import { AI_NAVY, AI_PLAN } from '../engine/data/ai';
+import { AI_CAMPAIGN, AI_NAVY, AI_PLAN } from '../engine/data/ai';
 import { GOOD_IDS } from '../engine/data/goods';
 import { NATIONS } from '../engine/data/nations';
 import { UNSKILLED } from '../engine/data/professions';
-import { NATIVES } from '../engine/data/tribes';
 import { UNIT_TYPES } from '../engine/data/units';
 import { colonyProduction } from '../engine/economy';
 import { docksOf, purchasePrice, shipsInEurope } from '../engine/europe';
 import { recruitPrice } from '../engine/immigration';
 import { isInlandLake } from '../engine/movement';
-import { isHostile, tribalAlarm } from '../engine/alarm';
-import { settlementAt, tribeOfOwner } from '../engine/settlements';
+import { tribalAlarm } from '../engine/alarm';
 import { colonyAt, type Colony, type GameState, type Player, type Unit } from '../engine/state';
 import { isWater, type Tile } from '../engine/tile';
+import { defendersWanted, garrisons, invadeRequests, invasionFor, isFull, isQuiet, isTroop, landAttackChoice, landingStep, landOrders } from './campaign';
 import { missionaryAction, ordain, villageVisit } from './missions';
 import { isWarship, privateersCarry, warshipAction } from './navy';
 import { isWagonProject, parleyAction, wagonAction, wagonBuild, wagonRefusal, wagonWorker } from './wagons';
@@ -43,20 +43,6 @@ const isFighter = (u: Unit): boolean => UNIT_TYPES[u.type].domain === 'land' && 
 export function coloniesWanted(state: GameState, player: Player): number {
   const bent = NATIONS[player.nation].leaderTraits.expansionist;
   return Math.min(AI_PLAN.coloniesMost, AI_PLAN.coloniesAtStart + bent + Math.floor(state.turn / AI_PLAN.turnsPerExtraColony));
-}
-
-/**
- * The tribal alarm from which this power treats a native people as an enemy. A militaristic
- * leader takes offence a level sooner than the plan says, one bent on civilizing a level later.
- */
-function enemyFrom(player: Player): number {
-  const level = Math.max(1, Math.min(NATIVES.alarmLevels.length, AI_PLAN.reprisalFromLevel + NATIONS[player.nation].leaderTraits.civilizing));
-  return NATIVES.alarmLevels[level - 1] as number;
-}
-
-/** A militaristic leader, once established, goes looking for conquest among the native peoples until he has had his fill of it. */
-function isConqueror(state: GameState, player: Player): boolean {
-  return NATIONS[player.nation].leaderTraits.civilizing < 0 && state.turn >= AI_PLAN.conquestFromTurn && player.villagesBurned < AI_PLAN.conquestQuota;
 }
 
 /** How good a place for a colony this is; 0 if it will not do. Coast, workable land, room, and no neighbours too close. */
@@ -153,39 +139,18 @@ function nearestColony(mine: readonly Colony[], x: number, y: number): Colony | 
   return best;
 }
 
-/** An attack worth making from here: something next to the unit that it would probably beat. */
-function goodAttack(state: GameState, unit: Unit, player: Player): Action | null {
-  if (UNIT_TYPES[unit.type].attack <= 0 || unit.movesLeft < 3) return null;
-  let best: Action | null = null;
-  let top: number = AI_PLAN.attackOddsLeast;
-  for (const [dx, dy] of DIRS) {
-    const x = unit.x + dx;
-    const y = unit.y + dy;
-    const action: Action = { type: 'attack', unitId: unit.id, dx, dy };
-    if (!ok(state, action)) continue;
-    // only those we are really at war with: a hostile tribe, or a power we are fighting
-    const colony = colonyAt(state, x, y);
-    const village = settlementAt(state, x, y);
-    const foe = Object.values(state.units).find((u) => u.x === x && u.y === y && u.owner !== unit.owner);
-    const tribe = village?.tribe ?? (foe ? tribeOfOwner(foe.owner) : null);
-    const enemy = colony?.owner ?? (foe && !tribe ? foe.owner : null);
-    const atWar = tribe ? tribalAlarm(state, tribe, unit.owner) >= enemyFrom(player) || (village !== null && (isHostile(village, unit.owner) || isConqueror(state, player))) : enemy !== null && player.stance[enemy] === 'war';
-    if (!atWar || (village && !isFighter(unit))) continue;
-    const chance = analyseAttack(state, unit, dx, dy)?.chance ?? 0;
-    if (chance >= top) {
-      top = chance;
-      best = action;
-    }
-  }
-  return best;
-}
-
-/** Does the power still want soldiers armed on the docks? A guard for every colony, and more when a native people has turned on it. */
+/**
+ * Does the power still want soldiers armed on the docks? The garrison of every colony, more
+ * while a native people on its doorstep has turned on it, and a landing party while there is
+ * a rival colony it would invade.
+ */
 function guardsWanted(state: GameState, player: Player): boolean {
-  const colonies = coloniesOf(state, player.id).length;
+  const mine = coloniesOf(state, player.id);
   const soldiers = Object.values(state.units).filter((u) => u.owner === player.id && isFighter(u)).length;
-  const threatened = isConqueror(state, player) || Object.values(state.settlements).some((s) => isHostile(s, player.id) || tribalAlarm(state, s.tribe, player.id) >= enemyFrom(player));
-  return soldiers < Math.ceil(colonies / AI_PLAN.coloniesPerGuard) + (threatened ? AI_PLAN.reprisalParty : 0);
+  const lands = new Set(mine.map((c) => landmassAt(state.map, c.x, c.y)));
+  const threatened = Object.values(state.settlements).some((s) => tribalAlarm(state, s.tribe, player.id) >= AI_CAMPAIGN.settlementAlarmFrom && lands.has(landmassAt(state.map, s.x, s.y)));
+  const abroad = mine.length >= AI_PLAN.coloniesBeforeGarrison && invadeRequests(state, player).length > 0;
+  return soldiers < mine.length * defendersWanted(player) + (threatened ? AI_PLAN.reprisalParty : 0) + (abroad ? AI_CAMPAIGN.expedition : 0);
 }
 
 function europeAction(state: GameState, player: Player): Action | null {
@@ -244,8 +209,17 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
   if (duty !== undefined) return duty;
   if (ship.repair > 0 || ship.orders === 'goto') return null;
   const riders = Object.values(state.units).filter((u) => u.aboard === ship.id);
-  const attack = goodAttack(state, ship, player);
-  if (attack) return attack;
+  // a full ship with soldiers aboard (or waiting on the quay to board as she sails) may make a landing beside a rival colony
+  const quay = colonyAt(state, ship.x, ship.y)?.owner === player.id ? Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && isTroop(u)) : [];
+  if (mine.length >= AI_PLAN.coloniesBeforeGarrison && (riders.some(isTroop) || quay.length > 0) && isFull(state, ship, quay.length)) {
+    const landing = invasionFor(state, player, ship.x, ship.y);
+    if (landing && (landing.x !== ship.x || landing.y !== ship.y)) {
+      const go: Action = { type: 'goTo', unitId: ship.id, x: landing.x, y: landing.y };
+      if (ok(state, go)) return go;
+    }
+    // off the beach: she lies to while the troops go over the side
+    if (landing && riders.some((r) => landingStep(state, r, ship, player) !== null)) return null;
+  }
   const preaching = !riders.some(isSettler) && riders.some((u) => u.type === 'missionary') && mine.length > 0;
   if (riders.some(isSettler) || preaching) {
     // a missionary alone aboard is carried to a colony, never to a fresh site
@@ -296,6 +270,9 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
 function riderAction(state: GameState, rider: Unit, player: Player, mine: readonly Colony[]): Action | null {
   const ship = state.units[rider.aboard ?? ''];
   if (!ship || ship.voyage !== null || rider.movesLeft <= 0) return null;
+  // off an invasion beach the troops go ashore beside the colony they have come for
+  const landing = ship.orders === 'goto' ? null : landingStep(state, rider, ship, player);
+  if (landing) return landing;
   const port = colonyAt(state, ship.x, ship.y);
   if (port && port.owner === player.id) {
     // delivered: join, unless more colonies are wanted and this one can spare the hands
@@ -326,7 +303,7 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
   const foothold: Action = { type: 'foundColony', unitId: unit.id };
   if (mine.length === 0 && isSettler(unit) && state.turn >= AI_PLAN.firstColonyAnywhereFrom && ok(state, foothold)) return foothold;
   if (unit.movesLeft <= 0) return null;
-  const attack = goodAttack(state, unit, player);
+  const attack = landAttackChoice(state, unit, player);
   if (attack) return attack;
   if (unit.type === 'missionary') return missionaryAction(state, unit);
   // friendly people next to the way: a colonist stops to learn from them, a scout to speak with the chief
@@ -338,28 +315,33 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
   const home = nearestColony(mine, unit.x, unit.y);
   const guards = (c: Colony): number => Object.values(state.units).filter((u) => u.x === c.x && u.y === c.y && u.owner === player.id && isFighter(u)).length;
 
-  // soldiers hold what the power has once it has a foothold
+  // soldiers hold what the power has once it has a foothold, and go where it wants fighting done
   if (isFighter(unit) && (mine.length >= AI_PLAN.coloniesBeforeGarrison || !isSettler(unit))) {
-    // a people that has gone to war with us is answered: a soldier who can be spared marches on its nearest settlement
-    const spare = !here || here.owner !== player.id || guards(here) > 1;
-    // (not while fighting the Crown: then every soldier is wanted at home)
-    if (spare && !player.atWar) {
-      const hostile = Object.values(state.settlements)
-        .filter((s) => (isConqueror(state, player) || tribalAlarm(state, s.tribe, player.id) >= enemyFrom(player) || isHostile(s, player.id)) && far(s.x, s.y, unit.x, unit.y) <= AI_PLAN.reprisalRange)
-        .sort((a, b) => far(a.x, a.y, unit.x, unit.y) - far(b.x, b.y, unit.x, unit.y))[0];
-      if (hostile && far(hostile.x, hostile.y, unit.x, unit.y) > 1) {
-        const steps = DIRS.map(([dx, dy]) => [hostile.x + dx, hostile.y + dy] as const).sort((a, b) => far(a[0], a[1], unit.x, unit.y) - far(b[0], b[1], unit.x, unit.y));
+    const mineHere = here !== null && here.owner === player.id;
+    if (garrisons(state, player).has(unit.id)) {
+      const dig: Action = { type: 'setOrders', unitId: unit.id, orders: 'fortify' };
+      return unit.orders === 'none' && ok(state, dig) ? dig : null;
+    }
+    const request = landOrders(state, player)[unit.id];
+    if (request && (request.x !== unit.x || request.y !== unit.y)) {
+      if (request.kind === 'defend') {
+        const march: Action = { type: 'goTo', unitId: unit.id, x: request.x, y: request.y };
+        if (ok(state, march)) return march;
+      } else if (far(request.x, request.y, unit.x, unit.y) > 1) {
+        const steps = DIRS.map(([dx, dy]) => [request.x + dx, request.y + dy] as const).sort((a, b) => far(a[0], a[1], unit.x, unit.y) - far(b[0], b[1], unit.x, unit.y));
         for (const [x, y] of steps) {
           const go: Action = { type: 'goTo', unitId: unit.id, x, y };
           if (ok(state, go)) return go;
         }
-      }
-      // beside it and not attacking means the odds are poor: wait there for a better moment, or for company
-      if (hostile) return null;
+      } else return null; // beside it and not attacking: it waits for company, or for the word
     }
-    if (here && here.owner === player.id) {
-      const dig: Action = { type: 'setOrders', unitId: unit.id, orders: 'fortify' };
-      return unit.orders === 'none' && ok(state, dig) ? dig : null;
+    if (mineHere) {
+      // with nothing to do in a quiet region, troops enough to fill a transport in port go aboard for a landing elsewhere
+      const spare = Object.values(state.units).filter((u) => u.owner === player.id && u.x === unit.x && u.y === unit.y && u.aboard === null && isTroop(u) && !garrisons(state, player).has(u.id));
+      const transport = Object.values(state.units).find((u) => u.owner === player.id && u.x === unit.x && u.y === unit.y && isShip(u) && u.repair === 0 && UNIT_TYPES[u.type].holds > 0 && u.type !== 'privateer' && holdsFree(state, u) > 0 && holdsFree(state, u) <= spare.length);
+      const board = !request && transport !== undefined && isQuiet(state, player, landmassAt(state.map, unit.x, unit.y)) && invasionFor(state, player, unit.x, unit.y) !== null;
+      if (board !== (unit.orders === 'sentry')) return { type: 'setOrders', unitId: unit.id, orders: board ? 'sentry' : 'none' };
+      return null;
     }
     const post = [...mine].sort((a, b) => guards(a) - guards(b) || far(a.x, a.y, unit.x, unit.y) - far(b.x, b.y, unit.x, unit.y))[0];
     const march: Action | null = post ? { type: 'goTo', unitId: unit.id, x: post.x, y: post.y } : null;

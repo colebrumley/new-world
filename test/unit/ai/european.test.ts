@@ -107,7 +107,7 @@ describe('what it does next', () => {
     expect(europeanAction(outside)).toMatchObject({ type: 'goTo', unitId: 'g' });
   });
 
-  it('attacks only an enemy it is at war with and would probably beat', () => {
+  it('attacks only an enemy it is at war with, and only at scaled odds of twelve', () => {
     const facing = (theirs: Unit['type'], stance: 'war' | 'peace'): GameState => {
       let s = withColony(base(), { id: 'c0', x: 6, y: 1, name: 'C0', colonists: people(1), construction: { kind: 'building', id: 'stockade' } });
       s = withColony(s, { id: 'c1', x: 6, y: 5, name: 'C1', colonists: people(1, 'q'), construction: { kind: 'building', id: 'stockade' } });
@@ -183,7 +183,7 @@ describe('keeping house and keeping guard', () => {
     const guarded = withUnit(s, { id: 'g', type: 'soldier', x: 6, y: 3, orders: 'fortified' });
     expect(europeanAction(guarded)).toEqual({ type: 'sailFromEurope', unitId: 'ship' });
     // a hostile people calls for more
-    expect(europeanAction({ ...guarded, turn: 120, settlements: { v: village(200) } })).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'soldier' });
+    expect(europeanAction({ ...guarded, turn: 120, settlements: { v: village(0) }, tribes: { sioux: { ...guarded.tribes.sioux!, alarm: { a: 80 } } } })).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'soldier' });
   });
 
   it('a soldier brought into port goes ashore as a soldier and is not put to work', () => {
@@ -199,19 +199,22 @@ describe('keeping house and keeping guard', () => {
   it('a spare soldier marches on the settlement of a people that has turned on us; a lone guard stays', () => {
     let s = settled(1);
     s = withColony(s, { id: 'c2', x: 6, y: 6, name: 'D', colonists: people(1, 'q'), construction: { kind: 'building', id: 'stockade' } });
-    s = { ...s, turn: 120, settlements: { v: village(200) } }; // after 1600: no wagon train is thought of
+    s = { ...s, turn: 120, settlements: { v: village(0) }, tribes: { sioux: { ...s.tribes.sioux!, alarm: { a: 80 } } } }; // after 1600: no wagon train is thought of
     const lone = withUnit(s, { id: 'g1', type: 'soldier', x: 6, y: 3 });
     expect(europeanAction(lone)).toEqual({ type: 'setOrders', unitId: 'g1', orders: 'fortify' });
-    const two = withUnit(withUnit(s, { id: 'g1', type: 'soldier', x: 6, y: 3, orders: 'fortified' }), { id: 'g2', type: 'soldier', x: 6, y: 3 });
+    const guarded = withUnit(s, { id: 'g0', type: 'soldier', x: 6, y: 6, orders: 'fortified' });
+    const two = withUnit(withUnit(guarded, { id: 'g1', type: 'soldier', x: 6, y: 3, orders: 'fortified' }), { id: 'g2', type: 'soldier', x: 6, y: 3 });
+    // (with the other colony unguarded, its defence would come first)
+    expect(europeanAction(withUnit(withUnit(s, { id: 'g1', type: 'soldier', x: 6, y: 3, orders: 'fortified' }), { id: 'g2', type: 'soldier', x: 6, y: 3 }))).toEqual({ type: 'goTo', unitId: 'g2', x: 6, y: 6 });
     const march = europeanAction(two) as { type: string; unitId: string; x: number; y: number };
     expect(march.type).toBe('goTo');
     expect(Math.max(Math.abs(march.x - 11), Math.abs(march.y - 5))).toBe(1); // a square beside the settlement
     // with the people calm again nobody marches
-    expect(europeanAction({ ...two, settlements: { v: village(0) } }).type).not.toBe('goTo');
+    expect(europeanAction({ ...two, tribes: { sioux: { ...two.tribes.sioux!, alarm: { a: 20 } } } }).type).not.toBe('goTo');
   });
 });
 
-describe('temperament, conquest and footholds', () => {
+describe('reprisal and footholds', () => {
   const village = (alarm: number): GameState['settlements'][string] => ({ id: 'v', tribe: 'sioux', x: 11, y: 5, capital: false, population: 2, growth: 0, taught: false, tributePaid: false, alarm: { a: alarm }, mission: null, scouted: [], lastBought: null, lastSold: null, haggleMemory: null });
   /** Two colonies, two soldiers in the first, and the Sioux at the given tribal alarm, for the given nation. */
   // (after 1600 by default, so that no colony thinks of building a wagon train for them)
@@ -220,27 +223,21 @@ describe('temperament, conquest and footholds', () => {
     s = withColony(s, { id: 'col', x: 6, y: 3, name: 'C', colonists: people(1), construction: { kind: 'building', id: 'stockade' } });
     s = withColony(s, { id: 'c2', x: 6, y: 6, name: 'D', colonists: people(1, 'q'), construction: { kind: 'building', id: 'stockade' } });
     s = withUnit(withUnit(s, { id: 'g1', type: 'soldier', x: 6, y: 3, orders: 'fortified' }), { id: 'g2', type: 'soldier', x: 6, y: 3 });
+    s = withUnit(s, { id: 'g0', type: 'soldier', x: 6, y: 6, orders: 'fortified' }); // the second colony has its guard
     return { ...s, settlements: { v: village(0) }, tribes: { sioux: { ...s.tribes.sioux!, alarm: { a: tribal } } } };
   };
   const marches = (s: GameState): boolean => europeanAction(s).type === 'goTo';
 
-  it('a militaristic leader takes a people for an enemy sooner, a civilizing one later', () => {
+  it('a spare soldier marches on a people only once its alarm reaches 75, whatever the leader\'s temperament', () => {
     // tribal alarm 30 is "restless", 55 "angry", 80 "at war"
-    expect([30, 55, 80].map((alarm) => marches(guarded('spain', alarm)))).toEqual([true, true, true]);
-    expect([30, 55, 80].map((alarm) => marches(guarded('england', alarm)))).toEqual([false, true, true]);
-    expect([30, 55, 80].map((alarm) => marches(guarded('netherlands', alarm)))).toEqual([false, false, true]);
-    expect(marches(guarded('spain', 0))).toBe(false);
-    // a power fighting the Crown keeps every soldier at home
+    for (const nation of ['spain', 'england', 'netherlands'] as const) {
+      expect([30, 55, 74, 75, 80].map((alarm) => marches(guarded(nation, alarm)))).toEqual([false, false, false, true, true]);
+    }
+    // unprovoked conquest is no longer part of the policy, however late the year
+    expect(marches(guarded('spain', 0, 300))).toBe(false);
+    // a power fighting the Crown wants two defenders in every colony, so nobody is spare
     const rebel = guarded('spain', 80);
     expect(marches({ ...rebel, players: rebel.players.map((p) => (p.id === 'a' ? { ...p, atWar: true } : p)) })).toBe(false);
-  });
-
-  it('a militaristic leader goes looking for conquest once established, until he has had his fill', () => {
-    expect(marches(guarded('spain', 0, AI_PLAN.conquestFromTurn - 1))).toBe(false);
-    expect(marches(guarded('spain', 0, AI_PLAN.conquestFromTurn))).toBe(true);
-    expect(marches(guarded('england', 0, AI_PLAN.conquestFromTurn))).toBe(false);
-    const sated = guarded('spain', 0, AI_PLAN.conquestFromTurn);
-    expect(marches({ ...sated, players: sated.players.map((p) => (p.id === 'a' ? { ...p, villagesBurned: AI_PLAN.conquestQuota } : p)) })).toBe(false);
   });
 
   it('a power still without a colony after some turns founds one where its settlers stand, if the ground allows', () => {

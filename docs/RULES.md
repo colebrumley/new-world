@@ -1227,9 +1227,9 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
   as if it had a Custom House (the original's computer colonies sell this way too).
 - **Europe.** An empty ship sails home, sells what it carries, pays for a passage (and, with a
   large treasury and few ships, another ship), and returns with whoever waits on the docks.
-- **War.** Soldiers fortify in its colonies once it has two. A unit attacks only a power it is at
-  war with, and only at winning odds of 60% or better by the combat analysis, so it never throws
-  a unit away.
+- **War.** Soldiers settle too until the power has two colonies; from then on they guard,
+  march and fight by the rules of "Computer powers: campaigns" (R-807), which replaced this
+  policy's own rules for war, reprisal and conquest.
 - **Independence.** A computer power is granted independence by colonist support under R-702.
 - **First colony.** Until it has one, a power counts distance six times over when weighing
   sites, so it settles the nearest fair place; a ship judges every site by how far it must
@@ -1240,21 +1240,13 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
 - **Liberty.** A colony of three or more keeps one colonist in its Town Hall as a statesman for
   every three it has (three at most), provided it still feeds itself, and builds a Stockade, a
   Printing Press and a Newspaper before anything else.
-- **Garrison.** It keeps a soldier for every colony, armed on the docks in Europe from the
-  colonists waiting there, and four more while any native people is hostile to it. A soldier
-  brought into port goes ashore as a soldier.
-- **Reprisal.** A power treats a native people as an enemy from the "angry" attitude up, or when
-  one of its settlements turns hostile: a soldier who can be spared (a second guard, or one in
-  the field) marches on the nearest such settlement within 12 squares and attacks it when the
-  odds are 60% or better. The leader's temperament shifts this a level: a militaristic leader
-  (Spain's) takes offence when a people is merely restless, a civilizing one (the Dutch) only
-  at open war.
-- **Conquest.** A militaristic leader also campaigns unprovoked from turn 208 (1650) until he
-  has destroyed four settlements.
+- **Garrison.** Soldiers are armed on the docks in Europe from the colonists waiting there: a
+  garrison for every colony, four more while a native people on a landmass it has settled is at
+  75 alarm or more, and two more while there is a rival colony it would invade. A soldier brought
+  into port goes ashore as a soldier.
 - **Braves' calls.** A brave beside a colony at peace pays a call on about one turn in eight
   (the visit itself follows the original's rule; how often a brave comes by is ours).
-- Not built: amphibious assaults by computer powers; leader traits beyond expansion affect
-  diplomacy (R-801) but not this policy.
+- Leader traits beyond expansion affect diplomacy (R-801) but not this policy.
 
 ### Computer powers: wagon trains (R-804)
 
@@ -1395,6 +1387,72 @@ holding station), `4000:c3a0` (who may carry). Numbers are `AI_NAVY` in `src/eng
 - *Getting one.* A power with four colonies and no privateer buys one in Europe when it can pay
   the price and keep 1000 gold; privateers and men-of-war sail from Europe without waiting for
   passengers. (How the original's powers come by their privateers was not traced.)
+
+### Computer powers: campaigns (R-807)
+
+**Source:** `VICEROY 4000:a850`..`4000:beb2` (the planner: attack requests at `4000:ac48` and
+`4000:b7a9`, defence at `4000:b54c`, invasion at `4000:afa6`, region stance at `4000:b910`, the
+dispatcher at `4000:bb96`), `4000:ce54` and `4000:d360` (stages AI7 and AI8: embarking and
+landing), `4000:ecb1` and `4000:f630` (stages AI18 and AI19: the step chooser and waiting).
+Numbers are `AI_CAMPAIGN` in `src/engine/data/ai.ts`.
+
+- **The size test.** A colony is worth a campaign when its population plus the units on its
+  square exceed 6 - turn / 50 (rounded down).
+- **Attack.** A request at every foreign colony on a landmass where the power has a unit or
+  colony, if it passes the size test, except on the turns when (the colony's place in the list
+  + the turn) is divisible by 4: priority 3 at firm peace, 5 otherwise. A request at every
+  native settlement on such a landmass whose tribe's alarm toward the power is 75 or more:
+  priority 4 where a mission stands, 2 where none does.
+- **Defend.** A request at each of its colonies that has fewer troops than it wants: priority =
+  the shortfall + 2. The troops a colony wants are its garrison (artillery first, then soldiers,
+  then dragoons) and answer no other call.
+- **Dispatch** is that of the warships (R-806) with the same load K: each free troop, in unit
+  order, takes the request on its own landmass with the lowest load x distance / (priority + 1),
+  provided (3 x priority) >> 1 >= score / K. A defence request's load rises by 1 for each troop
+  sent; an attack request's never does, so everyone in reach goes. Soldiers and dragoons are not
+  sent from a landmass where the power has fewer than 2 land units, or exactly 2 and no colony.
+- **Invade.** For every colony C of a European power the planner is not at firm peace with
+  (never natives): when that power has more colonies than the planner on C's landmass and 8 or
+  more people there (colonists in its colonies plus its colonist-type units), and C passes the
+  size test, a request at a beach. The beach is the open-sea square within 3 squares of C
+  (either way) that touches C's landmass and scores highest by 2 x (|dx| + |dy| + land squares
+  of that landmass beside it), the later square on a tie; no request if a unit stands on it.
+  Priority 3; +1 if C's owner is the human; -1 if 16 x (European colonies on the landmass)
+  exceeds its size; +1 at war with the owner; doubled before turn 150.
+- **Taking a landing.** A ship whose holds are all taken (passengers count as cargo does) and
+  that carries a soldier, dragoon or gun takes the invasion request with the lowest
+  load x distance / (priority + 1) within range, sails to the beach, and the troops step ashore
+  on a neighbouring free square of that landmass. Privateers never do.
+- **Quiet regions.** A landmass is quiet for a power when 20 x (its colonies there + the
+  colonies of every European power there) exceed the landmass's size and nobody it is not at
+  firm peace with, and no tribe at 75 alarm, is on it. Troops with nothing to do in a quiet
+  region board a transport lying in their port.
+- **Fighting.** A troop with a whole move left attacks a neighbouring square only if: it holds
+  Europeans the power is at war with (after the Declaration only the human's), or natives whose
+  tribe is at 75 alarm on a landmass where the power has a colony; and the scaled odds are 12
+  or more. Scaled odds = 8 x attack / (defence + 1) (rounded down), times 3 against a colony and
+  2 against a settlement; artillery scores 0 against anything else. Soldiers and dragoons do
+  not assault a colony unless the summed attack values of the power's units on the 8 squares
+  around it exceed those of the units in it (an undefended colony needs no massing); a unit
+  that may not assault waits beside it. Troops never attack from aboard ship.
+
+**Notes:** Ours, where the trace is silent or our engine differs:
+- *Strengths* in the odds are the engine's (with terrain, fortification and the other
+  modifiers), in whole units of strength; the original's further weighting by the cost of the
+  units on each side, and its tripled eagerness in a contested region, are left out.
+- *Defenders wanted* is 1 for every colony, 2 while the power is at war with another power or
+  with the Crown (the original keeps a per-colony count whose writer was not traced, and asks
+  only for its port colonies).
+- A beach is not chosen on the map's unsailable outer ring, nor where there is no free square
+  to step ashore; the planner's own ship lying on the beach does not cancel the request.
+- A troop with no request stays in the colony it is in, or walks to the colony with the fewest
+  troops. Troops board only when enough of them are spare to fill the transport and an invasion
+  is within its reach, so that the ship sails at once.
+- Soldiers still settle until the power has two colonies (R-802), and a ship makes no landing
+  before then.
+- The original's "settle beside a rival" landings (a transport request where the planner has no
+  colony on a thinly peopled landmass), its early-game exemption of unseen human colonies, and
+  the extra priority where the human holds a whole landmass are left out.
 
 ### Foreign Affairs report (R-803)
 

@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`campaign rule table > matches the snapshot 1`] = `
+{
+  "attackMovesLeast": 3,
+  "beachReach": 3,
+  "colonyPriority": 5,
+  "colonyPriorityAtPeace": 3,
+  "colonyTimes": 3,
+  "companyLeast": 2,
+  "crowdedPenalty": 1,
+  "crowdedPer": 16,
+  "defendBase": 2,
+  "defendersAtWar": 2,
+  "defendersWanted": 1,
+  "doubledBefore": 150,
+  "expedition": 2,
+  "invadeColonistsFrom": 8,
+  "invadeHumanBonus": 1,
+  "invadePriority": 3,
+  "invadeWarBonus": 1,
+  "oddsLeast": 12,
+  "oddsScale": 8,
+  "quietTimes": 20,
+  "restEvery": 4,
+  "settlementAlarmFrom": 75,
+  "settlementPriority": 4,
+  "settlementPriorityNoMission": 2,
+  "settlementTimes": 2,
+  "sizeBase": 6,
+  "sizeTurnsPerStep": 50,
+}
+`;

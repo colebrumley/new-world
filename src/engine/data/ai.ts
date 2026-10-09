@@ -23,18 +23,8 @@ export const AI_PLAN = {
   colonistsPerStatesman: 3,
   /** Soldiers settle too until the power has this many colonies; after that they stand guard. */
   coloniesBeforeGarrison: 2,
-  /** It keeps one soldier for every so many colonies, and this many more while a native people is hostile to it; they are armed on the docks. */
-  coloniesPerGuard: 1,
+  /** Beyond the garrison (see AI_CAMPAIGN) it arms this many more soldiers on the docks while a native people is hostile to it. */
   reprisalParty: 4,
-  /** A soldier who can be spared marches on a settlement of a people at war with us if it lies within this many squares. */
-  reprisalRange: 12,
-  /** ...and it treats a people as an enemy from this attitude level up (2 angry, 3 at war): once fighting starts it is seen through. */
-  reprisalFromLevel: 2,
-  /** A militaristic leader campaigns against the native peoples unprovoked from this turn on (1650), until he has destroyed this many settlements. */
-  conquestFromTurn: 208,
-  conquestQuota: 4,
-  /** An attack is made only at this chance of winning or better, percent. */
-  attackOddsLeast: 60,
   /** One more ship is bought for every so many colonies, once the treasury holds the fund for it. */
   coloniesPerShip: 3,
   shipFund: 4000,
@@ -135,4 +125,48 @@ export const AI_NAVY = {
   /** Ours: a power with this many colonies and no privateer buys one, keeping this much gold back. */
   privateerFromColonies: 4,
   privateerReserve: 1000,
+} as const;
+
+// Campaigns by land and sea of the computer powers (R-807), as traced from the original
+// program; see docs/RULES.md "Computer powers: campaigns".
+export const AI_CAMPAIGN = {
+  /** A colony is worth a campaign when its population + the units on its square exceed sizeBase - turn / sizeTurnsPerStep. */
+  sizeBase: 6,
+  sizeTurnsPerStep: 50,
+  /** A foreign colony is passed over on the turns when (its place in the list + the turn) is divisible by this. */
+  restEvery: 4,
+  /** Attack a foreign colony: at firm peace, and otherwise. */
+  colonyPriorityAtPeace: 3,
+  colonyPriority: 5,
+  /** Attack a native settlement from this tribal alarm: where a mission stands, and where none does. */
+  settlementAlarmFrom: 75,
+  settlementPriority: 4,
+  settlementPriorityNoMission: 2,
+  /** Defend an own colony: the defenders it is short of plus this. */
+  defendBase: 2,
+  /** Invade: a beach within this many squares of the colony, when its owner has more colonies than us on the landmass and this many colonists there. */
+  beachReach: 3,
+  invadeColonistsFrom: 8,
+  /** Priority: this, more against the human and at war, less on a landmass with more than one European colony to `crowdedPer` squares, doubled before turn `doubledBefore`. */
+  invadePriority: 3,
+  invadeHumanBonus: 1,
+  invadeWarBonus: 1,
+  crowdedPer: 16,
+  crowdedPenalty: 1,
+  doubledBefore: 150,
+  /** A region is quiet when 20 x (its colonies of this power + its colonies of every power) exceed its size and nobody hostile is in it. */
+  quietTimes: 20,
+  /** On land an attack needs scaled odds of this: 8 x attack / (defence + 1), times three against a colony and two against a settlement. */
+  oddsLeast: 12,
+  oddsScale: 8,
+  colonyTimes: 3,
+  settlementTimes: 2,
+  /** An attack is made only with a whole move in hand (thirds). */
+  attackMovesLeast: 3,
+  /** Soldiers and dragoons are not sent anywhere from a landmass where the power has fewer land units than this (or just this many and no colony). */
+  companyLeast: 2,
+  /** Ours: defenders a colony wants, and while the power is at war with another; soldiers armed beyond the garrison while an invasion is in view. */
+  defendersWanted: 1,
+  defendersAtWar: 2,
+  expedition: 2,
 } as const;

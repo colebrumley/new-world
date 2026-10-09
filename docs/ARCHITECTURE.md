@@ -59,6 +59,7 @@ a whole turn, returning the actions it took so the app can log them. Its numbers
 builds one, what it loads, where it goes, and the answers given in the trade talks (`AI_WAGONS`).
 `missions.ts` is its missionaries (R-805) and what each kind of unit does on entering a settlement (`AI_MISSIONS`).
 `navy.ts` is its warships and privateers (R-806): the stations it wants kept, which ship takes which, and when a ship attacks (`AI_NAVY`).
+`campaign.ts` is its wars on land (R-807): what it wants attacked and defended, landings beside rival colonies, which troops go where, and when a troop attacks (`AI_CAMPAIGN`).
 
 ## `src/ui/`
 `pixel-art.ts` is all the map art as data: a 32-colour palette and functions that return

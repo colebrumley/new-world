@@ -8,7 +8,7 @@ import { AI_NAVY } from '../engine/data/ai';
 import { NAVAL } from '../engine/data/naval';
 import { UNIT_TYPES, type UnitTypeId } from '../engine/data/units';
 import { dealing } from '../engine/diplomacy';
-import { isInlandLake } from '../engine/movement';
+import { isBorder, isInlandLake } from '../engine/movement';
 import { seaDefender } from '../engine/naval';
 import { colonyAt, type Colony, type GameState, type Player, type PlayerId, type Unit } from '../engine/state';
 import { isWater } from '../engine/tile';
@@ -24,7 +24,8 @@ const isPower = (state: GameState, id: PlayerId): boolean => state.players.some(
 const openSea = (state: GameState, x: number, y: number): boolean => {
   if (x < 0 || y < 0 || x >= state.map.width || y >= state.map.height) return false;
   const tile = state.map.tiles[y * state.map.width + x];
-  return tile !== undefined && isWater(tile) && !isInlandLake(state.map, x, y);
+  // (the outermost squares of the map cannot be sailed)
+  return tile !== undefined && isWater(tile) && !isBorder(state.map, x, y) && !isInlandLake(state.map, x, y);
 };
 
 export interface Station {

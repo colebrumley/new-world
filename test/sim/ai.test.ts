@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { playTurn } from '../../src/ai/european';
+import { invadeRequests, isTroop, scaledOdds } from '../../src/ai/campaign';
 import { navalStations, privateersCarry } from '../../src/ai/navy';
+import { AI_CAMPAIGN } from '../../src/engine/data/ai';
 import type { Action, GameEvent } from '../../src/engine/actions';
 import { CALENDAR } from '../../src/engine/calendar';
 import { DEFAULT_WORLD } from '../../src/engine/data/mapgen';
@@ -22,6 +24,9 @@ export interface AiRun {
   /** R-806: privateers sent somewhere that is neither a station nor a home port; and their attacks on ships of powers at peace. */
   readonly privateersAstray: number;
   readonly privateerRaids: number;
+  /** R-807: troops put ashore from a ship lying off an invasion beach; and attacks on land made at scaled odds under twelve. */
+  readonly landings: number;
+  readonly rashAttacks: number;
 }
 
 /** Four computer powers play each other with the European policy; invariants are checked after every power's turn. */
@@ -34,10 +39,18 @@ export function runPowers(seed: number, turns: number, america = false): AiRun {
   let missionsAt150 = -1;
   let privateersAstray = 0;
   let privateerRaids = 0;
+  let landings = 0;
+  let rashAttacks = 0;
   const watch = (before: GameState, action: Action, happened: readonly GameEvent[]): void => {
     const unit = 'unitId' in action ? before.units[action.unitId] : undefined;
     const player = before.players[before.current];
-    if (!unit || !player || unit.type !== 'privateer') return;
+    if (!unit || !player) return;
+    if (isTroop(unit)) {
+      const ship = unit.aboard === null ? undefined : before.units[unit.aboard];
+      if (action.type === 'moveUnit' && ship && invadeRequests(before, player).some((r) => r.x === ship.x && r.y === ship.y)) landings++;
+      if (action.type === 'attack' && scaledOdds(before, unit, action.dx, action.dy) < AI_CAMPAIGN.oddsLeast) rashAttacks++;
+    }
+    if (unit.type !== 'privateer') return;
     // (one with passengers to deliver, or pressed into carrying while the ports are beset, is doing a transport's work)
     const carrying = Object.values(before.units).some((u) => u.aboard === unit.id) || privateersCarry(before, player);
     if (action.type === 'goTo' && !carrying) {
@@ -69,7 +82,7 @@ export function runPowers(seed: number, turns: number, america = false): AiRun {
       for (const p of state.players) coloniesAt100[p.id] = Object.values(state.colonies).filter((c) => c.owner === p.id).length;
     }
   }
-  return { state, coloniesAt100, slowestTurnMs: slowest, lowestGold, events, firstTurn, missionsAt150, privateersAstray, privateerRaids };
+  return { state, coloniesAt100, slowestTurnMs: slowest, lowestGold, events, firstTurn, missionsAt150, privateersAstray, privateerRaids, landings, rashAttacks };
 }
 
 describe.skipIf(!process.env['SIM'])('the computer powers', () => {
@@ -86,5 +99,8 @@ describe.skipIf(!process.env['SIM'])('the computer powers', () => {
     expect(run.missionsAt150, `missions on seed ${seed}`).toBeGreaterThanOrEqual(1);
     // R-806: a privateer is only ever sent to a station or home, so it meets the ships of a power at peace only when they come alongside
     expect(run.privateersAstray, `privateers astray on seed ${seed}`).toBe(0);
+    // R-807: some power lands troops beside a rival colony, and nobody attacks on land at scaled odds under twelve
+    expect(run.landings, `landings on seed ${seed}`).toBeGreaterThanOrEqual(1);
+    expect(run.rashAttacks, `rash attacks on seed ${seed}`).toBe(0);
   }, 120_000);
 });

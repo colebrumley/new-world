@@ -3,7 +3,6 @@
 exports[`AI plan table > matches the snapshot 1`] = `
 {
   "actionsPerTurn": 250,
-  "attackOddsLeast": 60,
   "berthsTried": 3,
   "buildFirst": [
     "stockade",
@@ -13,7 +12,6 @@ exports[`AI plan table > matches the snapshot 1`] = `
   "coloniesAtStart": 4,
   "coloniesBeforeGarrison": 2,
   "coloniesMost": 8,
-  "coloniesPerGuard": 1,
   "coloniesPerShip": 3,
   "colonistsPerStatesman": 3,
   "colonyExports": [
@@ -29,15 +27,11 @@ exports[`AI plan table > matches the snapshot 1`] = `
     "coats",
   ],
   "colonySpacing": 3,
-  "conquestFromTurn": 208,
-  "conquestQuota": 4,
   "firstColonyAnywhereFrom": 6,
   "firstColonyHaste": 6,
   "goldReserve": 200,
   "landSearch": 7,
-  "reprisalFromLevel": 2,
   "reprisalParty": 4,
-  "reprisalRange": 12,
   "shipFund": 4000,
   "shipSearch": 14,
   "siteScoreLeast": 9,

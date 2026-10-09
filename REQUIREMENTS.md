@@ -809,9 +809,9 @@ Legend:
   per AI power per turn in Node.
   **Verify:** sim 4 powers x 350 turns on 5 seeds: no exceptions, each AI founds ≥3 colonies by
   turn 100, gold never negative, per-turn AI time within budget.
-  *Built:* `src/ai/european.ts` (policy in docs/RULES.md "Computer powers"). Not built: native
-  trade, missions and wagon trains by computer powers; of the leader traits only expansion steers
-  this policy (the others act through R-801). Its colonies sell surplus directly rather than by ship.
+  *Built:* `src/ai/european.ts` (policy in docs/RULES.md "Computer powers"). Native trade, missions,
+  wagon trains, warships and campaigns came with R-804 to R-807; of the leader traits only expansion
+  steers this policy (the others act through R-801). Its colonies sell surplus directly rather than by ship.
 
 - [x] **R-803 Foreign Affairs report (F8)**
   Before de Witt: war/peace matrix only. After: colonies, population, average colony size,
@@ -889,7 +889,7 @@ Legend:
   what is ours). "Load" is as traced (FIDELITY.md). A power buys its one privateer once it has four
   colonies; the sim checks that a privateer is only ever sent to a listed station or a home port.
 
-- [~] **R-807 Computer powers: campaigns by land and sea**
+- [x] **R-807 Computer powers: campaigns by land and sea**
   As traced from the original program; replaces the R-802 "War", "Reprisal" and "Conquest" policy
   where they differ. Targets come from the same priority list as R-806. Attack: any foreign colony
   on a landmass where the power has a unit or colony, on 3 turns in 4, when the colony's population
@@ -909,6 +909,10 @@ Legend:
   **Verify:** unit tests: request list per rule on fixture maps, the invade trigger, the odds and
   the assault test; sim: on 5 seeds some computer power lands troops beside a rival colony, no
   unit attacks at scaled odds under 12, and the R-802 sim still passes.
+  *Built:* `src/ai/campaign.ts` (docs/RULES.md "Computer powers: campaigns", which lists what is
+  ours). The R-802 rules for war, reprisal (by temperament) and unprovoked conquest are gone.
+  Defenders wanted per colony is ours (1, or 2 at war); the cost weighting of the odds, the
+  "settle beside a rival" landings and the early exemption of unseen human colonies are left out.
 
 ---
 
