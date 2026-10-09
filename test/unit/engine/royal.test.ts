@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, validateAction, type Action, type GameEvent } from '../../../src/engine/actions';
+import { AI_NAVY } from '../../../src/engine/data/ai';
 import { ROYAL } from '../../../src/engine/data/royal';
 import { DIFFICULTIES } from '../../../src/engine/data/yields';
 import { docksOf } from '../../../src/engine/europe';
 import { checkInvariants } from '../../../src/engine/invariants';
 import { bidPrice } from '../../../src/engine/market';
 import {
-  foreignIndependence, frigateOffer, frigateWarranted, growRef, kingsWar, mercenaryOffer, militaryStrength, nextRefUnit, powerSize,
+  foreignIndependence, frigateOffer, frigateWarranted, growRef, kingsWar, mercenaryOffer, militaryStrength, navalAid, navalStrength, nextRefUnit, powerSize,
   royalIncome, royalTransport, royalTransportCut, startingRef, succession, type RoyalEvent,
 } from '../../../src/engine/royal';
 import type { Colony, Colonist, GameState, Player, Unit } from '../../../src/engine/state';
@@ -194,6 +195,64 @@ describe("the King's frigate", () => {
     const r = frigateOffer(threatened('ai'), 'a', events as RoyalEvent[]);
     expect(events.map((e) => e.type)).toEqual(['frigateGranted', 'shipSailed']);
     expect(player(r)).toMatchObject({ taxRate: 0, pendingOffer: null });
+  });
+});
+
+describe('naval aid for a computer power', () => {
+  const ship = (s: GameState, id: string, owner: string, type: Unit['type']): GameState => withUnit(s, { id, owner, type, profession: null, x: 6, y: 3 });
+  /** Computer power a with a colony; b, c and d each with a frigate (attack 4 apiece: an average of 4). */
+  const fleets = (opts: Parameters<typeof base>[0] = {}): GameState => {
+    let s = withColony(base({ kinds: ['ai', 'ai'], ...opts }), { id: 'col', owner: 'a', x: 1, y: 1, name: 'Home' });
+    for (const o of ['b', 'c', 'd']) s = ship(s, `f-${o}`, o, 'frigate');
+    return s;
+  };
+  const aid = (s: GameState): { state: GameState; events: RoyalEvent[] } => {
+    const events: RoyalEvent[] = [];
+    return { state: navalAid(s, 'a', events), events };
+  };
+  const granted = (s: GameState): Unit | undefined => Object.values(aid(s).state.units).find((u) => u.owner === 'a' && (u.type === 'privateer' || u.type === 'frigate'));
+
+  it('with no ship of any kind left it is given a warship in Europe, free', () => {
+    const r = aid(fleets());
+    const got = granted(fleets()) as Unit;
+    expect(got.voyage).toMatchObject({ phase: 'inEurope' });
+    expect(r.events).toEqual([{ type: 'warshipGranted', player: 'a', unitId: got.id, unitType: got.type }]);
+    expect(player(r.state).gold).toBe(player(fleets()).gold);
+    expect(checkInvariants(r.state)).toEqual([]);
+    // a privateer oftener than a frigate, by their prices
+    const kinds = Array.from({ length: 60 }, (_, seed) => granted(fleets({ seed }))?.type);
+    expect(kinds.filter((k) => k === 'privateer').length).toBeGreaterThan(kinds.filter((k) => k === 'frigate').length);
+    expect(kinds.filter((k) => k === 'frigate').length).toBeGreaterThan(0);
+  });
+
+  it('not for a human, a power fighting for independence, or one with nothing in the New World', () => {
+    expect(aid(fleets({ kinds: ['human', 'ai'] })).events).toEqual([]);
+    expect(aid(patch(fleets(), 'a', { atWar: true })).events).toEqual([]);
+    expect(aid({ ...fleets(), colonies: {} }).events).toEqual([]);
+  });
+
+  it('a power with only transports gets none: the chance goes by the strength it has', () => {
+    const s = ship(fleets({ difficulty: 'viceroy' }), 'm', 'a', 'merchantman');
+    expect(navalStrength(s, 'a')).toBe(0);
+    for (let seed = 0; seed < 40; seed++) expect(aid(ship(fleets({ difficulty: 'viceroy', seed }), 'm', 'a', 'merchantman')).events).toEqual([]);
+  });
+
+  it('under half the average strength it is helped now and then, the oftener the harder the level, and never on the easiest', () => {
+    // a privateer of its own (8) against four frigates among the other three (an average of 21)
+    const weak = (difficulty: Level, seed: number): GameState => ship(ship(fleets({ difficulty, seed }), 'p', 'a', 'privateer'), 'f2-b', 'b', 'frigate');
+    const own = navalStrength(weak('viceroy', 0), 'a');
+    const average = (navalStrength(weak('viceroy', 0), 'b') + navalStrength(weak('viceroy', 0), 'c') + navalStrength(weak('viceroy', 0), 'd')) / 3;
+    expect(AI_NAVY.aidBelow * own).toBeLessThan(average);
+    const times = (difficulty: Level): number => Array.from({ length: 400 }, (_, seed) => aid(weak(difficulty, seed)).events.length).reduce((a, b) => a + b, 0);
+    expect(times('discoverer')).toBe(0);
+    const hardest = times('viceroy');
+    // the chance is strength / average x 20 percent
+    const percent = Math.trunc((own * AI_NAVY.aidPercent[4]) / average);
+    expect(hardest).toBeGreaterThan(0);
+    expect(percent).toBeGreaterThan(0);
+    expect(hardest).toBeLessThan(3 * 4 * percent); // 400 tries: about 4 x percent of them
+    // as strong as half the average, or stronger: nothing
+    for (let seed = 0; seed < 40; seed++) expect(aid(ship(weak('viceroy', seed), 'p2', 'a', 'frigate')).events).toEqual([]);
   });
 });
 

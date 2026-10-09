@@ -122,9 +122,15 @@ export const AI_NAVY = {
   /** A privateer carries for its power only while more than `carryPorts` of its ports have a foreign frigate near, or those ports hold more than `carryPopulation` people. */
   carryPorts: 1,
   carryPopulation: 6,
-  /** Ours: a power with this many colonies and no privateer buys one, keeping this much gold back. */
-  privateerFromColonies: 4,
-  privateerReserve: 1000,
+  /**
+   * How a power comes by an armed ship (as FreeCol's computer powers do): one is given it when
+   * it has no ship left at all; and while its naval strength is under one part in `aidBelow` of
+   * the other powers' average, with a chance of strength / average x this percent, by difficulty level.
+   */
+  aidPercent: [0, 5, 10, 15, 20],
+  aidBelow: 2,
+  /** The ship is drawn from those for sale that can fight, each weighted by this / its price. */
+  aidWeight: 100000,
 } as const;
 
 // Campaigns by land and sea of the computer powers (R-807), as traced from the original
@@ -165,8 +171,15 @@ export const AI_CAMPAIGN = {
   attackMovesLeast: 3,
   /** Soldiers and dragoons are not sent anywhere from a landmass where the power has fewer land units than this (or just this many and no colony). */
   companyLeast: 2,
-  /** Ours: defenders a colony wants, and while the power is at war with another; soldiers armed beyond the garrison while an invasion is in view. */
-  defendersWanted: 1,
-  defendersAtWar: 2,
+  /**
+   * When a colony is badly defended (as FreeCol reckons it): with no troops at all; never with
+   * more than `defendersMost`; otherwise when 20 x their summed defence strength is under
+   * 19 x its population - 50 (that is, strength < 0.95 x population - 2.5).
+   */
+  defendersMost: 5,
+  defenceTimes: 20,
+  defencePerColonist: 19,
+  defenceLess: 50,
+  /** Ours: soldiers armed beyond the garrison while an invasion is in view. */
   expedition: 2,
 } as const;

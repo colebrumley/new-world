@@ -68,7 +68,8 @@ describe('applyAction', () => {
     const r1 = applyAction(moved, { type: 'endTurn' });
     expect(r1.state.current).toBe(1);
     expect(r1.state.turn).toBe(0);
-    expect(r1.events).toEqual([{ type: 'playerTurnStarted', player: 'b', turn: 0 }]);
+    // (the computer power in this bare game has no ship, so it is also given one: see "naval aid" in the royal tests)
+    expect(r1.events.filter((e) => e.type !== 'warshipGranted')).toEqual([{ type: 'playerTurnStarted', player: 'b', turn: 0 }]);
     const r2 = applyAction(r1.state, { type: 'endTurn' });
     expect(r2.state).toMatchObject({ current: 0, turn: 1 });
     expect(r2.events).toEqual([

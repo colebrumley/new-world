@@ -774,6 +774,9 @@ toward the trader, d the difficulty level (0 for a computer power). (`VICEROY 40
 
 - **What they will look at.** Not the good they last bought, nor the one they last sold, nor one
   they have no demand for, nor the good a haggle last failed over.
+  A computer power's cargo is never refused (`VICEROY 4000:7349`: the refusal dialogs are skipped
+  for it, as read; medium confidence): the price formula below is applied whatever the good, so
+  one with no demand fetches next to nothing.
 - **Their price for a cargo** of q units (one hold, up to 100). Throw r = 1..5. Keenness k = 6, or
   7 for rum and everything after it in the goods order; trade goods lose a throw of 0..7; muskets
   gain 12 less the tribe's muskets, horses 10 less its herds, tools 1. Ill feeling a = 2 x L (none
@@ -1237,11 +1240,17 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
   else is standing on, and puts its settlers into a colony if no site can be reached at all.
   From turn 6 a power still without a colony founds one wherever its settlers stand, if the
   ground allows.
+- **Builders.** While its project still wants hammers a colony keeps one colonist felling
+  timber until it has lumber for the rest of the job (or a full warehouse of it), and one at
+  the carpenter's bench while there is lumber to work; a colony of one does the two by turns.
+  Nobody is moved if the colony would then go hungry. (As FreeCol's computer colonies do, which
+  staff building materials ahead of cash crops: `FreeCol server/ai/ColonyPlan.java`,
+  the order of its goods lists. The original's way was not traced.)
 - **Liberty.** A colony of three or more keeps one colonist in its Town Hall as a statesman for
   every three it has (three at most), provided it still feeds itself, and builds a Stockade, a
   Printing Press and a Newspaper before anything else.
-- **Garrison.** Soldiers are armed on the docks in Europe from the colonists waiting there: a
-  garrison for every colony, four more while a native people on a landmass it has settled is at
+- **Garrison.** Soldiers are armed on the docks in Europe from the colonists waiting there:
+  what its colonies want as garrison (see "Computer powers: campaigns"), four more while a native people on a landmass it has settled is at
   75 alarm or more, and two more while there is a rival colony it would invade. A soldier brought
   into port goes ashore as a soldier.
 - **Braves' calls.** A brave beside a colony at peace pays a call on about one turn in eight
@@ -1271,6 +1280,7 @@ sale and the purchase for a computer power). Numbers are `AI_WAGONS` in `src/eng
   colony; with no colony of its power on the landmass it is disbanded.
 - **The sale.** On entering it trades (a wagon train always chooses Trade With Village): one
   cargo picked at random is offered, the village's first price is taken, no haggling. The
+  village never turns a computer power's cargo away (see "Trade with natives"). The
   village then offers its wares as to a human; the power buys the one whose price level in
   Europe is highest (the first on a tie) at the price first asked, if it has the gold, and
   otherwise nothing. What it bought is unloaded at home.
@@ -1291,13 +1301,11 @@ sale and the purchase for a computer power). Numbers are `AI_WAGONS` in `src/eng
 - *Trade goods* arrive in the colony as a full cargo of 100 bought at Europe's asking price, when
   the treasury holds the price and the 200 gold reserve (how the original's colony comes by them
   was not traced).
-- *A cargo the village will not look at* (what it last bought or sold, or has no demand for) is
-  not loaded for it, and a wagon that finds itself with one takes it home. The original's
-  behaviour here was not traced; without this a wagon carries food back and forth for ever.
-- *Building it.* Our computer colonies make few hammers, so while a wagon train is on the stocks
-  a colony keeps one colonist felling timber until it has the lumber to finish it and then at
-  the carpenter's bench, provided it still feeds itself; a colony of one or two sends him back
-  to the land afterwards. A wagon no longer wanted comes off the stocks.
+- *Building it.* A wagon is built like anything else, by the colony's builders (see "Computer
+  powers", Builders). A wagon no longer wanted comes off the stocks.
+- Neither open-source reimplementation helps with any of this: FreeCol's computer powers use
+  wagons only to carry goods between their own colonies and decline all native trade, and
+  Revolution Now has no computer colonial powers.
 
 ### Computer powers: missions (R-805)
 
@@ -1384,9 +1392,17 @@ holding station), `4000:c3a0` (who may carry). Numbers are `AI_NAVY` in `src/eng
 - The original's exemption of unseen human colonies early in the game, and its one-turn-in-four
   test for ship holds in the blockaded colony, are left out; so is its rule that a frigate is
   sought only after the Declaration.
-- *Getting one.* A power with four colonies and no privateer buys one in Europe when it can pay
-  the price and keep 1000 gold; privateers and men-of-war sail from Europe without waiting for
-  passengers. (How the original's powers come by their privateers was not traced.)
+- *Getting one.* As FreeCol's computer powers do (`FreeCol server/ai/EuropeanAIPlayer.java`,
+  `cheat`; percentages from `FreeCol classic specification.xml`,
+  `model.option.offensiveNavalUnitCheat`): at the start of its turn a computer power that has
+  no ship of any kind is given a warship in Europe, free. Otherwise, while its naval strength
+  (the summed attack values of its ships) is above nothing and under half the average of the
+  other powers', it is given one with a chance of strength / average x P percent, P being 0, 5,
+  10, 15, 20 by difficulty level. The ship is a privateer or a frigate, drawn with weights of
+  100000 / price. Not after it has declared independence. A power with only transports
+  therefore gets nothing until it has lost them all. Privateers and men-of-war sail from Europe
+  without waiting for passengers. (How the original's powers come by their privateers was not
+  traced; Revolution Now has no computer colonial powers.)
 
 ### Computer powers: campaigns (R-807)
 
@@ -1403,7 +1419,7 @@ Numbers are `AI_CAMPAIGN` in `src/engine/data/ai.ts`.
   + the turn) is divisible by 4: priority 3 at firm peace, 5 otherwise. A request at every
   native settlement on such a landmass whose tribe's alarm toward the power is 75 or more:
   priority 4 where a mission stands, 2 where none does.
-- **Defend.** A request at each of its colonies that has fewer troops than it wants: priority =
+- **Defend.** A request at each of its colonies that is short of defenders: priority =
   the shortfall + 2. The troops a colony wants are its garrison (artillery first, then soldiers,
   then dragoons) and answer no other call.
 - **Dispatch** is that of the warships (R-806) with the same load K: each free troop, in unit
@@ -1440,9 +1456,13 @@ Numbers are `AI_CAMPAIGN` in `src/engine/data/ai.ts`.
 - *Strengths* in the odds are the engine's (with terrain, fortification and the other
   modifiers), in whole units of strength; the original's further weighting by the cost of the
   units on each side, and its tripled eagerness in a contested region, are left out.
-- *Defenders wanted* is 1 for every colony, 2 while the power is at war with another power or
-  with the Crown (the original keeps a per-colony count whose writer was not traced, and asks
-  only for its port colonies).
+- *Defenders wanted.* As FreeCol reckons a colony badly defended (`FreeCol
+  common/model/Colony.java`, `isBadlyDefended`): with no troops in it; never with more than
+  five; otherwise when their summed defence strength (the engine's, with walls and digging in)
+  is under 0.95 x population - 2.5. A colony keeps troops as garrison, in order, until it is no
+  longer badly defended, and is short by as many dug-in soldiers as would make it so. Asked for
+  all its colonies, not only ports. (The original keeps a per-colony count whose writer was not
+  traced; Revolution Now has no computer colonial powers.)
 - A beach is not chosen on the map's unsailable outer ring, nor where there is no free square
   to step ashore; the planner's own ship lying on the beach does not cancel the request.
 - A troop with no request stays in the colony it is in, or walks to the colony with the fewest

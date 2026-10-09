@@ -842,8 +842,9 @@ Legend:
   1600, and the R-802 sim still passes.
   *Built:* `src/ai/wagons.ts`, `src/engine/wagons.ts`, `src/engine/regions.ts` (docs/RULES.md
   "Computer powers: wagon trains", which lists what is ours). A wagon's colony and its place in the
-  round are worked out from the state, not stored; a wagon does not load what the village it is
-  bound for will not look at; a colony puts a colonist to building its wagon.
+  round are worked out from the state, not stored. A village never refuses a computer power's
+  cargo (as the trace reads). Computer colonies staff lumber and hammers for whatever they are
+  building, as FreeCol's do.
 
 - [x] **R-805 Computer powers: missions**
   As traced from the original program. A power with no missionary turns one spare colonist into a
@@ -886,8 +887,9 @@ Legend:
   the peace exception for privateers; sim: on 5 seeds a computer privateer attacks a ship of a power
   it is at peace with only when adjacent, and the R-802 sim still passes.
   *Built:* `src/ai/navy.ts` (docs/RULES.md "Computer powers: warships and privateers", which lists
-  what is ours). "Load" is as traced (FIDELITY.md). A power buys its one privateer once it has four
-  colonies; the sim checks that a privateer is only ever sent to a listed station or a home port.
+  what is ours). "Load" is as traced (FIDELITY.md). A power comes by warships as FreeCol's do: one
+  is given it when it has no ship left, or by chance while far weaker at sea than the others; so
+  privateers are rare. The sim checks that a privateer is only ever sent to a listed station or a home port.
 
 - [x] **R-807 Computer powers: campaigns by land and sea**
   As traced from the original program; replaces the R-802 "War", "Reprisal" and "Conquest" policy
@@ -911,7 +913,7 @@ Legend:
   unit attacks at scaled odds under 12, and the R-802 sim still passes.
   *Built:* `src/ai/campaign.ts` (docs/RULES.md "Computer powers: campaigns", which lists what is
   ours). The R-802 rules for war, reprisal (by temperament) and unprovoked conquest are gone.
-  Defenders wanted per colony is ours (1, or 2 at war); the cost weighting of the odds, the
+  Defenders wanted per colony follows FreeCol's "badly defended" test; the cost weighting of the odds, the
   "settle beside a rival" landings and the early exemption of unseen human colonies are left out.
 
 ---
@@ -1088,6 +1090,11 @@ Legend:
   and sets `touch-action: pan-x pan-y`; over the map the wheel still zooms the map.
   A page magnified all the same (browsers restore it with the page, and keep some gestures to
   themselves) shows a notice naming the key that undoes it, Ctrl/Cmd+0 (`src/ui/magnified.ts`).
+  Later: the pointer's shape says what a click will do (`mapCursor`): an arrow the way the active
+  unit would step, a hand on a colony that would open or a unit that would be picked. A colony or
+  unit of ours beside the active unit is stepped onto by a click on the part of its square nearest
+  the unit (`STEP_RIM`, the touching corner for a diagonal); the rest of the square opens or picks
+  as before. This is how a unit is walked into its colony diagonally without a numeric keypad.
 
 ### Tuning items raised by R-1009
 

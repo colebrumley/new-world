@@ -243,25 +243,18 @@ describe('what a warship does', () => {
   });
 });
 
-describe('getting a privateer', () => {
+describe('a privateer in Europe', () => {
   const inEurope = (s: GameState, id: string): GameState => ({ ...s, units: { ...s.units, [id]: { ...u(s, id), x: OFF_MAP, y: OFF_MAP, voyage: { phase: 'inEurope', turnsLeft: 0, origin: [1, 5] } } } });
-  const established = (colonies: number, gold: number): GameState => {
-    let s = sea({ b: 'peace', h: 'peace' });
-    for (let i = 0; i < colonies; i++) {
-      s = withColony(s, { id: `c${i}`, x: 15, y: 2 + 2 * i, colonists: people(1, `c${i}-`), construction: { kind: 'building', id: 'stockade' } });
-      s = withUnit(s, { id: `g${i}`, type: 'soldier', x: 15, y: 2 + 2 * i, orders: 'fortified' });
-    }
-    s = inEurope(ship(s, 'carrier', 'merchantman', 0, 0), 'carrier');
-    return { ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, gold, pool: [] } : p)) };
-  };
 
-  it('a power with four colonies and none buys one when it can keep its reserve, and sends it straight out', () => {
-    const rich = established(4, 2000 + AI_NAVY.privateerReserve);
-    expect(europeanAction(rich)).toEqual({ type: 'purchaseUnit', unit: 'privateer' });
-    expect(europeanAction(established(4, 2000 + AI_NAVY.privateerReserve - 1))).not.toMatchObject({ type: 'purchaseUnit' });
-    expect(europeanAction(established(3, 9000))).not.toMatchObject({ type: 'purchaseUnit', unit: 'privateer' });
-    const bought = applyAction(rich, europeanAction(rich)).state;
-    const privateer = Object.values(bought.units).find((v) => v.type === 'privateer') as Unit;
-    expect(europeanAction(bought)).toEqual({ type: 'sailFromEurope', unitId: privateer.id });
+  it('sails at once, without waiting for passengers, and nobody buys one', () => {
+    let s = ourPort(sea({ b: 'peace', h: 'peace' }));
+    s = withUnit(s, { id: 'g', type: 'soldier', x: 15, y: 5, orders: 'fortified' });
+    s = inEurope(ship(s, 'p', 'privateer', 0, 0), 'p');
+    s = { ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, pool: [] } : p)) };
+    expect(europeanAction(s)).toEqual({ type: 'sailFromEurope', unitId: 'p' });
+    // however rich: warships come to a computer power as naval aid, not by purchase (see the royal tests)
+    const rich = { ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, gold: 50_000 } : p)) };
+    const none = inEurope(ship({ ...rich, units: Object.fromEntries(Object.entries(rich.units).filter(([id]) => id !== 'p')) }, 'm', 'merchantman', 0, 0), 'm');
+    expect(europeanAction(none)).not.toMatchObject({ type: 'purchaseUnit', unit: 'privateer' });
   });
 });

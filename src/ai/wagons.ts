@@ -3,28 +3,22 @@
 // wagon is in its round shows in its orders: one standing by on sentry in its colony has
 // unloaded and may load for the natives; one on sentry beside a settlement is there to trade,
 // and has traded once its moves are spent.
-import { applyAction, validateAction, type Action } from '../engine/actions';
+import { validateAction, type Action } from '../engine/actions';
 import { tribalAlarm } from '../engine/alarm';
 import { dateOfTurn } from '../engine/calendar';
 import { amountOf } from '../engine/cargo';
-import { NEIGHBORS } from '../engine/colony';
-import { availableItems, itemCost } from '../engine/construction';
+import { availableItems } from '../engine/construction';
 import { AI_WAGONS } from '../engine/data/ai';
 import { GOOD_IDS, type GoodId } from '../engine/data/goods';
-import { PLACEMENT } from '../engine/data/placement';
 import { NATIVES } from '../engine/data/tribes';
 import { UNIT_TYPES } from '../engine/data/units';
-import { colonyProduction } from '../engine/economy';
-import { fieldOutput } from '../engine/jobs';
 import { priceLevel } from '../engine/market';
-import { hasUseFor } from '../engine/native-trade';
 import { routeFor, planMove } from '../engine/movement';
-import { suggestPlacement } from '../engine/placement';
 import { warehouseCapacity } from '../engine/pioneer';
 import { landmassAt } from '../engine/regions';
 import { createRng, type Rng } from '../engine/rng';
 import { tribeOfOwner } from '../engine/settlements';
-import { colonyAt, type BuildItem, type Colonist, type Colony, type GameState, type Job, type Settlement, type Unit } from '../engine/state';
+import { colonyAt, type BuildItem, type Colony, type GameState, type Settlement, type Unit } from '../engine/state';
 import { wagonHomes } from '../engine/wagons';
 
 const far = (ax: number, ay: number, bx: number, by: number): number => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -88,54 +82,10 @@ export function wagonBuild(state: GameState, colony: Colony): Action | null {
 }
 
 /**
- * Somebody has to build the wagon. While one is on the stocks the colony keeps a hand felling
- * timber until there is lumber enough to finish it and then a hand at the carpenter's bench,
- * so long as it still feeds itself. Afterwards a small colony's carpenter goes back to the land.
- * (Ours: how the original's colonies came by their hammers was not traced.)
- */
-export function wagonWorker(state: GameState, colony: Colony): Action | null {
-  const isCarpenter = (c: Colonist): boolean => c.job.kind === 'work' && c.job.trade === 'carpenter';
-  const isFeller = (c: Colonist): boolean => c.job.kind === 'field' && c.job.good === 'lumber';
-  const assign = (c: Colonist, job: Job): Action => ({ type: 'assignJob', colonyId: colony.id, colonistId: c.id, job });
-  if (!isWagonProject(colony)) {
-    const carpenter = colony.colonists.length < PLACEMENT.carpenterFromPopulation ? colony.colonists.find(isCarpenter) : undefined;
-    if (!carpenter) return null;
-    const without: Colony = { ...colony, colonists: colony.colonists.filter((c) => c.id !== carpenter.id) };
-    const job = suggestPlacement({ ...state, colonies: { ...state.colonies, [colony.id]: without } }, without, carpenter.profession);
-    const back = assign(carpenter, job);
-    return job.kind === 'field' && ok(state, back) ? back : null;
-  }
-  const need = itemCost(WAGON).hammers - colony.hammers;
-  if (need <= 0) return null;
-  const enough = amountOf(colony.goods, 'lumber') >= need;
-  if (enough ? colony.colonists.some(isCarpenter) : colony.colonists.some(isFeller)) return null;
-  // whoever is already on the job changes over; failing that, whoever the colony can spare and still eat
-  const rank = (c: Colonist): number => ((enough ? isFeller(c) : isCarpenter(c)) ? 0 : c.job.kind === 'idle' ? 1 : c.job.kind === 'field' ? 2 : 9);
-  const hands = colony.colonists.filter((c) => rank(c) < 9).sort((a, b) => rank(a) - rank(b));
-  for (const hand of hands) {
-    const jobs: Job[] = [];
-    if (enough) jobs.push({ kind: 'work', trade: 'carpenter' });
-    else {
-      const squares = NEIGHBORS.map(([dx, dy]) => ({ dx, dy, yield: fieldOutput(state, colony, hand.profession, dx, dy, 'lumber') })).filter((q) => q.yield > 0).sort((a, b) => b.yield - a.yield);
-      for (const q of squares) jobs.push({ kind: 'field', dx: q.dx, dy: q.dy, good: 'lumber' });
-    }
-    for (const job of jobs) {
-      const put = assign(hand, job);
-      if (!ok(state, put)) continue;
-      const after = applyAction(state, put).state;
-      const report = colonyProduction(after, after.colonies[colony.id] as Colony);
-      if (report.produced.food >= report.consumed.food) return put;
-    }
-  }
-  return null;
-}
-
-/**
  * What a wagon loads for the natives from this colony's stores: the good that scores best,
- * up to a full cargo of it. Cheap in Europe and plentiful here is what it looks for. `wanted`
- * leaves out what the settlement it is bound for would not look at (the chances are thrown all the same).
+ * up to a full cargo of it. Cheap in Europe and plentiful here is what it looks for.
  */
-export function wagonLoad(state: GameState, colony: Colony, rng: Rng, wanted: (good: GoodId) => boolean = () => true): { good: GoodId; amount: number } | null {
+export function wagonLoad(state: GameState, colony: Colony, rng: Rng): { good: GoodId; amount: number } | null {
   const capacity = warehouseCapacity(colony);
   let best: GoodId | null = null;
   let top = 0;
@@ -145,7 +95,7 @@ export function wagonLoad(state: GameState, colony: Colony, rng: Rng, wanted: (g
     let price = priceLevel(state, colony.owner, good);
     while (price >= AI_WAGONS.markdownFrom && rng.int(1, AI_WAGONS.markdownOdds) === 1) price -= 1;
     const limit = good === 'tradeGoods' ? AI_WAGONS.tradeGoodsLimit : AI_WAGONS.priceLimit;
-    if (stock < AI_WAGONS.stockLeast || price >= limit || !wanted(good)) continue;
+    if (stock < AI_WAGONS.stockLeast || price >= limit) continue;
     const counted = stock >= capacity && good !== 'food' ? stock * AI_WAGONS.fullStockTimes : stock;
     const score = counted * (limit - price) + AI_WAGONS.pricePenalty * (1 - price);
     if (score > top) {
@@ -190,8 +140,7 @@ function goBeside(state: GameState, unit: Unit, x: number, y: number): Action | 
   return null;
 }
 
-const loadFor = (state: GameState, wagon: Unit, colony: Colony, target: Settlement): { good: GoodId; amount: number } | null =>
-  wagonLoad(state, colony, aiRng(state, wagon.id), (good) => target.haggleMemory !== good && hasUseFor(state, target, good));
+const loadFor = (state: GameState, wagon: Unit, colony: Colony): { good: GoodId; amount: number } | null => wagonLoad(state, colony, aiRng(state, wagon.id));
 
 /** The next thing a wagon train does, or null when it has nothing to do just now. */
 export function wagonAction(state: GameState, wagon: Unit): Action | null {
@@ -214,12 +163,12 @@ export function wagonAction(state: GameState, wagon: Unit): Action | null {
     const first = cargo[0];
     if (first) return { type: 'unloadCargo', unitId: wagon.id, good: first, amount: amountOf(wagon.cargo, first) };
     const target = wagon.movesLeft > 0 ? wagonTarget(state, wagon.x, wagon.y) : null;
-    const wanted = target && (far(target.x, target.y, wagon.x, wagon.y) <= 1 || goBeside(state, wagon, target.x, target.y)) && loadFor(state, wagon, home as Colony, target);
+    const wanted = target && (far(target.x, target.y, wagon.x, wagon.y) <= 1 || goBeside(state, wagon, target.x, target.y)) && loadFor(state, wagon, home as Colony);
     return wanted ? { type: 'setOrders', unitId: wagon.id, orders: 'sentry' } : null;
   }
   if (atHome && cargo.length === 0) {
     const target = wagon.movesLeft > 0 ? wagonTarget(state, wagon.x, wagon.y) : null;
-    const load = target ? loadFor(state, wagon, home as Colony, target) : null;
+    const load = target ? loadFor(state, wagon, home as Colony) : null;
     const take: Action | null = load ? { type: 'loadCargo', unitId: wagon.id, good: load.good, amount: load.amount } : null;
     return take && ok(state, take) ? take : null;
   }
@@ -234,7 +183,7 @@ export function wagonAction(state: GameState, wagon: Unit): Action | null {
   const good = aiRng(state, `${wagon.id}:offer`).pick(cargo);
   const action = tribalAlarm(state, target.tribe, wagon.owner) < (NATIVES.alarmLevels[2] as number) ? 'trade' : 'enterHostile';
   const enter: Action = { type: 'enterSettlement', unitId: wagon.id, settlementId: target.id, action, good };
-  // they will not look at it: take it home again (or, at home already, call it a day)
+  // it cannot go in (no moves to spare for it, say): take the cargo home again (or, at home already, call it a day)
   if (!ok(state, enter)) return atHome ? { type: 'skipUnit', unitId: wagon.id } : goHome();
   return wagon.orders === 'sentry' ? enter : { type: 'setOrders', unitId: wagon.id, orders: 'sentry' };
 }

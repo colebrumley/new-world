@@ -235,9 +235,6 @@ describe('reprisal and footholds', () => {
     }
     // unprovoked conquest is no longer part of the policy, however late the year
     expect(marches(guarded('spain', 0, 300))).toBe(false);
-    // a power fighting the Crown wants two defenders in every colony, so nobody is spare
-    const rebel = guarded('spain', 80);
-    expect(marches({ ...rebel, players: rebel.players.map((p) => (p.id === 'a' ? { ...p, atWar: true } : p)) })).toBe(false);
   });
 
   it('a power still without a colony after some turns founds one where its settlers stand, if the ground allows', () => {

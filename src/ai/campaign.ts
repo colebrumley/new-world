@@ -7,7 +7,9 @@ import { tribalAlarm } from '../engine/alarm';
 import { analyseAttack } from '../engine/analysis';
 import { holdsUsed } from '../engine/cargo';
 import { coloniesOf } from '../engine/colony';
+import { combatOdds, type Fighter } from '../engine/combat';
 import { AI_CAMPAIGN } from '../engine/data/ai';
+import { COMBAT } from '../engine/data/combat';
 import { UNIT_TYPES } from '../engine/data/units';
 import { isBorder, isInlandLake } from '../engine/movement';
 import { landmassAt, landmasses } from '../engine/regions';
@@ -71,20 +73,64 @@ function presentOn(state: GameState, player: Player, land: number, coloniesOnly 
   return !coloniesOnly && Object.values(state.units).some((u) => u.owner === player.id && isLand(u) && onMap(u) && u.aboard === null && landOf(state, u) === land);
 }
 
-/** The troops standing in a colony that are its garrison: as many as it wants, artillery first, then soldiers, then dragoons. */
-export function garrisons(state: GameState, player: Player): Set<string> {
+/** The power's troops standing in a colony, in the order they are counted as its garrison: artillery, then soldiers, then dragoons. */
+function troopsIn(state: GameState, colony: Colony): Unit[] {
   const rank = (u: Unit): number => (u.type === 'artillery' || u.type === 'damagedArtillery' ? 0 : u.type === 'dragoon' ? 2 : 1);
-  const out = new Set<string>();
-  for (const c of coloniesOf(state, player.id)) {
-    const here = Object.values(state.units).filter((u) => u.owner === player.id && isTroop(u) && onMap(u) && u.aboard === null && u.x === c.x && u.y === c.y);
-    here.sort((a, b) => rank(a) - rank(b) || byId(a, b)).slice(0, defendersWanted(player)).forEach((u) => out.add(u.id));
-  }
-  return out;
+  return Object.values(state.units)
+    .filter((u) => u.owner === colony.owner && isTroop(u) && onMap(u) && u.aboard === null && u.x === colony.x && u.y === colony.y)
+    .sort((a, b) => rank(a) - rank(b) || byId(a, b));
 }
 
-/** Defenders each colony wants: one, or two while the power is at war with another. */
-export function defendersWanted(player: Player): number {
-  return Object.values(player.stance).includes('war') || player.atWar ? AI_CAMPAIGN.defendersAtWar : AI_CAMPAIGN.defendersWanted;
+/** What a troop is worth in defence where it stands, in the engine's eighths of a strength point (walls and digging in included). */
+function defenceOf(state: GameState, troop: Fighter): number {
+  const caller: Fighter = { type: 'soldier', profession: 'freeColonist', owner: '', orders: 'none', x: troop.x, y: troop.y, movesLeft: 0 };
+  return combatOdds(state, caller, troop).defense;
+}
+
+/**
+ * Is the colony badly defended with these troops? With none it is; with more than five it is
+ * not; otherwise when their summed defence strength is under 0.95 x its population - 2.5.
+ */
+export function badlyDefended(state: GameState, colony: Colony, troops: readonly Fighter[]): boolean {
+  if (troops.length < 1) return true;
+  if (troops.length > AI_CAMPAIGN.defendersMost) return false;
+  const strength = troops.reduce((n, u) => n + defenceOf(state, u), 0);
+  return AI_CAMPAIGN.defenceTimes * strength < COMBAT.scale * (AI_CAMPAIGN.defencePerColonist * colony.colonists.length - AI_CAMPAIGN.defenceLess);
+}
+
+/** Of the troops in a colony, those it keeps as garrison: taken in order until it is no longer badly defended. */
+function garrisonOf(state: GameState, colony: Colony): Unit[] {
+  const kept: Unit[] = [];
+  for (const troop of troopsIn(state, colony)) {
+    if (!badlyDefended(state, colony, kept)) break;
+    kept.push(troop);
+  }
+  return kept;
+}
+
+/** The troops standing in the power's colonies that are their garrisons, and answer no other call. */
+export function garrisons(state: GameState, player: Player): Set<string> {
+  return memo(state, `garrisons:${player.id}`, () => new Set(coloniesOf(state, player.id).flatMap((c) => garrisonOf(state, c).map((u) => u.id))));
+}
+
+/** How many more troops a colony is short of: none if it is defended, else how many more soldiers dug in there would make it so. */
+export function defendersShort(state: GameState, colony: Colony): number {
+  const kept = garrisonOf(state, colony);
+  if (!badlyDefended(state, colony, kept)) return 0;
+  // reckon each newcomer as a soldier dug in behind the colony's walls
+  const recruit: Fighter = { type: 'soldier', profession: 'freeColonist', owner: colony.owner, orders: 'fortified', x: colony.x, y: colony.y, movesLeft: 0 };
+  let short = 0;
+  const all: Fighter[] = [...kept];
+  while (badlyDefended(state, colony, all) && all.length <= AI_CAMPAIGN.defendersMost) {
+    all.push(recruit);
+    short++;
+  }
+  return short;
+}
+
+/** Defenders a colony wants in all: those it keeps and those it is short of. */
+export function defendersWanted(state: GameState, colony: Colony): number {
+  return garrisonOf(state, colony).length + defendersShort(state, colony);
 }
 
 /** What the power wants done on land this turn, the most pressing first. */
@@ -106,10 +152,9 @@ export function landRequests(state: GameState, player: Player): LandRequest[] {
     out.push({ kind: 'attack', x: s.x, y: s.y, land, priority: s.mission ? AI_CAMPAIGN.settlementPriority : AI_CAMPAIGN.settlementPriorityNoMission });
   }
   // its own colonies that are short of defenders
-  const wanted = defendersWanted(player);
   for (const c of coloniesOf(state, player.id)) {
-    const have = Object.values(state.units).filter((u) => u.owner === player.id && isTroop(u) && onMap(u) && u.aboard === null && u.x === c.x && u.y === c.y).length;
-    if (have < wanted) out.push({ kind: 'defend', x: c.x, y: c.y, land: landOf(state, c), priority: wanted - have + AI_CAMPAIGN.defendBase });
+    const short = defendersShort(state, c);
+    if (short > 0) out.push({ kind: 'defend', x: c.x, y: c.y, land: landOf(state, c), priority: short + AI_CAMPAIGN.defendBase });
   }
   return out.map((r, i) => ({ r, i })).sort((a, b) => b.r.priority - a.r.priority || a.i - b.i).map((e) => e.r);
 }

@@ -99,6 +99,15 @@ describe('offering a cargo', () => {
     expect(code(land({ cargo: { cloth: 100 }, village: { lastSold: 'cloth' } }), act('cloth'))).toBe('unwanted');
     expect(code(land({ cargo: { cloth: 100 }, village: { haggleMemory: 'cloth' } }), act('cloth'))).toBe('haggledOut');
     expect(code(land({ cargo: { food: 100 } }), act('food'))).toBe('unwanted'); // they grow plenty
+    // a computer power's cargo is never turned down: the price is simply poor where there is no demand
+    const computer = (o: Opts): GameState => { const s = land(o); return { ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, kind: 'ai' as const } : p)) }; };
+    expect(code(computer({ cargo: { cloth: 100 }, village: { lastBought: 'cloth' } }), act('cloth'))).toBe('ok');
+    expect(code(computer({ cargo: { cloth: 100 }, village: { haggleMemory: 'cloth' } }), act('cloth'))).toBe('ok');
+    expect(code(computer({ cargo: { food: 100 } }), act('food'))).toBe('ok');
+    const cheap = offer(computer({ cargo: { food: 100 } }), 'food');
+    expect(event(cheap, 'nativeOffer').price).toBeGreaterThanOrEqual(1);
+    expect(event(cheap, 'nativeOffer').price).toBeLessThanOrEqual(12); // (5 x a throw of 1..5) / 2 for a full cargo
+    expect(code(computer({ cargo: {} }), act('cloth'))).toBe('noCargo');
     expect(code(land({ cargo: { cloth: 100 } }), act('rum'))).toBe('noCargo');
     expect(code(land({ cargo: { cloth: 100 } }), { type: 'enterSettlement', unitId: 'w', settlementId: 'v', action: 'trade' })).toBe('noCargo');
   });

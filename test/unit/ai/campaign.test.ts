@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  assaultReady, defendersWanted, garrisons, invadeRequests, invasionBeach, invasionFor, invasionRefusal, isFull, isQuiet, landAttackChoice,
+  assaultReady, badlyDefended, defendersShort, defendersWanted, garrisons, invadeRequests, invasionBeach, invasionFor, invasionRefusal, isFull, isQuiet, landAttackChoice,
   landingStep, landmassSize, landOrders, landRequests, mayAttack, scaledOdds, worthTaking, type LandRequest,
 } from '../../../src/ai/campaign';
 import { europeanAction } from '../../../src/ai/european';
@@ -97,17 +97,43 @@ describe('what a power wants done on land', () => {
     expect(landRequests(overseas, me(overseas))).toEqual([]);
   });
 
-  it('defend its own colonies: priority = the defenders it is short of + 2', () => {
+  it('defend its own colonies that are badly defended: priority = the defenders it is short of + 2', () => {
     const bare = col(base(), 'home', 2, 4);
     expect(list(landRequests(bare, me(bare)))).toEqual(['defend 2,4 p3']);
     expect(landRequests(troop(bare, 'g', 2, 4), me(bare))).toEqual([]);
-    // at war with another power every colony wants two
-    const war = col(base({ b: 'war' }), 'home', 2, 4);
-    expect(defendersWanted(me(war))).toBe(2);
-    expect(list(landRequests(war, me(war)))).toEqual(['defend 2,4 p4']);
-    expect(list(landRequests(troop(war, 'g', 2, 4), me(war)))).toEqual(['defend 2,4 p3']);
     // a colonist is no defender
     expect(list(landRequests(withUnit(bare, { id: 'c', x: 2, y: 4 }), me(bare)))).toEqual(['defend 2,4 p3']);
+    // a big colony is short of more than one, and is asked for accordingly
+    const big = col(base(), 'home', 2, 4, 'a', 14);
+    const short = defendersShort(big, big.colonies['home'] as Colony);
+    expect(short).toBeGreaterThan(1);
+    expect(list(landRequests(big, me(big)))).toEqual([`defend 2,4 p${short + 2}`]);
+    expect(defendersWanted(big, big.colonies['home'] as Colony)).toBe(short);
+    // being at war makes no difference to what a colony wants
+    const war = col(base({ b: 'war' }), 'home', 2, 4);
+    expect(list(landRequests(war, me(war)))).toEqual(['defend 2,4 p3']);
+  });
+
+  it('badly defended: with no troops; never with more than five; else when their defence strength is under 0.95 x population - 2.5', () => {
+    const town = (pop: number, troops: number): { s: GameState; c: Colony; t: Unit[] } => {
+      let s = col(base(), 'home', 2, 4, 'a', pop);
+      for (let i = 0; i < troops; i++) s = troop(s, `g${i}`, 2, 4, 'soldier', 'a', { orders: 'fortified' });
+      return { s, c: s.colonies['home'] as Colony, t: Object.values(s.units) };
+    };
+    const bad = (pop: number, troops: number): boolean => { const { s, c, t } = town(pop, troops); return badlyDefended(s, c, t); };
+    expect(bad(1, 0)).toBe(true);
+    expect(bad(30, 0)).toBe(true);
+    // one soldier is plenty for a small colony (0.95 x 2 - 2.5 is under nothing)
+    expect(bad(2, 1)).toBe(false);
+    // six are enough for any, five are not for a very big one
+    expect(bad(60, 6)).toBe(false);
+    expect(bad(60, 5)).toBe(true);
+    // in between it goes by strength: the population at which one dug-in soldier stops being enough
+    const { s, c, t } = town(1, 1);
+    const one = analyseAttack(troop(s, 'x', 3, 4, 'soldier', 'b'), { ...(t[0] as Unit), id: 'x', owner: 'b', x: 3, y: 4 }, -1, 0)!.defender.strength;
+    const limit = Math.floor((one + 2.5) / 0.95);
+    expect(badlyDefended(s, { ...c, colonists: people(limit, 'p') }, t)).toBe(false);
+    expect(badlyDefended(s, { ...c, colonists: people(limit + 1, 'p') }, t)).toBe(true);
   });
 
   it('the most pressing first; after the Declaration only the human is campaigned against', () => {
@@ -119,18 +145,22 @@ describe('what a power wants done on land', () => {
 });
 
 describe('which troops answer', () => {
-  it('a colony keeps its garrison: as many as it wants, artillery before soldiers before dragoons', () => {
-    let s = troop(troop(troop(col(base(), 'home', 2, 4), 'd', 2, 4, 'dragoon'), 's', 2, 4), 'z', 2, 4, 'artillery');
+  it('a colony keeps as garrison the troops it needs to be defended: artillery before soldiers before dragoons', () => {
+    const s = troop(troop(troop(col(base(), 'home', 2, 4), 'd', 2, 4, 'dragoon'), 's', 2, 4), 'z', 2, 4, 'artillery');
+    // one is enough for a colony of one
     expect([...garrisons(s, me(s))]).toEqual(['z']);
-    s = { ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, stance: { b: 'war' as const } } : p)) };
-    expect([...garrisons(s, me(s))].sort()).toEqual(['s', 'z']);
+    // a colony of fourteen keeps more of them, in the same order
+    const big = troop(troop(troop(col(base(), 'home', 2, 4, 'a', 14), 'd', 2, 4, 'dragoon'), 's', 2, 4), 'z', 2, 4, 'artillery');
+    const kept = [...garrisons(big, me(big))];
+    expect(kept.length).toBeGreaterThan(1);
+    expect(kept).toEqual(['z', 's', 'd'].slice(0, kept.length));
     // troops outside a colony are nobody's garrison
     expect([...garrisons(troop(col(base(), 'home', 2, 4), 's', 3, 4), me(s))]).toEqual([]);
   });
 
   it('every spare troop in reach goes to an attack; a call to defend fills up', () => {
     let s = neighbours({ b: 'war' });
-    s = troop(troop(troop(s, 'g2', 2, 4, 'soldier', 'a', { orders: 'fortified' }), 's1', 3, 4), 's2', 3, 5);
+    s = troop(troop(s, 's1', 3, 4), 's2', 3, 5);
     const orders = landOrders(s, me(s));
     expect(orders['guard']).toBeUndefined();
     expect(orders['s1']).toMatchObject({ kind: 'attack', x: 9, y: 4 });
@@ -245,8 +275,7 @@ describe('when a landing is planned', () => {
 
   it('a full ship carrying soldiers takes it, sails to the beach and lands them on a free square beside it', () => {
     let s = col(overseas({ b: 'war' }), 'second', 2, 7);
-    s = troop(troop(s, 'g1', 2, 4, 'soldier', 'a', { orders: 'fortified' }), 'g2', 2, 4, 'soldier', 'a', { orders: 'fortified' });
-    s = troop(troop(s, 'g3', 2, 7, 'soldier', 'a', { orders: 'fortified' }), 'g4', 2, 7, 'soldier', 'a', { orders: 'fortified' });
+    s = troop(troop(s, 'g1', 2, 4, 'soldier', 'a', { orders: 'fortified' }), 'g3', 2, 7, 'soldier', 'a', { orders: 'fortified' });
     const beach = invadeRequests(s, me(s))[0]!;
     s = withUnit(s, { id: 'ship', type: 'caravel', profession: null, x: 12, y: 2 });
     s = withUnit(withUnit(s, { id: 'r1', type: 'soldier', x: 12, y: 2, aboard: 'ship' }), { id: 'r2', type: 'soldier', x: 12, y: 2, aboard: 'ship' });
@@ -289,7 +318,7 @@ describe('when a landing is planned', () => {
     // our small island colony: 28 squares, 20 x (1 + 1) = 40: well settled, and nobody at odds with us there
     let s = col(col(col(base({ b: 'war' }, 160), 'home', 14, 4), 'theirs', 9, 4, 'b', 7), 'other', 9, 7, 'b', 1);
     s = col(s, 'second', 17, 6);
-    for (const [id, x, y] of [['g1', 14, 4], ['g2', 14, 4], ['g3', 17, 6], ['g4', 17, 6]] as const) s = troop(s, id, x, y, 'soldier', 'a', { orders: 'fortified' });
+    for (const [id, x, y] of [['g1', 14, 4], ['g3', 17, 6]] as const) s = troop(s, id, x, y, 'soldier', 'a', { orders: 'fortified' });
     expect(isQuiet(s, me(s), landmassAt(s.map, 14, 4))).toBe(true);
     expect(isQuiet(s, me(s), landmassAt(s.map, 9, 4))).toBe(false);
     s = withUnit(troop(troop(s, 's1', 14, 4), 's2', 14, 4), { id: 'ship', type: 'caravel', profession: null, x: 14, y: 4 });

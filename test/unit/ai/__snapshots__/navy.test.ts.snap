@@ -2,6 +2,15 @@
 
 exports[`naval rule table > matches the snapshot 1`] = `
 {
+  "aidBelow": 2,
+  "aidPercent": [
+    0,
+    5,
+    10,
+    15,
+    20,
+  ],
+  "aidWeight": 100000,
   "attackMovesLeast": 3,
   "blockadeBase": 2,
   "blockadeDistance": 2,
@@ -18,7 +27,5 @@ exports[`naval rule table > matches the snapshot 1`] = `
   "loadDivisor": 8,
   "loadLeast": 3,
   "loadMost": 99,
-  "privateerFromColonies": 4,
-  "privateerReserve": 1000,
 }
 `;
