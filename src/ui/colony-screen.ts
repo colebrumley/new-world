@@ -130,8 +130,11 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       }
     } else if (kind === 'unit') {
       // a unit dragged into the colony joins it, then takes the job it was dropped on
-      if (target === 'outside' || target === 'warehouse' || target.startsWith('carrier')) return;
-      if (attempt({ type: 'joinColony', unitId: id })) {
+      if (target === 'warehouse' || target.startsWith('carrier')) return;
+      if (target === 'outside') {
+        // a passenger dropped outside the gates steps off the ship
+        if (host.state().units[id]?.aboard) attempt({ type: 'goAshore', unitId: id });
+      } else if (attempt({ type: 'joinColony', unitId: id })) {
         const job = jobForTarget(target, id);
         if (job) attempt({ type: 'assignJob', colonyId, colonistId: id, job });
       }
@@ -181,7 +184,9 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
 
   async function ordersMenu(unitId: string): Promise<void> {
     const options: { label: string; action: Action }[] = [{ label: 'Join the colony', action: { type: 'joinColony', unitId } }];
-    for (const role of COLONIST_ROLES) {
+    const aboard = Boolean(host.state().units[unitId]?.aboard);
+    if (aboard) options.push({ label: 'Go ashore', action: { type: 'goAshore', unitId } });
+    for (const role of aboard ? [] : COLONIST_ROLES) {
       const action: Action = { type: 'equip', unitId, role };
       if (host.refusal(action) === null) options.push({ label: role === 'colonist' ? 'Lay down equipment' : `Equip as ${role}`, action });
     }
@@ -344,7 +349,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       const pick = token('carrier', c.id, c.label, `${c.used}/${c.holds} holds`);
       box.append(pick);
       for (const lot of c.cargo) box.append(token('cargo', c.id, lot.name, String(lot.amount), lot.good));
-      for (const p of c.passengers) box.append(el('span', 'passenger', p.label));
+      for (const p of c.passengers) box.append(personToken('unit', p));
       transport.append(box);
     }
     if (view.carriers.length === 0) transport.append(el('p', 'empty', 'No ship or wagon train is here.'));
@@ -428,6 +433,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   function helpFor(name: string): string {
     const kind = selected.split(':')[0];
     if (kind === 'colonist') return `${name} selected: click a square or a building to put them to work there, or click them again for the jobs menu.`;
+    if (kind === 'unit' && host.state().units[selected.split(':')[1] ?? '']?.aboard) return `${name} selected: click a square or a building to have them join the colony there, or "Outside the gates" to put them ashore; click them again for orders.`;
     if (kind === 'unit') return `${name} selected: click a square or a building to have them join the colony there, or click them again for orders.`;
     if (kind === 'good') return `${name} selected: click a ship or wagon train to load a hold of it (Shift for part).`;
     if (kind === 'cargo') return `${name} selected: click the warehouse to unload it, or another ship or wagon train to move it (Shift for part).`;
