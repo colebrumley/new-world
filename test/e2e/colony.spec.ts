@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { saveGame } from '../../src/engine/save';
+import { withColony, withUnit, world } from '../helpers/world';
 import { field, foundJamestown } from './helpers';
 
 test('lands a soldier on the American coast and founds Jamestown', async ({ page }) => {
@@ -178,4 +180,37 @@ test('right-clicking in the colony opens the encyclopedia at that building, carg
   await page.keyboard.press('Escape');
   await expect(pedia).toHaveCount(0);
   await expect(colony).toBeVisible();
+});
+
+test('with cargo or a good selected, the Custom House button still opens its menu and moves nothing', async ({ page }) => {
+  const rows = Array.from({ length: 14 }, (_, y) => (y === 0 || y === 13 ? '~'.repeat(20) : `~~${'.'.repeat(16)}~~`));
+  let state = world({ rows, seed: 5, players: [{ id: 'p0', kind: 'human' }] });
+  state = withColony(state, { id: 'james', owner: 'p0', x: 2, y: 5, name: 'Jamestown', goods: { furs: 40 }, buildings: ['townHall', 'customHouse'] });
+  state = withUnit(state, { id: 'ship', owner: 'p0', type: 'merchantman', profession: null, x: 2, y: 5, cargo: { furs: 100 } });
+  await page.addInitScript((text) => localStorage.setItem('new-world:autosave', text), saveGame({ options: { seed: 5 }, log: [], state }));
+  await page.goto('/');
+  await page.getByRole('menuitem', { name: 'Load Game' }).click();
+  await expect(field(page, 'unit')).toHaveText('Merchantman');
+  await page.keyboard.press('v');
+  await page.keyboard.press('Enter');
+  const colony = page.locator('.colony-screen');
+  const customs = colony.getByRole('button', { name: 'Custom House (X)' });
+  const menu = page.locator('.dialog').filter({ hasText: 'Which goods shall the Custom House export?' });
+  const furs = colony.locator('.token-good', { hasText: 'Furs' });
+
+  for (const pick of [colony.locator('.carrier .token-cargo'), furs]) {
+    await pick.click();
+    await expect(colony.locator('.token-selected')).toHaveCount(1);
+    await customs.click();
+    await expect(menu).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    await expect(colony.locator('.carrier .token-cargo')).toHaveText('Furs100');
+    await expect(furs).toContainText('40');
+  }
+  // the warehouse itself still takes the selected cargo
+  await colony.locator('.carrier .token-cargo').click();
+  await colony.locator('[data-region="warehouse"] h3').click();
+  await expect(colony.locator('.carrier .token-cargo')).toHaveCount(0);
+  await expect(furs).toContainText('140');
 });

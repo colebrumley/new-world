@@ -453,8 +453,9 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     if (event.button !== 0) return;
     showHolding();
     if (!grip) {
-      // a click on a place: whoever or whatever is selected goes there
-      const place = (event.target as HTMLElement).closest<HTMLElement>('[data-drop]')?.dataset['drop'];
+      // a click on a place: whoever or whatever is selected goes there (a button there keeps its own click)
+      const at = event.target as HTMLElement;
+      const place = at.closest('button') ? undefined : at.closest<HTMLElement>('[data-drop]')?.dataset['drop'];
       if (selected && place) void drop(selected, place, event.shiftKey);
       return;
     }
