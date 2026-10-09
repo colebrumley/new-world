@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { field, settled } from './helpers';
+import { field, foundJamestown, settled } from './helpers';
 
 interface ViewData {
   zoom: number;
@@ -312,4 +312,19 @@ test('at 1024x640 the sidebar keeps what the game says in sight', async ({ page 
   await sidebar.hover();
   await page.mouse.wheel(0, 400);
   await expect(last).toBeInViewport({ ratio: 1 });
+});
+
+test('a trackpad pinch never magnifies the page, on the map or over the colony screen', async ({ page }) => {
+  await foundJamestown(page);
+  // a pinch reaches the page as a wheel event with Ctrl held; left alone, the browser zooms the page
+  const pinch = (selector: string): Promise<boolean> =>
+    page.locator(selector).first().evaluate((node) => !node.dispatchEvent(new WheelEvent('wheel', { deltaY: -4, ctrlKey: true, bubbles: true, cancelable: true })));
+  for (const place of ['.colony-screen', '.colony-screen .square', '.colony-warehouse']) expect(await pinch(place), place).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.colony-screen')).toHaveCount(0);
+  for (const place of ['canvas.map', '.sidebar', '.command-bar button']) expect(await pinch(place), place).toBe(true);
+  // an ordinary turn of the wheel still scrolls a list
+  const scroll = await page.locator('.sidebar').evaluate((node) => !node.dispatchEvent(new WheelEvent('wheel', { deltaY: 40, bubbles: true, cancelable: true })));
+  expect(scroll).toBe(false);
+  expect(await page.locator('.game').evaluate((node) => getComputedStyle(node).touchAction)).toBe('pan-x pan-y');
 });

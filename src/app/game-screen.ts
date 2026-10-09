@@ -101,6 +101,13 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     screen.dataset['cargoLabels'] = next.cargoLabels ? 'on' : 'off';
   };
   applyOptions(options);
+  // A pinch on a trackpad (a wheel event with Ctrl held) would magnify the page itself, and the game
+  // fills the window with nothing to scroll back to: the edges of every screen would be cut off.
+  // Over the map the wheel zooms the map; anywhere else in the game a pinch does nothing.
+  screen.addEventListener('wheel', (event) => {
+    if (event.ctrlKey) event.preventDefault();
+  }, { passive: false });
+  for (const gesture of ['gesturestart', 'gesturechange']) screen.addEventListener(gesture, (event) => event.preventDefault()); // Safari's pinch
   const save = (): void => {
     if (options.autosave) writeAutosave(session);
   };

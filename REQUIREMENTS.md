@@ -1024,6 +1024,9 @@ raw>0; lumber = raw×2**. Clearing gives the open type in the same row.
 
 | Open | Mv | Def | Imp | Val | Food | Sug | Tob | Cot | Fur | Lum | Ore | Sil | Fish | Forested | Mv | Def | Imp | Val | Food | Sug | Tob | Cot | Fur | Lum | Ore |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  A pinch on a trackpad or a touch screen no longer magnifies the page (it cut the left and top
+  edges off the colony screen): the game element refuses Ctrl+wheel and Safari's gesture events
+  and sets `touch-action: pan-x pan-y`; over the map the wheel still zooms the map.
 | Tundra | 1 | 0 | 4 | 2 | 2 | | | | | | 2 | | | Boreal | 2 | 2 | 4 | 3 | 1 | | | | 3 | 2 | 1 |
 | Desert | 1 | 0 | 3 | 2 | 1 | | | 1 | | | 2 | | | Scrub | 1 | 2 | 4 | 1 | 1 | | | 1 | 2 | 1 | 1 |
 | Plains | 1 | 0 | 3 | 4 | 4 | | | 2 | | | 1 | | | Mixed | 2 | 2 | 4 | 3 | 2 | | | 1 | 3 | 3 | |
