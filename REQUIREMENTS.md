@@ -889,7 +889,7 @@ Legend:
   what is ours). "Load" is as traced (FIDELITY.md). A power buys its one privateer once it has four
   colonies; the sim checks that a privateer is only ever sent to a listed station or a home port.
 
-- [ ] **R-807 Computer powers: campaigns by land and sea**
+- [~] **R-807 Computer powers: campaigns by land and sea**
   As traced from the original program; replaces the R-802 "War", "Reprisal" and "Conquest" policy
   where they differ. Targets come from the same priority list as R-806. Attack: any foreign colony
   on a landmass where the power has a unit or colony, on 3 turns in 4, when the colony's population
