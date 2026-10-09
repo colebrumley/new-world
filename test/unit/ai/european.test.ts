@@ -69,6 +69,17 @@ describe('what it does next', () => {
     expect(europeanAction(arrived)).toMatchObject({ type: 'moveUnit', unitId: 'u', dx: 1 });
   });
 
+  it('a missionary alone aboard is carried to a colony, not to a fresh site, and walks ashore there', () => {
+    let s: GameState = { ...withColony(base(), { id: 'col', x: 6, y: 3, name: 'C', colonists: people(1), construction: { kind: 'building', id: 'stockade' } }), turn: 120 };
+    s = withUnit(s, { id: 'ship', type: 'caravel', profession: null, x: 3, y: 6 });
+    s = withUnit(s, { id: 'm', type: 'missionary', x: 3, y: 6, aboard: 'ship' });
+    expect(europeanAction(s)).toEqual({ type: 'goTo', unitId: 'ship', x: 6, y: 3 });
+    const inPort = { ...s, units: { ...s.units, ship: { ...s.units['ship']!, x: 6, y: 3 }, m: { ...s.units['m']!, x: 6, y: 3 } } };
+    const ashore = europeanAction(inPort);
+    expect(ashore).toMatchObject({ type: 'moveUnit', unitId: 'm' });
+    expect(applyAction(inPort, ashore).state.units['m']).toMatchObject({ type: 'missionary', aboard: null });
+  });
+
   it('once it has colonies enough, newcomers swell the ones it has', () => {
     let s = base('england');
     [[6, 1], [6, 4], [9, 6]].forEach(([x, y], i) => {

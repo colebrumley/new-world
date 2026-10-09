@@ -1253,8 +1253,8 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
   has destroyed four settlements.
 - **Braves' calls.** A brave beside a colony at peace pays a call on about one turn in eight
   (the visit itself follows the original's rule; how often a brave comes by is ours).
-- Not built: missions, privateering and amphibious assaults by computer powers; leader traits
-  beyond expansion affect diplomacy (R-801) but not this policy.
+- Not built: privateering and amphibious assaults by computer powers; leader traits beyond
+  expansion affect diplomacy (R-801) but not this policy.
 
 ### Computer powers: wagon trains (R-804)
 
@@ -1306,6 +1306,48 @@ sale and the purchase for a computer power). Numbers are `AI_WAGONS` in `src/eng
   a colony keeps one colonist felling timber until it has the lumber to finish it and then at
   the carpenter's bench, provided it still feeds itself; a colony of one or two sends him back
   to the land afterwards. A wagon no longer wanted comes off the stocks.
+
+### Computer powers: missions (R-805)
+
+**Source:** `VICEROY 4000:e665` (stage AI12, the missionary's journey), `4000:faf4`..`5000:0523`
+(fitting out on the docks), `4000:901c` (what each unit type does on entering a village),
+`4000:c610` and `4000:c674` (stages AI3 and AI4, stepping in), `FUN_5000_4708` (rank). Numbers
+are `AI_MISSIONS` in `src/engine/data/ai.ts`.
+
+- **Making one.** On the docks in Europe, after soldiers have been fitted out, a waiting
+  colonist becomes a missionary when the power has none, the turn is after 50 and divisible by
+  7, from turn 200 on only if a throw of 1..4 is 1, and for a skilled colonist only if a throw of
+  1..8 is 1. The unskilled (free colonist, servant, criminal) are looked at before the skilled.
+  One missionary per power at a time.
+- **Where it goes.** Each settlement on its landmass scores T x 8 / (distance + 1), T being the
+  tribe's alarm toward the missionary's own power, plus half again (rounded down) at a capital.
+  A settlement holding its own mission is left out unless the power could incite there with
+  2500 gold in hand. The highest score wins and a tie keeps the earlier settlement. With no
+  candidate the missionary becomes a colonist again.
+- **On entering.** Incite against the human player when the tribe has met that player, its
+  alarm toward them is below 75, the power ranks below them and has 1500 gold: always where a
+  mission stands, and when a throw of 1..5 is not 5 elsewhere. Otherwise found a mission where
+  there is none, do nothing at its own, denounce a rival's.
+- **Rank** = gold / 100 (rounded down) + 2 x colonies + colonists + land strength (summed attack
+  values of land units).
+- **Other units on entering:** a wagon train trades; a scout speaks with the chief; soldiers,
+  dragoons and artillery attack; a free colonist or servant lives among the natives when tribal
+  alarm is below 75; everything else does nothing. Computer powers never demand tribute.
+- **Stepping in.** A free colonist or servant next to a settlement that has taught nobody, with
+  tribal alarm below 25 and the settlement's own alarm below 64, goes in; so does a scout next
+  to a settlement none of its scouts has visited, with tribal alarm below 25.
+
+**Notes:** Ours, where the trace is silent or our engine differs:
+- A candidate needs no alarm at all: among calm peoples every score is 0 and the first settlement
+  listed is taken (whether the original starts its search below zero was not read).
+- "Becomes a colonist again" needs a colony in our engine: the missionary walks to the nearest
+  colony of its power on the landmass and changes there.
+- The missionary is made whether or not a ship lies in port. A ship with only a missionary
+  aboard takes him to the nearest colony, where he goes ashore on foot.
+- Inciting also needs the tribe's price (see "Missions"); when the power cannot pay it the
+  missionary goes on to the next choice.
+- A computer power's own scouts and artillery are not otherwise sent toward settlements by this
+  policy; soldiers reach them through the reprisal and conquest rules of R-802.
 
 ### Foreign Affairs report (R-803)
 

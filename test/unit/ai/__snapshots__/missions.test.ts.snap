@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`mission rule table > matches the snapshot 1`] = `
+{
+  "afterTurn": 50,
+  "alarmWeight": 8,
+  "every": 7,
+  "inciteAlarmBelow": 75,
+  "inciteGold": 1500,
+  "inciteJourneyGold": 2500,
+  "inciteOdds": 5,
+  "inciteTimes": 4,
+  "liveAmongAlarmBelow": 75,
+  "rankGoldPer": 100,
+  "rankPerColony": 2,
+  "rarerFrom": 200,
+  "rarerOdds": 4,
+  "skilledOdds": 8,
+  "visitAlarmBelow": 25,
+  "visitSettlementAlarmBelow": 64,
+}
+`;

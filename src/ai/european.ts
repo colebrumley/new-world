@@ -26,6 +26,7 @@ import { isHostile, tribalAlarm } from '../engine/alarm';
 import { settlementAt, tribeOfOwner } from '../engine/settlements';
 import { colonyAt, type Colony, type GameState, type Player, type Unit } from '../engine/state';
 import { isWater, type Tile } from '../engine/tile';
+import { missionaryAction, ordain, villageVisit } from './missions';
 import { isWagonProject, parleyAction, wagonAction, wagonBuild, wagonRefusal, wagonWorker } from './wagons';
 
 const DIRS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]] as const;
@@ -34,7 +35,7 @@ const tileOf = (state: GameState, x: number, y: number): Tile | undefined =>
   x > 0 && y > 0 && x < state.map.width - 1 && y < state.map.height - 1 ? state.map.tiles[y * state.map.width + x] : undefined;
 const ok = (state: GameState, action: Action): boolean => validateAction(state, action).ok;
 const isShip = (u: Unit): boolean => UNIT_TYPES[u.type].domain === 'sea';
-const isSettler = (u: Unit): boolean => UNIT_TYPES[u.type].colonistRole && u.profession !== null && u.profession !== 'indianConvert';
+const isSettler = (u: Unit): boolean => UNIT_TYPES[u.type].colonistRole && u.type !== 'missionary' && u.profession !== null && u.profession !== 'indianConvert';
 const isFighter = (u: Unit): boolean => UNIT_TYPES[u.type].domain === 'land' && UNIT_TYPES[u.type].attack > 1;
 
 /** How many colonies a power wants by now: a few at first, more as the years pass and for an expansionist leader. */
@@ -178,7 +179,18 @@ function goodAttack(state: GameState, unit: Unit, player: Player): Action | null
   return best;
 }
 
+/** Does the power still want soldiers armed on the docks? A guard for every colony, and more when a native people has turned on it. */
+function guardsWanted(state: GameState, player: Player): boolean {
+  const colonies = coloniesOf(state, player.id).length;
+  const soldiers = Object.values(state.units).filter((u) => u.owner === player.id && isFighter(u)).length;
+  const threatened = isConqueror(state, player) || Object.values(state.settlements).some((s) => isHostile(s, player.id) || tribalAlarm(state, s.tribe, player.id) >= enemyFrom(player));
+  return soldiers < Math.ceil(colonies / AI_PLAN.coloniesPerGuard) + (threatened ? AI_PLAN.reprisalParty : 0);
+}
+
 function europeAction(state: GameState, player: Player): Action | null {
+  // a missionary is made of someone waiting on the docks, ship or no ship, once the soldiers are found
+  const blessing = guardsWanted(state, player) ? null : ordain(state, player);
+  if (blessing) return blessing;
   const ships = shipsInEurope(state, player.id).filter((s) => s.repair === 0);
   if (ships.length === 0) return null;
   for (const ship of ships) {
@@ -201,9 +213,7 @@ function europeAction(state: GameState, player: Player): Action | null {
     for (const slot of order) if (ok(state, { type: 'recruit', slot })) return { type: 'recruit', slot };
   }
   // a guard for every colony, and more when a native people has turned on us: arm those waiting on the docks
-  const soldiers = Object.values(state.units).filter((u) => u.owner === player.id && isFighter(u)).length;
-  const threatened = isConqueror(state, player) || Object.values(state.settlements).some((s) => isHostile(s, player.id) || tribalAlarm(state, s.tribe, player.id) >= enemyFrom(player));
-  if (soldiers < Math.ceil(colonies / AI_PLAN.coloniesPerGuard) + (threatened ? AI_PLAN.reprisalParty : 0)) {
+  if (guardsWanted(state, player)) {
     for (const unit of waiting) {
       if (unit.type !== 'colonist' || !UNSKILLED.includes(unit.profession ?? 'freeColonist')) continue;
       const arm: Action = { type: 'equipInEurope', unitId: unit.id, role: 'soldier' };
@@ -223,8 +233,10 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
   const riders = Object.values(state.units).filter((u) => u.aboard === ship.id);
   const attack = goodAttack(state, ship, player);
   if (attack) return attack;
-  if (riders.some(isSettler)) {
-    const wanted = coloniesWanted(state, player);
+  const preaching = !riders.some(isSettler) && riders.some((u) => u.type === 'missionary') && mine.length > 0;
+  if (riders.some(isSettler) || preaching) {
+    // a missionary alone aboard is carried to a colony, never to a fresh site
+    const wanted = preaching ? 0 : coloniesWanted(state, player);
     const inPort = colonyAt(state, ship.x, ship.y)?.owner === player.id;
     // they will go ashore themselves: onto a site alongside, or into the colony if no more colonies are wanted
     if ((!inPort && siteBeside(state, ship)) || (inPort && mine.length >= wanted)) return null;
@@ -275,8 +287,8 @@ function riderAction(state: GameState, rider: Unit, player: Player, mine: readon
   if (port && port.owner === player.id) {
     // delivered: join, unless more colonies are wanted and this one can spare the hands
     const join: Action = { type: 'joinColony', unitId: rider.id };
-    // a soldier stays a soldier once the power has its foothold: he goes down the gangway and takes his post on foot
-    if (isFighter(rider) && mine.length >= AI_PLAN.coloniesBeforeGarrison) {
+    // a soldier stays a soldier once the power has its foothold, and a missionary a missionary: down the gangway on foot
+    if (rider.type === 'missionary' || (isFighter(rider) && mine.length >= AI_PLAN.coloniesBeforeGarrison)) {
       for (const [dx, dy] of DIRS) {
         const ashore: Action = { type: 'moveUnit', unitId: rider.id, dx, dy };
         const t = tileOf(state, ship.x + dx, ship.y + dy);
@@ -303,6 +315,10 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
   if (unit.movesLeft <= 0) return null;
   const attack = goodAttack(state, unit, player);
   if (attack) return attack;
+  if (unit.type === 'missionary') return missionaryAction(state, unit);
+  // friendly people next to the way: a colonist stops to learn from them, a scout to speak with the chief
+  const visit = villageVisit(state, unit);
+  if (visit) return visit;
   if (unit.orders === 'goto' || unit.orders === 'plow' || unit.orders === 'road') return null;
   const here = colonyAt(state, unit.x, unit.y);
   const wanted = coloniesWanted(state, player);

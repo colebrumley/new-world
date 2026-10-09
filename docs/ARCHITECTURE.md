@@ -57,6 +57,7 @@ purity rules as the engine.
 a whole turn, returning the actions it took so the app can log them. Its numbers are `AI_PLAN` in
 `src/engine/data/ai.ts`. `wagons.ts` is its wagon trains and their trade with the native peoples (R-804): when a colony
 builds one, what it loads, where it goes, and the answers given in the trade talks (`AI_WAGONS`).
+`missions.ts` is its missionaries (R-805) and what each kind of unit does on entering a settlement (`AI_MISSIONS`).
 
 ## `src/ui/`
 `pixel-art.ts` is all the map art as data: a 32-colour palette and functions that return

@@ -75,3 +75,33 @@ export const AI_WAGONS = {
   tradeGoodsBelow: 100,
   tradeGoodsPriceMost: 3,
 } as const;
+
+// Missionaries of the computer powers and what their units do at a native settlement (R-805),
+// as traced from the original program; see docs/RULES.md "Computer powers: missions".
+export const AI_MISSIONS = {
+  /** A missionary is made only after this turn, on turns divisible by `every`... */
+  afterTurn: 50,
+  every: 7,
+  /** ...from `rarerFrom` on only one time in `rarerOdds`, and a skilled colonist only one time in `skilledOdds`. */
+  rarerFrom: 200,
+  rarerOdds: 4,
+  skilledOdds: 8,
+  /** A settlement scores the tribe's alarm toward the power x this / (distance + 1), half again for a capital. */
+  alarmWeight: 8,
+  /** Inciting: the tribe's alarm toward the human must be below this, and the power must hold this much gold... */
+  inciteAlarmBelow: 75,
+  inciteGold: 1500,
+  /** ...this much to make the journey to a settlement that already holds its own mission. */
+  inciteJourneyGold: 2500,
+  /** Where no mission stands it incites only this many times in `inciteOdds`. */
+  inciteTimes: 4,
+  inciteOdds: 5,
+  /** A power's rank: gold / this + this x colonies + colonists + land strength. */
+  rankGoldPer: 100,
+  rankPerColony: 2,
+  /** A colonist steps in to live among the natives, and a scout to speak with the chief, only below this tribal alarm... */
+  visitAlarmBelow: 25,
+  /** ...a colonist only where the settlement's own alarm is below this; once inside he stays only below the last. */
+  visitSettlementAlarmBelow: 64,
+  liveAmongAlarmBelow: 75,
+} as const;

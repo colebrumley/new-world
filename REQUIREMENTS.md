@@ -845,7 +845,7 @@ Legend:
   round are worked out from the state, not stored; a wagon does not load what the village it is
   bound for will not look at; a colony puts a colonist to building its wagon.
 
-- [~] **R-805 Computer powers: missions**
+- [x] **R-805 Computer powers: missions**
   As traced from the original program. A power with no missionary turns one spare colonist into a
   missionary on a turn after 50 that is divisible by 7 (from turn 200 on, one time in four; a
   skilled colonist one time in eight); one missionary per power at a time. The missionary goes to
@@ -864,6 +864,9 @@ Legend:
   tribe's alarm is below 75.
   **Verify:** unit tests per rule with forced RNG; sim: on 5 seeds a rival mission exists in some
   settlement by turn 150 (so Denounce Heresy is reachable in play), and the R-802 sim still passes.
+  *Built:* `src/ai/missions.ts` (docs/RULES.md "Computer powers: missions", which lists what is
+  ours). A calm people still gets a mission; a missionary with nowhere to go turns colonist in
+  its nearest colony; scouts and colonists step into a friendly settlement they stand beside.
 
 - [ ] **R-806 Computer powers: warships and privateers**
   As traced from the original program. Each turn a power lists naval stations with a priority:

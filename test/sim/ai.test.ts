@@ -15,6 +15,8 @@ export interface AiRun {
   readonly events: Readonly<Record<string, number>>;
   /** The turn on which each kind of event first happened. */
   readonly firstTurn: Readonly<Record<string, number>>;
+  /** Settlements holding a mission when turn 150 was reached. */
+  readonly missionsAt150: number;
 }
 
 /** Four computer powers play each other with the European policy; invariants are checked after every power's turn. */
@@ -24,6 +26,7 @@ export function runPowers(seed: number, turns: number, america = false): AiRun {
   const coloniesAt100: Record<string, number> = {};
   const events: Record<string, number> = {};
   const firstTurn: Record<string, number> = {};
+  let missionsAt150 = -1;
   let slowest = 0;
   let lowestGold = 0;
   while (state.turn < turns && !state.over) {
@@ -38,11 +41,12 @@ export function runPowers(seed: number, turns: number, america = false): AiRun {
     const problems = checkInvariants(state);
     if (problems.length > 0) throw new Error(`seed ${seed}, turn ${state.turn}: ${problems.join('; ')}`);
     for (const p of state.players) lowestGold = Math.min(lowestGold, p.gold);
+    if (state.turn === 150 && missionsAt150 < 0) missionsAt150 = Object.values(state.settlements).filter((v) => v.mission !== null).length;
     if (state.turn === 100 && Object.keys(coloniesAt100).length === 0) {
       for (const p of state.players) coloniesAt100[p.id] = Object.values(state.colonies).filter((c) => c.owner === p.id).length;
     }
   }
-  return { state, coloniesAt100, slowestTurnMs: slowest, lowestGold, events, firstTurn };
+  return { state, coloniesAt100, slowestTurnMs: slowest, lowestGold, events, firstTurn, missionsAt150 };
 }
 
 describe.skipIf(!process.env['SIM'])('the computer powers', () => {
@@ -55,5 +59,7 @@ describe.skipIf(!process.env['SIM'])('the computer powers', () => {
     expect(run.events['colonyFounded']).toBeGreaterThanOrEqual(12);
     // R-804: some power's wagon train has sold to a settlement before 1600 (ships of computer powers never trade there)
     expect(run.firstTurn['nativeSale'], `first wagon sale on seed ${seed}`).toBeLessThan(CALENDAR.twoSeasonsFrom - CALENDAR.startYear);
+    // R-805: a mission stands in some settlement by turn 150, so that a rival's missionary has something to denounce
+    expect(run.missionsAt150, `missions on seed ${seed}`).toBeGreaterThanOrEqual(1);
   }, 120_000);
 });
