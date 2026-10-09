@@ -84,6 +84,8 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | F1 | Information | works |
 | Esc | Leave the colony | works |
 | Drag (Shift-drag for part) | Move people between squares, buildings and the gates; goods between warehouse and holds | works |
+| Click, then click a place | Select a colonist, unit or cargo, then send it to the square, building, hold or warehouse clicked | works |
+| Click the selected colonist or unit | Jobs menu / orders menu | works |
 
 ## Europe screen
 

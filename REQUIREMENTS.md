@@ -401,6 +401,9 @@ Legend:
   carries the food, bells and crosses lines and the idle and outside rows. SoL and Tory figures are in
   the header as text; flag and crown art waits for R-1006. Leaving the colony already equipped is
   done from the unit's orders menu at the gates. The snapshot is a structural JSON, not pixels.
+  The screen lies over the whole game (map and sidebar) rather than beside the map. A click selects a
+  colonist, unit or cargo and a second click on a place sends it there; a click on the selected
+  colonist opens the Jobs menu (MAN p.45-46). A help line at the foot says what a click will do.
   **Verify:** e2e: drag a colonist from a tile to a building changes production; keyboard-only
   path loads cargo; snapshots.
 

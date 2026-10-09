@@ -1,6 +1,7 @@
 // The colony screen (R-308): settlement view, area view, people, transport, warehouse and the
 // multi-function panel, all drawn from colonyView(). People, units and goods are moved by
-// dragging or with the keyboard; clicking someone opens the jobs menu.
+// dragging, by clicking them and then where they should go, or with the keyboard; clicking
+// someone already selected opens the jobs menu.
 import { squareStatus } from '../engine/jobs';
 import { landPrice } from '../engine/land';
 import type { Action } from '../engine/actions';
@@ -45,6 +46,8 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   let carrierId: string | null = null;
   /** Remembered focus across re-renders, as "kind:id". */
   let focusKey = '';
+  /** The token picked by a click or a drag, as its drag source ("colonist:id"); the next click on a place sends it there. */
+  let selected = '';
 
   const tell = (text: string): void => {
     message = text;
@@ -286,10 +289,9 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       el('span', 'colony-sol', `Sons of Liberty ${view.solPercent}%`),
       el('span', 'colony-tory', `Tories ${view.toryPercent}%`),
     );
-    const done = el('button', 'colony-close', 'Done (Esc)');
+    const done = el('button', 'colony-close', 'Exit (Esc)');
     done.type = 'button';
     done.addEventListener('click', () => host.close());
-    header.append(done);
 
     const settlement = region('settlement', 'Settlement');
     for (const b of view.buildings) {
@@ -299,6 +301,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       box.append(el('span', 'building-name', b.name));
       const slots = el('div', 'building-slots');
       for (const w of b.workers) slots.append(personToken('colonist', w));
+      for (let free = b.workers.length; free < b.capacity; free++) slots.append(el('span', 'slot-free'));
       box.append(slots);
       settlement.append(box);
     }
@@ -408,8 +411,27 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     status.dataset['field'] = 'colony-message';
 
     root.append(header, settlement, area, people, multi, transport, warehouse, status);
+    const picked = selected ? root.querySelector<HTMLElement>(`[data-drag="${selected}"]`) : null;
+    if (!picked) selected = '';
+    picked?.classList.add('token-selected');
+    showHolding();
+    root.append(el('p', 'colony-help', helpFor(picked?.querySelector('.token-label')?.textContent ?? '')), done);
     const again = focusKey ? root.querySelector<HTMLElement>(`[data-key="${focusKey}"]`) : null;
     (again ?? root.querySelector<HTMLElement>('.token') ?? root).focus();
+  }
+
+  /** Marks the screen with the kind of thing in hand, so the places it can go light up. */
+  function showHolding(kind = selected.split(':')[0] ?? ''): void {
+    root.dataset['holding'] = kind;
+  }
+
+  function helpFor(name: string): string {
+    const kind = selected.split(':')[0];
+    if (kind === 'colonist') return `${name} selected: click a square or a building to put them to work there, or click them again for the jobs menu.`;
+    if (kind === 'unit') return `${name} selected: click a square or a building to have them join the colony there, or click them again for orders.`;
+    if (kind === 'good') return `${name} selected: click a ship or wagon train to load a hold of it (Shift for part).`;
+    if (kind === 'cargo') return `${name} selected: click the warehouse to unload it, or another ship or wagon train to move it (Shift for part).`;
+    return 'Click a colonist, then a square or a building, to put them to work there (or drag them); click them again for the jobs menu. Move goods between the warehouse and a hold the same way. Right-click anything to look it up.';
   }
 
   // --- pointer: press, move, release ----------------------------------------------------------
@@ -420,6 +442,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     if (!from || event.button !== 0) return;
     held = { source: from.dataset['drag'] ?? '', x: event.clientX, y: event.clientY, moved: false, shift: event.shiftKey };
     focusKey = from.dataset['key'] ?? '';
+    if (!held.source.startsWith('carrier:')) showHolding(held.source.split(':')[0]);
   });
   root.addEventListener('mousemove', (event) => {
     if (held && Math.hypot(event.clientX - held.x, event.clientY - held.y) > 4) held.moved = true;
@@ -427,20 +450,35 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   root.addEventListener('mouseup', (event) => {
     const grip = held;
     held = null;
-    if (!grip || event.button !== 0) return;
-    const [kind, id] = grip.source.split(':') as [string, string];
-    if (!grip.moved) {
-      // a plain click: jobs menu for a colonist, orders for a unit, pick a carrier
-      if (kind === 'colonist') void jobsMenu(id);
-      else if (kind === 'unit') void ordersMenu(id);
-      else if (kind === 'carrier') {
-        carrierId = id;
-        render();
-      }
+    if (event.button !== 0) return;
+    showHolding();
+    if (!grip) {
+      // a click on a place: whoever or whatever is selected goes there
+      const place = (event.target as HTMLElement).closest<HTMLElement>('[data-drop]')?.dataset['drop'];
+      if (selected && place) void drop(selected, place, event.shiftKey);
       return;
     }
+    const [kind, id] = grip.source.split(':') as [string, string];
+    if (!grip.moved) {
+      // a plain click selects; a click on a ship or wagon train picks it, or loads what is selected
+      if (kind === 'carrier') {
+        const cargo = selected.startsWith('good:') || (selected.startsWith('cargo:') && !selected.startsWith(`cargo:${id}:`));
+        if (cargo) void drop(selected, `carrier:${id}`, event.shiftKey);
+        else {
+          carrierId = id;
+          render();
+        }
+      } else if (selected !== grip.source) {
+        selected = grip.source;
+        render();
+      } else if (kind === 'colonist') void jobsMenu(id);
+      else if (kind === 'unit') void ordersMenu(id);
+      return;
+    }
+    selected = grip.source;
     const over = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-drop]');
     if (over?.dataset['drop']) void drop(grip.source, over.dataset['drop'], grip.shift || event.shiftKey);
+    else render();
   });
 
   // --- keyboard ---------------------------------------------------------------------------------
@@ -533,7 +571,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
         void exportsMenu();
         return;
       case 'F1':
-        tell('Drag people between squares and buildings, or press Enter on someone for the jobs menu. L loads, U unloads, C changes the project, B buys it, Esc leaves.');
+        tell('Click someone and then a square or building (or drag them), or press Enter on someone for the jobs menu. L loads, U unloads, C changes the project, B buys it, Esc leaves.');
         break;
       case 'l':
         if (needCarrier() && carrier) attempt({ type: 'loadMostValuable', unitId: carrier.id });

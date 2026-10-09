@@ -88,6 +88,8 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'colony', keys: 'F1', action: 'Information' },
   { context: 'colony', keys: 'Esc', action: 'Leave the colony' },
   { context: 'colony', keys: 'Drag (Shift-drag for part)', action: 'Move people between squares, buildings and the gates; goods between warehouse and holds' },
+  { context: 'colony', keys: 'Click, then click a place', action: 'Select a colonist, unit or cargo, then send it to the square, building, hold or warehouse clicked' },
+  { context: 'colony', keys: 'Click the selected colonist or unit', action: 'Jobs menu / orders menu' },
 
   { context: 'europe', keys: 'R or 1', action: 'Recruit' },
   { context: 'europe', keys: 'P or 2', action: 'Purchase' },
