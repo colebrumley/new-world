@@ -868,7 +868,7 @@ Legend:
   ours). A calm people still gets a mission; a missionary with nowhere to go turns colonist in
   its nearest colony; scouts and colonists step into a friendly settlement they stand beside.
 
-- [ ] **R-806 Computer powers: warships and privateers**
+- [~] **R-806 Computer powers: warships and privateers**
   As traced from the original program. Each turn a power lists naval stations with a priority:
   3 at every ship it can see of a power it is at war with, and at every foreign privateer it can
   see whatever the treaty; 2 to 4 (by the colony's population) on the open-sea square two squares
