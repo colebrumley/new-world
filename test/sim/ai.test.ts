@@ -27,6 +27,8 @@ export interface AiRun {
   /** R-807: troops put ashore from a ship lying off an invasion beach; and attacks on land made at scaled odds under twelve. */
   readonly landings: number;
   readonly rashAttacks: number;
+  /** Ships and guns bought in Europe, by kind. */
+  readonly purchases: Readonly<Record<string, number>>;
 }
 
 /** Four computer powers play each other with the European policy; invariants are checked after every power's turn. */
@@ -36,6 +38,7 @@ export function runPowers(seed: number, turns: number, america = false): AiRun {
   const coloniesAt100: Record<string, number> = {};
   const events: Record<string, number> = {};
   const firstTurn: Record<string, number> = {};
+  const purchases: Record<string, number> = {};
   let missionsAt150 = -1;
   let privateersAstray = 0;
   let privateerRaids = 0;
@@ -72,6 +75,7 @@ export function runPowers(seed: number, turns: number, america = false): AiRun {
     state = turn.state;
     for (const e of turn.events) {
       events[e.type] = (events[e.type] ?? 0) + 1;
+      if (e.type === 'unitPurchased') purchases[e.unitType] = (purchases[e.unitType] ?? 0) + 1;
       firstTurn[e.type] ??= state.turn;
     }
     const problems = checkInvariants(state);
@@ -82,7 +86,7 @@ export function runPowers(seed: number, turns: number, america = false): AiRun {
       for (const p of state.players) coloniesAt100[p.id] = Object.values(state.colonies).filter((c) => c.owner === p.id).length;
     }
   }
-  return { state, coloniesAt100, slowestTurnMs: slowest, lowestGold, events, firstTurn, missionsAt150, privateersAstray, privateerRaids, landings, rashAttacks };
+  return { state, coloniesAt100, slowestTurnMs: slowest, lowestGold, events, firstTurn, missionsAt150, privateersAstray, privateerRaids, landings, rashAttacks, purchases };
 }
 
 describe.skipIf(!process.env['SIM'])('the computer powers', () => {
@@ -102,5 +106,7 @@ describe.skipIf(!process.env['SIM'])('the computer powers', () => {
     // R-807: some power lands troops beside a rival colony, and nobody attacks on land at scaled odds under twelve
     expect(run.landings, `landings on seed ${seed}`).toBeGreaterThanOrEqual(1);
     expect(run.rashAttacks, `rash attacks on seed ${seed}`).toBe(0);
+    // the round of buying in Europe: every game sees ships bought
+    expect(Object.keys(run.purchases).some((t) => t !== 'artillery'), `ships bought on seed ${seed}`).toBe(true);
   }, 120_000);
 });

@@ -25,9 +25,6 @@ export const AI_PLAN = {
   coloniesBeforeGarrison: 2,
   /** Beyond the garrison (see AI_CAMPAIGN) it arms this many more soldiers on the docks while a native people is hostile to it. */
   reprisalParty: 4,
-  /** One more ship is bought for every so many colonies, once the treasury holds the fund for it. */
-  coloniesPerShip: 3,
-  shipFund: 4000,
   /** A ship tries this many anchorages beside a site before giving it up for the turn. */
   berthsTried: 3,
   /** Gold kept back when paying a recruit's passage. */
@@ -122,15 +119,6 @@ export const AI_NAVY = {
   /** A privateer carries for its power only while more than `carryPorts` of its ports have a foreign frigate near, or those ports hold more than `carryPopulation` people. */
   carryPorts: 1,
   carryPopulation: 6,
-  /**
-   * How a power comes by an armed ship (as FreeCol's computer powers do): one is given it when
-   * it has no ship left at all; and while its naval strength is under one part in `aidBelow` of
-   * the other powers' average, with a chance of strength / average x this percent, by difficulty level.
-   */
-  aidPercent: [0, 5, 10, 15, 20],
-  aidBelow: 2,
-  /** The ship is drawn from those for sale that can fight, each weighted by this / its price. */
-  aidWeight: 100000,
 } as const;
 
 // Campaigns by land and sea of the computer powers (R-807), as traced from the original
@@ -182,4 +170,43 @@ export const AI_CAMPAIGN = {
   defenceLess: 50,
   /** Ours: soldiers armed beyond the garrison while an invasion is in view. */
   expedition: 2,
+} as const;
+
+// Gold and purchases of the computer powers in Europe, as traced from the original program;
+// see docs/RULES.md "Computer powers: the treasury and the fleet".
+export const AI_FLEET = {
+  /** Each turn from `subsidyFromTurn` a power is given `subsidyTimes` x level x ((year - `subsidyBaseYear`) / `subsidyYears` + its colonies) gold... */
+  subsidyFromTurn: 20,
+  subsidyBaseYear: 1500,
+  subsidyYears: 50,
+  subsidyTimes: 4,
+  /** ...doubled from this year, and scaled by these halves at each difficulty level (so half again on the fourth, doubled on the fifth). */
+  subsidyDoubledFrom: 1700,
+  subsidyHalves: [2, 2, 2, 3, 4],
+  /** A foreign warship this near one of its colonies besets it. */
+  besetRange: 5,
+  /** The others' naval threat: their privateers plus this many times their frigates, over `threatDivisor`. */
+  threatPerFrigate: 4,
+  threatDivisor: 4,
+  /** It answers the human's frigate when it has none of its own, and the human's privateers while it has fewer than this. */
+  privateersAnswering: 2,
+  /** Without colonies enough beset, it still answers once the turn is past the first number and it holds the second in gold: for a frigate, and for a privateer. */
+  frigateLate: [200, 2000],
+  privateerLate: [100, 1000],
+  /** The ordinary round of buying: a frigate while it has fewer warships than this, on one throw in `frigateOdds`... */
+  frigateWarshipsBelow: 8,
+  frigateOdds: 2,
+  /** ...a galleon on all but one throw in this many... */
+  galleonOdds: 4,
+  /** ...a merchantman on one throw in `merchantmanOdds` while its holds are fewer than this... */
+  merchantmanHoldsBelow: 12,
+  merchantmanOdds: 2,
+  /** ...a caravel while its holds are no more than this... */
+  caravelHoldsMost: 2,
+  /** ...and a privateer while it has fewer warships than this, on one throw in `privateerOdds`. */
+  privateerWarshipsBelow: 4,
+  privateerOdds: 4,
+  /** Artillery, on one throw in this many, when its holds are more than the second number. */
+  artilleryOdds: 4,
+  artilleryHoldsOver: 4,
 } as const;

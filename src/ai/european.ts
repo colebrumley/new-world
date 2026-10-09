@@ -15,7 +15,8 @@ import { coloniesOf, checkColonySite, NEIGHBORS } from '../engine/colony';
 import { availableItems, itemCost } from '../engine/construction';
 import { fieldOutput } from '../engine/jobs';
 import { warehouseCapacity } from '../engine/pioneer';
-import { AI_CAMPAIGN, AI_PLAN } from '../engine/data/ai';
+import { AI_CAMPAIGN, AI_FLEET, AI_PLAN } from '../engine/data/ai';
+import { fleetCensus, fleetWants } from '../engine/fleet';
 import { GOOD_IDS } from '../engine/data/goods';
 import { NATIONS } from '../engine/data/nations';
 import { UNSKILLED } from '../engine/data/professions';
@@ -28,9 +29,9 @@ import { tribalAlarm } from '../engine/alarm';
 import { colonyAt, type Colony, type GameState, type Job, type Player, type Unit } from '../engine/state';
 import { isWater, type Tile } from '../engine/tile';
 import { defendersWanted, garrisons, invadeRequests, invasionFor, isFull, isQuiet, isTroop, landAttackChoice, landingStep, landOrders } from './campaign';
-import { missionaryAction, ordain, villageVisit } from './missions';
+import { missionaryAction, ordain, villageVisit, type Chances } from './missions';
 import { isWarship, privateersCarry, warshipAction } from './navy';
-import { isWagonProject, parleyAction, wagonAction, wagonBuild, wagonRefusal } from './wagons';
+import { aiRng, isWagonProject, parleyAction, wagonAction, wagonBuild, wagonRefusal } from './wagons';
 
 const DIRS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]] as const;
 const far = (ax: number, ay: number, bx: number, by: number): number => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -156,7 +157,52 @@ function guardsWanted(state: GameState, player: Player): boolean {
   return soldiers < garrison + (threatened ? AI_PLAN.reprisalParty : 0) + (abroad ? AI_CAMPAIGN.expedition : 0);
 }
 
-function europeAction(state: GameState, player: Player): Action | null {
+/**
+ * The round of buying in Europe (docs/RULES.md "Computer powers: the treasury and the fleet"):
+ * at most one ship a turn, the first on the list that applies and can be paid for, and now and
+ * then a piece of artillery besides. `done` keeps what has been seen to this turn; tests put
+ * their own `chances` in.
+ */
+export function fleetPurchase(state: GameState, player: Player, done: Set<string> = new Set(), chances: Chances = (label) => aiRng(state, label)): Action | null {
+  const wants = fleetWants(state, player.id);
+  if (state.crownPlayer !== null) return null;
+  const census = fleetCensus(state, player.id);
+  const buy = (unit: Unit['type'], mark: string): Action | null => {
+    const order: Action = { type: 'purchaseUnit', unit };
+    if (!ok(state, order)) return null;
+    done.add(mark);
+    return order;
+  };
+  if (!done.has('#ship') && wants.mayBuy) {
+    // the throws are the same however often the question is put this turn
+    const rng = chances(`${player.id}:fleet`);
+    const one = (odds: number): boolean => rng.int(1, odds) === 1;
+    let order: Action | null = null;
+    let over = false;
+    // the human's frigate or privateers are answered before anything else, and nothing else is bought if that fails
+    if (wants.frigate) over = (order = buy('frigate', '#ship')) === null;
+    if (!order && !over && wants.privateer) over = (order = buy('privateer', '#ship')) === null;
+    if (!order && !over && census.warships < AI_FLEET.frigateWarshipsBelow && one(AI_FLEET.frigateOdds) && wants.lag) order = buy('frigate', '#ship');
+    if (!order && !over && !one(AI_FLEET.galleonOdds)) order = buy('galleon', '#ship');
+    if (!order && !over && one(AI_FLEET.merchantmanOdds) && census.holds < AI_FLEET.merchantmanHoldsBelow) order = buy('merchantman', '#ship');
+    if (!order && !over && census.holds <= AI_FLEET.caravelHoldsMost) order = buy('caravel', '#ship');
+    if (!order && !over && census.warships < AI_FLEET.privateerWarshipsBelow && one(AI_FLEET.privateerOdds) && wants.lag && !wants.short) order = buy('privateer', '#ship');
+    done.add('#ship');
+    if (order) return order;
+  }
+  if (!done.has('#guns')) {
+    done.add('#guns');
+    const onDocks = docksOf(state, player.id).some((u) => u.type === 'artillery');
+    // guns are sent for while some colony has no muskets to arm its people with
+    const unarmed = coloniesOf(state, player.id).some((c) => (c.goods.muskets ?? 0) === 0);
+    if (!onDocks && unarmed && chances(`${player.id}:guns`).int(1, AI_FLEET.artilleryOdds) === 1 && !wants.short && census.holds > AI_FLEET.artilleryHoldsOver) return buy('artillery', '#guns');
+  }
+  return null;
+}
+
+function europeAction(state: GameState, player: Player, done: Set<string>): Action | null {
+  const bought = fleetPurchase(state, player, done);
+  if (bought) return bought;
   // a missionary is made of someone waiting on the docks, ship or no ship, once the soldiers are found
   const blessing = guardsWanted(state, player) ? null : ordain(state, player);
   if (blessing) return blessing;
@@ -171,11 +217,6 @@ function europeAction(state: GameState, player: Player): Action | null {
   }
   const waiting = docksOf(state, player.id);
   const room = ships.reduce((n, s) => n + UNIT_TYPES[s.type].holds, 0);
-  // a growing power wants a second and a third ship to carry its people
-  const fleet = Object.values(state.units).filter((u) => u.owner === player.id && isShip(u) && u.type !== 'privateer' && u.type !== 'manOWar').length;
-  const colonies = coloniesOf(state, player.id).length;
-  const buyShip: Action = { type: 'purchaseUnit', unit: 'merchantman' };
-  if (fleet < 1 + Math.floor(colonies / AI_PLAN.coloniesPerShip) && player.gold >= AI_PLAN.shipFund && ok(state, buyShip)) return buyShip;
   // a privateer or man-of-war does not wait on the docks for passengers
   for (const ship of ships) {
     const sail: Action = { type: 'sailFromEurope', unitId: ship.id };
@@ -466,7 +507,7 @@ export function europeanAction(state: GameState, idle: Set<string> = new Set()):
     const hand = builderFor(state, colony);
     if (hand) return hand;
   }
-  const inEurope = europeAction(state, player);
+  const inEurope = europeAction(state, player, idle);
   if (inEurope) return inEurope;
   const units = Object.values(state.units).filter((u) => u.owner === player.id && u.voyage === null).sort((a, b) => (a.id < b.id ? -1 : 1));
   for (const unit of units) {

@@ -12,7 +12,6 @@ exports[`AI plan table > matches the snapshot 1`] = `
   "coloniesAtStart": 4,
   "coloniesBeforeGarrison": 2,
   "coloniesMost": 8,
-  "coloniesPerShip": 3,
   "colonistsPerStatesman": 3,
   "colonyExports": [
     "sugar",
@@ -32,7 +31,6 @@ exports[`AI plan table > matches the snapshot 1`] = `
   "goldReserve": 200,
   "landSearch": 7,
   "reprisalParty": 4,
-  "shipFund": 4000,
   "shipSearch": 14,
   "siteScoreLeast": 9,
   "statesmanFrom": 3,

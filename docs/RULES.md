@@ -1228,8 +1228,9 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
 - **Colonies.** Colonists are placed by the automatic assignment of R-309; each colony always has
   something under construction; its surplus of the export goods is sold from the colony itself
   as if it had a Custom House (the original's computer colonies sell this way too).
-- **Europe.** An empty ship sails home, sells what it carries, pays for a passage (and, with a
-  large treasury and few ships, another ship), and returns with whoever waits on the docks.
+- **Europe.** An empty ship sails home, sells what it carries, pays for a passage, and returns
+  with whoever waits on the docks. What it buys there, and the gold it is given, are under
+  "Computer powers: the treasury and the fleet".
 - **War.** Soldiers settle too until the power has two colonies; from then on they guard,
   march and fight by the rules of "Computer powers: campaigns" (R-807), which replaced this
   policy's own rules for war, reprisal and conquest.
@@ -1392,17 +1393,54 @@ holding station), `4000:c3a0` (who may carry). Numbers are `AI_NAVY` in `src/eng
 - The original's exemption of unseen human colonies early in the game, and its one-turn-in-four
   test for ship holds in the blockaded colony, are left out; so is its rule that a frigate is
   sought only after the Declaration.
-- *Getting one.* As FreeCol's computer powers do (`FreeCol server/ai/EuropeanAIPlayer.java`,
-  `cheat`; percentages from `FreeCol classic specification.xml`,
-  `model.option.offensiveNavalUnitCheat`): at the start of its turn a computer power that has
-  no ship of any kind is given a warship in Europe, free. Otherwise, while its naval strength
-  (the summed attack values of its ships) is above nothing and under half the average of the
-  other powers', it is given one with a chance of strength / average x P percent, P being 0, 5,
-  10, 15, 20 by difficulty level. The ship is a privateer or a frigate, drawn with weights of
-  100000 / price. Not after it has declared independence. A power with only transports
-  therefore gets nothing until it has lost them all. Privateers and men-of-war sail from Europe
-  without waiting for passengers. (How the original's powers come by their privateers was not
-  traced; Revolution Now has no computer colonial powers.)
+- *Getting one.* Warships are bought in Europe by the round of buying described under
+  "Computer powers: the treasury and the fleet". Privateers and men-of-war sail from Europe
+  without waiting for passengers.
+
+### Computer powers: the treasury and the fleet (R-806, R-802)
+
+**Source:** `VICEROY 4000:faf4`..`5000:0019` (the first part of the computer power's business
+on the docks, read instruction by instruction), `4000:fa2c` (the purchase helper), `4000:01c0`
+(the census of beset colonies), `5000:0c1a` (the want of muskets). Numbers are `AI_FLEET` in
+`src/engine/data/ai.ts`.
+
+- **Subsidy.** At the start of each of its turns from turn 20 a computer power is given
+  4 x D x s gold, where D is the difficulty level (0..4) and s = (year - 1500) / 50 (rounded
+  toward zero) + its colonies, doubled from 1700; half again at D = 3 and doubled at D = 4.
+- **The others' threat** T = (their privateers + 4 x their frigates) / 4, summed over the other
+  powers and rounded down.
+- **Beset.** A colony is beset by a foreign warship within 5 squares, and separately by a
+  foreign frigate. Enough is beset when half its colonies (rounded down) are no more than those
+  beset, or half its colonists no more than the people in them, or the game is late and it has
+  gold: after turn 200 with 2000 for a frigate, after turn 100 with 1000 for a privateer.
+- **Answering the human.** With any colony beset and T not 0: it wants a frigate when enough is
+  frigate-beset, it has none and the human has one; failing that it wants a privateer when
+  enough is beset, it has fewer than 2 and the human has one.
+- **Gold made up.** Its gold is raised to the price of a caravel if it has no ship at all, of
+  a privateer or frigate if it wants one.
+- **Lag and transport.** It lags at sea when it wants a frigate, has fewer warships than the
+  power with most, or more than one power has the most. It is short of transport when
+  (colonists / 2 + 2 x colonies) / 2 is at least its cargo holds. It buys nothing unless
+  colonists / 2 + colonies is at least its holds.
+- **The round of buying**, before any Declaration, at most one a turn: the frigate it wants;
+  the privateer it wants (if either cannot be paid for, nothing else is bought); with fewer
+  than 8 warships, on a coin toss, and lagging, a frigate; three times in four a galleon; on a
+  coin toss, with fewer than 12 holds, a merchantman; with 2 holds or fewer a caravel; with
+  fewer than 4 warships, one time in four, lagging and not short, a privateer. Each is passed
+  over if the gold is not there. (The original's helper is handed a percentage for each
+  purchase and never reads it.)
+- **Artillery**, besides: with none on its docks, some colony out of muskets, one time in
+  four, not short, and more than 4 holds, it buys a piece.
+
+**Notes:** Ours, where our engine differs:
+- The subsidy and the made-up gold are applied by the engine at the start of the power's turn;
+  the buying is done by the policy through the ordinary purchase action, first thing in Europe.
+- "Out of muskets" stands for the original's count of colonies asking for muskets or holding
+  none; our computer colonies do not ask for goods.
+- After the Declaration the original also removes the power's men-of-war; we leave that out,
+  as computer powers never have one.
+- This replaced two earlier rules of ours: a merchantman bought at 4000 gold for every three
+  colonies, and warships given free on FreeCol's pattern.
 
 ### Computer powers: campaigns (R-807)
 

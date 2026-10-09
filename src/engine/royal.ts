@@ -4,12 +4,12 @@
 import { dateOfTurn } from './calendar';
 import { equipmentOf } from './cargo';
 import { coloniesOf } from './colony';
-import { AI_NAVY } from './data/ai';
 import { NATION_IDS, type NationId } from './data/nations';
 import { ROYAL, type RefUnit } from './data/royal';
-import { UNIT_TYPE_IDS, UNIT_TYPES, type UnitTypeId } from './data/units';
+import { UNIT_TYPES, type UnitTypeId } from './data/units';
 import { DIFFICULTIES } from './data/yields';
 import { newDockUnit } from './europe';
+import { computerTreasury } from './fleet';
 import { rebelSentiment } from './liberty';
 import { fullMoves } from './movement';
 import { createRng } from './rng';
@@ -24,8 +24,6 @@ export type RoyalEvent =
   | { readonly type: 'royalOffer'; readonly player: PlayerId; readonly offer: RoyalOffer }
   | { readonly type: 'royalOfferAnswered'; readonly player: PlayerId; readonly offer: RoyalOffer; readonly accepted: boolean; readonly unitIds: readonly string[] }
   | { readonly type: 'frigateGranted'; readonly player: PlayerId; readonly unitId: string }
-  /** A computer power short of warships has been given one in Europe. */
-  | { readonly type: 'warshipGranted'; readonly player: PlayerId; readonly unitId: string; readonly unitType: UnitTypeId }
   /** The War of Succession ends: one power leaves the New World and another inherits what it had. */
   | { readonly type: 'succession'; readonly loser: PlayerId; readonly heir: PlayerId; readonly colonies: number; readonly units: number; readonly lost: Goods }
   | { readonly type: 'independenceTalk'; readonly player: PlayerId; readonly rebels: number; readonly rising: boolean }
@@ -172,52 +170,6 @@ export function frigateOffer(state: GameState, playerId: PlayerId, events: (Roya
   const offer: RoyalOffer = { kind: 'frigate', tax: ROYAL.frigateTax };
   events.push({ type: 'royalOffer', player: playerId, offer });
   return patch(state, playerId, { pendingOffer: offer });
-}
-
-/** A power's strength at sea: the attack values of its ships, wherever they are. */
-export function navalStrength(state: GameState, playerId: PlayerId): number {
-  return Object.values(state.units).reduce((sum, u) => sum + (u.owner === playerId && UNIT_TYPES[u.type].domain === 'sea' ? UNIT_TYPES[u.type].attack : 0), 0);
-}
-
-/**
- * A computer power is helped to a warship in Europe when it has no ship of any kind left, and
- * now and then while it is far weaker at sea than the other powers (the weaker, the seldomer:
- * the chance is its strength over their average, times a percentage that rises with the level).
- */
-export function navalAid(state: GameState, playerId: PlayerId, events: RoyalEvent[]): GameState {
-  const player = playerOf(state, playerId);
-  if (!player || player.kind !== 'ai' || player.atWar) return state;
-  // (a power with nothing at all in the New World or on the way is not playing)
-  if (coloniesOf(state, playerId).length === 0 && !Object.values(state.units).some((u) => u.owner === playerId)) return state;
-  const rng = createRng(state.rng);
-  const ships = Object.values(state.units).filter((u) => u.owner === playerId && UNIT_TYPES[u.type].domain === 'sea').length;
-  let due = ships === 0;
-  let rolled = false;
-  if (!due) {
-    const others = state.players.filter((p) => p.id !== playerId && p.id !== state.crownPlayer && active(p));
-    const total = others.reduce((sum, p) => sum + navalStrength(state, p.id), 0);
-    const own = navalStrength(state, playerId);
-    // own / (total / others) is the ratio of its strength to the average
-    if (own > 0 && total > 0 && AI_NAVY.aidBelow * own * others.length < total) {
-      rolled = true;
-      due = rng.int(0, 99) < Math.trunc((own * others.length * (AI_NAVY.aidPercent[level(state)] as number)) / total);
-    }
-  }
-  if (!due) return rolled ? { ...state, rng: rng.state() } : state;
-  const forSale = UNIT_TYPE_IDS.filter((id) => UNIT_TYPES[id].domain === 'sea' && UNIT_TYPES[id].attack > 0 && UNIT_TYPES[id].europePrice !== null);
-  const weights = forSale.map((id) => Math.trunc(AI_NAVY.aidWeight / (UNIT_TYPES[id].europePrice as number)));
-  let pick = rng.int(1, weights.reduce((a, b) => a + b, 0));
-  let chosen = forSale[0] as UnitTypeId;
-  for (let i = 0; i < forSale.length; i++) {
-    pick -= weights[i] as number;
-    if (pick <= 0) {
-      chosen = forSale[i] as UnitTypeId;
-      break;
-    }
-  }
-  const made = grantUnits({ ...state, rng: rng.state() }, playerId, chosen, null, 1, null);
-  events.push({ type: 'warshipGranted', player: playerId, unitId: made.ids[0] as string, unitType: chosen });
-  return made.state;
 }
 
 // --- mercenaries -------------------------------------------------------------------------------------
@@ -396,7 +348,7 @@ export function royalTurn(state: GameState, playerId: PlayerId, taxed: boolean, 
   if (!player || !active(player)) return state;
   let next = taxed ? state : kingsWar(state, playerId, events as RoyalEvent[]);
   next = frigateOffer(next, playerId, events);
-  next = navalAid(next, playerId, events as RoyalEvent[]);
+  next = computerTreasury(next, playerId);
   next = mercenaryOffer(next, playerId, events as RoyalEvent[]);
   next = growRef(next, playerId, events as RoyalEvent[]);
   next = succession(next, playerId, events as RoyalEvent[]);

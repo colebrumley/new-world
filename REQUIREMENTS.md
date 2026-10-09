@@ -887,9 +887,9 @@ Legend:
   the peace exception for privateers; sim: on 5 seeds a computer privateer attacks a ship of a power
   it is at peace with only when adjacent, and the R-802 sim still passes.
   *Built:* `src/ai/navy.ts` (docs/RULES.md "Computer powers: warships and privateers", which lists
-  what is ours). "Load" is as traced (FIDELITY.md). A power comes by warships as FreeCol's do: one
-  is given it when it has no ship left, or by chance while far weaker at sea than the others; so
-  privateers are rare. The sim checks that a privateer is only ever sent to a listed station or a home port.
+  what is ours). "Load" is as traced (FIDELITY.md). Ships and guns are bought in Europe by the
+  original's own round of buying, with its per-turn subsidy (RULES.md "Computer powers: the
+  treasury and the fleet"). The sim checks that a privateer is only ever sent to a listed station or a home port.
 
 - [x] **R-807 Computer powers: campaigns by land and sea**
   As traced from the original program; replaces the R-802 "War", "Reprisal" and "Conquest" policy

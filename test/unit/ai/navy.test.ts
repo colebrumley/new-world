@@ -246,15 +246,12 @@ describe('what a warship does', () => {
 describe('a privateer in Europe', () => {
   const inEurope = (s: GameState, id: string): GameState => ({ ...s, units: { ...s.units, [id]: { ...u(s, id), x: OFF_MAP, y: OFF_MAP, voyage: { phase: 'inEurope', turnsLeft: 0, origin: [1, 5] } } } });
 
-  it('sails at once, without waiting for passengers, and nobody buys one', () => {
+  it('sails at once, without waiting for passengers', () => {
     let s = ourPort(sea({ b: 'peace', h: 'peace' }));
     s = withUnit(s, { id: 'g', type: 'soldier', x: 15, y: 5, orders: 'fortified' });
     s = inEurope(ship(s, 'p', 'privateer', 0, 0), 'p');
     s = { ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, pool: [] } : p)) };
+    // (how it comes by one is the round of buying: see the fleet tests)
     expect(europeanAction(s)).toEqual({ type: 'sailFromEurope', unitId: 'p' });
-    // however rich: warships come to a computer power as naval aid, not by purchase (see the royal tests)
-    const rich = { ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, gold: 50_000 } : p)) };
-    const none = inEurope(ship({ ...rich, units: Object.fromEntries(Object.entries(rich.units).filter(([id]) => id !== 'p')) }, 'm', 'merchantman', 0, 0), 'm');
-    expect(europeanAction(none)).not.toMatchObject({ type: 'purchaseUnit', unit: 'privateer' });
   });
 });

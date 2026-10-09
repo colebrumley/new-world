@@ -37,7 +37,7 @@ turns out to be; `land.ts` is the price of native land and buying or taking it. 
 Founding Father does on joining. `diplomacy.ts` is relations between the powers:
 meeting, audiences (`state.audience`), acts of war, and trade in foreign colonies. `royal.ts` is the Crown: the Expeditionary Force, wars in Europe, the frigate and
 mercenary offers, the War of Succession. `custom-house.ts` is the export list and the sales a
-Custom House makes during the colony turn (and the trade goods a computer power's colony sends for). `regions.ts` numbers the landmasses; `wagons.ts` says which colony each wagon train serves. `trade-routes.ts` defines and runs trade routes. `education.ts` is schooling, `liberty.ts` the Sons of
+Custom House makes during the colony turn (and the trade goods a computer power's colony sends for). `regions.ts` numbers the landmasses; `wagons.ts` says which colony each wagon train serves. `fleet.ts` is a computer power's treasury and fleet: what it has afloat, what it wants, and the gold it is given each turn. `trade-routes.ts` defines and runs trade routes. `education.ts` is schooling, `liberty.ts` the Sons of
 Liberty, `placement.ts` automatic job choice. `voyage.ts` is the Atlantic crossing and `pioneer.ts` clearing, plowing and road building. `colony.ts` founds, joins and abandons colonies; `jobs.ts` decides who may work which square or
 building and what they would make; `economy.ts` is a colony's turn (production, conversion,
 storage) and `construction.ts` what it may build, buying, and completion. `cargo.ts` is holds, goods transfer and colonist equipment. `explore.ts` is fog and sight, `tile.ts` and `yields.ts` the tile model and production,
