@@ -19,6 +19,13 @@ export type MapDrag =
   | { readonly kind: 'step'; readonly dx: number; readonly dy: number }
   | { readonly kind: 'goto'; readonly x: number; readonly y: number };
 
+/**
+ * How far into a neighbouring square, as a fraction of a square measured from the active unit's own,
+ * a click still means "step there" when the square holds something a click would otherwise open or
+ * pick: the strip along the shared side, or the corner that touches for a diagonal neighbour.
+ */
+export const STEP_RIM = 0.35;
+
 /** Wheel travel, in pixels, that makes one zoom step. */
 export const WHEEL_STEP = 100;
 /** Pixels a wheel that reports lines is taken to turn per line. */
@@ -38,19 +45,39 @@ export function unitsToPick(state: GameState, playerId: string, x: number, y: nu
  * of ours other than the active one (it is selected); a square beside the active unit (it steps
  * there); otherwise the view centres on the square. Outside move mode the active unit can be picked
  * like any other, which is how the mouse gives it back the orders.
+ *
+ * `at` is where in the square the click fell, in map squares (the square's own corner is its whole
+ * coordinates). A colony or a unit of ours beside the active unit is stepped onto when the click
+ * falls on the part of its square nearest the unit (STEP_RIM); the rest of the square opens or picks.
  */
-export function mapClick(state: GameState, playerId: string, active: Unit | null, mode: PointerMode, tile: { x: number; y: number }): MapClick {
+export function mapClick(state: GameState, playerId: string, active: Unit | null, mode: PointerMode, tile: { x: number; y: number }, at?: { x: number; y: number }): MapClick {
   if (mode === 'goto') return { kind: 'goto', x: tile.x, y: tile.y };
+  const dx = active ? tile.x - active.x : 0;
+  const dy = active ? tile.y - active.y : 0;
+  const step: MapClick | null = mode === 'move' && active && active.voyage === null && Math.max(Math.abs(dx), Math.abs(dy)) === 1 ? { kind: 'step', dx, dy } : null;
+  if (step && active && at && Math.max(Math.abs(at.x - active.x - 0.5), Math.abs(at.y - active.y - 0.5)) <= 0.5 + STEP_RIM) return step;
   const colony = colonyAt(state, tile.x, tile.y);
   if (colony && colony.owner === playerId) return { kind: 'colony', colonyId: colony.id };
   const others = unitsToPick(state, playerId, tile.x, tile.y).filter((u) => mode !== 'move' || u.id !== active?.id);
   if (others.length > 0) return { kind: 'select', unitIds: others.map((u) => u.id) };
-  if (mode === 'move' && active && active.voyage === null) {
-    const dx = tile.x - active.x;
-    const dy = tile.y - active.y;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) === 1) return { kind: 'step', dx, dy };
-  }
-  return { kind: 'center', x: tile.x, y: tile.y };
+  return step ?? { kind: 'center', x: tile.x, y: tile.y };
+}
+
+const ARROW_NAMES: Readonly<Record<string, string>> = { '0,-1': 'n', '1,-1': 'ne', '1,0': 'e', '1,1': 'se', '0,1': 's', '-1,1': 'sw', '-1,0': 'w', '-1,-1': 'nw' };
+
+/**
+ * The CSS cursor that says what a click would do: an arrow pointing the way the active unit would
+ * step, a hand over a colony that would open or a unit that would be picked, the cross-hair otherwise.
+ * The arrow is drawn here as an SVG, its hot spot in the middle; the keyword after it is for
+ * browsers that will not take an SVG cursor.
+ */
+export function mapCursor(click: MapClick): string {
+  if (click.kind === 'colony' || click.kind === 'select') return 'pointer';
+  const name = click.kind === 'step' ? ARROW_NAMES[`${click.dx},${click.dy}`] : undefined;
+  if (click.kind !== 'step' || !name) return 'crosshair';
+  const turn = (Math.atan2(click.dx, -click.dy) * 180) / Math.PI;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path transform="rotate(${turn} 12 12)" d="M12 2 19 11H14.5V22H9.5V11H5Z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, ${name}-resize`;
 }
 
 /** A drag begun on the active unit and let go over a square: one step if it is adjacent, a Go To if farther. */

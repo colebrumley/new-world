@@ -40,7 +40,7 @@ import { minimapLayout, minimapToTile, renderMinimap } from '../ui/minimap';
 import { viewerIndex, renderGround, renderPieces } from '../ui/render';
 import { createSidebar, formatMoves, sidebarModel, unitLabel } from '../ui/sidebar';
 import { MENU_CHOICES, REPORT_CHOICES, createCommandBar, type BarChoice } from '../ui/command-bar';
-import { WHEEL_LINE, mapClick, mapDrag, wheelStep, type PointerMode } from '../ui/pointer';
+import { WHEEL_LINE, mapClick, mapCursor, mapDrag, wheelStep, type PointerMode } from '../ui/pointer';
 import { editRoute } from '../ui/trade-routes';
 import { createTileCache } from '../ui/tiles';
 import { needsOrders, nextUnit } from '../ui/unit-queue';
@@ -177,6 +177,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   const waiting = new Set<UnitId>();
   let notice = '';
   let dirty = true;
+  let shownPointer = '';
   /** The ground as last painted, and what it was painted for. */
   const ground = document.createElement('canvas');
   let groundOf: { map: GameState['map'] | null; view: View | null; water: number } = { map: null, view: null, water: -1 };
@@ -1302,6 +1303,22 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     }
   };
 
+  /** What a click at a canvas pixel would ask for, or null off the map. */
+  const clickAt = (p: { x: number; y: number }): ReturnType<typeof mapClick> | null => {
+    const tile = screenToTile(view, session.state.map, p.x, p.y);
+    const at = { x: view.originX + p.x / view.tileSize, y: view.originY + p.y / view.tileSize };
+    return tile ? mapClick(session.state, me(), activeUnit(), mode, tile, at) : null;
+  };
+
+  /** The pointer's shape says what a click would do: an arrow the way the active unit would step, a hand on what would open. */
+  const showPointer = (): void => {
+    const click = pointer && !drag ? clickAt(pointer) : null;
+    const shape = click ? mapCursor(click) : '';
+    if (shape === shownPointer) return;
+    shownPointer = shape;
+    canvas.style.cursor = shape;
+  };
+
   canvas.addEventListener('mousedown', (event) => {
     if (event.button !== 0) return;
     const p = local(event, canvas);
@@ -1316,6 +1333,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     pointer = p;
     if (!drag) {
       retarget();
+      showPointer();
       return;
     }
     const dx = p.x - drag.x;
@@ -1348,8 +1366,8 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
       else if (dragged && sent?.kind === 'goto') dispatch({ type: 'goTo', unitId: dragged.id, x: sent.x, y: sent.y });
       return;
     }
-    if (!tile) return;
-    const click = mapClick(session.state, me(), unit, mode, tile);
+    const click = clickAt(p);
+    if (!tile || !click) return;
     switch (click.kind) {
       case 'goto':
         confirmGoto(click.x, click.y);
@@ -1463,6 +1481,8 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   const draw = (time = performance.now()): void => {
     const unit = activeUnit();
     const showCursor = aimAt ?? (mode !== 'move' ? cursor : null);
+    // the unit under orders, or the view, may have changed under a pointer that has not moved
+    showPointer();
     shownBlink = blinkAt(time);
     shownWater = waterAt(time);
     if (unit && unit.x >= 0) lastSpot = { x: unit.x, y: unit.y };
