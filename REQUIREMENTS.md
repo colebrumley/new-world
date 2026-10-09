@@ -962,6 +962,20 @@ Legend:
   *Built:* `test/sim/balance.test.ts` writes `docs/BALANCE.md` (20 seeds, about 100 s). What it
   found, and what was done about it, is in the tuning items below.
 
+- [~] **R-1010 Mouse play on the map**
+  Goal G4 asks that the game be playable with the mouse; the map screen needed the keyboard for
+  everything but panning. On the map: click one of our units to make it the active unit (waking it
+  if it has standing orders; a list when several stand on the square); click a square beside the
+  active unit to step there, with the same questions a key press raises (landfall, attack, village);
+  drag from the active unit to any square to send it there (one step if adjacent, Go To otherwise);
+  the wheel zooms; in Go To targeting the cursor follows the pointer. A command bar in the sidebar
+  gives every map order, End Turn, Europe, zoom, the ten reports and the Alt menus a button, each
+  running the same command as its key (one table, `src/ui/command-bar.ts`). Click-to-centre, drag
+  to pan, edge-scroll, the New World view and right-click encyclopedia stay as they were.
+  **Verify:** unit: `pointer.test.ts` (what a click or a drag means), `command-bar.test.ts` (every
+  button names a command its key reaches; snapshot); e2e `mouse.spec.ts`: a game played to a
+  founded colony and an ended turn without touching the keyboard; wheel changes the zoom level.
+
 ### Tuning items raised by R-1009
 
 The first balance run found five metrics outside Appendix L and one oddity. They were then worked
