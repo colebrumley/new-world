@@ -467,7 +467,6 @@ canvas.minimap {
 .row-title { opacity: 0.7; }
 .carrier { display: flex; flex-wrap: wrap; align-items: stretch; gap: 4px; padding: 3px; border: 1px solid #3a4558; }
 .carrier-active { border-color: #c9a650; }
-.passenger { align-self: center; opacity: 0.8; }
 
 .tabs { display: flex; gap: 3px; margin-bottom: 6px; }
 .tab { flex: 1 1 auto; padding: 2px 4px; font-size: 0.75rem; white-space: nowrap; }
@@ -484,7 +483,7 @@ canvas.minimap {
 
 /* with someone or something in hand, the places it can go are lit */
 .colony-screen[data-holding='colonist'] :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row),
-.colony-screen[data-holding='unit'] :is(.square[data-drop], .building[data-drop], .idle-row),
+.colony-screen[data-holding='unit'] :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row),
 .colony-screen[data-holding='good'] .carrier,
 .colony-screen[data-holding='cargo'] :is(.carrier, .colony-warehouse) { outline: 1px dashed #7dff8a; outline-offset: -2px; cursor: pointer; }
 .colony-screen:is([data-holding='colonist'], [data-holding='unit']) :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row):hover,

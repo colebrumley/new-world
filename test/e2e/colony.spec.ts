@@ -165,6 +165,34 @@ test('the keyboard alone opens a colony, loads cargo, changes the project and le
   await expect(page.locator('canvas.map')).toBeFocused();
 });
 
+test('a passenger on a docked ship can be picked in the colony and put ashore or to work', async ({ page }) => {
+  await foundJamestown(page);
+  const colony = page.locator('.colony-screen');
+  await page.keyboard.press('Escape');
+  await expect(colony).toHaveCount(0);
+  await expect(field(page, 'unit')).toHaveText('Pioneer');
+  await page.keyboard.press('w'); // the pioneer waits; the ship comes up and docks with him aboard
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  await page.keyboard.press('ArrowLeft');
+  await expect(field(page, 'unit')).toHaveText('Pioneer');
+  await page.keyboard.press('c');
+  await page.keyboard.press('v');
+  await page.keyboard.press('Enter');
+  await expect(colony).toBeVisible();
+  const rider = colony.locator('.carrier .token-unit');
+  await expect(rider).toHaveCount(1);
+  await rider.click();
+  await expect(colony.locator('.carrier .token-selected')).toHaveCount(1);
+  await expect(colony.locator('.colony-help')).toContainText('put them ashore');
+  // a click outside the gates lands them; from there a building takes them into the colony
+  await colony.locator('.outside-row .row-title').click();
+  await expect(colony.locator('.outside-row .token-unit')).toHaveCount(1);
+  await expect(rider).toHaveCount(0);
+  await colony.locator('.building[data-building="townHall"]').click();
+  await expect(colony.locator('.outside-row .token-unit')).toHaveCount(0);
+  await expect(colony.locator('.building[data-building="townHall"] .token')).toHaveCount(1);
+});
+
 test('right-clicking in the colony opens the encyclopedia at that building, cargo or colonist', async ({ page }) => {
   await foundJamestown(page);
   const colony = page.getByRole('dialog', { name: 'Colony' });

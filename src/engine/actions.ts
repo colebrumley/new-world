@@ -123,6 +123,8 @@ export type Action =
   | { readonly type: 'foundColony'; readonly unitId: UnitId; readonly name?: string }
   /** B inside one of your colonies: the unit moves in and takes up work. */
   | { readonly type: 'joinColony'; readonly unitId: UnitId }
+  /** Someone aboard a ship or wagon train lying in one of our colonies steps ashore there. */
+  | { readonly type: 'goAshore'; readonly unitId: UnitId }
   /** A colonist steps outside the colony and becomes a unit again. */
   | { readonly type: 'leaveColony'; readonly colonyId: ColonyId; readonly colonistId: UnitId }
   /** Give a colony up for good. */
@@ -204,7 +206,7 @@ export type GameEvent =
   | { readonly type: 'turnAdvanced'; readonly turn: number }
   | { readonly type: 'gameEnded'; readonly reason: GameOverReason; readonly player: PlayerId; readonly turn: number; readonly year: number };
 
-export type ActionErrorCode = 'gameOver' | IndependenceErrorCode | DiplomacyErrorCode | CongressErrorCode | NavalErrorCode | 'underRepair' | AssaultErrorCode | BattleErrorCode | LandErrorCode | RumorErrorCode | NativeWarErrorCode | VillageErrorCode | RoyalErrorCode | CustomHouseErrorCode | TaxErrorCode | MarketErrorCode | EuropeErrorCode | TradeRouteErrorCode | 'notYourColony' | ConstructionErrorCode | MoveErrorCode | ColonyErrorCode | JobErrorCode | CargoErrorCode | PioneerErrorCode | 'atSea' | 'notInEurope' | 'notAtSea' | 'unknownAction' | 'noSuchUnit' | 'notYourUnit' | 'noPath' | 'badOrders';
+export type ActionErrorCode = 'gameOver' | 'notAboard' | IndependenceErrorCode | DiplomacyErrorCode | CongressErrorCode | NavalErrorCode | 'underRepair' | AssaultErrorCode | BattleErrorCode | LandErrorCode | RumorErrorCode | NativeWarErrorCode | VillageErrorCode | RoyalErrorCode | CustomHouseErrorCode | TaxErrorCode | MarketErrorCode | EuropeErrorCode | TradeRouteErrorCode | 'notYourColony' | ConstructionErrorCode | MoveErrorCode | ColonyErrorCode | JobErrorCode | CargoErrorCode | PioneerErrorCode | 'atSea' | 'notInEurope' | 'notAtSea' | 'unknownAction' | 'noSuchUnit' | 'notYourUnit' | 'noPath' | 'badOrders';
 
 export interface ActionError {
   readonly code: ActionErrorCode;
@@ -449,6 +451,12 @@ export function validateAction(state: GameState, action: Action): Validation {
       if (isValidation(unit)) return unit;
       const check = checkJoin(state, unit);
       return check.ok ? OK : fail(check.code, check.message);
+    }
+    case 'goAshore': {
+      const unit = ownUnitOnMap(state, action.unitId);
+      if (isValidation(unit)) return unit;
+      if (unit.aboard === null) return fail('notAboard', 'that unit is not aboard anything');
+      return colonyAt(state, unit.x, unit.y)?.owner === unit.owner ? OK : fail('noColonyHere', 'there is no colony of ours here');
     }
     case 'leaveColony':
     case 'abandonColony':
@@ -917,6 +925,14 @@ function applyCore(state: GameState, action: Action): ActionResult {
     case 'joinColony': {
       const events: ColonyEvent[] = [];
       return { state: joinColony(state, state.units[action.unitId] as Unit, events), events };
+    }
+    case 'goAshore': {
+      const unit = state.units[action.unitId] as Unit;
+      // stepping onto the quay costs nothing and wakes whoever was asleep in the hold
+      return {
+        state: replaceUnit(state, { ...unit, aboard: null, orders: 'none', destination: null }),
+        events: [{ type: 'unitLanded', unitId: unit.id, carrierId: unit.aboard as UnitId, to: [unit.x, unit.y] }],
+      };
     }
     case 'leaveColony': {
       const events: ColonyEvent[] = [];
