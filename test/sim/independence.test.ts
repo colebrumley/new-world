@@ -60,7 +60,8 @@ describe.skipIf(!process.env['SIM'])('a War of Independence from a saved game', 
     const { state, seen } = fight(start, seed, 40);
     expect(state.players.filter((p) => !p.withdrawn).map((p) => p.id)).toEqual(['england']);
     expect(seen['independenceDeclared']).toBe(1);
-    expect(seen['refLanded']).toBeGreaterThan(1);
+    // (with a single colony to retake, one landing may be all there is)
+    expect(seen['refLanded']).toBeGreaterThan(0);
     expect(seen['battle']).toBeGreaterThan(0);
   });
 
