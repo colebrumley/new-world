@@ -16,8 +16,6 @@ export const AI_PLAN = {
   /** How far a ship, and a party on foot, look for a site. */
   shipSearch: 14,
   landSearch: 7,
-  /** Buildings a colony puts up before anything else, as soon as each is open to it. */
-  buildFirst: ['stockade', 'printingPress', 'newspaper'],
   /** A colony of at least this many seats a statesman, and one more for every so many colonists (three at most), if it can still feed itself. */
   statesmanFrom: 3,
   colonistsPerStatesman: 3,
@@ -209,4 +207,52 @@ export const AI_FLEET = {
   /** Artillery, on one throw in this many, when its holds are more than the second number. */
   artilleryOdds: 4,
   artilleryHoldsOver: 4,
+} as const;
+
+// How a computer power runs a colony: who works at what, and what it builds, as traced from the
+// original program; see docs/RULES.md "Computer powers: the colony".
+export const AI_COLONY = {
+  /** A food square is kept only if it yields this much while the colony is short of food, or the second otherwise. */
+  yieldLeastShort: 3,
+  yieldLeast: 5,
+  /** "Short" needs the shortfall times this to reach the food in store. */
+  shortTimes: 16,
+  /** A lumberjack is put on while the colony holds less lumber than this; a carpenter once it has this much, counting the turn's. */
+  lumberjackBelow: 10,
+  carpenterFrom: 2,
+  /** With nobody felling and under `giftBelow` lumber, on turns divisible by `giftEvery` the colony is given `gift` lumber, for `giftGold` if the treasury has it. */
+  giftBelow: 2,
+  giftEvery: 8,
+  gift: 100,
+  giftGold: 200,
+  /** Building: a stable from this many horses; nothing beyond the first three choices under `smallBelow` people, nor beyond the middle of the list under `mediumBelow`. */
+  stableHorses: 2,
+  smallBelow: 4,
+  mediumBelow: 8,
+  /** A warehouse level is wanted for every this many people. */
+  peoplePerWarehouse: 6,
+  /** Custom house from this population when ships threaten or the human leads at sea by more than `customLead` warships; from the second anyway. */
+  customFrom: 6,
+  customLead: 2,
+  customAnywayFrom: 12,
+  /** Schools: population + experts needed for a schoolhouse, a college, a university. */
+  schoolFrom: [4, 10, 16],
+  /** Armory: population, the musket price level (plus half the difficulty level) or the turn after which it is wanted, and the tools it must hold. */
+  armoryFrom: 6,
+  armoryPrice: 4,
+  armoryAfterTurn: 80,
+  armoryTools: 40,
+  /** Blacksmith's shop: population, the musket price level, the ore it must hold. */
+  smithFrom: 4,
+  smithPrice: 4,
+  smithOre: 40,
+  /** Newspaper from this many bells a turn; fortress from this population. */
+  newspaperBells: 4,
+  fortressFrom: 10,
+  /** A processing chain goes to its second level when the colony makes this much of the product, to its third at the next figure or with this much in store. */
+  chainSecond: 3,
+  chainThird: 8,
+  chainStock: 100,
+  /** Artillery is built while fewer than this many pieces stand in the colony. */
+  artilleryBelow: 3,
 } as const;

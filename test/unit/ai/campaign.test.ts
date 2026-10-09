@@ -3,7 +3,7 @@ import {
   assaultReady, badlyDefended, defendersShort, defendersWanted, garrisons, invadeRequests, invasionBeach, invasionFor, invasionRefusal, isFull, isQuiet, landAttackChoice,
   landingStep, landmassSize, landOrders, landRequests, mayAttack, scaledOdds, worthTaking, type LandRequest,
 } from '../../../src/ai/campaign';
-import { europeanAction } from '../../../src/ai/european';
+
 import { applyAction } from '../../../src/engine/actions';
 import { analyseAttack } from '../../../src/engine/analysis';
 import { AI_CAMPAIGN } from '../../../src/engine/data/ai';
@@ -12,6 +12,7 @@ import { checkInvariants } from '../../../src/engine/invariants';
 import { landmassAt } from '../../../src/engine/regions';
 import type { Colonist, Colony, Dealing, GameState, Player, Settlement, Unit } from '../../../src/engine/state';
 import { isWater } from '../../../src/engine/tile';
+import { policy } from '../../helpers/policy';
 import { withColony, withUnit, world } from '../../helpers/world';
 
 // a mainland (x 1..10, y 1..7: 70 squares) and an island (x 14..17: 28 squares)
@@ -198,14 +199,14 @@ describe('which troops answer', () => {
 
   it('a spare soldier marches beside the colony it is to attack and waits there; one sent to defend marches in', () => {
     const s = troop(established(neighbours({ b: 'peace' })), 'spare', 3, 4);
-    const march = europeanAction(s) as { type: string; unitId: string; x: number; y: number };
+    const march = policy(s) as { type: string; unitId: string; x: number; y: number };
     expect(march).toMatchObject({ type: 'goTo', unitId: 'spare' });
     expect(Math.max(Math.abs(march.x - 9), Math.abs(march.y - 4))).toBe(1);
     // beside it, at peace: nothing more
     const there = troop(troop(established(neighbours({ b: 'peace' })), 'spare', 8, 4), 'mate', 8, 4);
-    expect(europeanAction(there)).toEqual({ type: 'endTurn' });
+    expect(policy(there)).toEqual({ type: 'endTurn' });
     const bare = troop(troop(col(col(base(), 'home', 2, 4), 'second', 2, 7), 'guard', 2, 4, 'soldier', 'a', { orders: 'fortified' }), 'spare', 6, 4);
-    expect(europeanAction(bare)).toEqual({ type: 'goTo', unitId: 'spare', x: 2, y: 7 });
+    expect(policy(bare)).toEqual({ type: 'goTo', unitId: 'spare', x: 2, y: 7 });
   });
 });
 
@@ -281,13 +282,13 @@ describe('when a landing is planned', () => {
     s = withUnit(withUnit(s, { id: 'r1', type: 'soldier', x: 12, y: 2, aboard: 'ship' }), { id: 'r2', type: 'soldier', x: 12, y: 2, aboard: 'ship' });
     expect(isFull(s, u(s, 'ship'))).toBe(true);
     expect(invasionFor(s, me(s), 12, 2)).toEqual(beach);
-    expect(europeanAction(s)).toEqual({ type: 'goTo', unitId: 'ship', x: beach.x, y: beach.y });
+    expect(policy(s)).toEqual({ type: 'goTo', unitId: 'ship', x: beach.x, y: beach.y });
     // off the beach
     const there = { ...s, units: { ...s.units, ship: { ...u(s, 'ship'), x: beach.x, y: beach.y }, r1: { ...u(s, 'r1'), x: beach.x, y: beach.y }, r2: { ...u(s, 'r2'), x: beach.x, y: beach.y } } };
     const step = landingStep(there, u(there, 'r1'), u(there, 'ship'), me(there));
     expect(step).toMatchObject({ type: 'moveUnit', unitId: 'r1' });
-    expect(europeanAction(there)).toEqual(step);
-    const landed = applyAction(there, europeanAction(there)).state;
+    expect(policy(there)).toEqual(step);
+    const landed = applyAction(there, policy(there)).state;
     expect(checkInvariants(landed)).toEqual([]);
     expect(landmassAt(landed.map, u(landed, 'r1').x, u(landed, 'r1').y)).toBe(beach.land);
     expect(u(landed, 'r1').aboard).toBeNull();
@@ -322,19 +323,19 @@ describe('when a landing is planned', () => {
     expect(isQuiet(s, me(s), landmassAt(s.map, 14, 4))).toBe(true);
     expect(isQuiet(s, me(s), landmassAt(s.map, 9, 4))).toBe(false);
     s = withUnit(troop(troop(s, 's1', 14, 4), 's2', 14, 4), { id: 'ship', type: 'caravel', profession: null, x: 14, y: 4 });
-    expect(europeanAction(s)).toEqual({ type: 'setOrders', unitId: 's1', orders: 'sentry' });
-    let next = applyAction(s, europeanAction(s)).state;
-    expect(europeanAction(next)).toEqual({ type: 'setOrders', unitId: 's2', orders: 'sentry' });
-    next = applyAction(next, europeanAction(next)).state;
+    expect(policy(s)).toEqual({ type: 'setOrders', unitId: 's1', orders: 'sentry' });
+    let next = applyAction(s, policy(s)).state;
+    expect(policy(next)).toEqual({ type: 'setOrders', unitId: 's2', orders: 'sentry' });
+    next = applyAction(next, policy(next)).state;
     // the ship counts them as aboard and sails for the beach, and they go with her
-    const sail = europeanAction(next);
+    const sail = policy(next);
     expect(sail).toMatchObject({ type: 'goTo', unitId: 'ship' });
     const gone = applyAction(next, sail).state;
     expect(u(gone, 's1').aboard).toBe('ship');
     expect(u(gone, 's2').aboard).toBe('ship');
     // one spare man does not fill her, so nobody boards
     const short = { ...s, units: Object.fromEntries(Object.entries(s.units).filter(([id]) => id !== 's2')) };
-    expect(europeanAction(short)).not.toMatchObject({ type: 'setOrders', orders: 'sentry' });
+    expect(policy(short)).not.toMatchObject({ type: 'setOrders', orders: 'sentry' });
   });
 });
 
@@ -373,9 +374,9 @@ describe('fighting on land', () => {
     // soldier on soldier in the open: 8 x 3 / 3 = 8
     const even = established(facing('soldier', { b: 'war' }));
     expect(scaledOdds(even, u(even, 'mine'), 1, 0)).toBe(8);
-    expect(europeanAction(even).type).not.toBe('attack');
+    expect(policy(even).type).not.toBe('attack');
     const sure = established(facing('colonist', { b: 'war' }));
-    expect(europeanAction(sure)).toEqual({ type: 'attack', unitId: 'mine', dx: 1, dy: 0 });
+    expect(policy(sure)).toEqual({ type: 'attack', unitId: 'mine', dx: 1, dy: 0 });
   });
 
   it('Europeans only at war; after the Declaration only the human', () => {
@@ -424,7 +425,7 @@ describe('fighting on land', () => {
     // a soldier (2) against a soldier (2) does not, whatever the odds
     expect(assaultReady(soldier, me(soldier), { x: 6, y: 4 })).toBe(false);
     expect(attacks(soldier)).toBe(false);
-    expect(europeanAction(established(soldier))).toEqual({ type: 'endTurn' });
+    expect(policy(established(soldier))).toEqual({ type: 'endTurn' });
     // a second man alongside makes four against two
     const two = troop(soldier, 'mate', 5, 5);
     expect(assaultReady(two, me(two), { x: 6, y: 4 })).toBe(true);

@@ -4,11 +4,6 @@ exports[`AI plan table > matches the snapshot 1`] = `
 {
   "actionsPerTurn": 250,
   "berthsTried": 3,
-  "buildFirst": [
-    "stockade",
-    "printingPress",
-    "newspaper",
-  ],
   "coloniesAtStart": 4,
   "coloniesBeforeGarrison": 2,
   "coloniesMost": 8,

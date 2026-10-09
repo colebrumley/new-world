@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { europeanAction } from '../../../src/ai/european';
+
 import { baseLoad, blockadeSquare, chooseStation, firmPeace, mayEngage, navalAttackChoice, navalOrders, navalStations, privateersCarry, warshipAction, type Station } from '../../../src/ai/navy';
 import { applyAction } from '../../../src/engine/actions';
 import { AI_NAVY } from '../../../src/engine/data/ai';
 import { checkInvariants } from '../../../src/engine/invariants';
 import { OFF_MAP, type Colonist, type Dealing, type GameState, type Player, type Unit } from '../../../src/engine/state';
+import { policy } from '../../helpers/policy';
 import { withColony, withUnit, world } from '../../helpers/world';
 
 // open sea with a block of land in the middle (x 12..15, y 2..9) and a lake inside it at (14, 5)
@@ -157,8 +158,8 @@ describe('fighting at sea', () => {
   it('a ship attacks an adjacent enemy ship at any odds', () => {
     const s = facing('privateer', 'manOWar', { b: 'war' });
     expect(navalAttackChoice(s, u(s, 'mine'), me(s))).toEqual({ type: 'attack', unitId: 'mine', dx: 1, dy: 0 });
-    expect(europeanAction(s)).toEqual({ type: 'attack', unitId: 'mine', dx: 1, dy: 0 });
-    expect(checkInvariants(applyAction(s, europeanAction(s)).state)).toEqual([]);
+    expect(policy(s)).toEqual({ type: 'attack', unitId: 'mine', dx: 1, dy: 0 });
+    expect(checkInvariants(applyAction(s, policy(s)).state)).toEqual([]);
   });
 
   it('a peace treaty stops that, unless the attacker or the target is a privateer', () => {
@@ -199,10 +200,10 @@ describe('what a warship does', () => {
   it('goes to its station and holds there', () => {
     const s = ship(theirPort(sea()), 'p', 'privateer', 4, 5);
     expect(warshipAction(s, u(s, 'p'), me(s))).toEqual({ type: 'goTo', unitId: 'p', x: 10, y: 5 });
-    expect(europeanAction(s)).toEqual({ type: 'goTo', unitId: 'p', x: 10, y: 5 });
+    expect(policy(s)).toEqual({ type: 'goTo', unitId: 'p', x: 10, y: 5 });
     const there = ship(theirPort(sea()), 'p', 'privateer', 10, 5);
     expect(warshipAction(there, u(there, 'p'), me(there))).toBeNull();
-    expect(europeanAction(there)).toEqual({ type: 'endTurn' });
+    expect(policy(there)).toEqual({ type: 'endTurn' });
   });
 
   it('nothing sends a privateer after the shipping of a power at firm peace', () => {
@@ -252,6 +253,6 @@ describe('a privateer in Europe', () => {
     s = inEurope(ship(s, 'p', 'privateer', 0, 0), 'p');
     s = { ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, pool: [] } : p)) };
     // (how it comes by one is the round of buying: see the fleet tests)
-    expect(europeanAction(s)).toEqual({ type: 'sailFromEurope', unitId: 'p' });
+    expect(policy(s)).toEqual({ type: 'sailFromEurope', unitId: 'p' });
   });
 });

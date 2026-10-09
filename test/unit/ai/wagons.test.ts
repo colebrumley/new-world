@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { builderFor, europeanAction, playTurn } from '../../../src/ai/european';
-import { parleyAction, wagonAction, wagonBuild, wagonLoad, wagonRefusal, wagonTarget } from '../../../src/ai/wagons';
+import {playTurn } from '../../../src/ai/european';
+import { buildChoice } from '../../../src/ai/colony';
+import { parleyAction, wagonAction, wagonLoad, wagonRefusal, wagonTarget } from '../../../src/ai/wagons';
 import { applyAction, type Action } from '../../../src/engine/actions';
 import { AI_WAGONS } from '../../../src/engine/data/ai';
 import type { GoodId } from '../../../src/engine/data/goods';
@@ -8,7 +9,8 @@ import { settlementPopulation } from '../../../src/engine/data/tribes';
 import { checkInvariants } from '../../../src/engine/invariants';
 import type { Rng } from '../../../src/engine/rng';
 import type { Colony, GameState, Goods, Settlement, TribeState, Unit } from '../../../src/engine/state';
-import { setTile, withBids, withColony, withUnit, world } from '../../helpers/world';
+import { policy } from '../../helpers/policy';
+import { withBids, withColony, withUnit, world } from '../../helpers/world';
 
 // a mainland (x 1..10) and an island (x 13..14) with sea between and all round
 const ROWS = Array.from({ length: 9 }, (_, y) => (y === 0 || y === 8 ? '~'.repeat(16) : `~${'.'.repeat(10)}~~..~`));
@@ -54,16 +56,14 @@ describe('wagon rule table', () => {
 });
 
 describe('when a colony builds a wagon train', () => {
-  const WAGON: Action = { type: 'setConstruction', colonyId: 'col', item: { kind: 'unit', unit: 'wagonTrain' } };
-
   it('none serves it, the year is before 1600, natives live on its landmass and are calm, and nobody threatens it', () => {
     const s = land();
     expect(wagonRefusal(s, colony(s))).toBeNull();
-    expect(wagonBuild(s, colony(s))).toEqual(WAGON);
-    expect(europeanAction(s)).toEqual(WAGON);
-    // once it is on the stocks the order is not given again
-    const started = act(s, WAGON);
-    expect(wagonBuild(started, colony(started))).toBeNull();
+    // a colony of four or more then puts one on the stocks (it comes after the stockade on its list, which this one has)
+    const four = { ...s, colonies: { col: { ...colony(s), buildings: [...colony(s).buildings, 'stockade' as const], colonists: Array.from({ length: 4 }, (_, i) => ({ id: `p${i}`, profession: 'freeColonist' as const, job: { kind: 'idle' as const }, turns: 0 })) } } };
+    expect(buildChoice(four, colony(four))).toEqual({ kind: 'unit', unit: 'wagonTrain' });
+    // a colony of one thinks of nothing so grand
+    expect(buildChoice(s, colony(s))).toBeNull();
   });
 
   it('not when a wagon already serves it', () => {
@@ -106,69 +106,6 @@ describe('when a colony builds a wagon train', () => {
     // its one wagon is stranded on the island, where it serves nothing
     const s = wagon(land(), { x: 13, y: 4 });
     expect(wagonRefusal(s, colony(s))).toBe('notAvailable');
-  });
-
-  it('a wagon no longer wanted comes off the stocks', () => {
-    const late = land({ turn: 120 });
-    const s = { ...late, colonies: { col: { ...colony(late), construction: { kind: 'unit' as const, unit: 'wagonTrain' as const } } } };
-    const next = europeanAction(s);
-    expect(next).toMatchObject({ type: 'setConstruction', colonyId: 'col', item: { kind: 'building' } });
-  });
-});
-
-describe('who builds what a colony has on the stocks', () => {
-  const WAGON: Action = { type: 'setConstruction', colonyId: 'col', item: { kind: 'unit', unit: 'wagonTrain' } };
-  const farm = (n: number): Colony['colonists'] => Array.from({ length: n }, (_, i) => ({ id: `c${i}`, profession: 'freeColonist' as const, job: { kind: 'field' as const, dx: -1, dy: i - 1, good: 'food' as const }, turns: 0 }));
-
-  it('a colony of one fells timber until there is enough, then takes up the hammer', () => {
-    let s = act(land(), WAGON);
-    s = setTile(s, 3, 4, { forest: true });
-    const fell = builderFor(s, colony(s));
-    expect(fell).toMatchObject({ type: 'assignJob', colonyId: 'col', job: { kind: 'field', dx: 1, dy: 0, good: 'lumber' } });
-    expect(europeanAction(s)).toEqual(fell);
-    s = act(s, fell);
-    expect(builderFor(s, colony(s))).toBeNull();
-    // with lumber enough to finish it (40 hammers for a wagon train), the same hand changes over
-    s = { ...s, colonies: { col: { ...colony(s), goods: { lumber: 39 } } } };
-    expect(builderFor(s, colony(s))).toBeNull();
-    s = { ...s, colonies: { col: { ...colony(s), goods: { lumber: 40 } } } };
-    const build = builderFor(s, colony(s));
-    expect(build).toMatchObject({ type: 'assignJob', job: { kind: 'work', trade: 'carpenter' } });
-    s = act(s, build);
-    // and stays at the bench while there is lumber to work, though it is no longer enough to finish
-    s = { ...s, colonies: { col: { ...colony(s), goods: { lumber: 3 }, hammers: 10 } } };
-    expect(builderFor(s, colony(s))).toBeNull();
-    // out of lumber: back to the forest
-    s = { ...s, colonies: { col: { ...colony(s), goods: {} } } };
-    expect(builderFor(s, colony(s))).toMatchObject({ job: { kind: 'field', good: 'lumber' } });
-  });
-
-  it('it is the same for a building as for a wagon, and nothing is done when the hammers are in', () => {
-    const s = setTile(land({ turn: 120 }), 3, 4, { forest: true });
-    expect(colony(s).construction).toEqual({ kind: 'building', id: 'stockade' });
-    expect(builderFor(s, colony(s))).toMatchObject({ job: { kind: 'field', good: 'lumber' } });
-    const done = { ...s, colonies: { col: { ...colony(s), hammers: 9999 } } };
-    expect(builderFor(done, colony(done))).toBeNull();
-    const idle = { ...s, colonies: { col: { ...colony(s), construction: null } } };
-    expect(builderFor(idle, colony(idle))).toBeNull();
-  });
-
-  it('a larger colony keeps one hand felling and one at the bench together, but takes nobody it needs for food', () => {
-    let s = setTile(land({ turn: 120 }), 3, 4, { forest: true });
-    s = { ...s, colonies: { col: { ...colony(s), colonists: [...farm(2), { id: 'spare', profession: 'freeColonist', job: { kind: 'idle' }, turns: 0 }], goods: { lumber: 10 } } } };
-    // lumber to work, but not enough: a carpenter first, then a feller
-    const first = builderFor(s, colony(s));
-    expect(first).toMatchObject({ colonistId: 'spare', job: { kind: 'work', trade: 'carpenter' } });
-    s = act(s, first);
-    const second = builderFor(s, colony(s));
-    if (second) {
-      expect(second).toMatchObject({ job: { kind: 'field', good: 'lumber' } });
-      s = act(s, second);
-    }
-    expect(builderFor(s, colony(s))).toBeNull();
-    // with no forest in reach nobody can fell, and nobody is moved for nothing
-    const bare = land({ turn: 120 });
-    expect(builderFor(bare, colony(bare))).toBeNull();
   });
 });
 
@@ -266,7 +203,7 @@ describe('the round a wagon makes', () => {
     expect(s.parley).toMatchObject({ stage: 'selling', good: 'tradeGoods' });
     const price = (s.parley as { price: number }).price;
     expect(parleyAction(s)).toEqual({ type: 'parley', reply: 'accept' });
-    expect(europeanAction(s)).toEqual({ type: 'parley', reply: 'accept' });
+    expect(policy(s)).toEqual({ type: 'parley', reply: 'accept' });
     s = act(s, parleyAction(s));
     expect(s.players[0]?.gold).toBe(5000 + price);
     expect(w(s).cargo).toEqual({});

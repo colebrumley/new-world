@@ -18,12 +18,11 @@ import { warehouseCapacity } from '../engine/pioneer';
 import { landmassAt } from '../engine/regions';
 import { createRng, type Rng } from '../engine/rng';
 import { tribeOfOwner } from '../engine/settlements';
-import { colonyAt, type BuildItem, type Colony, type GameState, type Settlement, type Unit } from '../engine/state';
+import { colonyAt, type Colony, type GameState, type Settlement, type Unit } from '../engine/state';
 import { wagonHomes } from '../engine/wagons';
 
 const far = (ax: number, ay: number, bx: number, by: number): number => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 const ok = (state: GameState, action: Action): boolean => validateAction(state, action).ok;
-const WAGON: BuildItem = { kind: 'unit', unit: 'wagonTrain' };
 
 /** A stream of chances for one unit's decisions this turn: the same however often it is asked. */
 export const aiRng = (state: GameState, label: string): Rng => createRng(state.rng).fork(`ai:${state.turn}:${label}`);
@@ -69,16 +68,6 @@ export function wagonRefusal(state: GameState, colony: Colony): 'served' | 'tooL
   if (tribalAlarm(state, nearest.tribe, colony.owner) >= AI_WAGONS.buildAlarmBelow) return 'alarmed';
   if (isThreatened(state, colony)) return 'threatened';
   return availableItems(state, colony).some((i) => i.kind === 'unit' && i.unit === 'wagonTrain') ? null : 'notAvailable';
-}
-
-export const isWagonProject = (colony: Colony): boolean => colony.construction?.kind === 'unit' && colony.construction.unit === 'wagonTrain';
-
-/** The order to start a wagon train in this colony, when one is due and it is not already on the stocks. */
-export function wagonBuild(state: GameState, colony: Colony): Action | null {
-  if (isWagonProject(colony)) return null;
-  if (wagonRefusal(state, colony) !== null) return null;
-  const build: Action = { type: 'setConstruction', colonyId: colony.id, item: WAGON };
-  return ok(state, build) ? build : null;
 }
 
 /**

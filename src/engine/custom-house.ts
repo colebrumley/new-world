@@ -13,7 +13,7 @@ export type CustomHouseEvent =
   | { readonly type: 'exportSet'; readonly colonyId: string; readonly good: GoodId; readonly on: boolean }
   /** Goods sold through the Custom House. `tax` is 0 once independence has been declared. */
   | { readonly type: 'customHouseSold'; readonly colonyId: string; readonly player: string; readonly good: GoodId; readonly amount: number; readonly gross: number; readonly tax: number; readonly net: number }
-  /** A computer power's colony has had trade goods sent out for its wagon train. */
+  /** A computer power's colony has had goods sent out to it: trade goods for its wagon train, or lumber when it has nobody to fell any. */
   | { readonly type: 'colonySupplied'; readonly colonyId: string; readonly player: string; readonly good: GoodId; readonly amount: number; readonly cost: number };
 
 export type CustomHouseErrorCode = 'noColony' | 'noCustomHouse' | 'noSuchGood';

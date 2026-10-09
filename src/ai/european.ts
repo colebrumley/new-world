@@ -11,17 +11,13 @@
 import { applyAction, validateAction, type Action, type GameEvent } from '../engine/actions';
 import { holdsFree } from '../engine/cargo';
 import { landmassAt } from '../engine/regions';
-import { coloniesOf, checkColonySite, NEIGHBORS } from '../engine/colony';
-import { availableItems, itemCost } from '../engine/construction';
-import { fieldOutput } from '../engine/jobs';
-import { warehouseCapacity } from '../engine/pioneer';
+import { coloniesOf, checkColonySite } from '../engine/colony';
 import { AI_CAMPAIGN, AI_FLEET, AI_PLAN } from '../engine/data/ai';
 import { fleetCensus, fleetWants } from '../engine/fleet';
 import { GOOD_IDS } from '../engine/data/goods';
 import { NATIONS } from '../engine/data/nations';
 import { UNSKILLED } from '../engine/data/professions';
 import { UNIT_TYPES } from '../engine/data/units';
-import { colonyProduction } from '../engine/economy';
 import { docksOf, shipsInEurope } from '../engine/europe';
 import { recruitPrice } from '../engine/immigration';
 import { isInlandLake } from '../engine/movement';
@@ -31,7 +27,8 @@ import { isWater, type Tile } from '../engine/tile';
 import { defendersWanted, garrisons, invadeRequests, invasionFor, isFull, isQuiet, isTroop, landAttackChoice, landingStep, landOrders } from './campaign';
 import { missionaryAction, ordain, villageVisit, type Chances } from './missions';
 import { isWarship, privateersCarry, warshipAction } from './navy';
-import { aiRng, isWagonProject, parleyAction, wagonAction, wagonBuild, wagonRefusal } from './wagons';
+import { buildAction, jobAction, jobPlan } from './colony';
+import { aiRng, parleyAction, wagonAction } from './wagons';
 
 const DIRS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]] as const;
 const far = (ax: number, ay: number, bx: number, by: number): number => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -409,75 +406,8 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
   return ok(state, found) ? found : null;
 }
 
-/**
- * Liberty needs voices: a colony of some size keeps one colonist in its Town Hall for every few
- * it has, so long as the colony still feeds itself. Returns the appointment to make, if one is due.
- */
-function statesmanFor(state: GameState, colony: Colony): Action | null {
-  const people = colony.colonists.length;
-  if (people < AI_PLAN.statesmanFrom || !colony.buildings.includes('townHall')) return null;
-  const isStatesman = (c: Colony['colonists'][number]): boolean => c.job.kind === 'work' && c.job.trade === 'statesman';
-  const seated = colony.colonists.filter(isStatesman).length;
-  if (seated >= Math.min(3, Math.floor(people / AI_PLAN.colonistsPerStatesman))) return null;
-  // an elder statesman first, then whoever is spared most easily: the idle, then hands with no trade
-  const rank = (c: Colony['colonists'][number]): number => (c.profession === 'elderStatesman' ? 0 : c.job.kind === 'idle' ? 1 : UNSKILLED.includes(c.profession) && c.profession !== 'indianConvert' ? 2 : 9);
-  const candidates = colony.colonists.filter((c) => !isStatesman(c) && rank(c) < 9).sort((a, b) => rank(a) - rank(b));
-  for (const c of candidates) {
-    const seat: Action = { type: 'assignJob', colonyId: colony.id, colonistId: c.id, job: { kind: 'work', trade: 'statesman' } };
-    if (!ok(state, seat)) continue;
-    const after = applyAction(state, seat).state;
-    const report = colonyProduction(after, after.colonies[colony.id] as Colony);
-    if (report.produced.food >= report.consumed.food) return seat;
-  }
-  return null;
-}
-
-/**
- * Whatever a colony is building needs timber felled and then worked (as FreeCol's computer
- * colonies staff lumber and hammers ahead of their cash crops). While the project wants hammers
- * a colony keeps a hand felling until there is lumber enough, and a hand at the carpenter's
- * bench while there is lumber to work; a colony of one does the two by turns. Nobody is taken
- * off the land if the colony would then go hungry. Returns the appointment to make, if one is due.
- */
-export function builderFor(state: GameState, colony: Colony): Action | null {
-  if (colony.construction === null || !colony.buildings.includes('carpentersShop')) return null;
-  const need = itemCost(colony.construction).hammers - colony.hammers;
-  if (need <= 0) return null;
-  type Hand = Colony['colonists'][number];
-  const isCarpenter = (c: Hand): boolean => c.job.kind === 'work' && c.job.trade === 'carpenter';
-  const isFeller = (c: Hand): boolean => c.job.kind === 'field' && c.job.good === 'lumber';
-  const lumber = colony.goods.lumber ?? 0;
-  const enough = lumber >= Math.min(need, warehouseCapacity(colony));
-  const alone = colony.colonists.length === 1;
-  const wantCarpenter = lumber > 0 && (enough || !alone || colony.colonists.some(isCarpenter));
-  const wantFeller = !enough && !(alone && wantCarpenter);
-  const fills = (c: Hand, job: Job): Action | null => {
-    const put: Action = { type: 'assignJob', colonyId: colony.id, colonistId: c.id, job };
-    if (!ok(state, put)) return null;
-    const after = applyAction(state, put).state;
-    const report = colonyProduction(after, after.colonies[colony.id] as Colony);
-    return report.produced.food >= report.consumed.food ? put : null;
-  };
-  // the idle first, then whoever works the land; a colony of one simply changes over
-  const rank = (c: Hand): number => (alone ? 0 : isCarpenter(c) || isFeller(c) ? 9 : c.job.kind === 'idle' ? 1 : c.job.kind === 'field' ? 2 : 9);
-  const hands = colony.colonists.filter((c) => rank(c) < 9).sort((a, b) => rank(a) - rank(b));
-  if (wantCarpenter && !colony.colonists.some(isCarpenter)) {
-    for (const hand of hands) {
-      const put = fills(hand, { kind: 'work', trade: 'carpenter' });
-      if (put) return put;
-    }
-  }
-  if (wantFeller && !colony.colonists.some(isFeller)) {
-    for (const hand of hands) {
-      const squares = NEIGHBORS.map(([dx, dy]) => ({ dx, dy, yield: fieldOutput(state, colony, hand.profession, dx, dy, 'lumber') })).filter((q) => q.yield > 0).sort((a, b) => b.yield - a.yield);
-      for (const q of squares) {
-        const put = fills(hand, { kind: 'field', dx: q.dx, dy: q.dy, good: 'lumber' });
-        if (put) return put;
-      }
-    }
-  }
-  return null;
-}
+/** The job plans made so far this turn, kept with the turn's own record of who has been seen to. */
+const plans = new WeakMap<Set<string>, Map<string, Map<string, Job>>>();
 
 /** The next action for the power whose turn it is. Ends the turn when nothing useful is left to do. */
 export function europeanAction(state: GameState, idle: Set<string> = new Set()): Action {
@@ -487,25 +417,19 @@ export function europeanAction(state: GameState, idle: Set<string> = new Set()):
   const talks = parleyAction(state);
   if (talks) return talks;
   const mine = coloniesOf(state, player.id);
+  // each colony in turn: what it builds, and who does what (docs/RULES.md "Computer powers: the colony")
   for (const colony of mine) {
-    // a wagon train for the trade with the natives goes ahead of whatever else is on the stocks
-    const wagon = wagonBuild(state, colony);
-    if (wagon) return wagon;
-    // a wagon stays on the stocks only while one is still wanted
-    if (colony.construction !== null && !(isWagonProject(colony) && wagonRefusal(state, colony) !== null)) continue;
-    // the buildings it sets most store by come first; after them, whatever is next on the list
-    const open = availableItems(state, colony).filter((i) => !(i.kind === 'unit' && i.unit === 'wagonTrain'));
-    const item = AI_PLAN.buildFirst.map((id) => open.find((i) => i.kind === 'building' && i.id === id)).find((i) => i !== undefined) ?? open[0];
-    const build: Action | null = item ? { type: 'setConstruction', colonyId: colony.id, item } : null;
-    if (build && ok(state, build)) return build;
-  }
-  for (const colony of mine) {
-    const seat = statesmanFor(state, colony);
-    if (seat) return seat;
-  }
-  for (const colony of mine) {
-    const hand = builderFor(state, colony);
-    if (hand) return hand;
+    if (idle.has(`#colony:${colony.id}`)) continue;
+    const build = buildAction(state, colony);
+    if (build) return build;
+    // the jobs are dealt out once a turn, when the project is settled, and then carried through
+    const turnPlans = plans.get(idle) ?? new Map<string, Map<string, Job>>();
+    plans.set(idle, turnPlans);
+    const plan = turnPlans.get(colony.id) ?? jobPlan(state, colony);
+    turnPlans.set(colony.id, plan);
+    const job = jobAction(state, colony, plan);
+    if (job) return job;
+    idle.add(`#colony:${colony.id}`);
   }
   const inEurope = europeAction(state, player, idle);
   if (inEurope) return inEurope;

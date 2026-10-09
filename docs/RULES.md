@@ -1225,9 +1225,9 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
 - **Landing.** A ship carrying settlers makes for water beside the best site within reach; the
   settlers step ashore and found the colony. Once it has the colonies it wants, newcomers join
   the nearest one instead.
-- **Colonies.** Colonists are placed by the automatic assignment of R-309; each colony always has
-  something under construction; its surplus of the export goods is sold from the colony itself
-  as if it had a Custom House (the original's computer colonies sell this way too).
+- **Colonies.** Who works at what and what is built are under "Computer powers: the colony";
+  a colony's surplus of the export goods is sold from the colony itself as if it had a Custom
+  House (the original's computer colonies sell this way too).
 - **Europe.** An empty ship sails home, sells what it carries, pays for a passage, and returns
   with whoever waits on the docks. What it buys there, and the gold it is given, are under
   "Computer powers: the treasury and the fleet".
@@ -1241,15 +1241,9 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
   else is standing on, and puts its settlers into a colony if no site can be reached at all.
   From turn 6 a power still without a colony founds one wherever its settlers stand, if the
   ground allows.
-- **Builders.** While its project still wants hammers a colony keeps one colonist felling
-  timber until it has lumber for the rest of the job (or a full warehouse of it), and one at
-  the carpenter's bench while there is lumber to work; a colony of one does the two by turns.
-  Nobody is moved if the colony would then go hungry. (As FreeCol's computer colonies do, which
-  staff building materials ahead of cash crops: `FreeCol server/ai/ColonyPlan.java`,
-  the order of its goods lists. The original's way was not traced.)
 - **Liberty.** A colony of three or more keeps one colonist in its Town Hall as a statesman for
-  every three it has (three at most), provided it still feeds itself, and builds a Stockade, a
-  Printing Press and a Newspaper before anything else.
+  every three it has (three at most), provided it still feeds itself (ours; it is part of the
+  job plan of "Computer powers: the colony").
 - **Garrison.** Soldiers are armed on the docks in Europe from the colonists waiting there:
   what its colonies want as garrison (see "Computer powers: campaigns"), four more while a native people on a landmass it has settled is at
   75 alarm or more, and two more while there is a rival colony it would invade. A soldier brought
@@ -1302,8 +1296,10 @@ sale and the purchase for a computer power). Numbers are `AI_WAGONS` in `src/eng
 - *Trade goods* arrive in the colony as a full cargo of 100 bought at Europe's asking price, when
   the treasury holds the price and the 200 gold reserve (how the original's colony comes by them
   was not traced).
-- *Building it.* A wagon is built like anything else, by the colony's builders (see "Computer
-  powers", Builders). A wagon no longer wanted comes off the stocks.
+- *Building it.* The wagon train has its place on the colony's building list (see "Computer
+  powers: the colony"): after the stockade, stable, warehouse and custom house, and only in a
+  colony of four or more. Our computer powers spread their people over more and smaller
+  colonies than the original's seem to, so not every game sees a wagon before 1600.
 - Neither open-source reimplementation helps with any of this: FreeCol's computer powers use
   wagons only to carry goods between their own colonies and decline all native trade, and
   Revolution Now has no computer colonial powers.
@@ -1441,6 +1437,76 @@ on the docks, read instruction by instruction), `4000:fa2c` (the purchase helper
   as computer powers never have one.
 - This replaced two earlier rules of ours: a merchantman bought at 4000 gold for every three
   colonies, and warships given free on FreeCol's pattern.
+
+### Computer powers: the colony (R-802)
+
+**Source:** `VICEROY 5000:177e`..`5000:3e8c`, the computer colony's turn, read instruction by
+instruction; helpers `5000:1634` (try a building), `5000:16a0` (is a chain worth another
+level). The automatic placement it calls is that of "Automatic placement". Numbers are
+`AI_COLONY` in `src/engine/data/ai.ts`.
+
+- **Jobs are dealt out afresh every turn**, in this order.
+  1. *Food.* Expert farmers, and expert fishermen where there are docks, go to their own trade
+     on the best free square, if it yields 3 or more. Then two passes with the automatic
+     placement: first the unskilled while food is short (and converts always), then the
+     unskilled always and the skilled while food is short. "Short" = this turn's food need is
+     not met and 16 x the shortfall is at least the food in store. A placement is kept only if
+     its square yields 3 (when short) or 5; the first that does not ends the food round.
+  2. *Lumber and hammers*, only while the colony has a project that wants hammers. With nobody
+     felling and under 10 lumber, one lumberjack: an expert, else someone unskilled, else
+     anyone not yet placed. With 2 or more lumber counting this turn's, one carpenter: a master
+     carpenter, else a free colonist, else a servant or criminal.
+  3. *Experts of the land* (sugar to silver) go to their own crop on the best free square,
+     unless the colony already holds more of it than its warehouse capacity.
+  4. *Experts of the workshops* go to their own building where it stands, has room, and the
+     input is in store or being made.
+  5. *Everyone else* takes whichever pays best of the automatic placement on the land and each
+     workshop with room and input; failing both, the carpenter's bench (with a project) or the
+     pulpit.
+- **Lumber sent out.** On every eighth turn a colony with a project, nobody felling and under
+  2 lumber is given 100 lumber; 200 gold is taken if the treasury has it.
+- **What to build** is chosen afresh every turn (hammers carry over): the first of this list
+  that applies and can be started. Asking for a building that cannot be started yet means the
+  level below it in its chain, and so on down.
+  1. Docks, when its land squares are no more than its people, or it has water squares and
+     "wants docks" (over half its people farm or fish and more than one does, or food is short).
+  2. Stockade. 3. Stable, with 2 or more horses.
+  4. A colony under 4 builds nothing more.
+  5. Warehouse, with 6 or more people and none.
+  6. Custom House, 6 or more people, when a foreign warship is within 5 squares, the human has
+     over two more warships than the power, or it has 12 or more people.
+  7. Wagon Train, under "Computer powers: wagon trains".
+  8. Schoolhouse, with an expert whose trade a school can teach, and people + experts >= 4.
+  9. Armory, 6 or more people, when muskets are dear (price level + difficulty / 2 >= 4) or
+     the turn is past 80, and it holds 40 tools or makes them; or a master gunsmith is there.
+  10. Church, when a firebrand preacher is there. 11. Lumber Mill. 12. Fort.
+  13. Blacksmith's Shop, 4 or more people, muskets at price level 4 or more, and 40 ore or
+      some being mined.
+  14. Warehouse Expansion, while its warehouse level is under people / 6.
+  15. Newspaper, when it makes 4 or more bells a turn.
+  16. College (an expert of the second teaching level, people + experts >= 10).
+  17. A colony under 8 builds nothing more.
+  18. University (third level, 16). Church. Fortress, with 10 or more people.
+  19. With a factory-level processing chain: a Shipyard in a port, and then a galleon,
+      privateer or frigate by the fleet tests; Armory and artillery when no gun stands in it.
+  20. Each processing chain a level higher when it makes 3 of its product (to the second
+      level) or 8, or holds 100 (to the third).
+  21. Cathedral; then, with fewer than 3 guns, Armory, artillery, Arsenal.
+
+**Notes:** Ours, where the trace is silent or our engine differs:
+- The seat in the Town Hall (see "Computer powers", Liberty) stands in for the original's
+  weighting of bells against other work, which depends on tables we did not read.
+- "Pays best" compares output x the good's price level; the original's weights for each
+  indoor job were read only in outline.
+- The plan is worked out once a turn and carried through by ordinary job changes.
+- Left out: the original turns its own colonists into soldiers, dragoons, scouts and pioneers
+  inside the colony and back, promotes servants and criminals put to the carpenter's bench,
+  now and then makes an unskilled colonist an expert, buys 20 tools every tenth turn and two
+  horses after turn 40, and asks for goods to be shipped in. Its count of defenders wanted
+  (half the colony's people, more under threat) belongs with that arming and is not used;
+  ours stays as under "Computer powers: campaigns".
+- This replaced our own rules: buildings in a fixed short order, and one colonist put to
+  lumber and hammers on FreeCol's pattern.
 
 ### Computer powers: campaigns (R-807)
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { europeanAction } from '../../../src/ai/european';
+
 import { mayIncite, missionaryAction, missionaryDue, missionTarget, ordain, powerRank, villageEntry, villageVisit, type Chances } from '../../../src/ai/missions';
 import { applyAction, type Action } from '../../../src/engine/actions';
 import { AI_MISSIONS } from '../../../src/engine/data/ai';
@@ -7,6 +7,7 @@ import { settlementPopulation } from '../../../src/engine/data/tribes';
 import { checkInvariants } from '../../../src/engine/invariants';
 import type { Rng } from '../../../src/engine/rng';
 import { OFF_MAP, type GameState, type Player, type Settlement, type TribeState, type Unit } from '../../../src/engine/state';
+import { policy } from '../../helpers/policy';
 import { withColony, withUnit, world } from '../../helpers/world';
 
 // a mainland (x 1..10) and an island (x 13..14)
@@ -67,10 +68,10 @@ describe('when a missionary is made', () => {
     // made on the docks without a ship in port, and it is the whole of the business in Europe that turn
     // (turn 119: after 1600, so that the colony is not first set to building a wagon train)
     const guarded = withUnit(waiting(119), { id: 'g', type: 'soldier', x: 2, y: 4, orders: 'fortified' });
-    expect(europeanAction(guarded)).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'missionary' });
-    expect(act(guarded, europeanAction(guarded)).units['w']).toMatchObject({ type: 'missionary' });
+    expect(policy(guarded)).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'missionary' });
+    expect(act(guarded, policy(guarded)).units['w']).toMatchObject({ type: 'missionary' });
     // a colony still without its guard comes first
-    expect(europeanAction(waiting(119))).toEqual({ type: 'endTurn' });
+    expect(policy(waiting(119))).toEqual({ type: 'endTurn' });
   });
 
   it('from turn 200 on only one time in four', () => {
@@ -104,7 +105,7 @@ describe('when a missionary is made', () => {
     const angry = onDocks(land({ turn: 119, tribe: { alarm: { a: 90 } }, gold: 250 }), 'w');
     const ship = withUnit(angry, { id: 'ship', type: 'caravel', profession: null, x: 0, y: 0 });
     const inPort = { ...ship, units: { ...ship.units, ship: { ...u(ship, 'ship'), x: OFF_MAP, y: OFF_MAP, voyage: { phase: 'inEurope' as const, turnsLeft: 0, origin: [1, 4] as const } } } };
-    expect(europeanAction(inPort)).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'soldier' });
+    expect(policy(inPort)).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'soldier' });
   });
 });
 
@@ -160,7 +161,7 @@ describe('where a missionary goes', () => {
   it('walks to a square beside its settlement and goes in when it gets there', () => {
     const s = missionary(land(), 3, 4);
     expect(missionaryAction(s, u(s))).toMatchObject({ type: 'goTo', unitId: 'm', x: 7 });
-    expect(europeanAction(s)).toMatchObject({ type: 'goTo', unitId: 'm', x: 7 });
+    expect(policy(s)).toMatchObject({ type: 'goTo', unitId: 'm', x: 7 });
     const there = missionary(land(), 7, 4);
     expect(missionaryAction(there, u(there))).toEqual(enter('establishMission'));
     const founded = act(there, missionaryAction(there, u(there)));
@@ -252,7 +253,7 @@ describe('what its other units do on entering', () => {
   it('a colonist passing a friendly settlement steps in to learn, a scout to speak with the chief', () => {
     const settler = beside('colonist');
     expect(villageVisit(settler, u(settler))).toEqual(enter('liveAmong'));
-    expect(europeanAction(settler)).toEqual(enter('liveAmong'));
+    expect(policy(settler)).toEqual(enter('liveAmong'));
     expect(act(settler, villageVisit(settler, u(settler))).settlements['v']?.taught).toBe(true);
     // not where someone has been taught already, the tribe is wary, or the settlement itself is uneasy
     const taught = withUnit(land({ villages: [village('v', 8, 4, { taught: true })] }), { id: 'm', x: 7, y: 4 });

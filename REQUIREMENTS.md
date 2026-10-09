@@ -812,6 +812,8 @@ Legend:
   *Built:* `src/ai/european.ts` (policy in docs/RULES.md "Computer powers"). Native trade, missions,
   wagon trains, warships and campaigns came with R-804 to R-807; of the leader traits only expansion
   steers this policy (the others act through R-801). Its colonies sell surplus directly rather than by ship.
+  Colony management (jobs dealt out each turn, the building list, lumber sent out) is the original's,
+  traced (docs/RULES.md "Computer powers: the colony").
 
 - [x] **R-803 Foreign Affairs report (F8)**
   Before de Witt: war/peace matrix only. After: colonies, population, average colony size,
@@ -843,8 +845,8 @@ Legend:
   *Built:* `src/ai/wagons.ts`, `src/engine/wagons.ts`, `src/engine/regions.ts` (docs/RULES.md
   "Computer powers: wagon trains", which lists what is ours). A wagon's colony and its place in the
   round are worked out from the state, not stored. A village never refuses a computer power's
-  cargo (as the trace reads). Computer colonies staff lumber and hammers for whatever they are
-  building, as FreeCol's do.
+  cargo (as the trace reads). As in the original, only a colony of four or more thinks of a wagon
+  train, so the sim asks for a wagon sale before 1600 on at least 3 of the 5 seeds, not all.
 
 - [x] **R-805 Computer powers: missions**
   As traced from the original program. A power with no missionary turns one spare colonist into a

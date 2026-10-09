@@ -3,7 +3,8 @@
 // The buying itself is done by the policy in src/ai, through the ordinary purchase action.
 import { dateOfTurn } from './calendar';
 import { coloniesOf } from './colony';
-import { AI_FLEET } from './data/ai';
+import type { CustomHouseEvent } from './custom-house';
+import { AI_COLONY, AI_FLEET } from './data/ai';
 import { NAVAL } from './data/naval';
 import { UNIT_TYPES, type UnitTypeId } from './data/units';
 import { DIFFICULTIES } from './data/yields';
@@ -101,7 +102,7 @@ export function subsidy(state: GameState, playerId: PlayerId): number {
  * A computer power's treasury at the start of its turn: the subsidy comes in, and if it has no
  * ship, or means to answer the human's privateers or frigate, its gold is made up to the price.
  */
-export function computerTreasury(state: GameState, playerId: PlayerId): GameState {
+export function computerTreasury(state: GameState, playerId: PlayerId, events: CustomHouseEvent[] = []): GameState {
   const player = state.players.find((p) => p.id === playerId);
   if (!player || player.kind !== 'ai' || player.withdrawn) return state;
   let gold = player.gold + subsidy(state, playerId);
@@ -110,5 +111,18 @@ export function computerTreasury(state: GameState, playerId: PlayerId): GameStat
   if (wants.noShips) atLeast('caravel');
   if (wants.privateer) atLeast('privateer');
   if (wants.frigate) atLeast('frigate');
-  return gold === player.gold ? state : { ...state, players: state.players.map((p) => (p.id === playerId ? { ...p, gold } : p)) };
+  // a colony with something to build, nobody felling and no lumber is sent a load now and then, at a price if the treasury has it
+  let colonies = state.colonies;
+  if (state.turn % AI_COLONY.giftEvery === 0) {
+    for (const c of coloniesOf(state, playerId)) {
+      const felling = c.colonists.some((k) => k.job.kind === 'field' && k.job.good === 'lumber');
+      if (c.construction === null || felling || (c.goods.lumber ?? 0) >= AI_COLONY.giftBelow) continue;
+      colonies = { ...colonies, [c.id]: { ...c, goods: { ...c.goods, lumber: (c.goods.lumber ?? 0) + AI_COLONY.gift } } };
+      const cost = gold >= AI_COLONY.giftGold ? AI_COLONY.giftGold : 0;
+      gold -= cost;
+      events.push({ type: 'colonySupplied', colonyId: c.id, player: playerId, good: 'lumber', amount: AI_COLONY.gift, cost });
+    }
+  }
+  if (gold === player.gold && colonies === state.colonies) return state;
+  return { ...state, colonies, players: state.players.map((p) => (p.id === playerId ? { ...p, gold } : p)) };
 }
