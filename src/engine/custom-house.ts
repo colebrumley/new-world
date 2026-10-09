@@ -1,17 +1,20 @@
 // The Custom House (R-403): a colony that has one sells flagged goods straight to Europe
 // during its own turn, without a ship. Rules in docs/RULES.md "Custom House".
-import { AI_PLAN } from './data/ai';
+import { AI_PLAN, AI_WAGONS } from './data/ai';
 import { CUSTOM_HOUSE } from './data/custom-house';
 import { GOOD_IDS, type GoodId } from './data/goods';
 import { UNIT_TYPES } from './data/units';
 import { amountOf, addGoods } from './cargo';
-import { exportSale } from './market';
+import { askPrice, dockTrade, exportSale, isBoycotted, priceLevel } from './market';
+import { wagonHomes } from './wagons';
 import type { Colony, GameState } from './state';
 
 export type CustomHouseEvent =
   | { readonly type: 'exportSet'; readonly colonyId: string; readonly good: GoodId; readonly on: boolean }
   /** Goods sold through the Custom House. `tax` is 0 once independence has been declared. */
-  | { readonly type: 'customHouseSold'; readonly colonyId: string; readonly player: string; readonly good: GoodId; readonly amount: number; readonly gross: number; readonly tax: number; readonly net: number };
+  | { readonly type: 'customHouseSold'; readonly colonyId: string; readonly player: string; readonly good: GoodId; readonly amount: number; readonly gross: number; readonly tax: number; readonly net: number }
+  /** A computer power's colony has had trade goods sent out for its wagon train. */
+  | { readonly type: 'colonySupplied'; readonly colonyId: string; readonly player: string; readonly good: GoodId; readonly amount: number; readonly cost: number };
 
 export type CustomHouseErrorCode = 'noColony' | 'noCustomHouse' | 'noSuchGood';
 export type CustomHouseCheck = { readonly ok: true } | { readonly ok: false; readonly code: CustomHouseErrorCode; readonly message: string };
@@ -64,4 +67,23 @@ export function customHouseSales(state: GameState, colonyId: string, events: Cus
     events.push({ type: 'customHouseSold', colonyId, player: colony.owner, good, amount, gross: sale.gross, tax: sale.tax, net: sale.net });
   }
   return goods === colony.goods ? state : { ...next, colonies: { ...next.colonies, [colonyId]: { ...(next.colonies[colonyId] as Colony), goods } } };
+}
+
+/**
+ * A computer power's colony that a wagon train serves sends for trade goods while it is short of
+ * them and they are cheap: a full cargo at Europe's asking price, if the treasury can pay.
+ */
+export function wagonSupplies(state: GameState, colonyId: string, events: CustomHouseEvent[]): GameState {
+  const colony = state.colonies[colonyId];
+  const owner = state.players.find((p) => p.id === colony?.owner);
+  if (!colony || owner?.kind !== 'ai') return state;
+  const good: GoodId = 'tradeGoods';
+  if (amountOf(colony.goods, good) >= AI_WAGONS.tradeGoodsBelow || priceLevel(state, owner.id, good) > AI_WAGONS.tradeGoodsPriceMost || isBoycotted(state, owner.id, good)) return state;
+  if (!Object.values(wagonHomes(state, owner.id)).includes(colony.id)) return state;
+  const amount = AI_WAGONS.cargo;
+  const cost = askPrice(state, owner.id, good) * amount;
+  if (owner.gold < cost + AI_PLAN.goldReserve) return state;
+  const paid = dockTrade(state, owner.id, good, amount, false);
+  events.push({ type: 'colonySupplied', colonyId, player: owner.id, good, amount, cost });
+  return { ...paid, colonies: { ...paid.colonies, [colonyId]: { ...colony, goods: addGoods(colony.goods, good, amount) } } };
 }

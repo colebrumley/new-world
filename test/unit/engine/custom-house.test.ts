@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, validateAction, type Action, type GameEvent } from '../../../src/engine/actions';
-import { customHouseSales, isBlockaded, type CustomHouseEvent } from '../../../src/engine/custom-house';
+import { customHouseSales, isBlockaded, wagonSupplies, type CustomHouseEvent } from '../../../src/engine/custom-house';
 import { AI_PLAN } from '../../../src/engine/data/ai';
 import { CUSTOM_HOUSE } from '../../../src/engine/data/custom-house';
 import type { GoodId } from '../../../src/engine/data/goods';
 import { checkInvariants } from '../../../src/engine/invariants';
-import { bidPrice } from '../../../src/engine/market';
+import { askPrice, bidPrice, priceLevel } from '../../../src/engine/market';
 import type { Colony, GameState, Goods } from '../../../src/engine/state';
-import { withColony, withUnit, world } from '../../helpers/world';
+import { withBids, withColony, withUnit, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~~~~~', '~~..~~~~~~', '~~..~~~~~~', '~~~~~~~~~~', '~~~~~~~~~~', '~~~~~~~~~~', '~~~~~~~~~~', '~~~~~~~~~~'];
 
@@ -137,5 +137,39 @@ describe('blockade', () => {
   it('does not trouble a computer power', () => {
     const s = ship(port({ furs: 200 }, ['furs'], { kind: 'ai' }), 'frigate', 'b', 4, 1);
     expect(sell(s).events).toHaveLength(1);
+  });
+});
+
+describe("trade goods for a computer power's wagon", () => {
+  // the colony at (2, 1) with a wagon train standing in it; trade goods at price level 3 (ask 3)
+  const served = (gold: number, goods: Goods = {}, kind: 'ai' | 'human' = 'ai', level = 3): GameState => {
+    let s = world({ rows: ROWS, players: [{ id: 'a', kind }, { id: 'b' }] });
+    s = withBids({ ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, gold } : p)) }, { tradeGoods: level - 1 });
+    s = withColony(s, { id: 'col', x: 2, y: 1, goods });
+    return withUnit(s, { id: 'w', type: 'wagonTrain', profession: null, x: 2, y: 1 });
+  };
+  const supply = (s: GameState): { state: GameState; events: CustomHouseEvent[] } => {
+    const events: CustomHouseEvent[] = [];
+    return { state: wagonSupplies(s, 'col', events), events };
+  };
+
+  it('a full cargo is sent for at the asking price while it holds under 100 and the price level is 3 or less', () => {
+    const r = supply(served(1000, { tradeGoods: 99 }));
+    expect(stock(r.state, 'tradeGoods')).toBe(199);
+    expect(gold(r.state)).toBe(1000 - 100 * askPrice(served(1000), 'a', 'tradeGoods'));
+    expect(r.events).toEqual([{ type: 'colonySupplied', colonyId: 'col', player: 'a', good: 'tradeGoods', amount: 100, cost: 300 }]);
+    expect(priceLevel(served(1000), 'a', 'tradeGoods')).toBe(3);
+    expect(checkInvariants(r.state)).toEqual([]);
+  });
+
+  it('not with 100 in store, a price level of 4, no wagon, too little gold, or for a human', () => {
+    const untouched = (s: GameState): void => expect(supply(s).state).toBe(s);
+    untouched(served(1000, { tradeGoods: 100 }));
+    untouched(served(1000, {}, 'ai', 4));
+    untouched({ ...served(1000), units: {} });
+    // the price and the reserve it keeps back
+    untouched(served(300 + AI_PLAN.goldReserve - 1));
+    expect(stock(supply(served(300 + AI_PLAN.goldReserve)).state, 'tradeGoods')).toBe(100);
+    untouched(served(1000, {}, 'human'));
   });
 });

@@ -47,3 +47,31 @@ export const AI_PLAN = {
   /** Goods a computer power's colonies sell by themselves, as if through a Custom House. */
   colonyExports: ['sugar', 'tobacco', 'cotton', 'furs', 'ore', 'silver', 'rum', 'cigars', 'cloth', 'coats'],
 } as const;
+
+// Wagon trains and trade with the native peoples by computer powers (R-804), as traced from the
+// original program; see docs/RULES.md "Computer powers: wagon trains".
+export const AI_WAGONS = {
+  /** A colony builds a wagon train only before this year... */
+  buildBeforeYear: 1600,
+  /** ...and while the nearest tribe's alarm toward the power is below this. */
+  buildAlarmBelow: 50,
+  /** Goods a wagon never loads for the natives. */
+  neverLoaded: ['lumber', 'tools', 'muskets'],
+  /** A good is loaded only with this much in store; a cargo is this much at most. */
+  stockLeast: 50,
+  cargo: 100,
+  /** Only goods whose price level in Europe is below the limit: the second is for trade goods. */
+  priceLimit: 4,
+  tradeGoodsLimit: 8,
+  /** The price is first marked down a step with one chance in this many, again and again while it is at least `markdownFrom`. */
+  markdownOdds: 4,
+  markdownFrom: 2,
+  /** Score = stock x (limit - price) + this x (1 - price); stock counts this many times over once the warehouse is full. */
+  pricePenalty: 5,
+  fullStockTimes: 2,
+  /** A capital counts as this many times nearer than it is. */
+  capitalNearer: 2,
+  /** A colony with a wagon orders trade goods while it holds under this many and their price level is no more than the second. */
+  tradeGoodsBelow: 100,
+  tradeGoodsPriceMost: 3,
+} as const;

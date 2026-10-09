@@ -1253,9 +1253,59 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
   has destroyed four settlements.
 - **Braves' calls.** A brave beside a colony at peace pays a call on about one turn in eight
   (the visit itself follows the original's rule; how often a brave comes by is ours).
-- Not built: trading with native settlements, missions, wagon trains, privateering and
-  amphibious assaults by computer powers; leader traits beyond expansion affect diplomacy
-  (R-801) but not this policy.
+- Not built: missions, privateering and amphibious assaults by computer powers; leader traits
+  beyond expansion affect diplomacy (R-801) but not this policy.
+
+### Computer powers: wagon trains (R-804)
+
+**Source:** `VICEROY 4000:e3d3` (stage AI10, the wagon's round), `4000:d0fc` (stage AI7, loading),
+`5000:37a5` and `5000:23e6` (the colony's build choice and its order for trade goods),
+`4000:901c` (what each unit type does on entering a village), `4000:7349` and `4000:7b18` (the
+sale and the purchase for a computer power). Numbers are `AI_WAGONS` in `src/engine/data/ai.ts`.
+
+- **Building one.** A colony chooses a wagon train as its next build when no wagon serves it,
+  the year is before 1600, a native settlement stands on its landmass, the alarm toward the
+  power of the nearest settlement's tribe is below 50, and no foreign unit it counts as a threat
+  stands next to it. One wagon serves one colony.
+- **Loading.** In its colony an empty wagon first unloads, then takes one cargo: min(stock, 100)
+  of the good with the best positive score. For each good in the goods order: never lumber,
+  tools or muskets; nothing with under 50 in store. p = the power's price level for the good;
+  while p >= 2 and a throw of 1..4 is 1, p falls by 1. limit = 8 for trade goods, 4 otherwise;
+  no score unless p < limit. s = stock, doubled when stock >= the warehouse capacity and the
+  good is not food. Score = s x (limit - p) + 5 x (1 - p); a tie keeps the earlier good.
+- **Going.** Loaded, it goes to the nearest settlement on its landmass, any tribe, any attitude; a
+  capital counts at half its distance (rounded down, at least 1). With no settlement on the
+  landmass the wagon is disbanded, cargo and all. Empty and away from home it returns to its
+  colony; with no colony of its power on the landmass it is disbanded.
+- **The sale.** On entering it trades (a wagon train always chooses Trade With Village): one
+  cargo picked at random is offered, the village's first price is taken, no haggling. The
+  village then offers its wares as to a human; the power buys the one whose price level in
+  Europe is highest (the first on a tie) at the price first asked, if it has the gold, and
+  otherwise nothing. What it bought is unloaded at home.
+- **Trade goods.** A colony with a wagon sends for trade goods while it holds under 100 and
+  their price level is 3 or less.
+- **Ships** of computer powers never trade with a settlement.
+
+**Notes:** Ours, where the trace is silent or our engine differs:
+- *Price level* is the level the market keeps for the power, one above the bid.
+- *Which colony a wagon serves* is not stored: a wagon standing in one of its colonies serves
+  that one; the others, in order of id, each take the nearest colony on their landmass that no
+  wagon has yet (the original keeps the colony in the unit record).
+- *Where it is in its round* is read from its orders instead of the original's "loaded for the
+  natives" flag: on sentry in its colony it has unloaded and may load; on sentry beside a
+  settlement it is there to trade, and has traded once its moves are spent.
+- *A threat* next to a colony is an armed unit of a European power it has no treaty with, or of
+  a tribe whose alarm toward it is 50 or more (the original's weights were not traced).
+- *Trade goods* arrive in the colony as a full cargo of 100 bought at Europe's asking price, when
+  the treasury holds the price and the 200 gold reserve (how the original's colony comes by them
+  was not traced).
+- *A cargo the village will not look at* (what it last bought or sold, or has no demand for) is
+  not loaded for it, and a wagon that finds itself with one takes it home. The original's
+  behaviour here was not traced; without this a wagon carries food back and forth for ever.
+- *Building it.* Our computer colonies make few hammers, so while a wagon train is on the stocks
+  a colony keeps one colonist felling timber until it has the lumber to finish it and then at
+  the carpenter's bench, provided it still feeds itself; a colony of one or two sends him back
+  to the land afterwards. A wagon no longer wanted comes off the stocks.
 
 ### Foreign Affairs report (R-803)
 

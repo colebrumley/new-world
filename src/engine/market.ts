@@ -26,6 +26,11 @@ export type MarketEvent =
 
 const power = (state: GameState, id: PlayerId): PowerMarket | undefined => state.market.powers[id];
 
+/** The price level of a good for this power, as the market keeps it (one above the bid): what computer powers plan by. */
+export function priceLevel(state: GameState, player: PlayerId, good: GoodId): number {
+  return power(state, player)?.price[good] ?? MARKET[good].start[0];
+}
+
 /** What Europe pays this power per unit. */
 export function bidPrice(state: GameState, player: PlayerId, good: GoodId): number {
   return Math.max(0, (power(state, player)?.price[good] ?? MARKET[good].start[0]) - 1);

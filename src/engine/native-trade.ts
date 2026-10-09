@@ -59,9 +59,13 @@ function grudge(state: GameState, settlement: Settlement, playerId: PlayerId, go
 export function checkOffer(state: GameState, unit: Unit, settlement: Settlement, good: GoodId | undefined): NativeTradeCheck {
   if (good === undefined || amountOf(unit.cargo, good) <= 0) return no('noCargo', 'there is no such cargo to offer');
   if (settlement.haggleMemory === good) return no('haggledOut', 'they remember our last haggling over that and will not hear of it');
-  const { demand } = settlementEconomy(state, settlement);
-  if (good === settlement.lastBought || good === settlement.lastSold || demand[good] === 0) return no('unwanted', 'they have no use for that just now');
+  if (!hasUseFor(state, settlement, good)) return no('unwanted', 'they have no use for that just now');
   return { ok: true };
+}
+
+/** Would the settlement look at this good at all: not what it last bought or sold, and something it has a demand for. */
+export function hasUseFor(state: GameState, settlement: Settlement, good: GoodId): boolean {
+  return good !== settlement.lastBought && good !== settlement.lastSold && settlementEconomy(state, settlement).demand[good] !== 0;
 }
 
 /** The settlement's price for a cargo, with how well disposed it is to the deal (goodwill) and its word for the goods. */

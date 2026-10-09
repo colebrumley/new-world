@@ -26,6 +26,7 @@ import { isHostile, tribalAlarm } from '../engine/alarm';
 import { settlementAt, tribeOfOwner } from '../engine/settlements';
 import { colonyAt, type Colony, type GameState, type Player, type Unit } from '../engine/state';
 import { isWater, type Tile } from '../engine/tile';
+import { isWagonProject, parleyAction, wagonAction, wagonBuild, wagonRefusal, wagonWorker } from './wagons';
 
 const DIRS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]] as const;
 const far = (ax: number, ay: number, bx: number, by: number): number => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -384,11 +385,20 @@ function statesmanFor(state: GameState, colony: Colony): Action | null {
 export function europeanAction(state: GameState, idle: Set<string> = new Set()): Action {
   const player = state.players[state.current];
   if (!player || state.over) return { type: 'endTurn' };
+  // trade talks one of its wagons has opened are seen through before anything else
+  const talks = parleyAction(state);
+  if (talks) return talks;
   const mine = coloniesOf(state, player.id);
   for (const colony of mine) {
-    if (colony.construction !== null) continue;
+    // a wagon train for the trade with the natives goes ahead of whatever else is on the stocks
+    const wagon = wagonBuild(state, colony);
+    if (wagon) return wagon;
+    const hand = wagonWorker(state, colony);
+    if (hand) return hand;
+    // a wagon stays on the stocks only while one is still wanted
+    if (colony.construction !== null && !(isWagonProject(colony) && wagonRefusal(state, colony) !== null)) continue;
     // the buildings it sets most store by come first; after them, whatever is next on the list
-    const open = availableItems(state, colony);
+    const open = availableItems(state, colony).filter((i) => !(i.kind === 'unit' && i.unit === 'wagonTrain'));
     const item = AI_PLAN.buildFirst.map((id) => open.find((i) => i.kind === 'building' && i.id === id)).find((i) => i !== undefined) ?? open[0];
     const build: Action | null = item ? { type: 'setConstruction', colonyId: colony.id, item } : null;
     if (build && ok(state, build)) return build;
@@ -402,7 +412,7 @@ export function europeanAction(state: GameState, idle: Set<string> = new Set()):
   const units = Object.values(state.units).filter((u) => u.owner === player.id && u.voyage === null).sort((a, b) => (a.id < b.id ? -1 : 1));
   for (const unit of units) {
     if (idle.has(unit.id)) continue;
-    const action = unit.aboard !== null ? riderAction(state, unit, player, mine) : isShip(unit) ? shipAction(state, unit, player, mine) : landAction(state, unit, player, mine);
+    const action = unit.type === 'wagonTrain' ? wagonAction(state, unit) : unit.aboard !== null ? riderAction(state, unit, player, mine) : isShip(unit) ? shipAction(state, unit, player, mine) : landAction(state, unit, player, mine);
     if (action) return action;
     // nothing for it now: do not ask again this turn unless something it waits on changes (a ship arriving, say)
     if (unit.aboard === null || unit.movesLeft <= 0) idle.add(unit.id);

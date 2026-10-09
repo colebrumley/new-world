@@ -172,7 +172,7 @@ describe('keeping house and keeping guard', () => {
     const guarded = withUnit(s, { id: 'g', type: 'soldier', x: 6, y: 3, orders: 'fortified' });
     expect(europeanAction(guarded)).toEqual({ type: 'sailFromEurope', unitId: 'ship' });
     // a hostile people calls for more
-    expect(europeanAction({ ...guarded, settlements: { v: village(200) } })).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'soldier' });
+    expect(europeanAction({ ...guarded, turn: 120, settlements: { v: village(200) } })).toEqual({ type: 'equipInEurope', unitId: 'w', role: 'soldier' });
   });
 
   it('a soldier brought into port goes ashore as a soldier and is not put to work', () => {
@@ -188,7 +188,7 @@ describe('keeping house and keeping guard', () => {
   it('a spare soldier marches on the settlement of a people that has turned on us; a lone guard stays', () => {
     let s = settled(1);
     s = withColony(s, { id: 'c2', x: 6, y: 6, name: 'D', colonists: people(1, 'q'), construction: { kind: 'building', id: 'stockade' } });
-    s = { ...s, settlements: { v: village(200) } };
+    s = { ...s, turn: 120, settlements: { v: village(200) } }; // after 1600: no wagon train is thought of
     const lone = withUnit(s, { id: 'g1', type: 'soldier', x: 6, y: 3 });
     expect(europeanAction(lone)).toEqual({ type: 'setOrders', unitId: 'g1', orders: 'fortify' });
     const two = withUnit(withUnit(s, { id: 'g1', type: 'soldier', x: 6, y: 3, orders: 'fortified' }), { id: 'g2', type: 'soldier', x: 6, y: 3 });
@@ -203,7 +203,8 @@ describe('keeping house and keeping guard', () => {
 describe('temperament, conquest and footholds', () => {
   const village = (alarm: number): GameState['settlements'][string] => ({ id: 'v', tribe: 'sioux', x: 11, y: 5, capital: false, population: 2, growth: 0, taught: false, tributePaid: false, alarm: { a: alarm }, mission: null, scouted: [], lastBought: null, lastSold: null, haggleMemory: null });
   /** Two colonies, two soldiers in the first, and the Sioux at the given tribal alarm, for the given nation. */
-  const guarded = (nation: 'england' | 'spain' | 'netherlands', tribal: number, turn = 0): GameState => {
+  // (after 1600 by default, so that no colony thinks of building a wagon train for them)
+  const guarded = (nation: 'england' | 'spain' | 'netherlands', tribal: number, turn = 120): GameState => {
     let s: GameState = { ...world({ rows: ROWS, players: [{ id: 'a', kind: 'ai', nation }, { id: 'b', kind: 'ai', nation: 'france' }] }), turn };
     s = withColony(s, { id: 'col', x: 6, y: 3, name: 'C', colonists: people(1), construction: { kind: 'building', id: 'stockade' } });
     s = withColony(s, { id: 'c2', x: 6, y: 6, name: 'D', colonists: people(1, 'q'), construction: { kind: 'building', id: 'stockade' } });

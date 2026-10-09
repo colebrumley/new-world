@@ -819,7 +819,7 @@ Legend:
   revolution (GAME `@FOREIGNNOTAVAIL`).
   **Verify:** e2e snapshot.
 
-- [~] **R-804 Computer powers: wagon trains and native trade**
+- [x] **R-804 Computer powers: wagon trains and native trade**
   As traced from the original program (write the rules up in `docs/RULES.md` "Computer powers"
   when built). A computer colony builds a wagon train when none serves it, the year is before
   1600, natives live on its landmass and the nearest tribe's alarm toward the power is below 50;
@@ -840,6 +840,10 @@ Legend:
   **Verify:** unit tests: build choice (each condition), load choice on fixture colonies, target
   choice, disbanding; sim: on 5 seeds some computer power sells to a settlement by wagon before
   1600, and the R-802 sim still passes.
+  *Built:* `src/ai/wagons.ts`, `src/engine/wagons.ts`, `src/engine/regions.ts` (docs/RULES.md
+  "Computer powers: wagon trains", which lists what is ours). A wagon's colony and its place in the
+  round are worked out from the state, not stored; a wagon does not load what the village it is
+  bound for will not look at; a colony puts a colonist to building its wagon.
 
 - [ ] **R-805 Computer powers: missions**
   As traced from the original program. A power with no missionary turns one spare colonist into a

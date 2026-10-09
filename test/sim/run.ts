@@ -48,7 +48,7 @@ export function tally(goods: Record<GoodId, number>, events: readonly GameEvent[
     if (e.type === 'goodsSpoiled') for (const good of GOOD_IDS) goods[good] -= e.lost[good] ?? 0;
     if (e.type === 'partyHeld') goods[e.good] -= e.destroyed;
     if (e.type === 'goodsSold' || e.type === 'customHouseSold') goods[e.good] -= e.amount;
-    if (e.type === 'goodsBought') goods[e.good] += e.amount;
+    if (e.type === 'goodsBought' || e.type === 'colonySupplied') goods[e.good] += e.amount;
     if (e.type === 'tributeDemanded' && e.good) goods[e.good] += e.amount;
     if (e.type === 'nativeSale') goods[e.good] -= e.amount;
     // goods sold abroad stay in the world: they only change hands

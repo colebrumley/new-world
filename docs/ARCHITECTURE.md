@@ -37,7 +37,7 @@ turns out to be; `land.ts` is the price of native land and buying or taking it. 
 Founding Father does on joining. `diplomacy.ts` is relations between the powers:
 meeting, audiences (`state.audience`), acts of war, and trade in foreign colonies. `royal.ts` is the Crown: the Expeditionary Force, wars in Europe, the frigate and
 mercenary offers, the War of Succession. `custom-house.ts` is the export list and the sales a
-Custom House makes during the colony turn. `trade-routes.ts` defines and runs trade routes. `education.ts` is schooling, `liberty.ts` the Sons of
+Custom House makes during the colony turn (and the trade goods a computer power's colony sends for). `regions.ts` numbers the landmasses; `wagons.ts` says which colony each wagon train serves. `trade-routes.ts` defines and runs trade routes. `education.ts` is schooling, `liberty.ts` the Sons of
 Liberty, `placement.ts` automatic job choice. `voyage.ts` is the Atlantic crossing and `pioneer.ts` clearing, plowing and road building. `colony.ts` founds, joins and abandons colonies; `jobs.ts` decides who may work which square or
 building and what they would make; `economy.ts` is a colony's turn (production, conversion,
 storage) and `construction.ts` what it may build, buying, and completion. `cargo.ts` is holds, goods transfer and colonist equipment. `explore.ts` is fog and sight, `tile.ts` and `yields.ts` the tile model and production,
@@ -55,7 +55,8 @@ purity rules as the engine.
 `random.ts` is the random player the simulations use. `european.ts` plays a colonial power (R-802):
 `europeanAction(state)` returns the next action for the power to move and `playTurn(state)` runs
 a whole turn, returning the actions it took so the app can log them. Its numbers are `AI_PLAN` in
-`src/engine/data/ai.ts`.
+`src/engine/data/ai.ts`. `wagons.ts` is its wagon trains and their trade with the native peoples (R-804): when a colony
+builds one, what it loads, where it goes, and the answers given in the trade talks (`AI_WAGONS`).
 
 ## `src/ui/`
 `pixel-art.ts` is all the map art as data: a 32-colour palette and functions that return
