@@ -75,6 +75,43 @@ test('dragging a colonist from a field to a building changes production', async 
   await expect(bells).toHaveText('+4');
 });
 
+test('the colony lies over the whole game, and a click on a colonist then on a place moves them', async ({ page }) => {
+  await foundJamestown(page);
+  const colony = page.locator('.colony-screen');
+  const game = (await page.locator('.game').boundingBox())!;
+  expect(await colony.boundingBox()).toEqual(game);
+  expect((await page.locator('canvas.map').boundingBox())!.width).toBeGreaterThan(game.width / 2); // the map keeps its room underneath
+  // the six views sit where the manual puts them
+  const box = async (name: string) => (await colony.locator(`[data-region="${name}"]`).boundingBox())!;
+  const [settlement, area, people, transport, multi, warehouse] = [await box('settlement'), await box('area'), await box('people'), await box('transport'), await box('multi'), await box('warehouse')];
+  expect(settlement.x).toBeLessThan(area.x);
+  expect(Math.abs(settlement.y - area.y)).toBeLessThan(2);
+  expect(people.y).toBeGreaterThan(settlement.y);
+  expect(people.x).toBeLessThan(transport.x);
+  expect(transport.x).toBeLessThan(multi.x);
+  expect(multi.y).toBeGreaterThan(area.y);
+  expect(warehouse.y).toBeGreaterThan(people.y);
+  expect(warehouse.width).toBeGreaterThan(game.width * 0.9);
+
+  // the first click selects and says what to do next; it does not open the menu
+  const help = colony.locator('.colony-help');
+  await expect(help).toContainText('Click a colonist');
+  await colony.locator('.square .token').click();
+  await expect(colony.locator('.token-selected')).toHaveCount(1);
+  await expect(page.locator('.dialog')).toHaveCount(0);
+  await expect(help).toContainText('selected: click a square or a building');
+  await expect(colony).toHaveAttribute('data-holding', 'colonist');
+  // a click on a building, then on a square, sends them there, still selected
+  await colony.locator('.building[data-building="townHall"]').click();
+  await expect(colony.locator('.building[data-building="townHall"] .token-selected')).toHaveCount(1);
+  await expect(colony.locator('.building[data-building="townHall"] .slot-free')).toHaveCount(2);
+  await colony.locator('.square[data-square="-1,0"]').click();
+  await expect(colony.locator('.square[data-square="-1,0"] .token-selected')).toHaveCount(1);
+  // a click on the selected colonist is the jobs menu
+  await colony.locator('.token-selected').click();
+  await expect(page.locator('.dialog')).toContainText('Choose work');
+});
+
 test('the keyboard alone opens a colony, loads cargo, changes the project and leaves', async ({ page }) => {
   await foundJamestown(page);
   const colony = page.locator('.colony-screen');

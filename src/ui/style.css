@@ -381,3 +381,112 @@ canvas.minimap {
 .save-dialog td button { margin-right: 4px; }
 .save-files { display: flex; gap: 6px; margin-top: 6px; }
 .save-notice { min-height: 1.2em; margin: 4px 0 0; color: #ffb4a0; }
+
+/* --- colony screen ------------------------------------------------------------------------- */
+/* Laid over the whole game, as the Europe screen is: settlement top left, area top right, people
+   and transport below them, the multi-function view under the area, the warehouse along the foot. */
+.colony-screen {
+  position: absolute; inset: 0; z-index: 8; box-sizing: border-box; padding: 8px; overflow: auto;
+  background: #121821; outline: none; font-size: 0.82rem; user-select: none;
+  display: grid; gap: 6px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(240px, 300px);
+  grid-template-rows: auto minmax(auto, 3fr) minmax(0, 2fr) auto auto;
+  grid-template-areas:
+    'header header header'
+    'settlement settlement area'
+    'people transport multi'
+    'warehouse warehouse warehouse'
+    'help help exit';
+}
+.colony-header { grid-area: header; display: flex; align-items: baseline; gap: 18px; }
+.colony-header h2 { margin: 0; font-size: 1.4rem; font-variant: small-caps; }
+.colony-sol { color: #9fc0ff; }
+.colony-tory { color: #ffb4a0; }
+.colony-screen [data-region] { border: 1px solid #5b4a2a; background: #1a2230; padding: 6px; min-width: 0; min-height: 0; overflow: auto; scrollbar-width: thin; }
+.colony-screen h3 { margin: 0 0 4px; font-size: 0.8rem; font-variant: small-caps; opacity: 0.7; }
+.colony-screen p { margin: 0; }
+.colony-settlement { grid-area: settlement; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 5px; align-content: start; }
+.colony-settlement h3, .colony-warehouse h3 { grid-column: 1 / -1; }
+.colony-area { grid-area: area; }
+.colony-people { grid-area: people; display: flex; flex-direction: column; gap: 4px; }
+.colony-transport { grid-area: transport; display: flex; flex-direction: column; gap: 4px; }
+.colony-multi { grid-area: multi; }
+.colony-warehouse { grid-area: warehouse; display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px; }
+@media (max-width: 1100px) { .colony-warehouse { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+.colony-message, .colony-help { grid-area: help; align-self: center; min-height: 1.3em; }
+.colony-message { color: #f0d48a; }
+.colony-message:empty, .colony-message:not(:empty) + .colony-help { display: none; }
+.colony-help { opacity: 0.75; }
+.colony-close { grid-area: exit; justify-self: end; align-self: center; }
+
+.colony-screen button { font: inherit; color: inherit; }
+.colony-close, .tab, .construction-change, .construction-buy { background: #232d3d; border: 1px solid #5b4a2a; padding: 2px 10px; cursor: pointer; }
+.colony-close { border-color: #c9a650; padding: 4px 16px; }
+.colony-screen button:disabled { opacity: 0.45; cursor: default; }
+.colony-screen button:focus-visible { outline: 2px solid #ffe680; outline-offset: -1px; }
+
+.token {
+  display: inline-flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 2px 6px; line-height: 1.15;
+  background: #2b3648; border: 1px solid #6a7a94; border-radius: 3px; cursor: grab; text-align: left;
+}
+.token:hover { background: #3a4860; }
+.token-label, .token-sub { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.token-sub { font-size: 0.72rem; color: #f0d48a; }
+.token-colonist, .token-unit { background: #3b3324; border-color: #a88a4a; }
+.token-colonist:hover, .token-unit:hover { background: #4d432f; }
+.token-selected, .token-selected:hover { border-color: #7dff8a; box-shadow: 0 0 0 1px #7dff8a; }
+.token-good, .token-cargo { align-items: center; font-size: 0.72rem; }
+.token-good .token-sub, .token-cargo .token-sub { font-size: 0.85rem; color: inherit; }
+.token-empty { opacity: 0.45; }
+.token-over .token-sub { color: #ff8f7a; }
+.hide-numbers .token-colonist .token-sub { display: none; }
+
+.building { border: 1px solid #3a4558; background: #151c28; padding: 4px; display: flex; flex-direction: column; gap: 3px; }
+.building-name { font-variant: small-caps; }
+.building-slots { display: flex; flex-wrap: wrap; gap: 3px; min-height: 2.3em; }
+.building-slots .token { flex: 1 1 0; }
+.slot-free { flex: 1 1 0; min-width: 14px; border: 1px dashed #4a566b; border-radius: 3px; }
+
+/* kept small enough on a short window that all nine squares stay in sight */
+.area-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; max-width: 34vh; margin: 0 auto; }
+.square { position: relative; aspect-ratio: 1; border: 1px solid #0b0d12; overflow: hidden; }
+.square-art { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.square .token { position: absolute; left: 2px; right: 2px; bottom: 2px; padding: 1px 3px; font-size: 0.72rem; background: rgba(40, 33, 20, 0.88); }
+.square .token-label { white-space: normal; }
+.square-note { position: absolute; left: 0; right: 0; bottom: 0; padding: 1px 3px; background: rgba(10, 14, 20, 0.72); font-size: 0.72rem; text-align: center; }
+.square-center { border-color: #c9a650; }
+.square-nativeLand .square-art, .square-otherColony .square-art, .square-foreignUnit .square-art { filter: brightness(0.55); }
+.square-nativeLand::after, .square-otherColony::after, .square-foreignUnit::after {
+  position: absolute; left: 0; right: 0; top: 2px; font-size: 0.7rem; text-align: center; color: #ffd9a0; text-shadow: 0 0 3px #000;
+}
+.square-nativeLand::after { content: 'Native land'; }
+.square-otherColony::after { content: 'In use'; }
+.square-foreignUnit::after { content: 'Occupied'; }
+
+.idle-row, .outside-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 2.5em; padding: 3px; border: 1px dashed #4a566b; }
+.row-title { opacity: 0.7; }
+.carrier { display: flex; flex-wrap: wrap; align-items: stretch; gap: 4px; padding: 3px; border: 1px solid #3a4558; }
+.carrier-active { border-color: #c9a650; }
+.passenger { align-self: center; opacity: 0.8; }
+
+.tabs { display: flex; gap: 3px; margin-bottom: 6px; }
+.tab { flex: 1 1 auto; padding: 2px 4px; font-size: 0.75rem; white-space: nowrap; }
+.tab-active { background: #34435a; border-color: #c9a650; }
+.production-table { border-collapse: collapse; width: 100%; }
+.production-table th { text-align: left; font-weight: normal; color: #f0d48a; }
+.production-table td { text-align: right; padding-left: 8px; }
+.hide-numbers .production-table td { visibility: hidden; }
+.unit-list { margin: 0; padding-left: 1.1em; }
+.construction-item { font-size: 1rem; }
+.construction-progress { margin-bottom: 6px !important; }
+.construction-change { margin-right: 4px; }
+.colony-warehouse .construction-change { grid-column: 1 / -1; justify-self: start; }
+
+/* with someone or something in hand, the places it can go are lit */
+.colony-screen[data-holding='colonist'] :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row),
+.colony-screen[data-holding='unit'] :is(.square[data-drop], .building[data-drop], .idle-row),
+.colony-screen[data-holding='good'] .carrier,
+.colony-screen[data-holding='cargo'] :is(.carrier, .colony-warehouse) { outline: 1px dashed #7dff8a; outline-offset: -2px; cursor: pointer; }
+.colony-screen:is([data-holding='colonist'], [data-holding='unit']) :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row):hover,
+.colony-screen[data-holding='good'] .carrier:hover,
+.colony-screen[data-holding='cargo'] :is(.carrier, .colony-warehouse):hover { outline-style: solid; background-color: #24364a; }
