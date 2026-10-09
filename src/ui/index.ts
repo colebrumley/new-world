@@ -1,12 +1,14 @@
 // Canvas renderer, panels, input, audio.
 export * from './colony-model';
 export * from './colony-screen';
+export * from './command-bar';
 export * from './customize';
 export * from './dialog';
 export * from './europe-model';
 export * from './europe-screen';
 export * from './keymap';
 export * from './minimap';
+export * from './pointer';
 export * from './render';
 export * from './sidebar';
 export * from './tiles';

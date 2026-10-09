@@ -62,6 +62,11 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'map', keys: 'Alt+O', action: 'Colony report options: labels, and which colony news is reported', command: 'menu' },
   { context: 'map', keys: 'Esc', action: 'Cancel (Go To targeting, panels)', command: 'cancel' },
   { context: 'map', keys: 'Click / drag / pointer at edge', action: 'Centre on a square (or open your colony there) / pan / scroll the view' },
+  { context: 'map', keys: 'Click on your unit', action: 'Make it the active unit, waking it if it has orders (a list if several stand there); in view mode this also returns to move mode' },
+  { context: 'map', keys: 'Click beside the active unit', action: 'Move it one square' },
+  { context: 'map', keys: 'Drag from the active unit', action: 'Send it to the square where the button is let go: one step if adjacent, Go To if farther' },
+  { context: 'map', keys: 'Wheel', action: 'Zoom in / zoom out about the pointer' },
+  { context: 'map', keys: 'Sidebar buttons', action: 'Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel' },
   { context: 'map', keys: 'Enter (view mode, on your colony)', action: 'Open the colony' },
   { context: 'map', keys: 'Click on the New World view', action: 'Centre the view there' },
 

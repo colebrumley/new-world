@@ -121,6 +121,14 @@ export function createSidebar(): Sidebar {
   }
   element.append(info);
 
+  // straight after the fixed part (and the command bar, which the game screen puts above it), so a
+  // long cargo list cannot push it out of a short window
+  const status = document.createElement('p');
+  status.className = 'sidebar-status';
+  status.dataset['field'] = 'status';
+  status.setAttribute('aria-live', 'polite');
+  element.append(status);
+
   const features = document.createElement('ul');
   features.className = 'sidebar-features';
   features.dataset['field'] = 'features';
@@ -137,17 +145,16 @@ export function createSidebar(): Sidebar {
   aboard.dataset['field'] = 'aboard';
   element.append(aboard);
 
-  const status = document.createElement('p');
-  status.className = 'sidebar-status';
-  status.dataset['field'] = 'status';
-  status.setAttribute('aria-live', 'polite');
-  element.append(status);
-
   return {
     element,
     minimap,
     update(model) {
-      if (status.textContent !== model.status) status.textContent = model.status;
+      if (status.textContent !== model.status) {
+        status.textContent = model.status;
+        // the sidebar scrolls when the window is short: what was just said must be in sight
+        if (model.status) status.scrollIntoView?.({ block: 'nearest' });
+        else element.scrollTop = 0;
+      }
       const carried = model.aboard.join('\n');
       if (aboard.dataset['text'] !== carried) {
         aboard.dataset['text'] = carried;

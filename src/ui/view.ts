@@ -88,6 +88,15 @@ export function zoomBy(view: View, map: GameMap, delta: number): View {
   return makeView(map, view.width, view.height, c.x, c.y, { ...carry(view), zoom: view.zoom + delta });
 }
 
+/** Zoom keeping the map point under a canvas pixel where it is (as far as the map edges allow). */
+export function zoomAt(view: View, map: GameMap, delta: number, px: number, py: number): View {
+  const zoomed = zoomBy(view, map, delta);
+  if (zoomed.tileSize === view.tileSize) return zoomed;
+  const x = view.originX + px / view.tileSize;
+  const y = view.originY + py / view.tileSize;
+  return centerOn(zoomed, map, x + (zoomed.width / 2 - px) / zoomed.tileSize - 0.5, y + (zoomed.height / 2 - py) / zoomed.tileSize - 0.5);
+}
+
 export function resizeView(view: View, map: GameMap, width: number, height: number): View {
   const c = viewCenter(view);
   return makeView(map, width, height, c.x, c.y, carry(view));
