@@ -1253,8 +1253,8 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
   has destroyed four settlements.
 - **Braves' calls.** A brave beside a colony at peace pays a call on about one turn in eight
   (the visit itself follows the original's rule; how often a brave comes by is ours).
-- Not built: privateering and amphibious assaults by computer powers; leader traits beyond
-  expansion affect diplomacy (R-801) but not this policy.
+- Not built: amphibious assaults by computer powers; leader traits beyond expansion affect
+  diplomacy (R-801) but not this policy.
 
 ### Computer powers: wagon trains (R-804)
 
@@ -1348,6 +1348,53 @@ are `AI_MISSIONS` in `src/engine/data/ai.ts`.
   missionary goes on to the next choice.
 - A computer power's own scouts and artillery are not otherwise sent toward settlements by this
   policy; soldiers reach them through the reprisal and conquest rules of R-802.
+
+### Computer powers: warships and privateers (R-806)
+
+**Source:** `VICEROY 4000:a850`..`4000:beb2` (the planner: request table, the unit pre-pass at
+`4000:abaa`, blockade stations at `4000:ad96`, threatened ports at `4000:b316`, the dispatcher
+at `4000:bb96`), `4000:ecb1` and `4000:f630` (stages AI18 and AI19: the step chooser and
+holding station), `4000:c3a0` (who may carry). Numbers are `AI_NAVY` in `src/engine/data/ai.ts`.
+
+- **Stations.** Each turn a power lists squares it wants a warship on, each with a priority:
+  3 at every ship it can see of a power it is at war with, and at every foreign privateer it can
+  see whatever the treaty; 2 + min(2, (population + 4) >> 3) at the blockade square of every
+  port colony of a power it is not at firm peace with; 5 at each of its own port colonies with
+  a foreign armed ship within 5 squares, 8 if one of them is a frigate. The list is kept most
+  pressing first.
+- **Firm peace** is a treaty the power does not intend to break. A power not yet met is not at
+  peace.
+- **The blockade square** is, of the 16 squares exactly two from the colony that are open sea,
+  the one with the most open-sea neighbours that touch the colony (the first such in reading
+  order; at least one is needed).
+- **Dispatch.** K = the power's land units / 8, kept within 3..99; every station starts with
+  load K. Privateers, frigates and men-of-war, in unit order, each take the station with the
+  lowest load x distance / (priority + 1) (integer; the first on a tie), provided
+  (3 x priority) >> 1 >= score / K. That is about 11, 19, 34 and 47 squares at priority 2, 3, 4
+  and 5. The station's load then rises by 1. A ship holds its station once there.
+- **Fighting.** A ship with a whole move left attacks an enemy ship on a neighbouring square at
+  any odds. A treaty stops that unless the attacker or the target is a privateer. Ships never
+  attack land squares or colonies. After the Declaration only the human player's ships are
+  attacked or sought.
+- **Privateers** answer only these stations: nothing sends one after the shipping of a power at
+  firm peace, and it meets such ships only when they come alongside. A privateer carries for its
+  power only while more than one of its ports has a foreign frigate within 5 squares, or the
+  ports so beset hold more than 6 people.
+
+**Notes:** Ours, where the trace is silent or our engine differs:
+- *In sight* means within the sight range of one of the power's units, or within 2 squares of
+  one of its colonies (the original keeps a seen-by flag on each unit).
+- A ship already on its way to a station is counted in that station's load before the others
+  choose; a ship with people aboard is left to its transport's work.
+- With no station to keep, a privateer or man-of-war lies in its nearest port and a frigate
+  goes back to ferrying (in the original the idle ship falls through to later stages).
+- A power not yet met is attacked only by privateers (the original stops only at a treaty).
+- The original's exemption of unseen human colonies early in the game, and its one-turn-in-four
+  test for ship holds in the blockaded colony, are left out; so is its rule that a frigate is
+  sought only after the Declaration.
+- *Getting one.* A power with four colonies and no privateer buys one in Europe when it can pay
+  the price and keep 1000 gold; privateers and men-of-war sail from Europe without waiting for
+  passengers. (How the original's powers come by their privateers was not traced.)
 
 ### Foreign Affairs report (R-803)
 

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { playTurn } from '../../src/ai/european';
+import { navalStations, privateersCarry } from '../../src/ai/navy';
+import type { Action, GameEvent } from '../../src/engine/actions';
 import { CALENDAR } from '../../src/engine/calendar';
 import { DEFAULT_WORLD } from '../../src/engine/data/mapgen';
 import { NATION_IDS } from '../../src/engine/data/nations';
@@ -17,6 +19,9 @@ export interface AiRun {
   readonly firstTurn: Readonly<Record<string, number>>;
   /** Settlements holding a mission when turn 150 was reached. */
   readonly missionsAt150: number;
+  /** R-806: privateers sent somewhere that is neither a station nor a home port; and their attacks on ships of powers at peace. */
+  readonly privateersAstray: number;
+  readonly privateerRaids: number;
 }
 
 /** Four computer powers play each other with the European policy; invariants are checked after every power's turn. */
@@ -27,11 +32,29 @@ export function runPowers(seed: number, turns: number, america = false): AiRun {
   const events: Record<string, number> = {};
   const firstTurn: Record<string, number> = {};
   let missionsAt150 = -1;
+  let privateersAstray = 0;
+  let privateerRaids = 0;
+  const watch = (before: GameState, action: Action, happened: readonly GameEvent[]): void => {
+    const unit = 'unitId' in action ? before.units[action.unitId] : undefined;
+    const player = before.players[before.current];
+    if (!unit || !player || unit.type !== 'privateer') return;
+    // (one with passengers to deliver, or pressed into carrying while the ports are beset, is doing a transport's work)
+    const carrying = Object.values(before.units).some((u) => u.aboard === unit.id) || privateersCarry(before, player);
+    if (action.type === 'goTo' && !carrying) {
+      const station = navalStations(before, player).some((s) => s.x === action.x && s.y === action.y);
+      const home = Object.values(before.colonies).some((c) => c.owner === player.id && c.x === action.x && c.y === action.y);
+      if (!station && !home) privateersAstray++;
+    }
+    if (action.type === 'attack') {
+      const victim = Object.values(before.units).find((v) => v.x === unit.x + action.dx && v.y === unit.y + action.dy && v.owner !== unit.owner);
+      if (victim && player.stance[victim.owner] === 'peace' && happened.length > 0) privateerRaids++;
+    }
+  };
   let slowest = 0;
   let lowestGold = 0;
   while (state.turn < turns && !state.over) {
     const began = performance.now();
-    const turn = playTurn(state);
+    const turn = playTurn(state, undefined, watch);
     slowest = Math.max(slowest, performance.now() - began);
     state = turn.state;
     for (const e of turn.events) {
@@ -46,7 +69,7 @@ export function runPowers(seed: number, turns: number, america = false): AiRun {
       for (const p of state.players) coloniesAt100[p.id] = Object.values(state.colonies).filter((c) => c.owner === p.id).length;
     }
   }
-  return { state, coloniesAt100, slowestTurnMs: slowest, lowestGold, events, firstTurn, missionsAt150 };
+  return { state, coloniesAt100, slowestTurnMs: slowest, lowestGold, events, firstTurn, missionsAt150, privateersAstray, privateerRaids };
 }
 
 describe.skipIf(!process.env['SIM'])('the computer powers', () => {
@@ -61,5 +84,7 @@ describe.skipIf(!process.env['SIM'])('the computer powers', () => {
     expect(run.firstTurn['nativeSale'], `first wagon sale on seed ${seed}`).toBeLessThan(CALENDAR.twoSeasonsFrom - CALENDAR.startYear);
     // R-805: a mission stands in some settlement by turn 150, so that a rival's missionary has something to denounce
     expect(run.missionsAt150, `missions on seed ${seed}`).toBeGreaterThanOrEqual(1);
+    // R-806: a privateer is only ever sent to a station or home, so it meets the ships of a power at peace only when they come alongside
+    expect(run.privateersAstray, `privateers astray on seed ${seed}`).toBe(0);
   }, 120_000);
 });

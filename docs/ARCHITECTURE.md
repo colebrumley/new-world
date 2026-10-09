@@ -58,6 +58,7 @@ a whole turn, returning the actions it took so the app can log them. Its numbers
 `src/engine/data/ai.ts`. `wagons.ts` is its wagon trains and their trade with the native peoples (R-804): when a colony
 builds one, what it loads, where it goes, and the answers given in the trade talks (`AI_WAGONS`).
 `missions.ts` is its missionaries (R-805) and what each kind of unit does on entering a settlement (`AI_MISSIONS`).
+`navy.ts` is its warships and privateers (R-806): the stations it wants kept, which ship takes which, and when a ship attacks (`AI_NAVY`).
 
 ## `src/ui/`
 `pixel-art.ts` is all the map art as data: a 32-colour palette and functions that return

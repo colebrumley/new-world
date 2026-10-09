@@ -105,3 +105,34 @@ export const AI_MISSIONS = {
   visitSettlementAlarmBelow: 64,
   liveAmongAlarmBelow: 75,
 } as const;
+
+// Warships and privateers of the computer powers (R-806), as traced from the original program;
+// see docs/RULES.md "Computer powers: warships and privateers".
+export const AI_NAVY = {
+  /** A station at every enemy ship in sight, and at every foreign privateer whatever the treaty. */
+  enemyShipPriority: 3,
+  /** A foreign ship is in sight within its own sight range of one of our units, or this near one of our colonies. */
+  colonySight: 2,
+  /** A blockade station lies this far off a port colony of a power not at firm peace; priority = base + min(most, (population + add) >> shift). */
+  blockadeDistance: 2,
+  blockadeBase: 2,
+  blockadeMost: 2,
+  blockadePopulationAdd: 4,
+  blockadePopulationShift: 3,
+  /** An own port with a foreign armed ship within `homeRange`: the first priority, or the second if that ship is a frigate. */
+  homeRange: 5,
+  homePriority: 5,
+  homeFrigatePriority: 8,
+  /** Load = the power's land units / divisor, kept within least..most, plus 1 for each ship already sent to the station. */
+  loadDivisor: 8,
+  loadLeast: 3,
+  loadMost: 99,
+  /** A ship attacks only with a whole move in hand (thirds). */
+  attackMovesLeast: 3,
+  /** A privateer carries for its power only while more than `carryPorts` of its ports have a foreign frigate near, or those ports hold more than `carryPopulation` people. */
+  carryPorts: 1,
+  carryPopulation: 6,
+  /** Ours: a power with this many colonies and no privateer buys one, keeping this much gold back. */
+  privateerFromColonies: 4,
+  privateerReserve: 1000,
+} as const;

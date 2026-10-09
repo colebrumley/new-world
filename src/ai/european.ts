@@ -12,14 +12,14 @@ import { applyAction, validateAction, type Action, type GameEvent } from '../eng
 import { analyseAttack } from '../engine/analysis';
 import { coloniesOf, checkColonySite } from '../engine/colony';
 import { availableItems } from '../engine/construction';
-import { AI_PLAN } from '../engine/data/ai';
+import { AI_NAVY, AI_PLAN } from '../engine/data/ai';
 import { GOOD_IDS } from '../engine/data/goods';
 import { NATIONS } from '../engine/data/nations';
 import { UNSKILLED } from '../engine/data/professions';
 import { NATIVES } from '../engine/data/tribes';
 import { UNIT_TYPES } from '../engine/data/units';
 import { colonyProduction } from '../engine/economy';
-import { docksOf, shipsInEurope } from '../engine/europe';
+import { docksOf, purchasePrice, shipsInEurope } from '../engine/europe';
 import { recruitPrice } from '../engine/immigration';
 import { isInlandLake } from '../engine/movement';
 import { isHostile, tribalAlarm } from '../engine/alarm';
@@ -27,6 +27,7 @@ import { settlementAt, tribeOfOwner } from '../engine/settlements';
 import { colonyAt, type Colony, type GameState, type Player, type Unit } from '../engine/state';
 import { isWater, type Tile } from '../engine/tile';
 import { missionaryAction, ordain, villageVisit } from './missions';
+import { isWarship, privateersCarry, warshipAction } from './navy';
 import { isWagonProject, parleyAction, wagonAction, wagonBuild, wagonRefusal, wagonWorker } from './wagons';
 
 const DIRS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]] as const;
@@ -203,10 +204,19 @@ function europeAction(state: GameState, player: Player): Action | null {
   const waiting = docksOf(state, player.id);
   const room = ships.reduce((n, s) => n + UNIT_TYPES[s.type].holds, 0);
   // a growing power wants a second and a third ship to carry its people
-  const fleet = Object.values(state.units).filter((u) => u.owner === player.id && isShip(u)).length;
+  const fleet = Object.values(state.units).filter((u) => u.owner === player.id && isShip(u) && u.type !== 'privateer' && u.type !== 'manOWar').length;
   const colonies = coloniesOf(state, player.id).length;
   const buyShip: Action = { type: 'purchaseUnit', unit: 'merchantman' };
   if (fleet < 1 + Math.floor(colonies / AI_PLAN.coloniesPerShip) && player.gold >= AI_PLAN.shipFund && ok(state, buyShip)) return buyShip;
+  // a power well established keeps one privateer at sea
+  const navy = Object.values(state.units).filter((u) => u.owner === player.id && u.type === 'privateer').length;
+  const buyPrivateer: Action = { type: 'purchaseUnit', unit: 'privateer' };
+  if (navy === 0 && colonies >= AI_NAVY.privateerFromColonies && player.gold >= (purchasePrice(state, player.id, 'privateer') ?? Infinity) + AI_NAVY.privateerReserve && ok(state, buyPrivateer)) return buyPrivateer;
+  // a privateer or man-of-war does not wait on the docks for passengers
+  for (const ship of ships) {
+    const sail: Action = { type: 'sailFromEurope', unitId: ship.id };
+    if ((ship.type === 'manOWar' || (ship.type === 'privateer' && !privateersCarry(state, player))) && ok(state, sail)) return sail;
+  }
   if (waiting.length < room && player.gold >= recruitPrice(state, player.id) + AI_PLAN.goldReserve) {
     // the most useful of the three: anyone with a trade before the unskilled
     const order = [0, 1, 2].sort((a, b) => rank(player.pool[b]) - rank(player.pool[a]));
@@ -229,6 +239,9 @@ function europeAction(state: GameState, player: Player): Action | null {
 const rank = (profession: string | undefined): number => (profession === 'pettyCriminal' ? 0 : profession === 'indenturedServant' ? 1 : profession === 'freeColonist' ? 2 : 3);
 
 function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly Colony[]): Action | null {
+  // warships fight and keep their stations; only when free of that do they do a transport's work
+  const duty = isWarship(ship) ? warshipAction(state, ship, player) : undefined;
+  if (duty !== undefined) return duty;
   if (ship.repair > 0 || ship.orders === 'goto') return null;
   const riders = Object.values(state.units).filter((u) => u.aboard === ship.id);
   const attack = goodAttack(state, ship, player);
@@ -442,8 +455,8 @@ const stamp = (state: GameState, id: string | undefined): string => {
   return u ? `${u.x},${u.y},${u.movesLeft},${u.orders},${u.aboard},${u.type},${u.owner},${JSON.stringify(u.cargo)}` : 'gone';
 };
 
-/** Play out the turn of the power to move with this policy; stops after `cap` actions whatever happens. */
-export function playTurn(state: GameState, cap = AI_PLAN.actionsPerTurn): { state: GameState; events: GameEvent[]; actions: Action[] } {
+/** Play out the turn of the power to move with this policy; stops after `cap` actions whatever happens. `watch` is shown each action it decides on, for the simulations. */
+export function playTurn(state: GameState, cap = AI_PLAN.actionsPerTurn, watch?: (before: GameState, action: Action, events: readonly GameEvent[]) => void): { state: GameState; events: GameEvent[]; actions: Action[] } {
   let next = state;
   const events: GameEvent[] = [];
   const actions: Action[] = [];
@@ -452,6 +465,7 @@ export function playTurn(state: GameState, cap = AI_PLAN.actionsPerTurn): { stat
   for (let i = 0; i < cap && next.current === seat && !next.over; i++) {
     const action = europeanAction(next, idle);
     const result = applyAction(next, action);
+    watch?.(next, action, result.events);
     actions.push(action);
     events.push(...result.events);
     const unitId = 'unitId' in action ? action.unitId : undefined;

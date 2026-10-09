@@ -868,7 +868,7 @@ Legend:
   ours). A calm people still gets a mission; a missionary with nowhere to go turns colonist in
   its nearest colony; scouts and colonists step into a friendly settlement they stand beside.
 
-- [~] **R-806 Computer powers: warships and privateers**
+- [x] **R-806 Computer powers: warships and privateers**
   As traced from the original program. Each turn a power lists naval stations with a priority:
   3 at every ship it can see of a power it is at war with, and at every foreign privateer it can
   see whatever the treaty; 2 to 4 (by the colony's population) on the open-sea square two squares
@@ -885,6 +885,9 @@ Legend:
   **Verify:** unit tests: station list on fixture maps (each rule), station choice and range,
   the peace exception for privateers; sim: on 5 seeds a computer privateer attacks a ship of a power
   it is at peace with only when adjacent, and the R-802 sim still passes.
+  *Built:* `src/ai/navy.ts` (docs/RULES.md "Computer powers: warships and privateers", which lists
+  what is ours). "Load" is as traced (FIDELITY.md). A power buys its one privateer once it has four
+  colonies; the sim checks that a privateer is only ever sent to a listed station or a home port.
 
 - [ ] **R-807 Computer powers: campaigns by land and sea**
   As traced from the original program; replaces the R-802 "War", "Reprisal" and "Conquest" policy
