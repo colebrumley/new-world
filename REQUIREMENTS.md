@@ -819,42 +819,6 @@ Legend:
   revolution (GAME `@FOREIGNNOTAVAIL`).
   **Verify:** e2e snapshot.
 
-- [ ] **R-804 Computer powers: wagon trains and native trade**
-  As traced from the original program (write the rules up in `docs/RULES.md` "Computer powers"
-  when built). A computer colony builds a wagon train when none serves it, the year is before
-  1600, natives live on its landmass and the nearest tribe's alarm toward the power is below 50;
-  each wagon serves one colony. At its colony an empty wagon loads up to 100 of the best good per
-  hold: never lumber, tools or muskets; only goods with 50 or more in stock whose price level in
-  Europe is below 4 (trade goods below 8), scored stock x (limit - price) + 5 x (1 - price) after
-  a random markdown of the price (one step with chance 1 in 4, repeated while the price is 2 or
-  more). Loaded, it goes to the nearest native settlement on its landmass (a capital counts at
-  half distance) and on entering trades one cargo picked at random at the village's first offer,
-  without haggling, then returns to its colony. A loaded wagon with no settlement on its landmass,
-  or an empty one with no colony there, is disbanded. A colony with a wagon wants trade goods
-  while it holds under 100 and their price level is 3 or less. Ships of computer powers never
-  trade with settlements. Numbers in `src/engine/data/ai.ts`. [VERIFY: the stock doubling above a
-  threshold and what a computer power buys back from the village were not traced; leave both out.]
-  **Verify:** unit tests: build choice (each condition), load choice on fixture colonies, target
-  choice, disbanding; sim: on 5 seeds some computer power sells to a settlement by wagon before
-  1600, and the R-802 sim still passes.
-
-- [ ] **R-805 Computer powers: missions**
-  As traced from the original program. A power with no missionary turns one spare colonist into a
-  missionary on a turn after 50 that is divisible by 7 (from turn 200 on, one time in four; a
-  skilled colonist one time in eight); one missionary per power at a time. The missionary goes to
-  the settlement on its landmass with the highest tribal alarm toward its own power x 8 /
-  (distance + 1), half again for a capital, skipping settlements that already hold its own
-  mission; with nowhere to go it becomes a colonist again. On entering: Establish Mission where
-  there is none, Denounce Heresy where a rival's stands, nothing at its own. Incite Indians
-  against the human player instead, when the tribe has met that player, its alarm toward them is below 75,
-  the power is the weaker of the two and has 1500 gold (2500 to make the journey to a settlement
-  holding its own mission): always where a mission already stands, four times in five elsewhere.
-  Also on entering a settlement, as in the original: scouts speak with the chief; soldiers,
-  dragoons and artillery attack; computer powers never demand tribute. [VERIFY: the measure of
-  "weaker" was not identified; use the summed attack values already used for the War in Europe aid.]
-  **Verify:** unit tests per rule with forced RNG; sim: on 5 seeds a rival mission exists in some
-  settlement by turn 150 (so Denounce Heresy is reachable in play), and the R-802 sim still passes.
-
 ---
 
 ## Phase 9 — Independence and endgame
