@@ -845,7 +845,7 @@ Legend:
   round are worked out from the state, not stored; a wagon does not load what the village it is
   bound for will not look at; a colony puts a colonist to building its wagon.
 
-- [ ] **R-805 Computer powers: missions**
+- [~] **R-805 Computer powers: missions**
   As traced from the original program. A power with no missionary turns one spare colonist into a
   missionary on a turn after 50 that is divisible by 7 (from turn 200 on, one time in four; a
   skilled colonist one time in eight); one missionary per power at a time. The missionary goes to
