@@ -384,6 +384,13 @@ canvas.minimap {
 .save-files { display: flex; gap: 6px; margin-top: 6px; }
 .save-notice { min-height: 1.2em; margin: 4px 0 0; color: #ffb4a0; }
 
+/* Shown while the page itself is magnified; over every screen and dialog. */
+.magnified-notice {
+  position: absolute; z-index: 20; transform: translateX(-50%); margin: 0; padding: 4px 12px; max-width: 80%;
+  background: #4a2a12; color: #ffe9c4; border: 1px solid #c9a650; font-size: 0.9rem; pointer-events: none;
+}
+.magnified-notice[hidden] { display: none; }
+
 /* --- colony screen ------------------------------------------------------------------------- */
 /* Laid over the whole game, as the Europe screen is: settlement top left, area top right, people
    and transport below them, the multi-function view under the area, the warehouse along the foot. */

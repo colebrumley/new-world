@@ -328,3 +328,25 @@ test('a trackpad pinch never magnifies the page, on the map or over the colony s
   expect(scroll).toBe(false);
   expect(await page.locator('.game').evaluate((node) => getComputedStyle(node).touchAction)).toBe('pan-x pan-y');
 });
+
+test('a magnified page says so, over the colony screen too, until it is set right', async ({ page }) => {
+  await foundJamestown(page);
+  const notice = page.locator('.magnified-notice');
+  await expect(notice).toBeHidden();
+  // no test can pinch: stand in for the browser's report of it
+  const magnify = (scale: number): Promise<void> =>
+    page.evaluate((s) => {
+      const viewport = window.visualViewport!;
+      Object.defineProperty(viewport, 'scale', { configurable: true, get: () => s });
+      Object.defineProperty(viewport, 'offsetLeft', { configurable: true, get: () => (s > 1 ? 17 : 0) });
+      viewport.dispatchEvent(new Event('resize'));
+    }, scale);
+  await magnify(1.012);
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText('Ctrl+0');
+  // drawn above the colony screen, and it does not take its clicks
+  expect(await notice.evaluate((n) => document.elementFromPoint(n.getBoundingClientRect().x + 4, n.getBoundingClientRect().y + 4)?.closest('.colony-screen') !== null)).toBe(true);
+  expect(await notice.evaluate((n) => Number(getComputedStyle(n).zIndex) > Number(getComputedStyle(document.querySelector('.colony-screen')!).zIndex))).toBe(true);
+  await magnify(1);
+  await expect(notice).toBeHidden();
+});

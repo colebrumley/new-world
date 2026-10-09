@@ -69,7 +69,7 @@ unit, the water shimmer and the slide of a moving piece are driven from the fram
 Reads state, never changes it. `view.ts` is the camera math (four zoom levels, clamping, pan,
 pixel/tile conversion). `tiles.ts` paints each distinct tile look procedurally and caches it per
 pixel size. `render.ts` draws the visible tiles, fog and pieces; `minimap.ts` draws the New World
-view; `sidebar.ts` builds the information sidebar from a pure `sidebarModel`. `keymap.ts` is the keyboard table (it also generates `docs/KEYS.md`), `pointer.ts` says what a click, a drag from the active unit or a turn of the wheel means on the map (pure), `command-bar.ts` is the sidebar's row of buttons, one per map command, each running what its key runs, `unit-queue.ts` decides
+view; `sidebar.ts` builds the information sidebar from a pure `sidebarModel`. `keymap.ts` is the keyboard table (it also generates `docs/KEYS.md`), `pointer.ts` says what a click, a drag from the active unit or a turn of the wheel means on the map (pure), `command-bar.ts` is the sidebar's row of buttons, one per map command, each running what its key runs, `magnified.ts` is the notice shown while the page itself is magnified (a pinch), `unit-queue.ts` decides
 which unit asks for orders next, `dialog.ts` is the pop-up question, `europe-model.ts` turns the
 player's side of Europe into plain data and `europe-screen.ts` draws it (sea lanes, harbour, docks,
 market, offices). `colony-model.ts` turns a colony into the plain data its screen shows and

@@ -35,6 +35,7 @@ import { openColonyScreen } from '../ui/colony-screen';
 import { ask, askText } from '../ui/dialog';
 import { openEuropeScreen } from '../ui/europe-screen';
 import { mapCommandFor, type MapCommand } from '../ui/keymap';
+import { createMagnifiedNotice } from '../ui/magnified';
 import { minimapLayout, minimapToTile, renderMinimap } from '../ui/minimap';
 import { viewerIndex, renderGround, renderPieces } from '../ui/render';
 import { createSidebar, formatMoves, sidebarModel, unitLabel } from '../ui/sidebar';
@@ -108,6 +109,8 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     if (event.ctrlKey) event.preventDefault();
   }, { passive: false });
   for (const gesture of ['gesturestart', 'gesturechange']) screen.addEventListener(gesture, (event) => event.preventDefault()); // Safari's pinch
+  // a page magnified all the same (restored that way, or by a gesture the browser keeps to itself) says so
+  const magnified = createMagnifiedNotice();
   const save = (): void => {
     if (options.autosave) writeAutosave(session);
   };
@@ -117,6 +120,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   const switchTo = (other: GameSession): void => {
     stopped = true;
     window.removeEventListener('resize', onResize);
+    magnified.stop();
     startGame(root, other);
   };
   /** Save/Load Game: the ten slots, and a file in or out. Stays open after a save so the player sees it took. */
@@ -155,7 +159,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   canvas.className = 'map';
   canvas.tabIndex = 0;
   const sidebar = createSidebar();
-  screen.append(canvas, sidebar.element);
+  screen.append(canvas, sidebar.element, magnified.element);
   root.replaceChildren(screen);
 
   const ctx = canvas.getContext('2d');
