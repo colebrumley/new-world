@@ -1,5 +1,5 @@
 // What a computer power's ships carry away from its colonies, and where an empty ship goes
-// (docs/RULES.md "Computer powers: freight"). As traced from the original program.
+// (docs/RULES.md "Computer powers: freight").
 import { holdsFree, holdsUsed } from '../engine/cargo';
 import { coloniesOf } from '../engine/colony';
 import { landWork } from '../engine/computer';
@@ -130,7 +130,7 @@ export function europeShip(state: GameState, player: Player): string | null {
  */
 export function europeBound(state: GameState, player: Player, ship: Unit, nothingToFetch: boolean): boolean {
   const supplies = AI_SUPPLY.goods.some((g) => (ship.cargo[g] ?? 0) > 0);
-  if (supplies) return true; // (ours: with no port to take them, back they go to be sold)
+  if (supplies) return true; // (with no port to take them, back they go to be sold)
   // people waiting on the docks come before anything else she might fetch
   const bound = Object.values(state.units).filter((u) => u.owner === player.id && isShip(u) && u.voyage !== null && u.voyage.phase !== 'toNewWorld').length;
   if (docksOf(state, player.id).length > bound) return true;

@@ -10,7 +10,7 @@ export const TAX = {
   periodStepPerDifficulty: 2,
   /** The King has only so many weddings in him. */
   maxWeddings: 30,
-  /** Foreign enemies the King's wars are blamed on (GAME.TXT @COUNTRIES). */
+  /** Foreign enemies the King's wars are blamed on. */
   enemies: ['Holy Roman Empire', 'Portuguese', 'Ottoman Turks', 'Barbary Pirates', 'Russia', 'Prussia', 'Sweden', 'Denmark'],
   /** Most of a good one party throws in the harbor. */
   partyAmount: 100,

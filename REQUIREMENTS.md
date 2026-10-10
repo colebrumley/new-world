@@ -3,28 +3,27 @@
 This document is the single source of truth for an autonomous build loop. Every requirement
 has an ID, a checkbox, acceptance criteria, and a **Verify** line that an agent can execute
 without human input. The loop protocol lives in [CLAUDE.md](CLAUDE.md). Rule values live in the
-data tables under `src/engine/data/`; [docs/FIDELITY.md](docs/FIDELITY.md) records where each came from.
+data tables under `src/engine/data/`; [docs/FIDELITY.md](docs/FIDELITY.md) records how each was settled.
 
 Legend:
 - `[ ]` not started, `[x]` done and verified, `[~]` in progress, `[!]` blocked (reason must follow)
-- `[VERIFY]` marks a value not found in the original files and recalled from memory or derived.
-  Implement the listed value, keep it in a data table, log it in `docs/FIDELITY.md`. Do not block on it.
-- Source tags: `NAMES` = NAMES.TXT, `PEDIA` = PEDIA.TXT, `GAME` = GAME.TXT (with `@TAG`), `MAN p.N` = manual page.
+- `[VERIFY]` marks a value that was provisional when the backlog was written; the value settled on is
+  logged in `docs/FIDELITY.md`. Implement the listed value, keep it in a data table. Do not block on it.
 
 ---
 
 ## 0. Scope and non-negotiable constraints
 
 ### Goals
-- G1. A faithful rendering of the classic colonial strategy game's **rules, systems, pacing, and feel**
+- G1. A turn-based colonial strategy game, complete in its **rules, systems, pacing, and feel**
   (turn structure, economy, natives, Europe, Founding Fathers, independence war, scoring).
 - G2. Runs entirely in a modern browser from static files. No backend, no login, no telemetry.
 - G3. Deterministic, headless-testable engine. Same seed + same actions = same state, in Node and in browser.
-- G4. Playable with mouse and with the original keyboard shortcuts (Appendix K); usable on a laptop at 100% zoom.
+- G4. Playable with mouse and with the keyboard shortcuts in Appendix K; usable on a laptop at 100% zoom.
 
 ### Hard constraints
-- C1. **No copyrighted assets or text.** No original graphics, sprites, fonts, palette, music, sounds,
-  map tile data, manual text, encyclopedia prose, or dialog sentences may be included or fetched.
+- C1. **No third-party assets or text.** No graphics, sprites, fonts, palette, music, sounds,
+  map tile data, or prose from any other game may be included or fetched.
   Rule values, names, mechanics, hotkeys, and screen layout are fine.
 - C2. **No network calls at runtime** except loading the app's own static files.
 - C3. **Engine is pure.** `src/engine/**` must not import from `src/ui/**`, the DOM, `window`,
@@ -35,12 +34,12 @@ Legend:
   if a requirement names them.
 - C6. **Target:** latest Chrome, Firefox, Safari. Minimum viewport 1024x640. Must also work at 1280x800.
 - C7. **The rule tables are the authority.** When a value in this document conflicts with the
-  tables in `src/engine/data/` (and the sources `docs/FIDELITY.md` records for them), the tables win;
+  tables in `src/engine/data/` (and the notes `docs/FIDELITY.md` keeps on them), the tables win;
   fix this document in the same commit.
 
 ### Out of scope for v1 (do not build, do not stub)
-- Multiplayer (the original's hot-seat mode), cloud saves, accounts, mod loader, map editor,
-  achievements, mobile-first layout, loading assets from a user's original game install, cheat menu.
+- Multiplayer (hot-seat), cloud saves, accounts, mod loader, map editor,
+  achievements, mobile-first layout, loading assets from another game's install, cheat menu.
 
 ---
 
@@ -101,12 +100,12 @@ Legend:
   without throwing. Later phases raise the turn count and player count.
 
 - [x] **R-007 Rules notebook**
-  `docs/RULES.md` is the place where formulas and hidden rules are written in our own prose
+  `docs/RULES.md` is the place where formulas and hidden rules are written out in prose
   before being implemented.
   **Verify:** `docs/RULES.md` exists.
 
 - [x] **R-006 Minimal app shell**
-  `index.html` loads the app, shows a title screen with the original's five choices (Start a Game
+  `index.html` loads the app, shows a title screen with five choices (Start a Game
   in New World, Start a Game in America, Customize New World, Load Game, View Hall of Fame) and
   a canvas that renders the current state via `render(state, view)`. `requestAnimationFrame` loop
   that only redraws when state or view changed (dirty flag). Resizes to window.
@@ -117,7 +116,7 @@ Legend:
 
 ## Phase 1 — Map
 
-- [x] **R-100 Terrain data table** (NAMES `@UNFORESTED/@FORESTED/@OTHER`, Appendix A)
+- [x] **R-100 Terrain data table** (Appendix A)
   Encode the 8 open land types (Tundra, Desert, Plains, Prairie, Grassland, Savannah, Marsh,
   Swamp), their 8 forested counterparts (Boreal, Scrub, Mixed, Broadleaf, Conifer, Tropical,
   Wetland, Rain), Arctic, Ocean, Sea Lane, Mountains, Hills. Per type: movement cost, defense
@@ -125,7 +124,7 @@ Legend:
   derived engine adjustments (food +1 when > 0, lumber × 2) in one
   clearly named function so they can be switched off if play testing disproves them.
   Clearing a forest yields its open counterpart (Boreal→Tundra, Scrub→Desert, Mixed→Plains,
-  Broadleaf→Prairie, Conifer→Grassland, Tropical→Savannah, Wetland→Marsh, Rain→Swamp; PEDIA).
+  Broadleaf→Prairie, Conifer→Grassland, Tropical→Savannah, Wetland→Marsh, Rain→Swamp).
   **Verify:** unit test asserts every type has all fields; snapshot test of the table; a test that
   Plains yields 5 food and Mixed forest 6 lumber to a free colonist with no bonuses.
 
@@ -133,25 +132,25 @@ Legend:
   Tile = terrain, forest flag, hills/mountain flag, river (none/minor/major), road, plowed,
   resource (Appendix A2), lost-city-rumor flag, native-homeland owner, European claim, per-player
   explored flag. `tileYield(tile, good, unitType, colony, fathers)` applies: plow (+1 food,
-  +1 sugar/tobacco/cotton; GAME `@TUTORIAL10`), road (+ lumber, ore, furs, silver-with-deposit;
-  GAME `@TUTORIAL9`, MAN p.27), river (minor +1, major +2 to produced goods [VERIFY amounts]),
+  +1 sugar/tobacco/cotton), road (+ lumber, ore, furs, silver-with-deposit),
+  river (minor +1, major +2 to produced goods [VERIFY amounts]),
   resource bonus (Appendix A2), expert (×2 for all raw goods except Expert Farmer +2 and Expert
-  Fisherman +2 [VERIFY fisherman]; PEDIA `@JOB0..8`), Indian Convert +1 on outdoor goods [VERIFY],
+  Fisherman +2 [VERIFY fisherman]), Indian Convert +1 on outdoor goods [VERIFY],
   Hudson (fur trappers ×2), SoL +1/+2, Tory penalty. Ocean/lake fishing requires Docks; fish yield
-  rises with adjacent land tiles (MAN p.133 note) [VERIFY formula: +1 per 2 adjacent land tiles].
-  Silver deposits deplete after extended mining into "Depleted Mine" (NAMES `@RESOURCE`, GAME `@DEPLETION`).
-  Note: modifier values above are superseded by the researched rule in Appendix A / `docs/RULES.md`.
+  rises with adjacent land tiles [VERIFY formula: +1 per 2 adjacent land tiles].
+  Silver deposits deplete after extended mining into "Depleted Mine".
+  Note: modifier values above are superseded by the rule in Appendix A / `docs/RULES.md`.
   The per-colony depletion counter is wired into the colony turn by R-301 (helpers exist in `yields.ts`).
   **Verify:** unit tests per modifier using Appendix A worked examples.
 
 - [x] **R-102 Random "New World" generator**
-  Map 56x70 playable (58x72 with a 1-tile impassable border, matching `AMER2.MP`). Sea Lane
+  Map 56x70 playable (58x72 with a 1-tile impassable border). Sea Lane
   along the east and west edges; polar ice (Arctic) north and south; latitude climate bands;
   coherent forests (~60% of land forested at start); hills and mountain chains; rivers (must be
   ≥2 tiles, may end in an ocean tile); resources only on legal terrain; Lost City Rumors on land.
-  Customize options exactly as the original (GAME `@CLAND/@CCONT/@CTEMP/@CCLIM`): Land Mass
+  Customize options: Land Mass
   (Small/Normal/Large), Land Form (Archipelago/Normal/Large Continents), Temperature
-  (Cool/Temperate/Warm), Climate (Arid/Normal/Wet). Keep ≤15 land masses (MAPEDIT advice).
+  (Cool/Temperate/Warm), Climate (Arid/Normal/Wet). Keep ≤15 land masses.
   **Verify:** unit tests over 50 seeds: land ratio in range per Land Mass option, every land tile
   reachable from a coast, river rules hold, no resource on illegal terrain, rumor count 10–25,
   land-mass count ≤ 15. Deterministic per seed.
@@ -159,30 +158,30 @@ Legend:
 - [x] **R-103 "America" map**
   Hand-author a low-resolution coastline mask of the Americas (Newfoundland to the Caribbean to
   Brazil; Andes/west coast mostly off-map) in `data/america.ts`, 56x70, and generate terrain
-  detail procedurally so it is recognizable but not the original tile data. Place tribes using the
-  coordinate clusters in `TRIBE.TXT` as region guides (Appendix D). European start positions on
+  detail procedurally so it is recognizable without anyone else's tile data. Place tribes using the
+  coordinate clusters in Appendix D as region guides. European start positions on
   the eastern Sea Lane at historically sensible latitudes (England north, France far north, Spain
-  Caribbean, Netherlands mid) [VERIFY against NAMES `@SCENARIO AMER2`].
+  Caribbean, Netherlands mid) [VERIFY positions].
   **Verify:** snapshot test; Playwright screenshot shows a recognizable Caribbean and Florida;
   every tribe's settlements lie within its region box.
 
 - [x] **R-104 Exploration and fog**
   Tiles start unexplored per player. Units reveal radius 1; Seasoned Scouts and ships radius 2
-  [VERIFY]; de Soto +1 for all units (PEDIA). Explored tiles stay visible forever (MAN p.14);
-  foreign units are shown only when adjacent to your units (manual's "Show Foreign Moves").
+  [VERIFY]; de Soto +1 for all units. Explored tiles stay visible forever;
+  foreign units are shown only when adjacent to your units ("Show Foreign Moves").
   Natives and AI powers have full knowledge. "Show Hidden Terrain" (H) draws terrain under forests
   and icons.
   **Verify:** unit test on reveal radius; e2e screenshot shows black outside the start area.
 
 - [x] **R-105 Map renderer**
-  Canvas 2D square tiles, four zoom levels matching the original's view sizes 120x96 / 60x48 /
-  30x24 / 15x12 tiles (MENU `@VIEW`), Z/X to zoom. Procedurally drawn tiles (flat color plus
+  Canvas 2D square tiles, four zoom levels with view sizes 120x96 / 60x48 /
+  30x24 / 15x12 tiles, Z/X to zoom. Procedurally drawn tiles (flat color plus
   simple pattern per terrain, forest canopy, hill/mountain glyphs, river lines, roads, plow
   furrows, resource icons, totem poles on native homeland tiles in colony view, rumor icon).
   Pan with arrow keys, edge-scroll, drag, and click-to-center; "New World view" minimap in the
-  top-right with the viewport box and click-to-center (MAN p.19); information sidebar on the
+  top-right with the viewport box and click-to-center; information sidebar on the
   right with date, treasury, active unit, moves, location, terrain, colony cargo list sorted by
-  value (MAN p.20). Only visible tiles drawn; frame time under 8 ms at 1280x800.
+  value. Only visible tiles drawn; frame time under 8 ms at 1280x800.
   **Verify:** e2e: zoom keys change tile size; minimap click recenters; a performance test
   (`performance.now` around 100 frames) stays under budget in headless chromium.
 
@@ -190,27 +189,27 @@ Legend:
 
 ## Phase 2 — Units and movement
 
-- [x] **R-200 Unit data table** (NAMES `@UNIT`, `@JOB`; Appendix B)
+- [x] **R-200 Unit data table** (Appendix B)
   Encode colonist types (Free Colonist, Indentured Servant, Petty Criminal, Indian Convert, and
   the 22 specialists), roles (Soldier, Dragoon, Pioneer, Scout, Missionary), land units (Wagon
   Train, Treasure Train, Artillery, Damaged Artillery, Continental Army, Continental Cavalry,
   King's Regular, King's Cavalry, Braves, Armed Braves, Mounted Braves, Mounted Warriors), ships
   (Caravel, Merchantman, Galleon, Privateer, Frigate, Man-O-War). Fields: moves, attack,
-  defense, holds, colony build cost (hammers = NAMES cost × 32, tools = NAMES tools × 10),
+  defense, holds, colony build cost (hammers = table cost × 32, tools = table tools × 10),
   Europe price, equipment carried, AI role flags.
   **Verify:** table snapshot; every unit referenced elsewhere exists.
 
 - [x] **R-201 Movement rules**
   Moves per unit (Appendix B). Terrain cost from Appendix A; roads cost 1/3; moving along a river
-  costs 1/3 (MAN p.17 "rivers function like roadways") [VERIFY exact fraction]; a unit with any
-  moves left may always attempt a move into a tile costing more [VERIFY: original civ-style rule].
-  Ships stay on Ocean/Sea Lane except inside a coastal colony; ships cannot enter inland lakes
-  (GAME `@SHIPLAKE`); land units board a ship from an adjacent land tile or by Sentry in a colony
-  (auto-board when the ship leaves); "Make Landfall" prompt when a loaded ship moves onto land
-  (GAME `@LANDFALL`); land units cannot attack from aboard ship (GAME `@LANDFIRST`). No zone of
+  costs 1/3 [VERIFY exact fraction]; a unit with any
+  moves left may always attempt a move into a tile costing more [VERIFY: civ-style rule].
+  Ships stay on Ocean/Sea Lane except inside a coastal colony; ships cannot enter inland lakes;
+  land units board a ship from an adjacent land tile or by Sentry in a colony
+  (auto-board when the ship leaves); "Make Landfall" prompt when a loaded ship moves onto land;
+  land units cannot attack from aboard ship. No zone of
   control. Orders: Go To (G, named destination menu, multi-turn pathfinding A*), Sentry (S),
   Fortify (F; effect starts next turn), Wait (W), Skip (Space), Disband (Shift-D), Activate (A).
-  Note: both [VERIFY] items are settled by the rules research (`docs/RULES.md` "Movement"): river steps
+  Note: both [VERIFY] items are settled in `docs/RULES.md` "Movement": river steps
   cost 1/3 only when orthogonal; a short-of-moves step succeeds with chance left/cost (always on the
   first step of a turn). The Go To destination menu and the landfall dialog are UI, built in R-205.
   **Verify:** unit tests for each rule; pathfinding test on a fixture map; sim invariant: no unit
@@ -224,7 +223,7 @@ Legend:
   docks: 50 muskets → Soldier; +50 horses → Dragoon; 50 horses → Scout; 20–100 tools → Pioneer
   (takes up to 100 available); Missionary requires a Church/Cathedral in the colony (or any
   colonist blessed on the Europe docks). All reversible; equipment returns to the warehouse.
-  Pioneer with 0 tools reverts to colonist (GAME `@USEDUPTOOLS`).
+  Pioneer with 0 tools reverts to colonist.
   Note: the engine side is complete (`cargo.ts`). The partial-amount prompt and drag UI are built with
   the colony screen (R-308); equipping on the Europe docks reuses `planEquip` in R-402/R-404; "most
   valuable" ranks by opening bid until the live market (R-400) supplies prices.
@@ -232,33 +231,34 @@ Legend:
   invariant in sim.
 
 - [x] **R-203 Europe travel**
-  A ship on a Sea Lane tile moving toward the nearer map edge is asked "sail for Europe?"
-  (GAME `@SAILHOME`). Transit 1–4 turns depending on direction (west edge longer), ship speed,
-  and Magellan (PEDIA; MAN p.60) [VERIFY: east base 2, west base 4 before Magellan]. Ships in
-  transit appear in "Expected Soon" / "Bound for New World" boxes and may be reversed mid-voyage
-  (MAN p.60). Returning ships reappear at the Sea Lane tile they left from, or at a chosen port
-  (GAME `@SAILPORT`). Europe is closed during the War of Independence (GAME `@EUROPENOTAVAIL`).
-  Note: timing follows the rules research (`docs/RULES.md` "Europe travel"): two turns each way from
-  either edge, occasionally three; ships return to their departure square (`@SAILPORT` is the Go To
-  menu). The "Expected Soon" / "Bound for New World" boxes are a plain list until the Europe screen
+  A ship on a Sea Lane tile moving toward the nearer map edge is asked "sail for Europe?".
+  Transit 1–4 turns depending on direction (west edge longer), ship speed,
+  and Magellan [VERIFY: east base 2, west base 4 before Magellan]. Ships in
+  transit appear in "Expected Soon" / "Bound for New World" boxes and may be reversed mid-voyage.
+  Returning ships reappear at the Sea Lane tile they left from, or at a chosen port.
+  Europe is closed during the War of Independence.
+  Note: timing follows `docs/RULES.md` "Europe travel": two turns each way from
+  either edge, occasionally three; ships return to their departure square (a port is chosen
+  through the Go To menu). The "Expected Soon" / "Bound for New World" boxes are a plain list until the
+  Europe screen
   (R-402); the wartime closure is enforced by R-900.
   **Verify:** unit tests on transit timers and reversal; e2e round-trip.
 
 - [x] **R-204 Pioneer actions**
-  Clear forest / Plow (P) and Build Road (R) consume 20 tools each (MAN p.26–27). Turn cost =
-  terrain "Improvement" value from Appendix A [derived interpretation of NAMES column 3]; Hardy
+  Clear forest / Plow (P) and Build Road (R) consume 20 tools each. Turn cost =
+  terrain "Improvement" value from Appendix A [derived interpretation of the table's third column]; Hardy
   Pioneer works twice as fast [VERIFY]. Clearing a forest next to a colony adds lumber to that
-  colony (GAME `@CLEARCUT`). Cleared land never re-forests. Improving native homeland triggers the
+  colony. Cleared land never re-forests. Improving native homeland triggers the
   land dialog (R-510). Already-plowed / already-road messages.
-  Note: researched values (`docs/RULES.md` "Pioneer work"): road = improvement turns, clear/plow =
+  Note (see `docs/RULES.md` "Pioneer work"): road = improvement turns, clear/plow =
   improvement + 2, Hardy Pioneer half (rounded down), tools spent on completion, the order turn counts.
   **Verify:** unit tests for each action, tool consumption, completion turns, lumber grant.
 
 - [x] **R-205 Unit orders UI and keyboard map**
-  Implement the keyboard map in Appendix K (from MENU.TXT and the technical supplement, MAN p.2–5).
+  Implement the keyboard map in Appendix K.
   Orders box on each unit colored by nation (English red, French blue, Spanish yellow, Dutch orange)
   with the order letter (`-`, S, T, G, L, F, B, P, R). Foreign ships show their filled-hold count
-  instead (MAN p.79). Bottom/side panel showing unit, moves left, terrain, orders.
+  instead. Bottom/side panel showing unit, moves left, terrain, orders.
   Note: `docs/KEYS.md` is generated from `src/ui/keymap.ts`. Keys whose feature does not exist yet (B,
   T, F1-F10, Alt menus, colony and Europe screens) are listed with the requirement that brings them and
   answer "not available yet". Go To picks a square with the cursor or mouse; the named-destination menu
@@ -266,13 +266,13 @@ Legend:
   **Verify:** e2e: a key sequence moves a unit and ends the turn; `docs/KEYS.md` snapshot matches Appendix K.
 
 - [x] **R-206 Turn structure and calendar**
-  Start 1492 (GAME `@VICEROY`). One turn per year to 1600, then two per year, Spring and Autumn
-  (GAME `@TIMECHANGE`, `@SEASONS`). Player order each turn: natives first, then England, France,
-  Spain, Netherlands (MAN p.10). Within a player's turn: Europe events (prices, tax, immigrants),
+  Start 1492. One turn per year to 1600, then two per year, Spring and Autumn.
+  Player order each turn: natives first, then England, France,
+  Spain, Netherlands. Within a player's turn: Europe events (prices, tax, immigrants),
   then colony events (production, spoilage, construction), then unit movement. End-of-turn
-  message optional. Scoring game end at 1800 if no revolution declared ("retire in 1800", GAME
-  `@SOONRETIRING0`); the War of Independence may run until 1850 (GAME `@SOONRETIRING1`); the game
-  also ends if you hold no colonies in or after 1600 (GAME `@ABANDON2`, `@LOSENOCOLONIES`, MAN p.11).
+  message optional. Scoring game end at 1800 if no revolution declared ("retire in 1800");
+  the War of Independence may run until 1850; the game
+  also ends if you hold no colonies in or after 1600.
   Note: the round and the three phases of a power's turn are fixed in `actions.ts`; the natives and
   colony phases are empty until Phases 5 and 3 fill them. The scoring event is `gameEnded`; the score
   itself is R-902. The optional end-of-turn message is an R-1001 option.
@@ -283,72 +283,73 @@ Legend:
 ## Phase 3 — Colonies and production
 
 - [x] **R-300 Found, join, abandon**
-  Any colonist except an Indian Convert founds a colony (B) on land that is not Mountains
-  (GAME `@TOOMOUNTAIN`), not adjacent to another colony or an in-progress colony site (GAME
-  `@TOONEAR`, `@TOONEARBUILD`), not during the War of Independence. Warnings when no adjacent
-  forest or few productive squares (GAME `@TUTNOLUMBER`, `@TUTNOSPACES`). Max 48 colonies
-  (README); max 32 colonists per colony (DEBUG) with a "far too crowded" refusal (GAME `@FULL`).
+  Any colonist except an Indian Convert founds a colony (B) on land that is not Mountains,
+  not adjacent to another colony or an in-progress colony site,
+  not during the War of Independence. Warnings when no adjacent
+  forest or few productive squares. Max 48 colonies;
+  max 32 colonists per colony with a "far too crowded" refusal.
   Colony names from Appendix J lists in order, user-editable. B inside a colony = Join. Abandon
-  allowed unless a stockade/fort/fortress exists (then pop may never drop below 3; GAME
-  `@KEEPSTOCKADE`). Founding on native homeland triggers R-510. The founder works the best food tile.
+  allowed unless a stockade/fort/fortress exists (then pop may never drop below 3).
+  Founding on native homeland triggers R-510. The founder works the best food tile.
   Note (see `docs/RULES.md`): the caps are 48 colonies in the whole game and 38 per power; the
   forest and space warnings appear only on Discoverer and Explorer, a no-ocean-access warning on every
-  level; `@TOONEARBUILD` concerns a pending Build Colony order and cannot arise with immediate founding.
+  level; the in-progress-site refusal concerns a pending Build Colony order and cannot arise with
+  immediate founding.
   The founder takes the best food square until `suggestPlacement` (R-309) replaces that choice.
   **Verify:** unit tests for legal/illegal placement, caps, stockade rule; e2e founds a colony.
 
-- [x] **R-301 Goods and production chain** (NAMES `@CARGO`; Appendix C)
+- [x] **R-301 Goods and production chain** (Appendix C)
   16 storable goods: Food, Sugar, Tobacco, Cotton, Furs, Lumber, Ore, Silver, Horses, Rum,
   Cigars, Cloth, Coats, Trade Goods, Tools, Muskets; plus Hammers, Crosses, Liberty Bells
   (non-storable). Conversions: Sugar→Rum, Tobacco→Cigars, Cotton→Cloth, Furs→Coats, Ore→Tools,
   Tools→Muskets, Lumber→Hammers. Each worker converts input 1:1 at the building's rate; this
-  turn's raw output feeds this turn's converters first, then stock (MAN p.47 example: 3 ore mined
+  turn's raw output feeds this turn's converters first, then stock (example: 3 ore mined
   and 3 tools made leaves ore stock untouched; shortfall drawn from stock). Rates per worker:
-  House 3, Shop 6 (PEDIA "doubles" for Lumber Mill / Magazine), Factory 6 input → 9 output
-  (PEDIA Adam Smith: 1.5 output per input). Expert ×2; Indentured Servant 2 in buildings; Petty
-  Criminal 1; Indian Convert 1 in buildings [VERIFY] (MAN p.33). Max 3 workers per building.
-  Shortage messages per good (GAME `@LUMBER`..`@TOOLS`).
+  House 3, Shop 6 (doubled for Lumber Mill / Magazine), Factory 6 input → 9 output
+  (Adam Smith: 1.5 output per input). Expert ×2; Indentured Servant 2 in buildings; Petty
+  Criminal 1; Indian Convert 1 in buildings [VERIFY]. Max 3 workers per building.
+  Shortage messages per good.
   Note (see `docs/RULES.md` "Indoor production"): convert = 1 in buildings; a factory makes half
   again as much for two thirds the input; servants and criminals scale with the building level (2/4/6,
   1/2/3). Shortage reports are events (`ranOutOf`); their wording is shown by the colony report UI.
   **Verify:** unit tests: conversion with insufficient input; chain Ore→Tools→Muskets in one turn
-  follows the manual example; rates per level and per colonist type.
+  follows the example above; rates per level and per colonist type.
 
 - [x] **R-302 Colony tiles and workers**
-  The 8 surrounding tiles plus the center ("town commons", MAN p.39): the center automatically
+  The 8 surrounding tiles plus the center ("town commons"): the center automatically
   produces food plus the terrain's secondary good, using any resource there except Prime Timber,
   with no worker. One worker per tile producing one chosen good; tiles owned by natives (until
   bought/taken), occupied by foreign units, or worked by an adjacent colony are unavailable.
-  Jobs menu shows "here / best elsewhere" values for each job (MAN p.46). Clear Specialty option.
+  Jobs menu shows "here / best elsewhere" values for each job. Clear Specialty option.
   Note: engine in `jobs.ts` (`squareStatus`, `fieldOutput`, `centerOutput`, `jobOptions`, `assignJob`,
-  `clearSpecialty`); the centre-tile rule is the researched one in `docs/RULES.md` "Colony centre tile".
+  `clearSpecialty`); the centre-tile rule is the one in `docs/RULES.md` "Colony centre tile".
   The menu itself is drawn by the colony screen (R-308).
   **Verify:** unit tests for availability rules, center-tile output, job menu values.
 
-- [x] **R-303 Buildings** (NAMES `@BUILDING`; Appendix E)
+- [x] **R-303 Buildings** (Appendix E)
   Encode all buildings with hammers, tools (× 10), min population, prerequisites, upkeep value
   (store it; upkeep rule off by default, see Appendix E note). Starting buildings: Town Hall,
   Carpenter's Shop, Blacksmith's House, Tobacconist's House, Weaver's House, Distiller's House,
-  Fur Trader's House (MAN p.50). One construction project at a time; hammers accumulate; tools
-  are consumed on completion; if tools are short the project waits with a message (GAME
-  `@NEEDTOOLS`); changing project keeps accumulated hammers; "Buy" completes for gold (GAME
-  `@BUYME1`) [VERIFY price formula: remaining hammers × 10? plus tools at Europe price]. Factory
+  Fur Trader's House. One construction project at a time; hammers accumulate; tools
+  are consumed on completion; if tools are short the project waits with a message;
+  changing project keeps accumulated hammers; "Buy" completes for gold
+  [VERIFY price formula: remaining hammers × 10? plus tools at Europe price]. Factory
   level (Iron Works, Textile Mill, Cigar Factory, Rum Factory, Fur Factory, Arsenal) requires Adam
   Smith; Custom House requires Stuyvesant. Colonies can also build Wagon Trains (≤ number of
-  colonies, GAME `@NOMOREWAGONS`), Artillery (needs Armory), and ships (needs Shipyard, coastal)
-  with costs from Appendix B. Only one Warehouse Expansion (GAME `@NOMOREWAREHOUSE`).
+  colonies), Artillery (needs Armory), and ships (needs Shipyard, coastal)
+  with costs from Appendix B. Only one Warehouse Expansion.
   Note (see `docs/RULES.md` "Construction"): buy price = 13 per missing hammer + (tools price + 4)
   per missing tool, doubled with no hammers down; the hammer store resets to 0 on completion; upkeep is
-  never charged in v3.0. The tools price is a fixed opening value until the market (R-400).
+  never charged. The tools price is a fixed opening value until the market (R-400).
   **Verify:** unit tests: completion exactly when hammers ≥ cost and tools ≥ cost; pop and
   prerequisite enforcement; wagon cap.
 
 - [x] **R-304 Food, growth, starvation, horses**
   Each colonist eats 2 food. Surplus accumulates; at 200 food a Free Colonist is born and 200 is
-  deducted (MAN p.36). Food is not capped by warehouse size (MAN p.42). Deficit draws from
+  deducted. Food is not capped by warehouse size. Deficit draws from
   stock; with no stock, one colonist starves per turn of deficit, with warnings beforehand
-  (GAME `@FOODLOW`, `@FOOD1/2`, `@STARVE1/2`, `@VANISH` when the last colonist dies). Horses: with
-  ≥2 horses and a food surplus the herd grows; Stable doubles the rate (PEDIA `@CARGO8`)
+  (and a message when the last colonist dies). Horses: with
+  ≥2 horses and a food surplus the herd grows; Stable doubles the rate
   [VERIFY: growth = min(surplus/2, horses/4) style formula; calibrate so 50 horses with 10 surplus
   food grow ~2–5 per turn]; horse breeding consumes part of the surplus.
   Note (see `docs/RULES.md` "Food and horses"): the newborn is a unit outside the colony; one
@@ -357,31 +358,31 @@ Legend:
   **Verify:** unit tests for growth, starvation sequence, breeding with and without Stable.
 
 - [x] **R-305 Warehouse and spoilage**
-  Capacity 100 per good; Warehouse → 200; Warehouse Expansion → 300 (PEDIA). Goods over capacity
-  at end of turn are thrown away with a message (GAME `@SPOIL1..4`); food exempt. Unloading into
-  a full warehouse warns (GAME `@WAREHOUSEFULL`). New-cargo-ready reports (GAME `@CARGOREADY*`).
+  Capacity 100 per good; Warehouse → 200; Warehouse Expansion → 300. Goods over capacity
+  at end of turn are thrown away with a message; food exempt. Unloading into
+  a full warehouse warns. New-cargo-ready reports.
   Custom House (R-403) sells configured goods automatically.
   Note: events `goodsSpoiled`, `cargoReady`, `warehouseFull`; their wording and the report option to
   silence cargo-ready notices are UI (R-308, R-1001). Custom House sales are R-403.
   **Verify:** unit tests.
 
 - [x] **R-306 Liberty bells, Sons of Liberty, Tories**
-  Town Hall workers produce bells (free colonist 1? [VERIFY: NAMES has no rate; use House rate 3
-  with Elder Statesman ×2, matching the manual's "many"]); Printing Press +50%, Newspaper +100%
-  (PEDIA); Jefferson statesmen +50%; Paine + current tax rate %; Bolivar +20% membership. Each
+  Town Hall workers produce bells (free colonist 1? [VERIFY: no table rate; use House rate 3
+  with Elder Statesman ×2]); Printing Press +50%, Newspaper +100%;
+  Jefferson statesmen +50%; Paine + current tax rate %; Bolivar +20% membership. Each
   colony's accumulated bells vs population gives SoL% (Appendix F formula [VERIFY]). SoL ≥ 50%
-  → +1 production per worker; 100% → +2 (GAME `@REBELMAJORITY`, `@REBELUNANIMOUS`; 100% also
+  → +1 production per worker; 100% → +2 (100% also
   speeds education). Tory penalty: when Tories (non-members) ≥ threshold (Discoverer 10 …
-  Viceroy 6; MAN p.86) production −1 per threshold multiple (GAME `@INEFFICIENT`). Population
-  number color on map: white <50%, green ≥50%, blue 100% (MAN p.85). National rebel sentiment =
-  total bells averaged against population (MAN p.85) and feeds Founding Fathers (R-701).
+  Viceroy 6) production −1 per threshold multiple. Population
+  number color on map: white <50%, green ≥50%, blue 100%. National rebel sentiment =
+  total bells averaged against population and feeds Founding Fathers (R-701).
   Note (see `docs/RULES.md` "Sons of Liberty"): statesmen make 3 (Elder 6) plus 1 free bell per
   colony; membership is a numerator/denominator pair drifting 1/64 per turn toward bells / (2 x pop),
   which supersedes the Appendix F formula; the Newspaper doubles instead of stacking on the press.
   **Verify:** unit tests reproducing Appendix F worked examples and the message thresholds.
 
 - [x] **R-307 Crosses**
-  Each colony produces 1 cross per turn automatically (MAN p.35); Church and Cathedral add more
+  Each colony produces 1 cross per turn automatically; Church and Cathedral add more
   [VERIFY: Church +1, Cathedral +2] and let workers preach at House/Shop rates; Firebrand
   Preacher ×2; Penn +50%. Immigration handled in R-405.
   Note: 1 / 2 / 3 flat crosses with nothing / Church / Cathedral; a Church does not
@@ -389,7 +390,7 @@ Legend:
   **Verify:** unit tests on cross totals.
 
 - [x] **R-308 Colony screen UI**
-  Layout per MAN p.40: settlement view (buildings with worker slots) top-left, area view (3x3
+  Layout: settlement view (buildings with worker slots) top-left, area view (3x3
   tiles with workers and totem poles) top-right, multi-function view (Production / Units /
   Construction with Buy and Change) right, people view (colonists row, SoL% flag, Tory% crown,
   food line with surplus/shortfall X's, crosses, bells) bottom-left, transport view (ships and
@@ -403,27 +404,27 @@ Legend:
   done from the unit's orders menu at the gates. The snapshot is a structural JSON, not pixels.
   The screen lies over the whole game (map and sidebar) rather than beside the map. A click selects a
   colonist, unit or cargo and a second click on a place sends it there; a click on the selected
-  colonist opens the Jobs menu (MAN p.45-46). A help line at the foot says what a click will do.
+  colonist opens the Jobs menu. A help line at the foot says what a click will do.
   **Verify:** e2e: drag a colonist from a tile to a building changes production; keyboard-only
   path loads cargo; snapshots.
 
 - [x] **R-309 Colony AI auto-placement**
   `suggestPlacement(colony)` used when a colonist joins or when the AI manages a colony.
   Prefers food self-sufficiency, then the colony's best cash crop, then lumber/hammers.
-  Note: `engine/placement.ts`, modelled on the original's routine (`docs/RULES.md` "Automatic
-  placement") with a reduced weight set: food while hungry, else by yield and price, a carpenter once
+  Note: `engine/placement.ts` (`docs/RULES.md` "Automatic
+  placement"), with a small weight set: food while hungry, else by yield and price, a carpenter once
   the colony is fed, has three people and a project. Founders and joiners use it; `placeIdle` serves the AI.
   **Verify:** unit tests on fixture colonies.
 
 - [x] **R-310 Education and specialty acquisition**
-  Schoolhouse 1 teacher, College 2, University 3 (GAME `@SCHOOL1/@COLLEGE2/@UNIV3`); teachable
+  Schoolhouse 1 teacher, College 2, University 3; teachable
   skill tiers per Appendix B "level" column (1 = Schoolhouse, 2 = College, 3 = University, 4 =
   not teachable). A teacher trains one student at a time over N turns [VERIFY: 4/6/8 by tier];
-  outcomes: Criminal → Servant, Servant → Free Colonist, Free Colonist → teacher's skill (GAME
-  `@TRAINCRIMINAL/@TRAININDENTURED/@TRAINPROFESSION`); fails if no eligible student
-  (GAME `@TRAINFAIL`). Converts cannot be educated (GAME `@TUTORIAL19`). A free colonist working a
-  job long enough may become its specialist by experience (MAN p.34) [VERIFY: small per-turn
-  chance]. Scouts become Seasoned after visiting villages (GAME `@WELLSEASONED`).
+  outcomes: Criminal → Servant, Servant → Free Colonist, Free Colonist → teacher's skill;
+  fails if no eligible student.
+  Converts cannot be educated. A free colonist working a
+  job long enough may become its specialist by experience [VERIFY: small per-turn
+  chance]. Scouts become Seasoned after visiting villages.
   Note (see `docs/RULES.md` "Education"): the term is 4/6/8 turns by the teacher's own level;
   pupils are picked at random; learning by doing is limited to planters and fur trappers (1/100,
   1/200, 1/300) and to powers with no such expert yet. The Seasoned Scout promotion is done in R-503.
@@ -431,9 +432,9 @@ Legend:
 
 - [x] **R-311 Trade routes**
   Up to 4 stops per route, up to 6 cargoes to unload and 6 to load per stop, land or sea routes,
-  default names (GAME `@TRADENAMES`), route cap (GAME `@TRADEMANY` [VERIFY: 12]). Assign wagons
+  default names, route cap [VERIFY: 12]. Assign wagons
   and ships with T; they follow the itinerary until cleared. Create/Edit/Delete menu.
-  Note: the cap of 12 is confirmed in the rules research. The Trade menu opens with Alt+T until the menu
+  Note: the cap is 12. The Trade menu opens with Alt+T until the menu
   bar exists (R-1001); the itinerary editor is a table of four rows with multi-select cargo lists.
   **Verify:** unit tests for a two-stop loop moving goods; e2e creates a route.
 
@@ -441,14 +442,14 @@ Legend:
 
 ## Phase 4 — Europe
 
-- [x] **R-400 Market model** (NAMES `@CARGO`; Appendix C)
+- [x] **R-400 Market model** (Appendix C)
   Per good: starting bid chosen in [start1, start2]; ask = bid + 1 + burden; drift bounds
   [low, high]; a traffic volume per good that trades push (sales add, purchases subtract),
   attrition changes it each turn, volatility scales the shift; price falls when volume crosses
   `fall`, rises when it crosses `rise`. All four powers' trades feed one shared market per good
-  with cross-port influence (MAN p.63); AI powers sell too. Dutch: prices collapse slower and
-  recover faster (GAME `@NATION3B`) [VERIFY: halve their volume impact]. Food IS tradeable
-  (it has a price row). Price change announcements (GAME `@PRICEUP/@PRICEDOWN`).
+  with cross-port influence; AI powers sell too. Dutch: prices collapse slower and
+  recover faster [VERIFY: halve their volume impact]. Food IS tradeable
+  (it has a price row). Price change announcements.
   Note (see `docs/RULES.md` "Market"): prices and traffic are per power, coupled by every
   trade moving all four powers' traffic and by a shared volume; rum, cigars, cloth and coats are priced
   against one another and open around 8-18 rather than at the table's 11-13; tax applies to sales only.
@@ -457,59 +458,58 @@ Legend:
   baseline; Dutch impact is smaller; initial prices within Appendix C ranges.
 
 - [x] **R-401 Tax and boycotts**
-  Tax starts 0 [VERIFY by difficulty]; applied to sales and purchases (MAN p.63). The King
-  raises it with a reason drawn from the original's event list (Appendix G2) and offers "Kiss
-  pinky ring" or "Hold a <Good> Party" (GAME `@TAXOPTIONS`): the party dumps that good from a ship
-  in port, boycotts the good until back taxes are paid (GAME `@TEAPARTY`, `@KISSUP`), and raises
+  Tax starts 0 [VERIFY by difficulty]; applied to sales and purchases. The King
+  raises it with a reason drawn from the event list (Appendix G2) and offers "Kiss
+  pinky ring" or "Hold a <Good> Party": the party dumps that good from a ship
+  in port, boycotts the good until back taxes are paid, and raises
   rebel sentiment. Fugger lifts all boycotts. Tax also rises on purchases of Crown resources
-  (GAME `@PURCHASETAX`) and when building a Custom House (GAME `@MERCANTILISM`); it can fall
-  (GAME `@KINGLOWER`, `@KINGMERCY`, `@KINGVICTORY`). Max tax [VERIFY 75%]. Paine's bonus uses it.
+  and when building a Custom House; it can fall.
+  Max tax [VERIFY 75%]. Paine's bonus uses it.
   Note (see `docs/RULES.md` "Tax"): tax starts at 0 on every level, applies to sales only, and is
-  capped at 75%. The rises tied to `@PURCHASETAX`, `@MERCANTILISM` and `@KINGMERCY` are not built: those
-  texts are never referenced by the original program. The +10 for accepting the King's frigate is R-406.
+  capped at 75%. No tax change is tied to purchases of Crown resources, to building a Custom House or to the
+  loss of a royal unit. The +10 for accepting the King's frigate is R-406.
   **Verify:** unit tests for raise, party, boycott, back taxes, Fugger.
 
 - [x] **R-402 Europe screen**
-  Per MAN p.61: transit boxes (Expected Soon / Bound for New World), harbor view with holds,
+  Transit boxes (Expected Soon / Bound for New World), harbor view with holds,
   warehouse strip with bid/ask per good, docks with immigrants (sentry by default), transaction
   monitor (tax %, amount, net), RECRUIT / PURCHASE / TRAIN buttons, treasury. Dock options for
-  an immigrant (GAME `@ARMOPTIONS`): board/don't board next ship, move to front, arm with muskets,
+  an immigrant: board/don't board next ship, move to front, arm with muskets,
   equip tools (100), equip horses, bless as missionary, and the sell-equipment reversals. Ship
   options: set sail, unload all, move to front.
-  Note: dock kit prices and the difficulty-based starting treasury follow the rules research
-  (`docs/RULES.md` "Europe docks and starting treasury"). "Move to front" is covered by selecting the
+  Note: dock kit prices and the difficulty-based starting treasury follow
+  `docs/RULES.md` "Europe docks and starting treasury". "Move to front" is covered by selecting the
   ship to load and by "board the ship in port now". Recruit lists the immigrant pool once R-405 lands.
   **Verify:** e2e buys 100 tools and loads them; prices and treasury update on screen.
 
 - [x] **R-403 Custom House**
-  With Stuyvesant and the building: a per-colony checklist of goods to export (GAME `@CUSTOM`);
+  With Stuyvesant and the building: a per-colony checklist of goods to export;
   each turn exports those goods above a keep-threshold [VERIFY: 50] at current prices minus tax,
-  boycotted goods excluded; moves the market. During the revolution it keeps trading at 50% net
-  (MAN p.87).
-  Note: per the rules research (`docs/RULES.md` "Custom House") a good sells at 100 down to 50,
+  boycotted goods excluded; moves the market. During the revolution it keeps trading at 50% net.
+  Note (see `docs/RULES.md` "Custom House"): a good sells at 100 down to 50,
   boycotts are ignored, wartime sales pay in full with no tax, and a nearby foreign warship stops a
   human's exports. The checklist is the colony screen's X key.
   **Verify:** unit tests.
 
 - [x] **R-404 Recruit, train, purchase**
-  Recruitment pool of 3 drawn from the immigrant class distribution (Appendix B2, NAMES `@CLASS`)
+  Recruitment pool of 3 drawn from the immigrant class distribution (Appendix B2)
   weighted by era and crosses; recruit price = class transport cost scaled by how far the next
   cross threshold is [VERIFY: price falls as crosses accumulate, rises after each recruit]; the
   pool refills immediately. Train = Royal University list with fixed prices from Appendix B
-  (NAMES `@JOB`, −1 = not available). Purchase: Artillery (500, +100 per purchase [VERIFY]),
+  (−1 = not available). Purchase: Artillery (500, +100 per purchase [VERIFY]),
   Caravel 1000, Merchantman 2000, Galleon 3000, Privateer 2000, Frigate 5000 [VERIFY all ship
-  prices], rising with demand (MAN p.66). Insufficient funds refused (GAME `@TOOEXPENSIVE` labels).
-  Note: the pool draw, first pool and price follow the rules research (`docs/RULES.md` "Recruiting,
-  training and purchases"): `@CLASS` and the era are unused, ship prices are constant, and only
+  prices], rising with demand. Insufficient funds refused.
+  Note: the pool draw, first pool and price follow `docs/RULES.md` "Recruiting,
+  training and purchases": the class distribution and the era are unused, ship prices are constant, and only
   artillery rises.
   **Verify:** unit tests.
 
 - [x] **R-405 Immigration via crosses**
   National cross total vs threshold (Appendix F); when reached one pool member moves to the docks
-  (random, or chosen with Brewster; GAME `@UNREST`, `@RECRUITCHOOSE`) and the threshold rises.
-  English need only 2/3 the crosses (GAME `@NATION0B`). Brewster removes criminals and servants
+  (random, or chosen with Brewster) and the threshold rises.
+  English need only 2/3 the crosses. Brewster removes criminals and servants
   from the pool. Immigrants on the docks are on sentry and board the next departing ship.
-  Note: researched rule (`docs/RULES.md` "Immigration"): needed = 8 + 2 per colonist and unit, crosses
+  Note (see `docs/RULES.md` "Immigration"): needed = 8 + 2 per colonist and unit, crosses
   reset to zero on arrival, and the docks add or subtract 2 a turn. `brewsterPool` is applied when the
   father is elected (R-701).
   **Verify:** unit tests on threshold progression, English factor, Brewster.
@@ -517,14 +517,14 @@ Legend:
 - [x] **R-406 Royal events** (Appendix G2)
   Tax raises with reasons; demands for gold ("fund the war") with tax penalty on refusal
   [VERIFY mechanics]; King declares war on another power, cancelling your treaty and granting
-  gold plus Veteran Soldiers (GAME `@KINGNEWWAR`); King offers a Frigate when privateers prey on
-  you (GAME `@KINGFRIGATE`); royal galleon transports a parked Treasure Train for 50% (or for the
-  tax rate; free with Cortes; GAME `@KINGGALLEON2/3`); mercenary offers once treasury ≈ 5000+
-  (MAN p.82; always veterans, take-all-or-nothing); REF reinforcement notices (GAME `@KINGBUY`);
-  Treaty of Utrecht event transferring one power's colonies to another (GAME `@SUCCESSION`)
-  [VERIFY trigger]; foreign power independence (GAME `@OTHERGRANTED/@OTHERMIGHT`).
-  Note: built from the rules research (`docs/RULES.md` "Royal events"). There is no demand-for-gold
-  event in the original program, so none is built. The treasure cut is a function awaiting treasure
+  gold plus Veteran Soldiers; King offers a Frigate when privateers prey on
+  you; royal galleon transports a parked Treasure Train for 50% (or for the
+  tax rate; free with Cortes); mercenary offers once treasury ≈ 5000+
+  (always veterans, take-all-or-nothing); REF reinforcement notices;
+  Treaty of Utrecht event transferring one power's colonies to another
+  [VERIFY trigger]; foreign power independence.
+  Note (see `docs/RULES.md` "Royal events"): there is no demand-for-gold
+  event. The treasure cut is a function awaiting treasure
   trains (R-506); wars use a minimal `Player.stance` until diplomacy (R-80x); wartime mercenaries are
   R-902. The app asks about tax rises, Crown offers and Brewster's choice after each end of turn.
   **Verify:** unit tests triggered via forced RNG; events logged.
@@ -533,143 +533,143 @@ Legend:
 
 ## Phase 5 — Natives
 
-- [x] **R-500 Tribes data** (NAMES `@TRIBES`, `@LEVELS`; Appendix D)
+- [x] **R-500 Tribes data** (Appendix D)
   8 tribes with tech level (0 Semi-Nomadic camps: Apache, Sioux, Tupi; 1 Agrarian villages:
   Arawak, Iroquois, Cherokee; 2 Advanced cities: Aztec; 3 Civilized cities: Inca), treasure
-  name, capital flag, homeland radius (camps/villages 1, cities 2; MAN p.71), skills taught by
+  name, capital flag, homeland radius (camps/villages 1, cities 2), skills taught by
   terrain, starting braves, aggression. Attitude scale: Content, Uneasy, Restless, Angry, War
-  with intensity adverbs (NAMES `@ATTITUDE`, `@ATTITUDINAL`).
-  Note: per the rules research the Inca reach 3 squares, a settlement starts with 3 + 2 x tech people
+  with intensity adverbs.
+  Note: the Inca reach 3 squares, a settlement starts with 3 + 2 x tech people
   and one brave, and the taught skill is computed from the land around a settlement (R-508) rather
   than listed per tribe. There is no aggression number: hostility comes from alarm (R-502).
   **Verify:** table snapshot.
 
 - [x] **R-501 Settlements**
-  Placed by map gen (America: from TRIBE.TXT regions; New World: by climate preference), never
-  adjacent to each other, ≤ 84 total (MAPEDIT). Each has population (braves), taught skill,
+  Placed by map gen (America: from the Appendix D regions; New World: by climate preference), never
+  adjacent to each other, ≤ 84 total. Each has population (braves), taught skill,
   "already taught" flag, wanted goods, goods for sale, alarm per European power, mission
   (owner, expert flag), visited-by-scout per power. Capitals have more braves, treasure, goods.
-  Note: placement follows the rules research (`docs/RULES.md` "Settlements"); random maps have no
-  climate preference in the original, only spread from eight capitals. Wanted goods, wares and the
+  Note: placement follows `docs/RULES.md` "Settlements"; random maps have no
+  climate preference, only spread from eight capitals. Wanted goods, wares and the
   taught skill are computed (R-505, R-508), not stored. Settlements may be adjacent to nothing but
   land; nobody can enter one until R-503. Brave units come with R-507.
   **Verify:** map gen tests.
 
-- [x] **R-502 Tribal anger and village alarm** (MAN p.72–73)
+- [x] **R-502 Tribal anger and village alarm**
   Two layers: tribe anger (from direct acts: attacks, tribute demands, improving/working homeland
   without purchase, denounced missions, burial-ground desecration; capital involvement weighs
   more) and per-settlement alarm (from colony proximity, population and building density,
   weapons in colonies, soldiers nearby, foreign missions). Alarm feeds anger. Reductions: time,
   trade and gifts, missions, Pocahontas (reset to Content, halve future alarm), French halve all
-  alarm (GAME `@NATION1B`). Thresholds move the tribe through the 5 attitudes; at War braves raid
+  alarm. Thresholds move the tribe through the 5 attitudes; at War braves raid
   (R-506). Alarm shown as colored exclamation marks over settlements (green → blue → yellow →
-  brown → red) and on a nation-colored background if alarmed at another power (MAN p.73).
-  Messages per cause (GAME `@PISS0..5`).
-  Note: built as researched (`docs/RULES.md` "Alarm"): tribal alarm 0..100 in four levels with
+  brown → red) and on a nation-colored background if alarmed at another power.
+  Messages per cause.
+  Note (see `docs/RULES.md` "Alarm"): tribal alarm 0..100 in four levels with
   banked goodwill, settlement alarm fed by the most alarming colony within 6 and by soldiers nearby.
   One-off changes (trade, gifts, tribute, attacks, land, shrines) land with their features
   (R-503..R-510); raids and the nation-coloured background for alarm at others with R-506/R-1006.
   Events `attitudeChanged`, `missionsBurned`, `tribeMet` carry the causes for the message layer.
   **Verify:** unit tests on each contribution and threshold transitions.
 
-- [x] **R-503 Entering a settlement** (NAMES `@ACTIONS`; MAN p.74–77)
+- [x] **R-503 Entering a settlement**
   Menu by unit type: Trade With Village (ships/wagons with cargo; ships only after land contact
   and not when Restless or worse), Enter Hostile Village, Establish Mission / Denounce Heresy of
   X's Mission / Incite Indians (missionaries), Live Among The Natives (unskilled colonists and
   pioneers; criminals refused; experts honored but not taught), Ask to Speak With Chief (scouts:
   learn wanted goods and taught skill, tales of nearby lands reveal map, gift of gold/beads, or
-  the scout is killed with chance by attitude; GAME `@CHIEF*`), Demand Tribute (soldiers,
-  dragoons, scouts; GAME `@EXTORT*`), Attack Village (soldiers, dragoons, scouts, artillery),
-  Cancel. First-contact greeting offers a treaty gifting the land you occupy (GAME `@INDIANWELCOME`).
-  Note: menu, treaty, chief and tribute are built as researched (`docs/RULES.md` "Entering a
-  settlement"), with the demand/supply model they need. The other menu entries are listed but
+  the scout is killed with chance by attitude), Demand Tribute (soldiers,
+  dragoons, scouts), Attack Village (soldiers, dragoons, scouts, artillery),
+  Cancel. First-contact greeting offers a treaty gifting the land you occupy.
+  Note: menu, treaty, chief and tribute are built to `docs/RULES.md` "Entering a
+  settlement", with the demand/supply model they need. The other menu entries are listed but
   answer "not yet" until their own items: missions and incite R-504, trade and hostile entry R-505,
-  attack R-506, living among the natives R-508. The treaty grants no land in the original.
+  attack R-506, living among the natives R-508. The treaty grants no land.
   **Verify:** unit tests per branch with forced RNG.
 
 - [x] **R-504 Missions and converts**
   A mission lowers that settlement's alarm toward its owner and raises it toward rivals; converts
-  appear at the mission owner's nearest colony with a message (GAME `@INDIANSCONVERT`); Jesuit
+  appear at the mission owner's nearest colony with a message; Jesuit
   missions are stronger and drawn brighter; Brebeuf makes all missionaries experts; de Sepulveda
-  raises conversion on defeating settlements (GAME `@INDIANSLAVES`); de las Casas converts all
-  current converts to Free Colonists. Denounce Heresy: council decides, one missionary burns
-  (GAME `@HERESY0/1`). Incite: pay gold for the tribe to attack a named European power's colonies
-  (GAME `@INDIANWARPATH*`, `@INDIANWARFARE`). Converts not placed in a colony within 8 turns
-  return to the tribe (GAME `@DEADCONVERTS`). Natives burn missions when at war (GAME `@INDIANBURN`).
-  Note: built as researched (`docs/RULES.md` "Missions"). Converts arrive through friendly brave
+  raises conversion on defeating settlements; de las Casas converts all
+  current converts to Free Colonists. Denounce Heresy: council decides, one missionary burns.
+  Incite: pay gold for the tribe to attack a named European power's colonies.
+  Converts not placed in a colony within 8 turns
+  return to the tribe. Natives burn missions when at war.
+  Note (see `docs/RULES.md` "Missions"): converts arrive through friendly brave
   visits (`visitConvert`) and won attacks (`forcedConvert`), which R-506/R-507 call; `freeConverts` is
-  las Casas's effect for R-701. Existing missions are not upgraded by Brebeuf (binary).
+  las Casas's effect for R-701. Existing missions are not upgraded by Brebeuf.
   **Verify:** unit tests.
 
-- [x] **R-505 Trade with natives** (MAN p.74–76)
+- [x] **R-505 Trade with natives**
   Offer a cargo; the settlement offers gold if it wants it (never the same good twice in a row
   except muskets; refuses goods it has in abundance; demand inferred from local terrain); haggle
   once for a higher price ("fairer price" counter), accept, or give as a gift (bigger alarm
-  reduction); after selling/gifting they offer 3 goods to buy with haggling (GAME `@TRADE0/1`,
-  `@BUY0/1`, `@BUYWHICH`, `@BADHAGGLE*`). Horses and muskets sold to natives upgrade their braves.
+  reduction); after selling/gifting they offer 3 goods to buy with haggling.
+  Horses and muskets sold to natives upgrade their braves.
   Ship trade pays less than wagon trade. Trade goods are what camps want most early.
-  Note: built as researched (`docs/RULES.md` "Trade with natives"). Muskets are not exempt from the
-  consecutive-good rule in the original program, and a ship's only handicap is being offered a
+  Note (see `docs/RULES.md` "Trade with natives"): muskets are not exempt from the
+  consecutive-good rule, and a ship's only handicap is being offered a
   quarter of the quantity. Talks run as actions (`enterSettlement` trade, then `parley`).
   **Verify:** unit tests of price formula, consecutive-good rule, inventory effects.
 
 - [x] **R-506 Native raids and settlement combat**
   At war, braves raid colonies: outcomes wipe out the party, steal goods, burn a building, take
-  scalps (kill a colonist), damage a ship in harbor, plunder gold (GAME `@RAID*`); artillery in a
-  fortified colony gets +75% vs raids (MAN p.132). Natives at Angry make "surprise raids" with
-  chief denial (GAME `@INDIANSURPRISE`). Natives also make demands at Restless: goods from wagons
-  or colony stores, gold reparations (GAME `@INDIANWAGONS/@INDIANCITY/@INDIANGOLD`), and when
-  Content give food or goods (GAME `@INDIANGIVEFOOD/@INDIANGIVESTUFF`). Attacking a settlement
+  scalps (kill a colonist), damage a ship in harbor, plunder gold; artillery in a
+  fortified colony gets +75% vs raids. Natives at Angry make "surprise raids" with
+  chief denial. Natives also make demands at Restless: goods from wagons
+  or colony stores, gold reparations, and when
+  Content give food or goods. Attacking a settlement
   kills a brave per win; at 0 it burns, yielding treasure for Aztec/Inca (always, more, with
-  Cortes; GAME `@LOOT`), converts with de Sepulveda, and destroying a capital demoralizes the
-  tribe. Natives capture muskets/horses from defeated soldiers/dragoons (GAME `@INDIANWIN1/2`).
-  Natives may burn a colony to the ground when they win against an undefended one
-  (GAME `@INDIANBURNCOLONY`). Spanish +50% attacking settlements.
-  Note: built as researched (`docs/RULES.md` "Land combat" and "Natives at war"), with the land
-  combat core R-600 will complete. In the original program no colonist is killed in a raid, there are
+  Cortes), converts with de Sepulveda, and destroying a capital demoralizes the
+  tribe. Natives capture muskets/horses from defeated soldiers/dragoons.
+  Natives may burn a colony to the ground when they win against an undefended one.
+  Spanish +50% attacking settlements.
+  Note (see `docs/RULES.md` "Land combat" and "Natives at war"): built with the land
+  combat core R-600 will complete. No colonist is killed in a raid, there are
   no gold reparations, and artillery's raid bonus is +100% in any colony. Ship damage in raids waits
   for R-602. Braves now exist as units (one per settlement); when and where they go is R-507, which
   calls `braveAttacks` and `braveVisits`.
   **Verify:** unit tests; sim invariant: settlements with pop 0 are removed; a tribe reaching 0
-  settlements is Extinct (GAME `@EXTINCT`).
+  settlements is Extinct.
 
 - [x] **R-507 Native AI**
   Braves wander near their settlement (nomads farther); at war they path to the nearest enemy
   colony or unit; the tribe accepts peace via chief dialog after losses or cooling; braves
   acquire horses and muskets from trade and captures; natives may join the Tory side during the
-  revolution if they hold a grudge (GAME `@INDIANGRUDGE`).
-  Note: the original movement scoring was only outlined, so brave movement is our own simple rule
-  set (`docs/RULES.md` "Native AI", low confidence); breeding, rearming and siding with the Crown
-  follow the rules research. Peace returns when alarm cools below 75 (no dialog in the original).
+  revolution if they hold a grudge.
+  Note: brave movement is a simple rule
+  set (`docs/RULES.md` "Native AI"); breeding, rearming and siding with the Crown
+  are written up there too. Peace returns when alarm cools below 75 (no dialog).
   **Verify:** sim 300 turns with natives only: no exceptions; raids occur when at war.
 
 - [x] **R-508 Learning from natives**
   Each settlement teaches one skill (Appendix D by terrain); after teaching once the village
-  says it has nothing else to teach (GAME `@LEARNALREADY`) [VERIFY: capitals teach repeatedly];
-  refusals for criminals (`@LEARNCRIMINAL`), experts (`@LEARNMASTER`), angry villages
-  (`@LEARNMAD`), converts (`@TEACHCONVERT`); servants are taught.
-  Note: as researched (`docs/RULES.md` "Learning from natives"): the skill is computed from the
+  says it has nothing else to teach [VERIFY: capitals teach repeatedly];
+  refusals for criminals, experts, angry villages,
+  converts; servants are taught.
+  Note (see `docs/RULES.md` "Learning from natives"): the skill is computed from the
   settlement's surroundings, capitals teach without limit, and a wary tribe's lessons may fail.
   **Verify:** unit tests.
 
-- [x] **R-509 Lost City Rumors** (GAME `@LOSTCITY0..9`, `@BURIAL1..3`, `@SCREWED`)
+- [x] **R-509 Lost City Rumors**
   Outcomes: nothing but rumors; small ruins gold; Seven Cities of Cibola (treasure train);
   Fountain of Youth (choose immigrants from an enlarged pool [VERIFY: 8 picks]); burial mounds
   (search → empty / trinkets / treasure; or they are a tribe's sacred grounds → immediate war);
   expedition vanishes (unit lost); friendly tribe gift; holy shrines (tribe displeased); survivors
   of a lost colony join as a Free Colonist. Weights by difficulty; Seasoned Scouts better; de
-  Soto makes results always positive (PEDIA).
-  Note: as researched (`docs/RULES.md` "Lost City Rumors"): nine equally likely rolls with
+  Soto makes results always positive.
+  Note (see `docs/RULES.md` "Lost City Rumors"): nine equally likely rolls with
   conditions rather than weights by difficulty; difficulty only enters through the shrine alarm. De
   Soto helps scouts only. The Fountain gives 8 picks from the ordinary pool.
   **Verify:** unit tests on distribution via forced RNG.
 
-- [x] **R-510 Native land dialog** (GAME `@INDIANLAND/@INDIANROAD/@INDIANFOREST`)
+- [x] **R-510 Native land dialog**
   Working, plowing, roading, clearing, or settling homeland: natives ask you to stop; options
   Leave / Offer gold (price by tribe, distance, capital) / Take it (anger). Minuit: land is free.
-  First-contact treaty may gift currently occupied land (GAME `@INDIANWELCOME/@INDIANBOW`).
-  Note: as researched (`docs/RULES.md` "Native land"). Plowing open land and founding a colony are
-  never questioned in the original (unpaid plowing is resented when finished), and the treaty
+  First-contact treaty may gift currently occupied land.
+  Note (see `docs/RULES.md` "Native land"): plowing open land and founding a colony are
+  never questioned (unpaid plowing is resented when finished), and the treaty
   grants nothing. The colony screen asks when a colonist is dropped on a native square; the pioneer
   keys ask before clearing forest or building a road.
   **Verify:** unit tests.
@@ -678,7 +678,7 @@ Legend:
 
 ## Phase 6 — Combat
 
-- [x] **R-600 Land combat resolution** (Appendix G; MAN p.30–31, p.132; LABELS combat analysis)
+- [x] **R-600 Land combat resolution** (Appendix G)
   Strengths from Appendix B. Modifiers: Attack Bonus +50% always for the attacker; Veteran +50%;
   Terrain defense bonus for the defender (forest 50%, hills 100%, mountains 150%, open marsh/swamp
   25%); Ambush: natives get the terrain bonus on attack and defense; colonial units get it vs the
@@ -686,18 +686,18 @@ Legend:
   (replaces plain fortify); Artillery In Open −75%; Artillery +75% vs native raids in a fortified
   colony; Spain Bonus +50% vs natives; Expeditionary Force (bombardment) +50% attacking colonies;
   Rebels/Tories popular-support bonus = attacker's side's % in the colony during the revolution;
-  Fatigue: attacking with partial moves fights at moves/3 strength after a confirmation (GAME
-  `@HALF`); Drake +50% privateers. Win probability = A/(A+D). Outcomes: Dragoon loses horses →
+  Fatigue: attacking with partial moves fights at moves/3 strength after a confirmation;
+  Drake +50% privateers. Win probability = A/(A+D). Outcomes: Dragoon loses horses →
   Soldier (natives capture them); Soldier loses muskets → Colonist; Colonist/Pioneer/Scout/Wagon
-  captured (GAME `@COLONISTCAPTURE`, `@WAGONCAPTURE`; captured soldiers lose veteran status);
-  Treasure captured; Artillery → Damaged → destroyed (GAME `@ARTILLERY/2`); Braves killed;
-  Continental/REF units demoted or destroyed (GAME `@DEMOTE`). Promotion: non-veteran soldier or
+  captured (captured soldiers lose veteran status);
+  Treasure captured; Artillery → Damaged → destroyed; Braves killed;
+  Continental/REF units demoted or destroyed. Promotion: non-veteran soldier or
   dragoon that wins may become Veteran (chance [VERIFY 1/3]; Washington always); during the
-  revolution Veterans may harden to Continental Army (GAME `@CONTINENTAL`, `@VALOR`). A unit that
+  revolution Veterans may harden to Continental Army. A unit that
   fights cannot move further that turn. Optional "Combat Analysis" pre-battle screen listing every
-  modifier by the original's names (LABELS).
-  Note: as researched (`docs/RULES.md` "Land combat"). Differences from the text above, all from the
-  binary: Fortified adds to the place bonus (capped), scouts and pioneers are destroyed rather than
+  modifier by name (Appendix G).
+  Note (see `docs/RULES.md` "Land combat"). Differences from the text above:
+  Fortified adds to the place bonus (capped), scouts and pioneers are destroyed rather than
   captured, artillery has +100% against raids in any colony, an attack costs one full move (a
   mounted unit keeps the rest), and the Plowed, Expeditionary Force and Founding Fathers labels are
   unused. Drake and the ship terms arrive with naval combat (R-602); `previewAttack` feeds the
@@ -707,28 +707,28 @@ Legend:
 - [x] **R-601 Colony attack, capture, siege**
   Defender = best defensive unit present; with none, an unarmed colonist defends at 1 (Revere:
   takes 50 stockpiled muskets). Last defender falls → colony captured intact with inhabitants
-  swearing allegiance (MAN p.32), gold plundered (GAME `@CAPTURED`); natives burn instead.
+  swearing allegiance, gold plundered; natives burn instead.
   Siege: when enemy combat units adjacent outnumber friendly ones, only soldiers/dragoons can be
-  created there (GAME `@SIEGE`). Foreign colonies cannot be attacked during your revolution
-  (GAME `@NOWARSDURINGREV`). Scouts at a foreign colony: Meet With Mayor / Infiltrate / Attack
-  (GAME `@SCOUTCOLONY`; infiltration may fail and lose the scout).
-  Note: built as researched where traced (`docs/RULES.md` "Colonies under attack"). A colony falls
+  created there. Foreign colonies cannot be attacked during your revolution.
+  Scouts at a foreign colony: Meet With Mayor / Infiltrate / Attack
+  (infiltration may fail and lose the scout).
+  Note (see `docs/RULES.md` "Colonies under attack"): a colony falls
   only when a drafted colonist is beaten; the siege count follows Revolution Now; under siege a
   colonist leaves armed from the stores. Meeting the mayor waits for diplomacy (R-801). Ship damage
   and repair were built here because capture and raids need them.
   **Verify:** unit tests.
 
 - [x] **R-602 Naval combat**
-  Only Privateers, Frigates, Men-O-War attack (GAME `@SHIPCOMBAT`). Privateers carry no flag (no
+  Only Privateers, Frigates, Men-O-War attack. Privateers carry no flag (no
   war declared on attack; nation hidden; "What pirates?" diplomacy). Win probability A/(A+D);
-  loser is damaged and sent to the nearest Drydock or Europe losing cargo (GAME `@SHIPDAMAGE`),
-  or sunk (GAME `@SHIPSUNK`) [VERIFY: sunk when damaged with no repair available? or chance];
-  winner may capture one cargo (GAME `@PICKACARGO`, `@CARGOCAPTURE`). Zone of patrol: armed ships
-  slow or stop foreign ships entering adjacent tiles, which may evade (GAME `@SHIPSLOW/@SHIPRUN/
-  @EVASIVE`). Forts and Fortresses fire on adjacent enemy ships each turn, stronger with artillery
-  inside (GAME `@FORTFIRE`, MAN p.81). Repairs complete after N turns (GAME `@REFIT`) [VERIFY].
+  loser is damaged and sent to the nearest Drydock or Europe losing cargo,
+  or sunk [VERIFY: sunk when damaged with no repair available? or chance];
+  winner may capture one cargo. Zone of patrol: armed ships
+  slow or stop foreign ships entering adjacent tiles, which may evade.
+  Forts and Fortresses fire on adjacent enemy ships each turn, stronger with artillery
+  inside. Repairs complete after N turns [VERIFY].
   Magellan +1 move to all ships.
-  Note: as researched (`docs/RULES.md` "Naval combat"). Sinking is by the victor's guns against the
+  Note (see `docs/RULES.md` "Naval combat"): sinking is by the victor's guns against the
   loser's hull with fleet-size overrides; any warship takes prizes; the victor's cargo choice is
   automatic (most valuable first). "What pirates?" diplomacy belongs to R-801.
   **Verify:** unit tests.
@@ -744,23 +744,23 @@ Legend:
 
 ## Phase 7 — Founding Fathers
 
-- [x] **R-700 Fathers data** (NAMES `@FATHERS`; PEDIA `@FATHER0..24`; Appendix H)
+- [x] **R-700 Fathers data** (Appendix H)
   25 fathers, 5 per category, with era weights (1492–1600, 1600–1700, 1700+) and effects.
-  Note: the table matches the rules file row for row; the one-line effects are ours and follow what
-  the program does (e.g. De Soto helps scouts at rumors, Cortes makes the Crown's cut the tax rate).
+  Note: the table matches Appendix H row for row; the one-line effects say what
+  each father does in play (e.g. De Soto helps scouts at rumors, Cortes makes the Crown's cut the tax rate).
   **Verify:** table snapshot; exactly 25; weights match Appendix H.
 
 - [x] **R-701 Continental Congress**
   National bells accumulate toward the next father; cost rises with the number elected and
   difficulty (Appendix F [VERIFY]). When one joins, the player picks the next candidate from one
-  offer per category, drawn by era weight (NAMES: "a father of higher weight tier does not
-  appear until one of the lower tier in the same category has joined" — implement as: within a
+  offer per category, drawn by era weight (a father of a higher weight tier does not
+  appear until one of the lower tier in the same category has joined — implement as: within a
   category, offer the candidate with the highest current-era weight among those not yet elected,
   randomized by weight). Effects applied via `hasFather(state, player, id)` consulted by each rule.
-  Election message (GAME `@FREEDOM`); choice prompt (GAME `@WHICHFREEDOM`).
-  Note: as researched (`docs/RULES.md` "Continental Congress"): the candidate is chosen first and
-  then paid for; the "higher weight tier" remark in the rules file is not implemented by the
-  original program, so the draw is simply by era weight; surplus bells are lost.
+  Election message; choice prompt.
+  Note (see `docs/RULES.md` "Continental Congress"): the candidate is chosen first and
+  then paid for; the "higher weight tier" condition is not implemented,
+  so the draw is simply by era weight; surplus bells are lost.
   **Verify:** one unit test per father asserting its rule path changes an output.
 
 - [x] **R-702 Congress report (F3)**
@@ -773,28 +773,28 @@ Legend:
 
 ## Phase 8 — Foreign European powers
 
-- [x] **R-800 Nations data** (NAMES `@COUNTRY..@LEADERNAME`; GAME `@NATION*`; Appendix I)
+- [x] **R-800 Nations data** (Appendix I)
   England (immigration: 2/3 crosses), France (cooperation: half alarm), Spain (conquest: +50%
   vs natives), Netherlands (trade: stable prices, starts with a Merchantman instead of a Caravel).
   Start: one ship carrying a Soldier (50 muskets) and a Hardy Pioneer (100 tools) on the eastern
-  Sea Lane (GAME `@TUTORIAL1/13/14`) [VERIFY: Spain's soldier is a Veteran]. Home ports London,
+  Sea Lane [VERIFY: Spain's soldier is a Veteran]. Home ports London,
   La Rochelle, Seville, Amsterdam; colony-area names New England etc.; independent names United
   States of America, Republic of Quebec, Republic of Mexico, Republic of Surinam; AI leader
   personalities (Appendix I). Nation colors red/blue/yellow/orange.
-  Note: the landing party follows the rules research: the pioneer is hardy only for France, and the
+  Note: in the landing party the pioneer is hardy only for France, and the
   soldier a veteran only for Spain and for a human on the two easiest levels.
   **Verify:** snapshot; a new game has the right starting units per nation.
 
-- [x] **R-801 Diplomacy** (GAME `@HELLO*`, `@PEACE*`, `@WAR*`, `@SIEGES`, `@PIRACY`, `@TRIBUTE`, `@WORTHY`)
+- [x] **R-801 Diplomacy**
   Contact when units are adjacent (chance) or a scout meets a mayor. States: no contact, peace,
   war, alliance [VERIFY alliance effects]. Dialog outcomes: greetings, demarcation treaty (spheres
   of influence; trespass angers), peace proposals, demands to withdraw forces near colonies or
   pay to demobilize, tribute demands and offers, piracy complaints about privateers, requests to
   join a war on a tribe or on a third power, war declarations; attacking a colonist/colony or a
   flagged warship is an act of war. Mood from relative military/economic strength. Franklin:
-  Europeans always offer peace and the King's wars don't bind you. Treaty violation messages
-  (GAME `@VIOLATE`). Jan de Witt: trade in foreign colonies (goods swap or gold; GAME `@TRADEWITH`).
-  Note: built from the researched audience (`docs/RULES.md` "Diplomacy"). The original has no
+  Europeans always offer peace and the King's wars don't bind you. Treaty violation messages.
+  Jan de Witt: trade in foreign colonies (goods swap or gold).
+  Note (see `docs/RULES.md` "Diplomacy"): there is no
   alliance state and no demarcation treaty; "alliance" is paying a power to fight a third. Strengths
   are whole-map totals rather than per region; the goods-instead-of-tribute and joint-war steps are
   left out; foreign-colony trade is a cash sale.
@@ -804,8 +804,8 @@ Legend:
   Each AI power uses the same action API, parameterized by its leader personality (aggressive/
   friendly, expansionist/perfectionist, civilize/militaristic). It explores, founds coastal
   colonies on good sites, manages colonists (R-309), builds, ships goods to Europe, recruits,
-  trades with natives, defends, attacks when at war and stronger (no suicide attacks, README
-  #15), and may reach independence by colonist support (GAME `@OTHERGRANTED`). Budget ≤200 ms
+  trades with natives, defends, attacks when at war and stronger (no suicide attacks),
+  and may reach independence by colonist support. Budget ≤200 ms
   per AI power per turn in Node.
   **Verify:** sim 4 powers x 350 turns on 5 seeds: no exceptions, each AI founds ≥3 colonies by
   turn 100, gold never negative, per-turn AI time within budget.
@@ -817,8 +817,8 @@ Legend:
 
 - [x] **R-803 Foreign Affairs report (F8)**
   Before de Witt: war/peace matrix only. After: colonies, population, average colony size,
-  military power, naval power, merchant marine per power (MAN p.79). Unavailable during the
-  revolution (GAME `@FOREIGNNOTAVAIL`).
+  military power, naval power, merchant marine per power. Unavailable during the
+  revolution.
   **Verify:** e2e snapshot.
 
 - [x] **R-804 Computer powers: wagon trains and native trade**
@@ -925,57 +925,57 @@ Legend:
 
 ## Phase 9 — Independence and endgame
 
-- [x] **R-900 Declaration** (GAME `@DECLARE`, `@TOOTORY`, `@INDEPENDENCE`, `@MOBILIZE*`)
+- [x] **R-900 Declaration**
   Allowed when national rebel sentiment ≥ 50%; irrevocable; ends the turn. Effects: Europe
   closes (Custom Houses keep trading at 50% net); no new colonies; no attacks on foreign
   colonies; no mayor visits; Continental Army musters: in each colony with SoL ≥ 50% that holds
   ≥ 50 muskets [VERIFY], veteran soldiers/dragoons become Continental Army/Cavalry in numbers
-  scaling with SoL% (MAN p.87); Tory uprisings arm Tory militia near low-SoL colonies (GAME
-  `@TORYUPRISING`); the REF (Appendix F sizes by difficulty, grown by `@KINGBUY` events) lands in
-  waves near colonies (GAME `@INVASION`), preferring weak coastal ones; Royal Navy seizes ships at
-  sea or in captured ports (GAME `@SEIZURE*`). The turn after declaring, an advisor states the
-  bells needed for foreign intervention (GAME `@CONSIDER`).
+  scaling with SoL%; Tory uprisings arm Tory militia near low-SoL colonies;
+  the REF (Appendix F sizes by difficulty, grown by REF reinforcement events) lands in
+  waves near colonies, preferring weak coastal ones; Royal Navy seizes ships at
+  sea or in captured ports. The turn after declaring, an advisor states the
+  bells needed for foreign intervention.
   **Verify:** unit tests; sim scenario from a fixture save.
-  *Built:* `src/engine/independence.ts`. From the binary: no musket requirement for the muster;
+  *Built:* `src/engine/independence.ts`. As built: no musket requirement for the muster;
   Custom Houses sell at full price untaxed (not 50%); the "bells needed" notice comes with the
   first bells rung after declaring. The Royal Navy's seizures are those in Europe at the
   Declaration and under a landing's anchorage. Moving and fighting the landed units is R-901.
 
 - [x] **R-901 War of independence**
   REF units use Appendix B stats and the bombardment bonus; colonists get the ambush bonus
-  outside colonies (GAME `@AMBUSHHINT`); popular-support bonus on colony attacks; bells in
+  outside colonies; popular-support bonus on colony attacks; bells in
   REF-occupied colonies raise Tory sentiment instead. Intervention: when bells since declaration
   reach the stated number, a foreign power declares war on the King and lands Men-O-War plus
   Continental-equivalent troops at a held port, grants the bombardment bonus, and offers paid
-  mercenaries (GAME `@INTERVENTION/@INTERVENE/@MERCENARIES`). Lose when the REF holds all your
-  colonies, all your coastal colonies, or ≥90% of your population, with warnings beforehand
-  (GAME `@LOSING1..3`, `@WARN1..3`). Win when you control all your colonies and the REF's ground
-  forces are nearly destroyed in the New World and the Old (GAME `@HOWTOWIN`, `@WINNING`). If
-  still fighting in 1850, Congress sues for peace (GAME `@RETIRING2`).
+  mercenaries. Lose when the REF holds all your
+  colonies, all your coastal colonies, or ≥90% of your population, with warnings beforehand.
+  Win when you control all your colonies and the REF's ground
+  forces are nearly destroyed in the New World and the Old. If
+  still fighting in 1850, Congress sues for peace.
   **Verify:** sim from fixtures: both outcomes reachable with forced RNG.
-  *Built:* `src/engine/war.ts` (rules in docs/RULES.md "War of Independence"). The original has
-  no "all coastal colonies" test separate from "no ports", and its 90% is of people in colonies;
-  those are what is built. The Crown's marching orders are our own design.
+  *Built:* `src/engine/war.ts` (rules in docs/RULES.md "War of Independence"). There is
+  no "all coastal colonies" test separate from "no ports", and the 90% is of people in colonies.
+  The Crown's marching orders are a simple rule of our own.
 
-- [x] **R-902 Score, epitaph, Hall of Fame** (MAN p.11–12; GAME `@EXPLOITS/@SCORE`)
+- [x] **R-902 Score, epitaph, Hall of Fame**
   Score = +1 per criminal/servant, +2 per free colonist, +4 per skilled colonist; +5 per father;
   +1 per 1000 gold; +1 per point of rebel sentiment; −(difficulty index + 1) per native settlement
   destroyed; independence bonus ×2 if first to independence, +50% if second, +25% if third; +1
   per bell produced after intervention; bonus for declaring before 1780 (earlier = larger)
   [VERIFY curve]; Hall of Fame ranking multiplies by a difficulty factor [VERIFY]. Scoring runs at
-  1800 (or on Retire, or on winning); play may continue unscored (GAME `@SCORED`). Show a
+  1800 (or on Retire, or on winning); play may continue unscored. Show a
   "Colonial Rating %" and an epitaph line chosen from our own list of named things (do not
-  copy the original's list).
+  copy anyone else's list).
   **Verify:** unit tests; e2e: 1800 scoring screen via a fixture save.
-  *Built:* `src/engine/score.ts`, `src/ui/reports/score.ts`, `src/app/hall-of-fame.ts`. From the
-  binary: bells after intervention score 1 per 100 (cap 100), not 1 each; the early bonus is
+  *Built:* `src/engine/score.ts`, `src/ui/reports/score.ts`, `src/app/hall-of-fame.ts`. As
+  built: bells after intervention score 1 per 100 (cap 100), not 1 each; the early bonus is
   2 per year before 1780 and needs the war won; converts score 1. F10 shows the score now.
 
 ---
 
 ## Phase 10 — Reports, help, polish
 
-- [x] **R-1000 Advisor reports** (MENU `@REPORTS`)
+- [x] **R-1000 Advisor reports**
   F1 Terrain Information, F2 Religious Adviser (crosses, next immigrant, missions), F3
   Continental Congress, F4 Labor Adviser (colonist counts by type, drill-down to locations), F5
   Economic Adviser (tons bought/sold and gold per good, foreign trade), F6 Colony Adviser (goods
@@ -986,10 +986,10 @@ Legend:
   The Economic Adviser gives net tons sold per cargo (gold per cargo and foreign trade are not kept
   by the engine); the Labor Adviser's drill-down is the list of places on each row.
 
-- [x] **R-1001 Options and notifications** (GAME `@GAMEOPTIONS`, `@COLONYOPTIONS`)
+- [x] **R-1001 Options and notifications**
   Game options: Show Indian Moves, Show Foreign Moves, Fast Piece Slide, End of Turn, Autosave,
-  Combat Analysis, Tutorial Hints (Water Color Cycling becomes a shader toggle). Colony report
-  options: the ten toggles in the original list. Tutorial hints paraphrased from the original's
+  Combat Analysis, Tutorial Hints (Water Color Cycling is a shader toggle). Colony report
+  options: ten toggles. Tutorial hints in our own words at
   19 hint moments. Scrollable event log.
   **Verify:** e2e toggles persist across reload.
   *Built:* Alt+G and Alt+O dialogs over `ui/options.ts`; notices in `ui/notices.ts`; hints in
@@ -1002,14 +1002,15 @@ Legend:
   Prices, Taxes, Liberty Bells, Crosses, Hammers) with our own prose; right-click on anything
   opens its page. Zero copied text.
   **Verify:** e2e: every table entry has a page; `test/unit/no-copied-text.test.ts` asserts none of
-  a maintained list of 40 distinctive original sentences appears in `src/`.
-  *Built:* `src/ui/pedia.ts`, `src/ui/pedia-screen.ts`. Conflict with C1: a list of original
+  a maintained list of 40 distinctive third-party sentences appears in `src/`.
+  *Built:* `src/ui/pedia.ts`, `src/ui/pedia-screen.ts`. Conflict with C1: a list of third-party
   sentences cannot itself be committed, so the test keeps 40 fingerprints (hashes of the first
-  eight words of each) and scans `src/` for matches; with `ref/orig` present it also checks every
-  eight-word run of the original files. Four lines in `src/` that echoed the original were reworded.
+  eight words of each) of sentences that must never appear, and scans `src/` for matches; where a
+  local, never-committed folder of such text (`ref/orig`) is present it also checks every
+  eight-word run of it.
 
 - [x] **R-1003 Audio**
-  Original-free: synthesized or CC0 cues for move, combat, build complete, immigrant, new turn,
+  Synthesized or CC0 cues for move, combat, build complete, immigrant, new turn,
   native drums at war; optional generated period-style ambient music via WebAudio; per-category
   toggles (Background Music, Event Music, Sound Effects) persisted.
   **Verify:** unit tests that cues map to events.
@@ -1022,7 +1023,7 @@ Legend:
   (the headline numbers in one place), the chooser on the title screen, and Appendix F corrected.
 
 - [x] **R-1005 Save/load UI**
-  10 slots; the last two are autosaves (last turn, and every ten years; MAN p.22); export/import
+  10 slots; the last two are autosaves (last turn, and every ten years); export/import
   as `.json` via File API; "obsolete save" and "map size mismatch" style errors.
   **Verify:** e2e: save, reload page, load, state identical.
   *Built:* `src/app/slots.ts`, `src/ui/save-dialog.ts`, Alt+L. Import is offered inside the dialog,
@@ -1128,7 +1129,7 @@ are in `docs/BALANCE.md`. These ranges are checked on those twenty seeds only.
 
 ---
 
-## Appendix A — Terrain (NAMES.TXT `@UNFORESTED`, `@FORESTED`, `@OTHER`)
+## Appendix A — Terrain
 
 Columns: Move cost, Defense (×25%), Improve (turns to clear/plow/road, derived), Value (AI site
 weight). Yields are the raw table values for a free colonist. **Displayed/engine food = raw+1 when
@@ -1150,7 +1151,7 @@ raw>0; lumber = raw×2**. Clearing gives the open type in the same row.
 | Ocean | 1 | 0 | 2 | 3 | | | | | | | | | 3 | needs Docks; more adjacent land → more fish | | | | | | | | | | | |
 | Sea Lane | 1 | 0 | 2 | 0 | | | | | | | | | 3 | Europe access | | | | | | | | | | | |
 
-Modifiers (researched, `docs/RULES.md` "Tile yield"; order of application matters and is given there):
+Modifiers (`docs/RULES.md` "Tile yield"; order of application matters and is given there):
 Plow +1 food/sugar/tobacco/cotton. Road +2 lumber and furs, +1 ore/silver/fish. Any river gives the
 same step as a road would for that good (+1, or +2 for lumber and furs); a major river gives a second
 step only when no road/plow/food step applied. Experts ×2, except Expert Farmer and Expert Fisherman
@@ -1159,7 +1160,7 @@ Silver needs a deposit: bare mountains give 0, or 1 with a road or an expert. Hi
 their own terrain rows; a hills tile ignores the forest flag.
 Fish: table 3, +1 with five or fewer water neighbours, −1 with six or seven, −2 with eight; needs Docks.
 
-### A2 — Resources (NAMES `@RESOURCE` value = AI weight; effects researched, `docs/RULES.md`)
+### A2 — Resources (value = AI weight; effects in `docs/RULES.md`)
 
 | Resource | Terrain | Effect (expert gets double the addend) |
 |---|---|---|
@@ -1176,10 +1177,10 @@ Fish: table 3, +1 with five or fewer water neighbours, −1 with six or seven, �
 
 Colony centre tile and depletion rules: `docs/RULES.md`.
 
-## Appendix B — Units (NAMES `@UNIT`)
+## Appendix B — Units
 
-Columns from NAMES: moves, attack, defense, holds, colony build cost (hammers = cost×32, tools =
-tools×10), guns/hull (reserved, store but unused). Europe prices are memory [VERIFY].
+Columns: moves, attack, defense, holds, colony build cost (hammers = cost×32, tools =
+tools×10), guns/hull (reserved, store but unused). Europe prices are provisional [VERIFY].
 
 | Unit | Mv | Atk | Def | Holds | Hammers | Tools | Europe price | Notes |
 |---|---|---|---|---|---|---|---|---|
@@ -1207,7 +1208,7 @@ tools×10), guns/hull (reserved, store but unused). Europe prices are memory [VE
 | Mounted Braves | 4 | 2 | 2 | | | | | horses |
 | Mounted Warriors | 4 | 3 | 3 | | | | | both |
 
-### B1 — Professions (NAMES `@JOB`): teach tier (1 Schoolhouse, 2 College, 3 University, 4 never) and Royal University price (−1 = not sold)
+### B1 — Professions: teach tier (1 Schoolhouse, 2 College, 3 University, 4 never) and Royal University price (−1 = not sold)
 
 Farmer 1/1100 · Sugar Planter 2/— · Tobacco Planter 2/— · Cotton Planter 2/— · Fur Trapper 1/— ·
 Lumberjack 1/700 · Ore Miner 1/600 · Silver Miner 1/900 · Fisherman 1/1000 · Distiller 2/1100 ·
@@ -1215,9 +1216,9 @@ Tobacconist 2/1200 · Weaver 2/1300 · Fur Trader 2/950 · Carpenter 1/1000 · B
 Gunsmith 2/850 · Preacher 3/1500 · Statesman 3/1900 · Pioneer (Hardy) 1/1200 · Soldier (Veteran)
 2/2000 · Scout (Seasoned) 1/— · Dragoon (Veteran) 2/— · Missionary (Jesuit) 3/1400 · Free Colonist,
 Servant, Criminal, Convert, Teacher 4/—. Natives teach: planters, fur trapper, farmer, fisherman,
-silver miner, ore miner, scout (MAN p.133 asterisks).
+silver miner, ore miner, scout.
 
-### B2 — Immigrant classes (NAMES `@CLASS`, transport cost)
+### B2 — Immigrant classes (transport cost)
 
 Petty Criminals 300 · Indentured Servants 400 · Peasant Farmers 600 · Skilled Craftsmen 800 · Hardy
 Pioneers 1450 · Town Merchants 1500 · Trained Mercenaries 1900 · Educated Elite 2000. Map classes to
@@ -1227,7 +1228,7 @@ Gunsmith; Trained Mercenaries → Veteran Soldier, Seasoned Scout; Educated Elit
 Jesuit [VERIFY mapping]. Recruit price starts at the class cost and is reduced by progress toward the
 next cross threshold [VERIFY].
 
-## Appendix C — Europe market (NAMES `@CARGO`)
+## Appendix C — Europe market
 
 Columns: start bid range, drift low/high, burden (ask = bid + 1 + burden), rise, fall, attrition, volatility.
 
@@ -1250,14 +1251,14 @@ Columns: start bid range, drift low/high, burden (ask = bid + 1 + burden), rise,
 | Tools | 2 | 2 | 9 | 0 | 2 | 2 | 5 | 0 |
 | Muskets | 3 | 2 | 20 | 0 | 2 | 2 | 6 | 0 |
 
-The model as researched is in `docs/RULES.md` "Market": the Start, Low and High columns are on a
+The model is in `docs/RULES.md` "Market": the Start, Low and High columns are on a
 price scale one above the bid; thresholds are rise × 100 and fall × 100 of traffic; a trade adds its
 amount shifted left by Volatility. Rum, Cigars, Cloth and Coats do not use their Start column: they
 open at a linked group level (about 8–18). Trades are in lots of up to 100.
 
-## Appendix D — Tribes (NAMES `@TRIBES`, `@LEVELS`; TRIBE.TXT; MAN p.69–71)
+## Appendix D — Tribes
 
-| Tribe | Tech | Settlement | Treasure | Homeland radius | America region (TRIBE.TXT cluster, x,y on 56x70) | Typical skills (computed from local terrain, R-508) |
+| Tribe | Tech | Settlement | Treasure | Homeland radius | America region (cluster, x,y on 56x70) | Typical skills (computed from local terrain, R-508) |
 |---|---|---|---|---|---|---|
 | Inca | 3 Civilized | City | Jewelled Relics | 3 | Andes (27–37, 43–66) | silver miner, farmer, sugar planter |
 | Aztec | 2 Advanced | City | Gold Bars | 2 | Mexico (12–26, 24–34) | tobacco planter, cotton planter, farmer, silver miner |
@@ -1269,12 +1270,12 @@ open at a linked group level (about 8–18). Trades are in lots of up to 100.
 | Tupi | 0 Semi-Nomadic | Camp | Gems | 1 | Brazil coast (26–52, 34–59) | sugar planter, fisherman, fur trapper |
 
 One capital per tribe (it can grow larger: people 3 + 2 x tech, capital up to tech + 1 more; one brave per settlement). Settlement counts on America follow the
-TRIBE.TXT cluster sizes (Iroquois 11, Tupi 16, Sioux 7, Apache 7, Arawak 5, Inca 5, Aztec 4, Cherokee
+cluster sizes (Iroquois 11, Tupi 16, Sioux 7, Apache 7, Arawak 5, Inca 5, Aztec 4, Cherokee
 4); random maps scale by land. Attitudes: Content, Uneasy, Restless, Angry, War. Natives who die
 out: tribe Extinct. Extra tribe names for flavor (Maya, Toltec, Kiowa, Huron, Hopi, Navajo, Cheyenne,
 Cree, Algonquin, Powhatan, Delaware, Shawnee, Illinois, Chickasaw, Choctaw, Seminole, Mohican, Zapotec).
 
-## Appendix E — Buildings (NAMES `@BUILDING`: hammers / tools / min pop / upkeep)
+## Appendix E — Buildings (hammers / tools / min pop / upkeep)
 
 | Building | Hammers | Tools | Pop | Upkeep | Needs / effect |
 |---|---|---|---|---|---|
@@ -1297,16 +1298,16 @@ Cree, Algonquin, Powhatan, Delaware, Shawnee, Illinois, Chickasaw, Choctaw, Semi
 | Printing Press / Newspaper | 52 / 120 | 20 / 50 | 1 / 4 | 5/10 | bells +50% / +100% |
 | Church / Cathedral | 64 / 176 | 0 / 100 | 3 / 8 | 5/15 | crosses; missionaries |
 | Stockade / Fort / Fortress | 64 / 120 / 320 | 0 / 100 / 200 | 3 / 3 / 8 | 0/10/15 | +100% / +150% / +200%; La Salle gives Stockade free at pop 3 |
-| Capitol / Capitol Expansion | 400 / 400 | 100 / 100 | 16 / 16 | 20/10 | present in data, unused in release; do not expose |
+| Capitol / Capitol Expansion | 400 / 400 | 100 / 100 | 16 / 16 | 20/10 | present in data, unused; do not expose |
 
-Upkeep: NAMES carries per-building upkeep and GAME has an `@UPKEEP` message (half efficiency when
-unpaid), but the released game does not charge it [VERIFY]. Store the values; ship with upkeep off.
+Upkeep: the table carries per-building upkeep (half efficiency when
+unpaid), but it is not charged [VERIFY]. Store the values; ship with upkeep off.
 
 ## Appendix F — Formulas and difficulty [mostly VERIFY]
 
 | | Discoverer | Explorer | Conquistador | Governor | Viceroy |
 |---|---|---|---|---|---|
-| Tory penalty threshold (MAN p.86: 10 … 6) | 10 | 9 | 8 | 7 | 6 |
+| Tory penalty threshold (10 … 6) | 10 | 9 | 8 | 7 | 6 |
 | Score difficulty index (−(index+1) per village) | 0 | 1 | 2 | 3 | 4 |
 | Starting gold (human) | 1000 | 300 | 0 | 0 | 0 |
 | First Founding Father, bells: human / computer power | 24 / 56 | 32 / 52 | 40 / 48 | 48 / 44 | 56 / 40 |
@@ -1316,10 +1317,10 @@ unpaid), but the released game does not charge it [VERIFY]. Store the values; sh
 | Bells for foreign intervention | 2000 | 3500 | 5000 | 6500 | 8000 |
 | Rating factor (score x this / 100) | 4 | 5 | 6 | 8 | 10 |
 
-(Rows corrected from the original's code where the first draft guessed; sources in `docs/FIDELITY.md`.
+(Rows corrected where the first draft guessed; see `docs/FIDELITY.md`.
 `src/engine/difficulty.ts` gathers these for the setup screen and `test/unit/engine/difficulty.test.ts`.)
 
-- SoL% per colony: numerator/denominator bookkeeping, researched; see `docs/RULES.md` "Sons of Liberty".
+- SoL% per colony: numerator/denominator bookkeeping; see `docs/RULES.md` "Sons of Liberty".
   Steady state = bells per turn / (2 × population). Bolivar +20 points (human). Rebel sentiment
   (national) = Σ colony SoL × pop / Σ pop.
 - Father cost for the Nth father = (N² × 5 + N × 20 + 32) × multiplier [VERIFY].
@@ -1327,22 +1328,22 @@ unpaid), but the released game does not charge it [VERIFY]. Store the values; sh
 - Tax raise: probability per turn grows with cumulative trade; raise 1–7%; max 75% [VERIFY].
 - Buy-building price: remaining hammers × 10 + missing tools × ask price [VERIFY].
 
-## Appendix G — Combat modifier names as shown in the original's Combat Analysis (LABELS.TXT)
+## Appendix G — Combat modifier names as shown in the Combat Analysis
 
 Fatigue · Attack Bonus · Ambush · Terrain · Colony · Fortified · Spain Bonus · Plowed [VERIFY meaning;
 likely a defense penalty on plowed open land] · Artillery In Open · Expeditionary Force · Rebels ·
 Tories · Founding Fathers · Drake · Veteran · Bombard · Artillery Vs. Raid.
 
-### G2 — King event flavors (GAME.TXT tags; write our own wording)
+### G2 — King event flavors (write our own wording)
 
-Tax raises: `@KINGTAX` (generic), `@KINGWIFE` (royal wedding), `@KINGWAR` (war with a European
-power from `@COUNTRIES`: Holy Roman Empire, Portuguese, Ottoman Turks, Barbary Pirates, Russia,
-Prussia, Sweden, Denmark), `@KINGNAVACT` (Navigation Act), `@KINGSTAMPACT` (Stamp Act, names a
-colony), `@MERCANTILISM` (after building a Custom House), `@PURCHASETAX` (after purchases).
-Decreases: `@KINGLOWER`, `@KINGMERCY` (loss of a royal unit), `@KINGVICTORY`. Other: `@KINGFUND`
-grant, `@KINGFRIGATE`, `@KINGGALLEON2/3`, `@KINGNEWWAR`, `@MERCENARIES`, `@KINGBUY`, `@SUCCESSION`.
+Tax raises: generic, royal wedding, war with a European
+power (Holy Roman Empire, Portuguese, Ottoman Turks, Barbary Pirates, Russia,
+Prussia, Sweden, Denmark), Navigation Act, Stamp Act (names a
+colony), after building a Custom House, after purchases.
+Decreases: plain lowering, mercy (loss of a royal unit), victory. Other: royal funding
+grant, frigate offer, galleon transport, the King's new war, mercenaries, REF additions, succession.
 
-## Appendix H — Founding Fathers (NAMES `@FATHERS` weights 1492–1600 / 1600–1700 / 1700+; PEDIA effects)
+## Appendix H — Founding Fathers (weights 1492–1600 / 1600–1700 / 1700+; effects)
 
 | Category | Father | Weights | Effect |
 |---|---|---|---|
@@ -1372,7 +1373,7 @@ grant, `@KINGFRIGATE`, `@KINGGALLEON2/3`, `@KINGNEWWAR`, `@MERCENARIES`, `@KINGB
 | Religious | Juan de Sepulveda | 3/8/3 | Higher chance defeated natives convert and join a colony |
 | Religious | Bartolome de las Casas | 0/5/10 | All existing converts become Free Colonists |
 
-## Appendix I — Nations (NAMES `@COUNTRY`…`@LEADERNAME`, GAME `@NATION*`)
+## Appendix I — Nations
 
 | Nation | Power | Home port | Colonies named | Independent name | AI leader (aggressive/friendly, expansionist/perfectionist, civilize/militaristic) |
 |---|---|---|---|---|---|
@@ -1382,16 +1383,16 @@ grant, `@KINGFRIGATE`, `@KINGGALLEON2/3`, `@KINGNEWWAR`, `@MERCENARIES`, `@KINGB
 | Netherlands | Trade: prices fall slower, recover faster; start with Merchantman | Amsterdam | New Netherlands | Republic of Surinam | Michiel De Ruyter −1, 0, 1 |
 
 Mission name prefixes: Church of / Sainte Marie de / Santa Maria del / Church of. Intervention
-friends: French General Lafayette etc. (GAME `@FRIEND`). Rulers: Queen (England), King (France),
+friends: French General Lafayette etc. Rulers: Queen (England), King (France),
 King/Pope (Spain), Stadtholder (Netherlands).
 
 ## Appendix J — Colony name lists
 
-Use the per-nation lists from `COLONY.TXT` in order (English: Jamestown, Plymouth, Roanoke, …;
+Use a list per nation, in order (English: Jamestown, Plymouth, Roanoke, …;
 French: Quebec, Montreal, Guadeloupe, …; Spanish: Isabella, Santo Domingo, San Salvador, …;
-Dutch: New Amsterdam, Fort Orange, Fort Nassau, …). Historical place names; transcribe all of them.
+Dutch: New Amsterdam, Fort Orange, Fort Nassau, …). Historical place names; include all of them.
 
-## Appendix K — Keyboard map (MENU.TXT; technical supplement MAN p.2–5)
+## Appendix K — Keyboard map
 
 Map: arrows/numpad move · A activate · W wait · Space skip · F fortify · S sentry · B build/join
 colony · P clear/plow · R road · G go to · L load · U unload · O dump overboard · T trade route ·

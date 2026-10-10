@@ -23,7 +23,7 @@ describe('unit table', () => {
     }
   });
 
-  it('carries the key numbers from the original table', () => {
+  it('carries the key numbers from the table', () => {
     const stat = (id: UnitTypeId): number[] => [UNIT_TYPES[id].moves, UNIT_TYPES[id].attack, UNIT_TYPES[id].defense, UNIT_TYPES[id].holds];
     expect(stat('colonist')).toEqual([1, 0, 1, 0]);
     expect(stat('soldier')).toEqual([1, 2, 2, 0]);

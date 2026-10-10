@@ -1,6 +1,6 @@
 // Where a computer power's colonists go (docs/RULES.md "Computer powers: founding and
 // joining"): whether one goes off to found a new colony or joins one that wants colonists, and
-// which. As traced from the original program.
+// which.
 import { coloniesOf } from '../engine/colony';
 import { AI_MUSTER, AI_SETTLE } from '../engine/data/ai';
 import { NATIONS } from '../engine/data/nations';

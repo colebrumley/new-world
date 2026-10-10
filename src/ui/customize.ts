@@ -1,4 +1,4 @@
-// "Customize New World": the four world settings, three choices each, as in the original.
+// "Customize New World": the four world settings, three choices each.
 import {
   CLIMATE_OPTIONS, DEFAULT_WORLD, LAND_FORM_OPTIONS, LAND_MASS_OPTIONS, TEMPERATURE_OPTIONS, type WorldOptions,
 } from '../engine/data/mapgen';

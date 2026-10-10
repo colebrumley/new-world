@@ -1,5 +1,4 @@
-// The Continental Congress (VICEROY 3000:9500: FUN_3000_9e82, 3000:9bd2, FUN_3000_9842;
-// docs/RULES.md "Continental Congress").
+// The Continental Congress (docs/RULES.md "Continental Congress").
 export const CONGRESS = {
   /** Bells for the next Founding Father: (fathers so far + 1) x base + 1, halved for the first. */
   /** A human's base is this x (difficulty level + levelOffset)... */

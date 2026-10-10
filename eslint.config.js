@@ -9,7 +9,7 @@ export const PURE_FORBIDDEN_IMPORTS = ['**/ui/**', '**/app/**', '**/ui', '**/app
 export const PURE_FORBIDDEN_GLOBALS = ['window', 'document', 'fetch', 'localStorage', 'navigator'];
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'ref', 'test-results', 'playwright-report', 'test/fixtures/lint'] },
+  { ignores: ['.claude', 'dist', 'node_modules', 'ref', 'test-results', 'playwright-report', 'test/fixtures/lint'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

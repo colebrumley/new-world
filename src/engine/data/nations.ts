@@ -1,6 +1,6 @@
-// The four European powers, transcribed from NAMES.TXT (@COUNTRY ... @LEADERNAME). Each power's
+// The four European powers. Each power's
 // special strength is applied by the rule it belongs to; `strength` here is our one-line summary.
-// Leader traits are the three numbers of @LEADERNAME: aggressive(+)/friendly(-),
+// Leader traits are three numbers: aggressive(+)/friendly(-),
 // expansionist(+)/perfectionist(-), civilizing(+)/militaristic(-).
 
 export const NATION_IDS = ['england', 'france', 'spain', 'netherlands'] as const;
@@ -19,7 +19,7 @@ export interface NationDef {
   readonly leaderTraits: { readonly aggressive: number; readonly expansionist: number; readonly civilizing: number };
   /** How its missions are named: this, then the settlement. */
   readonly missionPrefix: string;
-  /** Palette index the original draws it in (reference only), and the colour we use. */
+  /** A palette index (not used for drawing), and the colour we use. */
   readonly colorIndex: number;
   readonly color: string;
   /** What the power is good at, in a line. */
@@ -56,7 +56,7 @@ export const NATIONS = {
 } as const satisfies Record<NationId, NationDef>;
 
 /**
- * What each power lands with (VICEROY 7000:3440-350c): one ship carrying soldiers and pioneers
+ * What each power lands with: one ship carrying soldiers and pioneers
  * (100 tools). The Dutch come in a merchantman; the French pioneer is a hardy one; Spain's
  * soldier is always a veteran, and so is a human's on the two easiest levels.
  */

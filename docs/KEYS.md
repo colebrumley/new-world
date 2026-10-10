@@ -51,7 +51,8 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | Esc | Cancel (Go To targeting, panels) | works |
 | Click / drag / pointer at edge | Centre on a square (or open your colony there) / pan / scroll the view | works |
 | Click on your unit | Make it the active unit, waking it if it has orders (a list if several stand there); in view mode this also returns to move mode | works |
-| Click beside the active unit | Move it one square | works |
+| Click beside the active unit | Move it one square; the pointer is an arrow showing which way | works |
+| Click the near edge of a colony or unit beside the active unit | Move onto that square (the near corner, for a diagonal) where the pointer is an arrow; the rest of the square opens the colony or picks the unit | works |
 | Drag from the active unit | Send it to the square where the button is let go: one step if adjacent, Go To if farther | works |
 | Wheel | Zoom in / zoom out about the pointer | works |
 | Sidebar buttons | Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel | works |

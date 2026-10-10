@@ -1,5 +1,4 @@
-// Numbers the computer powers plan by (R-802) that are still ours: site choice, the first
-// colony, and a few limits. The tables below this one are as traced from the original program.
+// Numbers the computer powers plan by (R-802): site choice, the first colony, and a few limits.
 export const AI_PLAN = {
   /** New colonies keep this far from any other. */
   colonySpacing: 3,
@@ -27,8 +26,8 @@ export const AI_PLAN = {
   colonyExports: ['sugar', 'tobacco', 'cotton', 'furs', 'ore', 'silver', 'rum', 'cigars', 'cloth', 'coats'],
 } as const;
 
-// Wagon trains and trade with the native peoples by computer powers (R-804), as traced from the
-// original program; see docs/RULES.md "Computer powers: wagon trains".
+// Wagon trains and trade with the native peoples by computer powers (R-804);
+// see docs/RULES.md "Computer powers: wagon trains".
 export const AI_WAGONS = {
   /** A colony builds a wagon train only before this year... */
   buildBeforeYear: 1600,
@@ -55,8 +54,8 @@ export const AI_WAGONS = {
   tradeGoodsPriceMost: 3,
 } as const;
 
-// Missionaries of the computer powers and what their units do at a native settlement (R-805),
-// as traced from the original program; see docs/RULES.md "Computer powers: missions".
+// Missionaries of the computer powers and what their units do at a native settlement (R-805);
+// see docs/RULES.md "Computer powers: missions".
 export const AI_MISSIONS = {
   /** A missionary is made only after this turn, on turns divisible by `every`... */
   afterTurn: 50,
@@ -85,7 +84,7 @@ export const AI_MISSIONS = {
   liveAmongAlarmBelow: 75,
 } as const;
 
-// Warships and privateers of the computer powers (R-806), as traced from the original program;
+// Warships and privateers of the computer powers (R-806);
 // see docs/RULES.md "Computer powers: warships and privateers".
 export const AI_NAVY = {
   /** A station at every enemy ship in sight, and at every foreign privateer whatever the treaty. */
@@ -113,8 +112,8 @@ export const AI_NAVY = {
   carryPopulation: 6,
 } as const;
 
-// Campaigns by land and sea of the computer powers (R-807), as traced from the original
-// program; see docs/RULES.md "Computer powers: campaigns".
+// Campaigns by land and sea of the computer powers (R-807);
+// see docs/RULES.md "Computer powers: campaigns".
 export const AI_CAMPAIGN = {
   /** A colony is worth a campaign when its population + the units on its square exceed sizeBase - turn / sizeTurnsPerStep. */
   sizeBase: 6,
@@ -153,7 +152,7 @@ export const AI_CAMPAIGN = {
   companyLeast: 2,
 } as const;
 
-// Gold and purchases of the computer powers in Europe, as traced from the original program;
+// Gold and purchases of the computer powers in Europe;
 // see docs/RULES.md "Computer powers: the treasury and the fleet".
 export const AI_FLEET = {
   /** Each turn from `subsidyFromTurn` a power is given `subsidyTimes` x level x ((year - `subsidyBaseYear`) / `subsidyYears` + its colonies) gold... */
@@ -192,8 +191,8 @@ export const AI_FLEET = {
   artilleryHoldsOver: 4,
 } as const;
 
-// How a computer power runs a colony: who works at what, and what it builds, as traced from the
-// original program; see docs/RULES.md "Computer powers: the colony".
+// How a computer power runs a colony: who works at what, and what it builds;
+// see docs/RULES.md "Computer powers: the colony".
 export const AI_COLONY = {
   /** A food square is kept only if it yields this much while the colony is short of food, or the second otherwise. */
   yieldLeastShort: 3,
@@ -240,8 +239,8 @@ export const AI_COLONY = {
   artilleryBelow: 3,
 } as const;
 
-// How a computer power's colony sees to its own defence and its own numbers, as traced from the
-// original program; see docs/RULES.md "Computer powers: arming and taking in colonists".
+// How a computer power's colony sees to its own defence and its own numbers;
+// see docs/RULES.md "Computer powers: arming and taking in colonists".
 export const AI_MUSTER = {
   /** Threat: foreign land units within this many squares count their attack value x (falloff - distance) / falloff... */
   threatRange: 5,
@@ -284,8 +283,8 @@ export const AI_MUSTER = {
   joinOver: 2,
 } as const;
 
-// Whether a computer power's colonist founds a colony or joins one, as traced from the original
-// program; see docs/RULES.md "Computer powers: founding and joining".
+// Whether a computer power's colonist founds a colony or joins one;
+// see docs/RULES.md "Computer powers: founding and joining".
 export const AI_SETTLE = {
   /** No more colonies are founded once the world holds this many. */
   coloniesInAll: 48,
@@ -319,8 +318,8 @@ export const AI_SETTLE = {
   portLuck: 8,
 } as const;
 
-// What a computer power's colonies get by themselves each turn, as traced from the original
-// program; see docs/RULES.md "Computer powers: upkeep of a colony".
+// What a computer power's colonies get by themselves each turn;
+// see docs/RULES.md "Computer powers: upkeep of a colony".
 export const AI_UPKEEP = {
   /** With fewer tools than this, the colony buys this many at their price level each, when it has land to improve or on every `toolsEvery`th turn. */
   tools: 20,
@@ -337,7 +336,7 @@ export const AI_UPKEEP = {
   masterOdds: 17,
   /** A school trains one colonist after this many turns' wait for each of its levels (the third counting twice). */
   schoolTurns: 4,
-  /** Paid training only while the tax rate is no more than this, and the treasury holds the fee and this much besides (the second is ours). */
+  /** Paid training only while the tax rate is no more than this, and the treasury holds the fee and this much besides (the second is our own figure). */
   trainTaxMost: 25,
   trainGoldOver: 0,
   /** From this turn a colony with fewer horses than this, with a ship or wagon in it, has them made up for this much gold. */
@@ -346,7 +345,7 @@ export const AI_UPKEEP = {
   horsesGold: 10,
 } as const;
 
-// Supplies a computer power ships to its colonies, as traced from the original program; see
+// Supplies a computer power ships to its colonies; see
 // docs/RULES.md "Computer powers: supplies by ship".
 export const AI_SUPPLY = {
   /** The supplies: the goods a colony can ask for, and that a ship carries to a port rather than home. */
@@ -366,7 +365,7 @@ export const AI_SUPPLY = {
   askedBonus: 32,
 } as const;
 
-// A computer power's business on the docks in Europe, as traced from the original program; see
+// A computer power's business on the docks in Europe; see
 // docs/RULES.md "Computer powers: on the docks".
 export const AI_DOCKS = {
   /** It recruits only while the colonies wanting colonists, less its colonists afoot, are at least its colonies / this... */
@@ -384,7 +383,7 @@ export const AI_DOCKS = {
   pioneersMost: 2,
 } as const;
 
-// Arms a computer power keeps in Europe, as traced from the original program; see docs/RULES.md
+// Arms a computer power keeps in Europe; see docs/RULES.md
 // "Computer powers: on the docks".
 export const AI_RESERVE = {
   /** Muskets are kept by the lot of this many; a soldier takes one lot, a dragoon this many horses besides. */
@@ -401,8 +400,8 @@ export const AI_RESERVE = {
   artilleryFromTurn: 40,
 } as const;
 
-// What a computer power's ships load in its colonies and where empty ones go, as traced from the
-// original program; see docs/RULES.md "Computer powers: freight".
+// What a computer power's ships load in its colonies and where empty ones go;
+// see docs/RULES.md "Computer powers: freight".
 export const AI_FREIGHT = {
   /** Goods a ship never loads in a colony. */
   neverLoaded: ['lumber', 'food', 'tradeGoods'],

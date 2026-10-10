@@ -1,7 +1,7 @@
-// Tunables for the random "New World" generator (R-102). The original's generator is not
-// documented in its data files; these are our own values, logged as derived in FIDELITY.md.
+// Tunables for the random "New World" generator (R-102). These are our own
+// values, logged as derived in FIDELITY.md.
 
-/** Whole grid including the 1-tile border nobody can enter; 56x70 is playable (as AMER2.MP). */
+/** Whole grid including the 1-tile border nobody can enter; 56x70 is playable. */
 export const MAP_WIDTH = 58;
 export const MAP_HEIGHT = 72;
 

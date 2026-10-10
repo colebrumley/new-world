@@ -48,5 +48,9 @@ export default defineConfig({
   test: {
     include: ['test/unit/**/*.test.ts', 'test/sim/**/*.test.ts'],
     environment: 'node',
+    // Local runs share the machine with other checkouts: a few workers, not one per core.
+    ...(process.env['CI'] ? {} : { maxWorkers: Number(process.env['VITEST_WORKERS'] ?? 4) }),
+    // keep transformed modules between runs
+    fsModuleCache: true,
   },
 });

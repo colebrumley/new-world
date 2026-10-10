@@ -292,6 +292,19 @@ describe('boarding and landing', () => {
     const out = move(s, 'd', 1, 0);
     expect(u(out, 'd')).toMatchObject({ x: 5, y: 2, aboard: null, movesLeft: 9 });
   });
+
+  it('a unit aboard a carrier in a colony can step ashore there, which wakes it and costs nothing', () => {
+    let s = withColony(world({ rows: COAST }), { id: 'col', x: 4, y: 2 });
+    s = withUnit(withUnit(s, { id: 'ship', type: 'caravel', x: 4, y: 2 }), { id: 'p', x: 4, y: 2, aboard: 'ship', orders: 'sentry', movesLeft: 0 });
+    const r = applyAction(deepFreeze(s), { type: 'goAshore', unitId: 'p' });
+    expect(u(r.state, 'p')).toMatchObject({ x: 4, y: 2, aboard: null, orders: 'none', movesLeft: 0 });
+    expect(r.events).toEqual([{ type: 'unitLanded', unitId: 'p', carrierId: 'ship', to: [4, 2] }]);
+    expect(checkInvariants(r.state)).toEqual([]);
+    expect(code(r.state, { type: 'goAshore', unitId: 'p' })).toBe('notAboard');
+    // at sea there is no quay to step onto
+    const atSea = withUnit(withUnit(world({ rows: COAST }), { id: 'ship', type: 'caravel', x: 3, y: 2 }), { id: 'p', x: 3, y: 2, aboard: 'ship' });
+    expect(code(atSea, { type: 'goAshore', unitId: 'p' })).toBe('noColonyHere');
+  });
 });
 
 describe('orders', () => {

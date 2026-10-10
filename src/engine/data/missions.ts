@@ -1,5 +1,4 @@
-// Missions among the natives (VICEROY 4000:663a, 4000:68a4, FUN_4000_8b5e, 5000:4ede, 5000:bdef,
-// 2000:cba3; docs/RULES.md "Missions").
+// Missions among the natives (docs/RULES.md "Missions").
 
 export const MISSIONS = {
   /** Founding a mission: each mission the power already has in the tribe adds this much alarm... */

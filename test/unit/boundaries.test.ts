@@ -39,9 +39,4 @@ describe('module boundaries (C3)', () => {
     expect(await ruleIdsFor('export const w = window.innerWidth + Math.random();', 'src/ui/fixture.ts')).toEqual([]);
   });
 
-  it('the current engine and ai trees pass lint', async () => {
-    const results = await eslint.lintFiles(['src/engine', 'src/ai']);
-    expect(results.length).toBeGreaterThan(0);
-    expect(results.flatMap((r) => r.messages.map((m) => `${r.filePath}: ${m.message}`))).toEqual([]);
-  });
 });

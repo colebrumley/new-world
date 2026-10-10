@@ -1,6 +1,6 @@
-// Colonist professions, transcribed from NAMES.TXT @JOB: job name, expert name, the school
+// Colonist professions: job name, expert name, the school
 // level that can teach it (1 Schoolhouse, 2 College, 3 University, 4 never), and the Royal
-// University price (null where the file has -1: not for sale).
+// University price (null: not for sale).
 import type { RawGood } from './terrain';
 
 export const PROFESSION_IDS = [
@@ -25,7 +25,7 @@ export interface ProfessionDef {
   readonly expertGood: RawGood | null;
   /** Equipped role this expert is skilled in. */
   readonly expertRole: ExpertRole | null;
-  /** Can be learned in a native settlement (manual p.133 asterisks). */
+  /** Can be learned in a native settlement. */
   readonly nativeTaught: boolean;
   /** False for the two table rows that never exist as a colonist in play. */
   readonly colonist: boolean;

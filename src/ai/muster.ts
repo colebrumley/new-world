@@ -1,6 +1,6 @@
 // How a computer power's colony sees to its own defence (docs/RULES.md "Computer powers: arming
 // and taking in colonists"): each turn it may take back in the units standing on its square, and
-// send one colonist out armed from its own stores. As traced from the original program.
+// send one colonist out armed from its own stores.
 import { validateAction, type Action } from '../engine/actions';
 import { coloniesOf } from '../engine/colony';
 import { AI_MUSTER } from '../engine/data/ai';

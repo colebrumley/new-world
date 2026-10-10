@@ -1,5 +1,4 @@
-// How native alarm rises and falls (VICEROY 4000:39f2, FUN_4000_6028, 4000:3cf8;
-// docs/RULES.md "Alarm").
+// How native alarm rises and falls (docs/RULES.md "Alarm").
 import type { Difficulty } from './yields';
 
 export const ALARM = {

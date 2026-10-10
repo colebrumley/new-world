@@ -1,7 +1,6 @@
-// Visiting a native settlement (VICEROY 4000:8f08, 4000:83ca, 4000:8800, 5000:483e;
-// docs/RULES.md "Entering a settlement").
+// Visiting a native settlement (docs/RULES.md "Entering a settlement").
 
-/** What a unit may do at a settlement, in the order the original lists them. */
+/** What a unit may do at a settlement, in menu order. */
 export const VILLAGE_ACTIONS = ['trade', 'enterHostile', 'establishMission', 'denounce', 'liveAmong', 'speakWithChief', 'incite', 'demandTribute', 'attack'] as const;
 export type VillageAction = (typeof VILLAGE_ACTIONS)[number];
 

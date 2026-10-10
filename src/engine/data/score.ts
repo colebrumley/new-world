@@ -1,5 +1,4 @@
-// The colonial score and rating (R-902; docs/RULES.md "Score"). Sources: VICEROY 3000:7ae2
-// (score), FUN_3000_85c0 (rating and rank); manual pp. 11-12.
+// The colonial score and rating (R-902; docs/RULES.md "Score").
 
 export const SCORE = {
   /** Points per colonist: a specialist, a free colonist, anyone else (servant, criminal, convert). */
@@ -24,8 +23,7 @@ export const SCORE = {
 } as const;
 
 /**
- * What posterity names after the Viceroy, least to greatest. Our own list: the original's is not
- * reproduced. One entry per rank.
+ * What posterity names after the Viceroy, least to greatest. Our own list, one entry per rank.
  */
 export const HONOURS = [
   'a goat track', 'a village pump', 'a ferry landing', 'a tavern', 'a mill pond', 'a market square',

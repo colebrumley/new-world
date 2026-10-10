@@ -1,5 +1,5 @@
 // What a computer power's colonies ask to be sent, and where its ships take the goods
-// (docs/RULES.md "Computer powers: supplies by ship"). As traced from the original program.
+// (docs/RULES.md "Computer powers: supplies by ship").
 import { coloniesOf } from '../engine/colony';
 import { landWork } from '../engine/computer';
 import { AI_SUPPLY, AI_WAGONS } from '../engine/data/ai';

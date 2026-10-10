@@ -1,5 +1,5 @@
 // What a computer power's colonies are given or do by themselves at the start of its turn
-// (docs/RULES.md "Computer powers: upkeep of a colony"), as traced from the original program:
+// (docs/RULES.md "Computer powers: upkeep of a colony"):
 // a few tools and horses bought, a square of land improved with them, carpenters promoted, and
 // colonists schooled or trained. None of this is open to a human player.
 import { addGoods } from './cargo';

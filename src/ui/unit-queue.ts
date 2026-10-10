@@ -20,7 +20,7 @@ export function nextUnit(state: GameState, playerId: string, currentId: UnitId |
   return pool.find((u) => order(u.id) > order(currentId)) ?? pool.find((u) => u.id !== currentId) ?? pool[0] ?? null;
 }
 
-/** Order letter shown in a unit's box, as in the original: - S G F P R. */
+/** Order letter shown in a unit's box: - S G F P R. */
 export function orderLetter(unit: Unit): string {
   switch (unit.orders) {
     case 'sentry': return 'S';

@@ -1,6 +1,6 @@
-// Native nations, transcribed from NAMES.TXT @TRIBES (name, adjective, treasure, tech level,
-// colour index) and @LEVELS (what each tech level is called and what its settlements are).
-// Populations, land radius and the alarm scale are from the decompilation (docs/RULES.md "Tribes").
+// Native nations (name, adjective, treasure, tech level, colour index), and what each tech
+// level is called and what its settlements are. Populations, land radius and the alarm scale
+// are in docs/RULES.md "Tribes".
 
 export const TRIBE_IDS = ['inca', 'aztec', 'arawak', 'iroquois', 'cherokee', 'apache', 'sioux', 'tupi'] as const;
 export type TribeId = (typeof TRIBE_IDS)[number];
@@ -21,7 +21,7 @@ export interface TribeDef {
   readonly treasure: string;
   /** Index into TECH_LEVELS. */
   readonly tech: 0 | 1 | 2 | 3;
-  /** Palette index the original draws them in (kept for reference; our colours are our own). */
+  /** A palette index (not used for drawing; our colours are our own). */
   readonly colorIndex: number;
   /** How far from a settlement its land reaches, in the distance measure max + min/2. */
   readonly landRadius: number;

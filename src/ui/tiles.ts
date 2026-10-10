@@ -1,4 +1,4 @@
-// Tiles and sprites on canvas (constraint C1: nothing here is taken from the original's
+// Tiles and sprites on canvas (constraint C1: nothing here is taken from anyone else's
 // graphics). The art itself is data (pixel-art.ts); this module turns each distinct piece of
 // art into a small canvas once and hands it out again, and draws it scaled without smoothing.
 import { terrainOf, type Tile } from '../engine/tile';

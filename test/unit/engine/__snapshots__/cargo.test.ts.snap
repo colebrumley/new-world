@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`goods table > lists the 16 cargo types in the original order with names and opening bids 1`] = `
+exports[`goods table > lists the 16 cargo types in table order with names and opening bids 1`] = `
 {
   "GOOD_IDS": [
     "food",

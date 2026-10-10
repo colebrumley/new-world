@@ -1,5 +1,5 @@
-// Ships in harm's way (VICEROY FUN_5000_773e, 5000:7790, FUN_2000_afc6 and the repair counters;
-// docs/RULES.md "Naval combat"). Guns and hull are the last two columns of the units table.
+// Ships in harm's way (docs/RULES.md "Naval combat").
+// Guns and hull are the last two columns of the units table.
 import type { UnitTypeId } from './units';
 
 /**

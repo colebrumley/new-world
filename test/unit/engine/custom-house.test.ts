@@ -122,7 +122,7 @@ describe('sales', () => {
     expect(events.filter((e) => e.type === 'customHouseSold')).toMatchObject([{ good: 'muskets', amount: 30 }]);
   });
 
-  it('ignores boycotts, as the original does', () => {
+  it('ignores boycotts', () => {
     const { state, events } = sell(port({ furs: 200 }, ['furs'], { boycotts: ['furs'] }));
     expect(events).toHaveLength(1);
     expect(stock(state, 'furs')).toBe(50);

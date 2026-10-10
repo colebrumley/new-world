@@ -161,7 +161,7 @@ describe('horses', () => {
   it('a Stable doubles the breeding rate', () => {
     expect(horses(town(3, 0, { horses: 50 }, { buildings: ['stable', 'warehouse'] }))).toBe(54);
     expect(horses(town(3, 0, { horses: 26 }, { buildings: ['stable'] }))).toBe(30);
-    // the manual's shape: 60 horses with a Stable and surplus 3 can breed 6 but food allows 2
+    // for example: 60 horses with a Stable and surplus 3 can breed 6 but food allows 2
     expect(horses(town(1, 0, { horses: 60 }, { buildings: ['stable'] }))).toBe(62);
   });
 

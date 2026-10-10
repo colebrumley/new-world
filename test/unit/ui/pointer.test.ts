@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Unit } from '../../../src/engine/state';
-import { WHEEL_STEP, mapClick, mapDrag, unitsToPick, wheelStep } from '../../../src/ui/pointer';
+import { STEP_RIM, WHEEL_STEP, mapClick, mapCursor, mapDrag, unitsToPick, wheelStep } from '../../../src/ui/pointer';
 import { withColony, withUnit, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~~', '~.....~', '~.....~', '~.....~', '~~~~~~~'];
@@ -67,6 +67,40 @@ describe('map clicks', () => {
     s = withColony(s, { id: 'c2', x: 1, y: 2, owner: 'b' });
     expect(mapClick(s, 'a', unit(s, 'u1'), 'move', { x: 3, y: 2 })).toEqual({ kind: 'colony', colonyId: 'c1' });
     expect(mapClick(s, 'a', unit(s, 'u1'), 'move', { x: 1, y: 2 })).toEqual({ kind: 'step', dx: -1, dy: 0 });
+  });
+
+  it('steps onto our colony or our unit beside the active unit when the click is on the near edge of the square', () => {
+    let s = base();
+    s = withColony(s, { id: 'c1', x: 3, y: 2, owner: 'a' });
+    s = withColony(s, { id: 'c2', x: 3, y: 3, owner: 'a' });
+    s = withUnit(s, { id: 'u30', x: 1, y: 1 });
+    const u1 = unit(s, 'u1');
+    // east: the strip along the shared side steps in, the rest opens
+    expect(mapClick(s, 'a', u1, 'move', { x: 3, y: 2 }, { x: 3 + STEP_RIM - 0.01, y: 2.9 })).toEqual({ kind: 'step', dx: 1, dy: 0 });
+    expect(mapClick(s, 'a', u1, 'move', { x: 3, y: 2 }, { x: 3 + STEP_RIM + 0.01, y: 2.5 })).toEqual({ kind: 'colony', colonyId: 'c1' });
+    // diagonal: only the corner that touches the unit's square
+    expect(mapClick(s, 'a', u1, 'move', { x: 3, y: 3 }, { x: 3.2, y: 3.2 })).toEqual({ kind: 'step', dx: 1, dy: 1 });
+    expect(mapClick(s, 'a', u1, 'move', { x: 3, y: 3 }, { x: 3.2, y: 3.6 })).toEqual({ kind: 'colony', colonyId: 'c2' });
+    expect(mapClick(s, 'a', u1, 'move', { x: 1, y: 1 }, { x: 1.8, y: 1.8 })).toEqual({ kind: 'step', dx: -1, dy: -1 });
+    expect(mapClick(s, 'a', u1, 'move', { x: 1, y: 1 }, { x: 1.5, y: 1.5 })).toEqual({ kind: 'select', unitIds: ['u30'] });
+    // not in view mode, and not for a colony the unit is not beside
+    expect(mapClick(s, 'a', u1, 'view', { x: 3, y: 2 }, { x: 3.1, y: 2.5 }).kind).toBe('colony');
+    expect(mapClick(s, 'a', unit(s, 'u30'), 'move', { x: 3, y: 2 }, { x: 3.1, y: 2.5 }).kind).toBe('colony');
+  });
+});
+
+describe('the pointer shape', () => {
+  it('is an arrow turned the way of the step, a hand on what opens, and the cross-hair otherwise', () => {
+    const turns = ([[0, -1, 0, 'n'], [1, -1, 45, 'ne'], [1, 0, 90, 'e'], [1, 1, 135, 'se'], [0, 1, 180, 's'], [-1, 1, -135, 'sw'], [-1, 0, -90, 'w'], [-1, -1, -45, 'nw']] as const);
+    for (const [dx, dy, turn, name] of turns) {
+      const shape = mapCursor({ kind: 'step', dx, dy });
+      expect(decodeURIComponent(shape)).toContain(`rotate(${turn} 12 12)`);
+      expect(shape.endsWith(`12 12, ${name}-resize`)).toBe(true);
+    }
+    expect(mapCursor({ kind: 'colony', colonyId: 'c1' })).toBe('pointer');
+    expect(mapCursor({ kind: 'select', unitIds: ['u2'] })).toBe('pointer');
+    expect(mapCursor({ kind: 'center', x: 1, y: 1 })).toBe('crosshair');
+    expect(mapCursor({ kind: 'goto', x: 1, y: 1 })).toBe('crosshair');
   });
 });
 

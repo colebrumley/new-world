@@ -1,8 +1,6 @@
-// Special resources. Names and AI values are transcribed from NAMES.TXT @RESOURCE; the terrain
-// each may sit on and its production effect are from docs/RULES.md "Tile yield".
+// Special resources. The terrain each may sit on and its production effect are in
+// docs/RULES.md "Tile yield".
 import type { RawGood, TerrainId } from './terrain';
-
-// The table lists Prime Timber twice (two icon slots); one entry is enough here.
 
 export const RESOURCE_IDS = [
   'depletedMine', 'oasis', 'wheat', 'primeCotton', 'primeTobacco', 'primeSugar', 'minerals',

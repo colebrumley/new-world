@@ -30,7 +30,7 @@ function port(goods: Goods = {}, buildings: string[] = []): GameState {
 }
 
 describe('goods table', () => {
-  it('lists the 16 cargo types in the original order with names and opening bids', () => {
+  it('lists the 16 cargo types in table order with names and opening bids', () => {
     expect({ GOOD_IDS, GOOD_NAMES, START_BID, HOLD_CAPACITY, NOT_AUTO_LOADED, ROLE_GOODS }).toMatchSnapshot();
     expect(GOOD_IDS).toHaveLength(16);
     for (const g of GOOD_IDS) expect(START_BID[g][0]).toBeLessThanOrEqual(START_BID[g][1]);
