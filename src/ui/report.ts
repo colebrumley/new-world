@@ -1,6 +1,8 @@
 // A full-screen adviser's report: a title and sections of headed lines. Esc, Enter or the button
 // closes it. Each adviser builds its content as plain data (see ui/reports/*).
 
+import { portraitCanvas, type PortraitId } from './portraits';
+
 export interface ReportSection {
   readonly heading: string;
   /** Each line is a row of cells; a single cell spans the row. */
@@ -9,6 +11,8 @@ export interface ReportSection {
   readonly empty?: string;
   /** For each row, the map square it is about (clicking the row goes there), or null. */
   readonly zoom?: readonly (readonly [number, number] | null)[];
+  /** For each row, whose portrait stands at its head (ui/portraits.ts), or null. */
+  readonly portraits?: readonly (PortraitId | null)[];
 }
 
 export interface Report {
@@ -67,11 +71,14 @@ export function showReport(host: HTMLElement, report: Report): Promise<readonly 
               finish(target);
             });
           }
+          const face = section.portraits?.[rowIndex] ?? null;
+          if (face) tr.classList.add('pictured');
           cells.forEach((cell, index) => {
             const td = document.createElement(index === 0 ? 'th' : 'td');
             if (index === 0) td.scope = 'row';
             if (cells.length === 1) td.colSpan = 4;
             td.textContent = cell;
+            if (face && index === 0) td.prepend(portraitCanvas(face));
             tr.append(td);
           });
           table.append(tr);

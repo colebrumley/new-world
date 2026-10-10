@@ -5,7 +5,7 @@
 
 The pictures are shrunk by pixelforge (https://github.com/colebrumley/pixelforge); PIXELFORGE is the
 path to a checkout of it, and the script is run with that checkout's Python. With folder names
-(chart, units, places, features, floors, title, buildings, goods) only those are baked.
+(chart, units, places, features, floors, title, buildings, goods, portraits) only those are baked.
 
 art/units holds one square picture per unit type (colonist.png, soldier.png, ...), art/places one
 per look of a colony or native settlement, and art/features one per forest, hills and mountains,
@@ -31,6 +31,14 @@ does not need pixelforge:
 art/title holds the painting that hangs behind the title screen (frontispiece.png, 8:5, generated
 like the others and drawn in the map palette's colours so that none is lost). It is shrunk to 320 x 200 in the 32 colours of PALETTE in
 src/ui/pixel-art.ts and no others, and written out as src/ui/title-art.ts, which frontispiece.ts draws.
+
+art/portraits holds the head-and-shoulders portraits (R-1016): one per report module for its adviser
+(advisers.png, congress.png, foreign.png, score.png), king.png, and one per founding father, named
+by its id in src/engine/data/fathers.ts. Each fills its square on a plain parchment ground; the
+faces are invented, none a likeness of a historical person. An adviser's coat is painted flat cyan
+and is given the colour of the report's wax when drawn. The folder is shrunk together to 64 x 64 in
+the 32 colours of PALETTE and no others, so the portraits read as one set, and written out as
+src/ui/portrait-art.ts, which src/ui/portraits.ts draws.
 """
 import os
 import re
@@ -228,12 +236,106 @@ def write(path: str, title: str, prefix: str, size_name: str, size: int, colours
     print(f'{path}: {len(figures)} pictures, {len(colours)} colours')
 
 
-def painting(source: str, width: int, height: int) -> tuple[list[str], list[str]]:
-    """The picture at `width` x `height` in the map palette alone: the colours it uses, and its rows, each a run of
-    letters, a letter followed by how many times it repeats when that is more than once."""
+def map_palette() -> list[str]:
+    """The 32 colours of PALETTE in src/ui/pixel-art.ts."""
     palette = re.findall(r"^  '(#[0-9a-f]{6})', // \d+ ", (ROOT / 'src/ui/pixel-art.ts').read_text(), re.M)
     if len(palette) != 32:
         raise SystemExit(f'expected the 32 colours of PALETTE in src/ui/pixel-art.ts, found {len(palette)}')
+    return palette
+
+
+# The colours of the map palette a portrait is not drawn in, by their numbers there: the void, and the greens and
+# pale blues of the land and sea, which would otherwise creep into skin and shade as the nearest thing to a mixed tone.
+NOT_FOR_FACES = {0, 9, 10, 12, 14, 16, 17, 18, 19, 20, 30}
+
+
+def is_key(rgb: np.ndarray) -> np.ndarray:
+    """Where a picture is painted cyan, the key for a colour given when it is drawn."""
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    return (np.minimum(g, b) - r > 90) & (np.abs(g - b) < 60)
+
+
+def portraits(folder: str, size: int) -> tuple[list[str], dict[str, list[str]]]:
+    """
+    Every picture in the folder at `size` pixels square, in the map palette alone (less NOT_FOR_FACES): the colours
+    used, and rows of letters per picture. The folder is shrunk in one go against the one palette. Cyan is cut out first (its place
+    is taken by grey, so that its edges blend toward ink and not toward a green) and put back as OWNER wherever
+    more than half of a pixel was cyan.
+    """
+    palette = map_palette()
+    sources = {p.stem: p for p in sorted((ROOT / folder).glob('*.png'))}
+    forge = Path(os.environ['PIXELFORGE']).expanduser()
+    colours: list[str] = []
+    figures: dict[str, list[str]] = {}
+    with tempfile.TemporaryDirectory() as tmp:
+        ready, out, hexes = Path(tmp, 'ready'), Path(tmp, 'out'), Path(tmp, 'map.hex')
+        ready.mkdir()
+        hexes.write_text('\n'.join(c[1:] for n, c in enumerate(palette) if n not in NOT_FOR_FACES) + '\n')
+        keyed: dict[str, np.ndarray] = {}
+        for name, path in sources.items():
+            rgb = np.array(Image.open(path).convert('RGB')).astype(int)
+            if rgb.shape[0] != rgb.shape[1]:
+                raise SystemExit(f'{path.name}: a portrait must be square')
+            key = is_key(rgb)
+            rgb[key] = (141, 138, 132)
+            Image.fromarray(rgb.astype(np.uint8), 'RGB').save(ready / f'{name}.png')
+            cover = Image.fromarray((key * 255).astype(np.uint8), 'L').resize((size, size), Image.Resampling.BOX)
+            keyed[name] = np.array(cover) > 127
+        flags = ['--preset', 'background', '--method', 'box', '--out-width', str(size), '--out-height', str(size), '--palette-name', str(hexes),
+                 '--outline', 'none', '--dither', 'none', '--no-tileset']
+        subprocess.run([sys.executable, '-m', 'pixelforge', 'batch', str(ready), '-o', str(out), *flags], cwd=forge, check=True, stdout=subprocess.DEVNULL)
+        for name in sources:
+            art = np.array(Image.open(out / f'{name}.png').convert('RGB')).astype(int)
+            if art.shape[:2] != (size, size):
+                raise SystemExit(f'{name}: baked to {art.shape[1]} x {art.shape[0]}, not {size} x {size}')
+            rows = []
+            for y, line in enumerate(art):
+                row = ''
+                for x, (r, g, b) in enumerate(line):
+                    if keyed[name][y, x]:
+                        row += OWNER
+                        continue
+                    colour = f'#{r:02x}{g:02x}{b:02x}'
+                    if colour not in palette:
+                        raise SystemExit(f'{name}: {colour} is not a colour of the map palette')
+                    if colour not in colours:
+                        colours.append(colour)
+                    row += CODES[colours.index(colour)]
+                rows.append(row)
+            figures[name] = rows
+    return colours, figures
+
+
+def write_portraits(path: str, size: int, colours: list[str], figures: dict[str, list[str]]) -> None:
+    lines = [
+        '// Portraits of the advisers, the King and the founding fathers, made by scripts/bake-art.py from our own pictures',
+        '// (art/portraits; constraint C1). The faces are invented: none is a likeness of a historical person. Do not edit by hand.',
+        '',
+        '/** The colours the portraits are drawn in: every one is a colour of the map palette. */',
+        'export const PORTRAIT_COLORS = [' + ', '.join(f"'{c}'" for c in colours) + '] as const;',
+        '',
+        '/** How many art pixels square a portrait is. */',
+        f'export const PORTRAIT_SIZE = {size};',
+        '',
+        '/** The letter each of PORTRAIT_COLORS goes by, in order. */',
+        f"export const PORTRAIT_CODES = '{CODES[:len(colours)]}';",
+        '',
+        "/** One portrait per subject, filling its square: rows of letters from PORTRAIT_CODES; '*' is a coat given its colour when drawn. */",
+        'export const PORTRAIT_ART: Readonly<Record<string, readonly string[]>> = {',
+    ]
+    for name, rows in figures.items():
+        lines.append(f'  {name}: [')
+        lines += [f"    '{row}'," for row in rows]
+        lines.append('  ],')
+    lines += ['};', '']
+    (ROOT / path).write_text('\n'.join(lines))
+    print(f'{path}: {len(figures)} pictures, {len(colours)} colours')
+
+
+def painting(source: str, width: int, height: int) -> tuple[list[str], list[str]]:
+    """The picture at `width` x `height` in the map palette alone: the colours it uses, and its rows, each a run of
+    letters, a letter followed by how many times it repeats when that is more than once."""
+    palette = map_palette()
     forge = Path(os.environ['PIXELFORGE']).expanduser()
     with tempfile.TemporaryDirectory() as tmp:
         hexes = Path(tmp, 'map.hex')
@@ -289,7 +391,7 @@ def write_painting(path: str, width: int, height: int, colours: list[str], rows:
 
 
 def main() -> None:
-    """Bake every folder, or only those named on the command line (chart, units, places, features, floors, title, buildings, goods)."""
+    """Bake every folder, or only those named on the command line (chart, units, places, features, floors, title, buildings, goods, portraits)."""
     only = set(sys.argv[1:])
     wanted = lambda folder: not only or folder in only  # noqa: E731
     if wanted('chart'):
@@ -322,6 +424,9 @@ def main() -> None:
     if wanted('title'):
         colours, rows = painting('art/title/frontispiece.png', 320, 200)
         write_painting('src/ui/title-art.ts', 320, 200, colours, rows)
+    if wanted('portraits'):
+        colours, figures = portraits('art/portraits', 64)
+        write_portraits('src/ui/portrait-art.ts', 64, colours, figures)
 
 
 main()

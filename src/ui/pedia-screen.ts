@@ -1,6 +1,8 @@
 // The encyclopedia screen: an index of every entry by category on the left, the chosen page on
 // the right. Esc or the button closes it.
+import type { FatherId } from '../engine/data/fathers';
 import { pediaIndex, pediaPage, type PediaCategory } from './pedia';
+import { portraitCanvas } from './portraits';
 
 export interface PediaTarget {
   readonly category: PediaCategory;
@@ -46,7 +48,9 @@ export function showPedia(host: HTMLElement, start: PediaTarget | null = null): 
         tr.append(th, td);
         facts.append(tr);
       }
-      page.replaceChildren(title, ...(found.facts.length > 0 ? [facts] : []), ...found.prose.map((text) => {
+      // a founding father's page opens with his portrait
+      const face = found.category === 'fathers' ? [portraitCanvas(found.id as FatherId, 2)] : [];
+      page.replaceChildren(title, ...face, ...(found.facts.length > 0 ? [facts] : []), ...found.prose.map((text) => {
         const p = document.createElement('p');
         p.textContent = text;
         return p;

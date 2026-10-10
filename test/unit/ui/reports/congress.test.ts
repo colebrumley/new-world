@@ -35,6 +35,14 @@ describe('Congress report', () => {
     expect(section(s, /Royal Expeditionary Force/)).toEqual([['Regulars', '31'], ['Cavalry', '15'], ['Artillery', '14'], ['Men-of-War', '8']]);
   });
 
+  it('names whose portrait stands at the head of each line', () => {
+    const r = congressReport(base({ candidate: 'paulRevere' }, ['thomasJefferson', 'adamSmith', 'peterMinuit']), 'a');
+    expect(r.sections[0]?.portraits).toEqual(['adamSmith', 'peterMinuit', 'thomasJefferson']);
+    expect(r.sections[1]?.portraits).toEqual(['paulRevere']);
+    expect(congressReport(base(), 'a').sections[1]?.portraits).toEqual([null]);
+    expect(congressReport(base({ candidate: 'paulRevere', atWar: true }), 'a').sections[1]?.portraits).toEqual([null]);
+  });
+
   it('is empty for nobody', () => {
     expect(congressReport(base(), 'nobody').sections).toEqual([]);
   });
