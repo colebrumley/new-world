@@ -122,7 +122,7 @@ test('America map shows a recognizable Florida and Caribbean', async ({ page }) 
   expect(await isSea(46, 46)).toBe(false); // Brazil
 });
 
-test('the map is black outside the explored start area, and H strips forests and pieces', async ({ page }) => {
+test('the map is bare vellum outside the explored start area, and H strips forests and pieces', async ({ page }) => {
   await page.goto('/?seed=11');
   await page.getByRole('menuitem', { name: 'Start a Game in New World' }).click();
   const canvas = page.locator('canvas.map');
@@ -130,20 +130,32 @@ test('the map is black outside the explored start area, and H strips forests and
   await expect(canvas).toHaveAttribute('data-view', /"zoom":0/);
   await page.screenshot({ path: 'test-results/fog.png' });
 
+  // squares that are not chart: an unknown square is drawn in the six chart inks alone, some of it bare vellum.
+  // (The sea and the ship, which are all that is known here, are neither.)
   const lit = (): Promise<number> =>
     canvas.evaluate((el) => {
       const c = el as HTMLCanvasElement;
       const view = JSON.parse(c.dataset['view']!) as { originX: number; originY: number; tileSize: number };
       const dpr = c.width / c.clientWidth;
-      const ctx = c.getContext('2d')!;
+      const data = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+      const inks = new Set([0xe9dfc4, 0xd3bd7a, 0xa39262, 0x7c6b45, 0x6b4a2a, 0x111111]);
+      const side = Math.round(view.tileSize * dpr);
       let n = 0;
       for (let y = 0; y < 72; y++) {
         for (let x = 0; x < 58; x++) {
-          // the middle of each square
-          const px = Math.round((x - view.originX + 0.5) * view.tileSize * dpr);
-          const py = Math.round((y - view.originY + 0.5) * view.tileSize * dpr);
-          const [r, g, b] = ctx.getImageData(px, py, 1, 1).data;
-          if (r! + g! + b! > 90) n++;
+          const left = Math.round((x - view.originX) * view.tileSize * dpr);
+          const top = Math.round((y - view.originY) * view.tileSize * dpr);
+          let chart = true;
+          let bare = false;
+          for (let py = top; py < top + side && chart; py++) {
+            for (let px = left; px < left + side; px++) {
+              const i = (py * c.width + px) * 4;
+              const rgb = (data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!;
+              if (!inks.has(rgb)) chart = false;
+              if (rgb === 0xe9dfc4) bare = true;
+            }
+          }
+          if (!(chart && bare)) n++;
         }
       }
       return n;

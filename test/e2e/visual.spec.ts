@@ -3,7 +3,7 @@ import { UNIT_TYPE_IDS } from '../../src/engine/data/units';
 import { loadGame, saveGame } from '../../src/engine/save';
 import type { GameState, Settlement } from '../../src/engine/state';
 import { makeTile } from '../../src/engine/tile';
-import { ART_COLORS } from '../../src/ui/pixel-art';
+import { ART_COLORS, INK, PALETTE } from '../../src/ui/pixel-art';
 import type { View } from '../../src/ui/view';
 import { fingerprint, referencePixels } from '../helpers/reference-canvas';
 import { withColony, withUnit, world } from '../helpers/world';
@@ -115,6 +115,32 @@ test('every pixel of the map is one of the 32 palette colours, at every zoom; ba
     await page.keyboard.press('x');
   }
   expect(JSON.stringify(baselines, null, 2)).toMatchSnapshot('map-baselines.json');
+});
+
+test('the unexplored map is an explorer\'s chart in the same palette, at every zoom; baselines for each', async ({ page }) => {
+  await quiet(page);
+  await page.goto('/?seed=11&still');
+  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  const canvas = page.locator('canvas.map');
+  await expect(canvas).toHaveAttribute('data-view', /"zoom":3/);
+  const palette = new Set<string>(ART_COLORS);
+  const baselines: Record<string, string> = {};
+  for (const zoom of [3, 2, 1, 0]) {
+    await expect(canvas).toHaveAttribute('data-view', new RegExp(`"zoom":${zoom}`));
+    await page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+    const seen = await survey(canvas);
+    // nothing blended or off the palette (that the chart itself is in six of the 32 map colours alone is a unit test)
+    expect(seen.colours.filter((c) => !palette.has(c)), `zoom ${zoom}`).toEqual([]);
+    for (const ink of [INK.parchment, INK.wood]) expect(seen.colours, `zoom ${zoom}`).toContain(PALETTE[ink]);
+    // the whole map is in view at the two smallest zooms, and with it the dark beyond its edges and the inked marks
+    if (zoom < 2) for (const ink of [INK.void, INK.ink, INK.sand, INK.earth]) expect(seen.colours, `zoom ${zoom}`).toContain(PALETTE[ink]);
+    const want = await expected(page, canvas);
+    expect(`${seen.width}x${seen.height} ${seen.fingerprint}`, `zoom ${zoom}`).toBe(`${want.size} ${want.fingerprint}`);
+    baselines[`zoom${zoom}`] = `${want.size} ${want.fingerprint}`;
+    await page.screenshot({ path: `test-results/visual-chart-zoom${zoom}.png` });
+    await page.keyboard.press('x');
+  }
+  expect(JSON.stringify(baselines, null, 2)).toMatchSnapshot('chart-baselines.json');
 });
 
 test('one of everything: terrain, features, every unit type, colonies and settlements', async ({ page }) => {

@@ -10,7 +10,9 @@ import { UNIT_TYPE_IDS } from '../../../src/engine/data/units';
 import { BUILDING_ART, BUILDING_SIZE } from '../../../src/ui/building-art';
 import { GOODS_ART, GOODS_SIZE } from '../../../src/ui/goods-art';
 import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, flagArt, goodArt } from '../../../src/ui/pixel-art';
-import { activeFrameArt, ART, at, blank, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, halve, hasFigure, INK, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VILLAGE_LOOKS, write, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
+import { CHART, CHART_MARK_KINDS } from '../../../src/ui/chart';
+import { CHART_ART, CHART_COLORS } from '../../../src/ui/chart-art';
+import { activeFrameArt, ART, at, blank, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, halve, hasFigure, INK, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
 
 const look = (change: Partial<TileLook> = {}): TileLook => ({ terrain: 'plains', river: 'none', riverMask: 0, road: false, roadMask: 0, plowed: false, resource: null, rumor: false, totem: false, variant: 0, ...change });
 const text = (s: Sprite): string => Array.from({ length: s.size }, (_, y) => Array.from({ length: s.size }, (_, x) => (at(s, x, y) === 0 ? '.' : (at(s, x, y) - 1).toString(32))).join('')).join('\n');
@@ -244,6 +246,97 @@ describe('detailed places', () => {
     const angry = detailedSettlementArt(INK.purple, 0, false, INK.red) as Sprite;
     expect([1, 2, 3, 4, 5, 6, 7].map((y) => at(angry, DETAIL - 3, y) - 1)).toEqual([INK.red, INK.red, INK.red, INK.red, INK.ink, INK.red, INK.red]);
     expect(inks(looks[0] as Sprite)).not.toContain(INK.red);
+  });
+});
+
+describe('the explorer\'s chart', () => {
+  const GRIDS: readonly ChartGrid[] = [32, 16, 8];
+  const CHART_INKS: readonly number[] = [INK.parchment, INK.sand, INK.hill, INK.earth, INK.wood, INK.ink];
+  const count = (s: Sprite, ink: number): number => [...s.cells].filter((c) => c - 1 === ink).length;
+  // the eight neighbours, north first and clockwise
+  const N = 1, NE = 2, E = 4, S = 16, W = 64;
+
+  it('is baked in six inks of the map palette and no colours of its own', () => {
+    expect(CHART_COLORS.map((colour) => (PALETTE as readonly string[]).indexOf(colour))).toEqual(CHART_INKS);
+    for (const [name, rows] of Object.entries(CHART_ART)) {
+      expect(rows.every((row) => row.length === rows.length), name).toBe(true);
+      expect(rows.join('')).toMatch(/^[pshewk.]+$/);
+    }
+  });
+
+  it('vellum fills the whole square at each grid, in every variant, mostly bare parchment', () => {
+    for (const grid of GRIDS) {
+      for (let variant = 0; variant < 4; variant++) {
+        const s = vellumArt(grid, variant, 0);
+        expect(s.size).toBe(grid);
+        expect([...s.cells].every((c) => c >= 1)).toBe(true);
+        for (const ink of inks(s)) expect([INK.parchment, INK.sand, INK.hill]).toContain(ink);
+        expect(count(s, VELLUM)).toBeGreaterThan(grid * grid * 0.9);
+      }
+    }
+    // a variant is the same vellum turned another way; the smallest is bare
+    expect(differ(vellumArt(32, 0, 0), vellumArt(32, 1, 0))).toBe(true);
+    expect(differ(vellumArt(16, 0, 0), vellumArt(16, 2, 0))).toBe(true);
+    expect(count(vellumArt(32, 0, 0), INK.sand)).toBe(count(vellumArt(32, 3, 0), INK.sand));
+    expect(inks(vellumArt(8, 0, 0))).toEqual(new Set([VELLUM]));
+  });
+
+  it('vellum is hatched in ink along each edge that meets the known, and nowhere else', () => {
+    for (const grid of [32, 16] as const) {
+      const bare = vellumArt(grid, 0, 0);
+      expect(inks(bare).has(INK.wood) || inks(bare).has(INK.earth)).toBe(false);
+      const north = vellumArt(grid, 0, N);
+      // the coastline runs the whole edge, with strokes of different lengths reaching in from it
+      for (let x = 0; x < grid; x++) expect(at(north, x, 0) - 1).toBe(INK.wood);
+      const reach = (x: number): number => Array.from({ length: grid }, (_, y) => y).filter((y) => y > 0 && at(north, x, y) - 1 === INK.earth).length;
+      const lengths = Array.from({ length: grid }, (_, x) => reach(x));
+      expect(new Set(lengths.filter((n) => n > 0)).size).toBeGreaterThanOrEqual(3);
+      expect(lengths.filter((n) => n > 0).length).toBeGreaterThanOrEqual(grid / 4);
+      expect(Math.max(...lengths)).toBeLessThan(grid / 4); // light: it stays near the edge
+      // the far half of the square is untouched
+      for (let y = grid / 2; y < grid; y++) for (let x = 0; x < grid; x++) expect(at(north, x, y)).toBe(at(bare, x, y));
+      // each side is hatched on its own edge
+      for (let y = 0; y < grid; y++) expect(at(vellumArt(grid, 0, E), grid - 1, y) - 1).toBe(INK.wood);
+      for (let x = 0; x < grid; x++) expect(at(vellumArt(grid, 0, S), x, grid - 1) - 1).toBe(INK.wood);
+      for (let y = 0; y < grid; y++) expect(at(vellumArt(grid, 0, W), 0, y) - 1).toBe(INK.wood);
+      expect(count(vellumArt(grid, 0, N | E | S | W), INK.wood)).toBe(4 * grid - 4);
+      // a known square at a corner alone leaves a tick in that corner; beside a hatched side it adds nothing
+      const corner = vellumArt(grid, 0, NE);
+      expect(at(corner, grid - 1, 0) - 1).toBe(INK.wood);
+      expect(count(corner, INK.wood)).toBe(1);
+      expect(count(corner, INK.earth)).toBe(grid / 16);
+      expect(differ(vellumArt(grid, 0, N), vellumArt(grid, 0, N | NE))).toBe(false);
+    }
+    // at the smallest zoom the edge is a single quiet line
+    const small = vellumArt(8, 0, N);
+    for (let x = 0; x < 8; x++) expect(at(small, x, 0) - 1).toBe(INK.hill);
+    expect(count(small, INK.hill)).toBe(8);
+    expect(count(small, VELLUM)).toBe(56);
+  });
+
+  it('has a compass rose, a sea serpent and a ship at each grid, drawn in the chart inks over see-through', () => {
+    const seen = new Set<string>();
+    for (const kind of CHART_MARK_KINDS) {
+      for (const grid of GRIDS) {
+        const s = chartMarkArt(kind, grid);
+        expect(s.size, `${kind} ${grid}`).toBe(CHART.squares[kind] * grid);
+        for (const ink of inks(s)) expect(CHART_INKS, `${kind} ${grid}`).toContain(ink);
+        const drawn = [...s.cells].filter((c) => c > 0).length;
+        // a drawing on the vellum, not a tile: most of it is left clear, and something is there
+        expect(drawn).toBeGreaterThan(s.size);
+        expect(drawn).toBeLessThan(s.size * s.size * 0.6);
+        expect(inks(s).size, `${kind} ${grid}`).toBeGreaterThanOrEqual(3);
+        seen.add(text(s));
+      }
+    }
+    expect(seen.size).toBe(CHART_MARK_KINDS.length * GRIDS.length);
+    // the rose is the same either side of its upright, near enough: its north point stands on the middle
+    const rose = chartMarkArt('rose', 32);
+    expect(at(rose, 63, 8) !== 0 || at(rose, 64, 8) !== 0).toBe(true);
+  });
+
+  it('matches the chart snapshot', () => {
+    expect({ vellum: text(vellumArt(16, 1, N | W)), corner: text(vellumArt(16, 0, NE)), ship: text(chartMarkArt('ship', 16)), rose: text(chartMarkArt('rose', 8)) }).toMatchSnapshot();
   });
 });
 

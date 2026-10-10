@@ -1,11 +1,12 @@
 // The "New World view": the whole map in miniature with a box showing what the main view covers.
 import type { GameState } from '../engine/state';
 import { isExploredBy, terrainOf } from '../engine/tile';
-import { colorOf, viewerIndex, VOID_COLOR } from './render';
+import { colorOf, VELLUM_COLOR, viewerIndex, VOID_COLOR } from './render';
 import { INK, PALETTE } from './pixel-art';
 import { MINI_COLORS } from './tiles';
 
 const WHITE: string = PALETTE[INK.white];
+const INK_LINE: string = PALETTE[INK.ink];
 import type { View } from './view';
 
 export interface MinimapLayout {
@@ -37,6 +38,9 @@ export function renderMinimap(
   const viewer = viewerIndex(state);
   ctx.fillStyle = VOID_COLOR;
   ctx.fillRect(0, 0, width, height);
+  // the map is a chart: vellum wherever nothing has been seen yet
+  ctx.fillStyle = VELLUM_COLOR;
+  ctx.fillRect(offsetX, offsetY, map.width * scale, map.height * scale);
   for (let y = 0; y < map.height; y++) {
     for (let x = 0; x < map.width; x++) {
       const tile = map.tiles[y * map.width + x];
@@ -63,10 +67,14 @@ export function renderMinimap(
   const by = Math.max(0, view.originY);
   const bw = Math.min(map.width, view.originX + cols) - bx;
   const bh = Math.min(map.height, view.originY + rows) - by;
-  ctx.strokeStyle = WHITE;
+  const left = offsetX + Math.round(bx * scale) + 0.5;
+  const top = offsetY + Math.round(by * scale) + 0.5;
+  const wide = Math.max(1, Math.round(bw * scale) - 1);
+  const tall = Math.max(1, Math.round(bh * scale) - 1);
   ctx.lineWidth = 1;
-  ctx.strokeRect(
-    offsetX + Math.round(bx * scale) + 0.5, offsetY + Math.round(by * scale) + 0.5,
-    Math.max(1, Math.round(bw * scale) - 1), Math.max(1, Math.round(bh * scale) - 1),
-  );
+  // white alone is lost on bare vellum: an ink line round it keeps the box plain on any ground
+  ctx.strokeStyle = INK_LINE;
+  ctx.strokeRect(left - 1, top - 1, wide + 2, tall + 2);
+  ctx.strokeStyle = WHITE;
+  ctx.strokeRect(left, top, wide, tall);
 }
