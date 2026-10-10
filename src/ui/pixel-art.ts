@@ -5,6 +5,10 @@
 import type { ResourceId } from '../engine/data/resources';
 import type { TerrainId } from '../engine/data/terrain';
 import type { UnitTypeId } from '../engine/data/units';
+import { FEATURE_ART, FEATURE_CODES, FEATURE_COLORS, FEATURE_SIZE } from './feature-art';
+import { FLOOR_ART, FLOOR_CODES, FLOOR_COLORS, FLOOR_SIZE } from './floor-art';
+import { PLACE_ART, PLACE_CODES, PLACE_COLORS, PLACE_SIZE } from './place-art';
+import { FIGURE_SIZE, UNIT_ART, UNIT_CODES, UNIT_COLORS } from './unit-art';
 
 /** The 32 colours everything on the map is drawn in: a palette in the spirit of 256-colour VGA art. */
 export const PALETTE = [
@@ -446,6 +450,136 @@ export function pieceArt(look: PieceLook): Sprite {
   return s;
 }
 
+/** Art pixels to the square for a piece drawn with a detailed figure: twice the map's grid. */
+export const DETAIL = 32;
+
+/** Every colour art can be in: the map palette, then the colours of the detailed figures, places, ground and features. */
+export const ART_COLORS: readonly string[] = [...PALETTE, ...UNIT_COLORS, ...PLACE_COLORS, ...FLOOR_COLORS, ...FEATURE_COLORS];
+const FLOOR_KEY: Readonly<Record<string, number>> = Object.fromEntries(FLOOR_COLORS.map((_, i) => [FLOOR_CODES[i] as string, PALETTE.length + UNIT_COLORS.length + PLACE_COLORS.length + i]));
+const FEATURE_KEY: Readonly<Record<string, number>> = Object.fromEntries(
+  FEATURE_COLORS.map((_, i) => [FEATURE_CODES[i] as string, PALETTE.length + UNIT_COLORS.length + PLACE_COLORS.length + FLOOR_COLORS.length + i]),
+);
+const PLACE_KEY: Readonly<Record<string, number>> = Object.fromEntries(PLACE_COLORS.map((_, i) => [PLACE_CODES[i] as string, PALETTE.length + UNIT_COLORS.length + i]));
+const DETAIL_KEY: Readonly<Record<string, number>> = Object.fromEntries(UNIT_COLORS.map((_, i) => [UNIT_CODES[i] as string, PALETTE.length + i]));
+
+/** Whether this kind of unit has a detailed figure (an experiment for R-1006). */
+export const hasFigure = (type: UnitTypeId): boolean => Object.hasOwn(UNIT_ART, type);
+
+// A 5 x 7 face for the orders tab of a detailed piece: the order letters, the digits of a hold count, and a question mark for anything else.
+const TAB_GLYPHS: Readonly<Record<string, readonly string[]>> = {
+  S: ['.###.', '#...#', '#....', '.###.', '....#', '#...#', '.###.'], G: ['.###.', '#...#', '#....', '#.###', '#...#', '#...#', '.###.'],
+  F: ['#####', '#....', '#....', '####.', '#....', '#....', '#....'], P: ['####.', '#...#', '#...#', '####.', '#....', '#....', '#....'],
+  R: ['####.', '#...#', '#...#', '####.', '#.#..', '#..#.', '#...#'], T: ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '..#..'],
+  '0': ['.###.', '#...#', '#..##', '#.#.#', '##..#', '#...#', '.###.'], '1': ['..#..', '.##..', '..#..', '..#..', '..#..', '..#..', '.###.'],
+  '2': ['.###.', '#...#', '....#', '...#.', '..#..', '.#...', '#####'], '3': ['.###.', '#...#', '....#', '..##.', '....#', '#...#', '.###.'],
+  '4': ['...#.', '..##.', '.#.#.', '#..#.', '#####', '...#.', '...#.'], '5': ['#####', '#....', '####.', '....#', '....#', '#...#', '.###.'],
+  '6': ['.###.', '#....', '#....', '####.', '#...#', '#...#', '.###.'], '7': ['#####', '....#', '...#.', '..#..', '..#..', '..#..', '..#..'],
+  '8': ['.###.', '#...#', '#...#', '.###.', '#...#', '#...#', '.###.'], '9': ['.###.', '#...#', '#...#', '.####', '....#', '....#', '.###.'],
+  '?': ['.###.', '#...#', '....#', '...#.', '..#..', '.....', '..#..'],
+};
+
+/**
+ * A unit drawn large: its figure standing on a base in its owner's colour. A unit under orders (or a ship
+ * showing its holds) carries them in white on a dark tab at the foot of the base on the left, where it
+ * hides least of the figure; a unit with none ('-') has no tab. Null for a kind that has no detailed figure.
+ */
+export function detailedPieceArt(look: PieceLook): Sprite | null {
+  const rows = UNIT_ART[look.type];
+  if (!rows || !hasFigure(look.type)) return null;
+  const s = blank(DETAIL);
+  if (look.stacked) box(s, 3, 28, DETAIL - 3, 4, INK.ink);
+  box(s, 1, 26, DETAIL - 2, 5, look.color);
+  frame(s, 1, 26, DETAIL - 2, 5, INK.ink);
+  stamp(s, (DETAIL - FIGURE_SIZE) >> 1, DETAIL - 2 - FIGURE_SIZE, rows, DETAIL_KEY);
+  if (look.label !== '' && look.label !== '-') {
+    box(s, 0, 22, 7, 9, INK.ink);
+    stamp(s, 1, 23, TAB_GLYPHS[look.label.slice(0, 1).toUpperCase()] ?? (TAB_GLYPHS['?'] as readonly string[]), { '#': INK.white });
+  }
+  return s;
+}
+
+/** Lay a 16-pixel layer over detailed art, every art pixel of it four of the larger grid. */
+function enlarge(s: Sprite, layer: Sprite): void {
+  for (let y = 0; y < layer.size; y++) for (let x = 0; x < layer.size; x++) if (at(layer, x, y) !== 0) box(s, x * 2, y * 2, 2, 2, at(layer, x, y) - 1);
+}
+
+/** Baked rows, optionally mirrored left to right and top to bottom. */
+const turned = (rows: readonly string[], mirror: boolean, upend: boolean): readonly string[] => {
+  const across = mirror ? rows.map((row) => [...row].reverse().join('')) : rows;
+  return upend ? [...across].reverse() : across;
+};
+
+/**
+ * The art for one map square on the 32-pixel grid: the ground of its terrain (a forest stands on the open
+ * ground of its row), turned one of four ways by the variant; furrows and rivers; then the forest, hills or
+ * mountains standing on it; then roads and the marks, which are the 16-pixel ones enlarged.
+ */
+export function detailedTileArt(look: TileLook): Sprite {
+  const s = blank(DETAIL);
+  const open = OPEN_ROW[look.terrain] ?? look.terrain;
+  if (Object.hasOwn(FLOOR_ART, open)) stamp(s, 0, DETAIL - FLOOR_SIZE, turned(FLOOR_ART[open] as readonly string[], (look.variant & 1) === 1, (look.variant & 2) === 2), FLOOR_KEY);
+  else box(s, 0, 0, DETAIL, DETAIL, GROUND[look.terrain]);
+  const under = blank();
+  if (look.plowed) furrows(under);
+  if (look.river !== 'none') river(under, look);
+  enlarge(s, under);
+  if (Object.hasOwn(FEATURE_ART, look.terrain)) stamp(s, 0, DETAIL - FEATURE_SIZE, turned(FEATURE_ART[look.terrain] as readonly string[], (look.variant & 1) === 1, false), FEATURE_KEY);
+  const over = blank();
+  if (look.road) road(over, look);
+  if (look.resource) resource(over, look.resource);
+  if (look.rumor) rumor(over);
+  if (look.totem) totem(over);
+  enlarge(s, over);
+  return s;
+}
+
+/** The picture a colony is drawn from, by how it is fortified: open, stockade, fort, fortress. */
+export const COLONY_LOOKS = ['colonyOpen', 'colonyStockade', 'colonyFort', 'colonyFortress'] as const;
+/** The picture a native settlement is drawn from, by its people's tech level: camp, village, and the two kinds of city. */
+export const VILLAGE_LOOKS = ['villageCamp', 'villageLonghouse', 'villageAztec', 'villageInca'] as const;
+
+/** A place's picture with its roofs, flags and bands in the owner's colour, or null if there is none by that name. */
+function placeArt(name: string | undefined, color: InkId): Sprite | null {
+  const rows = name === undefined || !Object.hasOwn(PLACE_ART, name) ? undefined : PLACE_ART[name];
+  if (!rows) return null;
+  const s = blank(DETAIL);
+  stamp(s, (DETAIL - PLACE_SIZE) >> 1, DETAIL - PLACE_SIZE, rows, { ...PLACE_KEY, '*': color });
+  return s;
+}
+
+/**
+ * A colony drawn large: its buildings under roofs of the owner's colour, behind whatever walls it has
+ * (`fort` 0 to 3), with the population at the foot on a dark plate in the colour of its loyalties.
+ */
+export function detailedColonyArt(color: InkId, population: number, numberInk: InkId, fort: number): Sprite | null {
+  const s = placeArt(COLONY_LOOKS[Math.min(3, Math.max(0, fort))], color);
+  if (!s) return null;
+  const text = String(Math.min(99, population));
+  const width = text.length * 6 - 1;
+  const x = (DETAIL - width) >> 1;
+  box(s, x - 1, 23, width + 2, 9, INK.ink);
+  [...text].forEach((digit, i) => stamp(s, x + i * 6, 24, TAB_GLYPHS[digit] as readonly string[], { '#': numberInk }));
+  return s;
+}
+
+/**
+ * A native settlement drawn large, in its people's colour, by tech level (0 to 3). A capital carries a gold
+ * star at the top left; the mark at the top right shows how its people feel about the viewer.
+ */
+export function detailedSettlementArt(color: InkId, tech: number, capital: boolean, mood: InkId | null): Sprite | null {
+  const s = placeArt(VILLAGE_LOOKS[Math.min(3, Math.max(0, tech))], color);
+  if (!s) return null;
+  if (capital) {
+    box(s, 0, 0, 7, 7, INK.ink);
+    stamp(s, 1, 1, ['..y..', '.yyy.', 'yyyyy', '.yyy.', '..y..'], { y: INK.yellow });
+  }
+  if (mood !== null) {
+    box(s, DETAIL - 5, 0, 5, 9, INK.ink);
+    stamp(s, DETAIL - 4, 1, ['mmm', 'mmm', 'mmm', 'mmm', '...', 'mmm', 'mmm'], { m: mood });
+  }
+  return s;
+}
+
 /** The frame that marks the active unit. */
 export function activeFrameArt(): Sprite {
   const s = blank();
@@ -508,7 +642,7 @@ export function toRgba(sprite: Sprite): Uint8ClampedArray {
   const out = new Uint8ClampedArray(sprite.size * sprite.size * 4);
   sprite.cells.forEach((cell, i) => {
     if (cell === 0) return;
-    const hex = PALETTE[cell - 1] as string;
+    const hex = ART_COLORS[cell - 1] as string;
     out[i * 4] = parseInt(hex.slice(1, 3), 16);
     out[i * 4 + 1] = parseInt(hex.slice(3, 5), 16);
     out[i * 4 + 2] = parseInt(hex.slice(5, 7), 16);

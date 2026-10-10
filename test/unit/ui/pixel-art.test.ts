@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { RESOURCE_IDS } from '../../../src/engine/data/resources';
 import { TERRAIN_IDS } from '../../../src/engine/data/terrain';
 import { UNIT_TYPE_IDS } from '../../../src/engine/data/units';
-import { activeFrameArt, ART, at, blank, colonyArt, halve, INK, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, write, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
+import { activeFrameArt, ART, at, blank, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, halve, hasFigure, INK, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VILLAGE_LOOKS, write, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
 
 const look = (change: Partial<TileLook> = {}): TileLook => ({ terrain: 'plains', river: 'none', riverMask: 0, road: false, roadMask: 0, plowed: false, resource: null, rumor: false, totem: false, variant: 0, ...change });
 const text = (s: Sprite): string => Array.from({ length: s.size }, (_, y) => Array.from({ length: s.size }, (_, x) => (at(s, x, y) === 0 ? '.' : (at(s, x, y) - 1).toString(32))).join('')).join('\n');
@@ -103,6 +103,45 @@ describe('pieces', () => {
   });
 });
 
+describe('detailed pieces', () => {
+  const figured = UNIT_TYPE_IDS.filter(hasFigure);
+
+  it('every kind of unit has a detailed figure of its own, twice the grid of the map', () => {
+    expect(figured).toEqual([...UNIT_TYPE_IDS]);
+    const seen = new Set<string>();
+    for (const type of figured) {
+      const s = detailedPieceArt({ type, color: INK.red, label: '', stacked: false });
+      expect(s?.size, type).toBe(DETAIL);
+      if (s) seen.add(text(s));
+    }
+    expect(seen.size).toBe(figured.length);
+  });
+
+  it('stands on a base of its owner\'s colour, carries its orders on a tab at the foot, shows a stack, and turns into colours', () => {
+    const look = { type: 'soldier', color: INK.red, label: 'F', stacked: false } as const;
+    const red = detailedPieceArt(look) as Sprite;
+    expect(inks(red)).toContain(INK.red); // the base
+    expect(at(red, 15, 30) - 1).toBe(INK.ink); // its outline, below the figure's feet
+    expect(inks(detailedPieceArt({ ...look, color: INK.blue }) as Sprite)).not.toContain(INK.red);
+    // the tab: white on dark at the bottom left, and nothing of it at the top left where the old plate sat
+    expect(at(red, 0, 22) - 1).toBe(INK.ink);
+    expect(at(red, 1, 23) - 1).toBe(INK.white); // the top stroke of the F
+    expect(at(red, 0, 0)).toBe(0);
+    expect(differ(red, detailedPieceArt({ ...look, label: 'S' }) as Sprite)).toBe(true);
+    expect(differ(red, detailedPieceArt({ ...look, stacked: true }) as Sprite)).toBe(true);
+    // a unit with no orders has no tab, and every order letter and digit has a glyph of its own
+    const idle = detailedPieceArt({ ...look, label: '-' }) as Sprite;
+    expect(text(idle)).toBe(text(detailedPieceArt({ ...look, label: '' }) as Sprite));
+    expect(differ(idle, red)).toBe(true);
+    const tabs = [...'SGFPRT0123456789'].map((label) => text(detailedPieceArt({ ...look, label }) as Sprite));
+    expect(new Set(tabs).size).toBe(tabs.length);
+    // the figure's own colours lie beyond the map palette and still come out opaque
+    const beyond = red.cells.findIndex((c) => c > PALETTE.length);
+    expect(beyond).toBeGreaterThanOrEqual(0);
+    expect(toRgba(red)[beyond * 4 + 3]).toBe(255);
+  });
+});
+
 describe('colonies and settlements', () => {
   it('a colony wears its owner\'s roof and shows its population in the colour of its loyalties', () => {
     const one = colonyArt(INK.red, 1, INK.white);
@@ -125,6 +164,80 @@ describe('colonies and settlements', () => {
     // the mark: two wide, three tall, a gap, and a dot, at the top right
     expect([1, 2, 3, 4, 5].map((y) => at(angry, 13, y) - 1)).toEqual([INK.red, INK.red, INK.red, INK.ink, INK.red]);
     expect(inks(settlementArt(INK.purple, 0, false, null))).not.toContain(INK.red);
+  });
+});
+
+describe('detailed terrain', () => {
+  it('fills the whole square for every terrain, in every variant, on the 32-pixel grid', () => {
+    for (const terrain of TERRAIN_IDS) {
+      for (let variant = 0; variant < 4; variant++) {
+        const s = detailedTileArt(look({ terrain, variant }));
+        expect(s.size).toBe(DETAIL);
+        expect([...s.cells].every((c) => c >= 1), `${terrain} ${variant}`).toBe(true);
+      }
+    }
+  });
+
+  it('every terrain can be told from every other, and a variant is the same ground turned another way', () => {
+    expect(new Set(TERRAIN_IDS.map((t) => text(detailedTileArt(look({ terrain: t }))))).size).toBe(TERRAIN_IDS.length);
+    const [a, b, c, d] = [0, 1, 2, 3].map((variant) => detailedTileArt(look({ terrain: 'tundra', variant }))) as [Sprite, Sprite, Sprite, Sprite];
+    expect(new Set([a, b, c, d].map(text)).size).toBe(4);
+    for (let y = 0; y < DETAIL; y++) {
+      for (let x = 0; x < DETAIL; x++) {
+        expect(at(b, x, y)).toBe(at(a, DETAIL - 1 - x, y));
+        expect(at(c, x, y)).toBe(at(a, x, DETAIL - 1 - y));
+        expect(at(d, x, y)).toBe(at(a, DETAIL - 1 - x, DETAIL - 1 - y));
+      }
+    }
+    // a forest stands on the open ground of its row, and is never turned upside down
+    const wood = detailedTileArt(look({ terrain: 'conifer', variant: 0 }));
+    const upended = detailedTileArt(look({ terrain: 'conifer', variant: 2 }));
+    const trees = [...wood.cells].map((cell, i) => (cell !== detailedTileArt(look({ terrain: 'grassland', variant: 0 })).cells[i] ? i : -1)).filter((i) => i >= 0);
+    expect(trees.length).toBeGreaterThan(100);
+    expect(trees.filter((i) => upended.cells[i] === wood.cells[i]).length).toBeGreaterThan(trees.length * 0.9);
+  });
+
+  it('shows rivers, roads, plowing, resources, rumors and totems as the plain art does, enlarged', () => {
+    const plain = detailedTileArt(look());
+    const changes: Partial<TileLook>[] = [{ river: 'minor', riverMask: 5 }, { river: 'major', riverMask: 5 }, { road: true, roadMask: 68 }, { plowed: true }, { resource: 'wheat' }, { rumor: true }, { totem: true }];
+    const seen = new Set([text(plain)]);
+    for (const change of changes) seen.add(text(detailedTileArt(look(change))));
+    expect(seen.size).toBe(changes.length + 1);
+    // a river is the bright blue of the plain art, each of its pixels four here
+    const blue = (s: Sprite): number => [...s.cells].filter((c) => c - 1 === INK.brightBlue).length;
+    expect(blue(detailedTileArt(look({ river: 'minor', riverMask: 5 })))).toBe(4 * blue(tileArt(look({ river: 'minor', riverMask: 5 }))));
+  });
+});
+
+describe('detailed places', () => {
+  it('a colony has a picture for each state of its walls, roofed in its owner\'s colour, with its population at the foot', () => {
+    const looks = COLONY_LOOKS.map((_, fort) => detailedColonyArt(INK.red, 5, INK.white, fort) as Sprite);
+    expect(new Set(looks.map(text)).size).toBe(4);
+    for (const s of looks) {
+      expect(s.size).toBe(DETAIL);
+      expect(inks(s)).toContain(INK.red);
+    }
+    const blue = detailedColonyArt(INK.blue, 5, INK.white, 0) as Sprite;
+    expect(inks(blue)).toContain(INK.blue);
+    expect(inks(blue)).not.toContain(INK.red);
+    // the population: every count reads differently, in the colour of the colony's loyalties, and 99 is the most shown
+    expect(new Set([1, 2, 9, 10, 12, 99].map((n) => text(detailedColonyArt(INK.red, n, INK.white, 0) as Sprite))).size).toBe(6);
+    expect(inks(detailedColonyArt(INK.red, 12, INK.green, 0) as Sprite)).toContain(INK.green);
+    expect(text(detailedColonyArt(INK.red, 150, INK.white, 0) as Sprite)).toBe(text(detailedColonyArt(INK.red, 99, INK.white, 0) as Sprite));
+    // walls beyond a fortress, or less than none, are drawn as the nearest there is
+    expect(text(detailedColonyArt(INK.red, 5, INK.white, 7) as Sprite)).toBe(text(looks[3] as Sprite));
+  });
+
+  it('a settlement has a picture for each tech level in its people\'s colour; a capital carries a star and the mood mark is an exclamation', () => {
+    const looks = VILLAGE_LOOKS.map((_, tech) => detailedSettlementArt(INK.purple, tech, false, null) as Sprite);
+    expect(new Set(looks.map(text)).size).toBe(4);
+    for (const s of looks) expect(inks(s)).toContain(INK.purple);
+    const capital = detailedSettlementArt(INK.purple, 0, true, null) as Sprite;
+    expect(at(capital, 3, 3) - 1).toBe(INK.yellow);
+    expect(at(looks[0] as Sprite, 3, 3) - 1).not.toBe(INK.yellow);
+    const angry = detailedSettlementArt(INK.purple, 0, false, INK.red) as Sprite;
+    expect([1, 2, 3, 4, 5, 6, 7].map((y) => at(angry, DETAIL - 3, y) - 1)).toEqual([INK.red, INK.red, INK.red, INK.red, INK.ink, INK.red, INK.red]);
+    expect(inks(looks[0] as Sprite)).not.toContain(INK.red);
   });
 });
 

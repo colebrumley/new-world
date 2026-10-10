@@ -12,6 +12,8 @@ export const ZOOM_LEVELS = [
 export const DEFAULT_ZOOM = 3;
 /** Square sizes are whole multiples of this many pixels, once there is room for one. */
 export const ART_STEP = 8;
+/** From this many pixels up a square is a whole multiple of it, so the detailed art fits it exactly. */
+export const DETAIL_STEP = 32;
 
 export interface View {
   /** Canvas size in CSS pixels. */
@@ -33,8 +35,10 @@ export interface View {
 export function tileSizeFor(width: number, height: number, zoom: number): number {
   const level = ZOOM_LEVELS[zoom] ?? ZOOM_LEVELS[DEFAULT_ZOOM];
   const fit = Math.floor(Math.min(width / level.cols, height / level.rows));
-  // the art is drawn on a grid of sixteen pixels to the square: keep the square a whole number of
-  // eighths of that, so every art pixel comes out the same size
+  // the detailed art is drawn on a grid of 32 pixels to the square and the plain art on one of 16: keep
+  // the square a whole number of the first where there is room, else of eighths of the second, so
+  // every art pixel comes out the same size
+  if (fit >= DETAIL_STEP) return fit - (fit % DETAIL_STEP);
   return fit >= ART_STEP ? fit - (fit % ART_STEP) : Math.max(2, fit);
 }
 

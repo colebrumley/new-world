@@ -67,6 +67,7 @@ builds one, what it loads, where it goes, and the answers given in the trade tal
 `supply.ts` is what a colony asks to be sent and where a ship takes her cargo (`AI_SUPPLY`); the docks routine in `european.ts` does the buying (`AI_DOCKS`).
 
 ## `src/ui/`
+`unit-art.ts`, `place-art.ts`, `floor-art.ts` and `feature-art.ts` are the detailed pictures of units, colonies and native settlements, the ground of each terrain, and the forests, hills and mountains that stand on it, on a 32-pixel grid, written by `scripts/bake-art.py` from the pictures kept in `art/` (our own, constraint C1); `pixel-art.ts` adds the owner's colour, the orders tab and the other marks, and `render.ts` and `tiles.ts` use them wherever a square is at least 32 pixels (from there up `view.ts` keeps a square a multiple of 32), falling back to the 16-pixel art below that.
 `pixel-art.ts` is all the map art as data: a 32-colour palette and functions that return
 16 x 16 grids of palette indices for a tile, a unit, a colony, a settlement (nothing in it needs
 a canvas, so it is unit-tested as data). `tiles.ts` turns that art into small canvases, once

@@ -3,7 +3,7 @@ import { UNIT_TYPE_IDS } from '../../src/engine/data/units';
 import { loadGame, saveGame } from '../../src/engine/save';
 import type { GameState, Settlement } from '../../src/engine/state';
 import { makeTile } from '../../src/engine/tile';
-import { PALETTE } from '../../src/ui/pixel-art';
+import { ART_COLORS } from '../../src/ui/pixel-art';
 import type { View } from '../../src/ui/view';
 import { fingerprint, referencePixels } from '../helpers/reference-canvas';
 import { withColony, withUnit, world } from '../helpers/world';
@@ -98,7 +98,7 @@ test('every pixel of the map is one of the 32 palette colours, at every zoom; ba
   await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
   const canvas = page.locator('canvas.map');
   await expect(canvas).toHaveAttribute('data-view', /"zoom":3/);
-  const palette = new Set<string>(PALETTE);
+  const palette = new Set<string>(ART_COLORS);
   const baselines: Record<string, string> = {};
   for (const zoom of [3, 2, 1, 0]) {
     await expect(canvas).toHaveAttribute('data-view', new RegExp(`"zoom":${zoom}`));
@@ -126,7 +126,7 @@ test('one of everything: terrain, features, every unit type, colonies and settle
   await expect(canvas).toHaveAttribute('data-view', /"zoom":3/);
   await page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
   const seen = await survey(canvas);
-  const palette = new Set<string>(PALETTE);
+  const palette = new Set<string>(ART_COLORS);
   expect(seen.colours.filter((c) => !palette.has(c))).toEqual([]);
   expect(seen.colours.length).toBeGreaterThanOrEqual(26); // nearly the whole palette is on show
   const want = await expected(page, canvas);
