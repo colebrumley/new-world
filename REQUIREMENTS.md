@@ -1140,6 +1140,48 @@ are in `docs/BALANCE.md`. These ranges are checked on those twenty seeds only.
 
 ## Phase 11 — Theme
 
+The look of the page around the map: an explorer's chart on a captain's table. The page chrome is
+dark oiled wood with brass trim; panels are light parchment sheets with ink text, ink rules in
+place of 1px borders, and wax-seal accents in the nation colour where a nation is shown. The map
+canvas keeps its own palette (`docs/VISUAL_CHECKLIST.md`). R-1010 defines the tokens; the items
+after it (R-1011 to R-1016: the chart-style unexplored map, the title frontispiece, the colony
+screen, the Europe harbour, reports/pedia/saves, portraits) build on them and are written up as
+they are started.
+
+- [x] **R-1010 Theme tokens and chrome**
+  Typeface: a self-hosted basic-Latin subset of IM Fell English (SIL Open Font License; the
+  licence file is kept next to the font) for headings and body, with small caps, Georgia as the
+  fallback. woff2, roughly 30 KB a face, `font-display: swap`, no font fetched from the web at
+  runtime. The service worker precaches everything built; the entry script stays under its 20 KB limit.
+  - `src/ui/style.css` defines colour, texture and type tokens as custom properties on `:root`
+    (parchment, ink, faded ink, wood, brass, wax, the four nation colours and the Crown) and every
+    colour literal in the stylesheet outside the map canvas uses them. The map canvas itself is
+    untouched: `docs/VISUAL_CHECKLIST.md` requires every canvas pixel to be a palette colour.
+  - Parchment grain and wood grain are procedural: inline SVG `feTurbulence` data URIs or CSS
+    gradients, no bitmap asset.
+  - Sidebar, command bar, title menu, dialogs and event log are restyled on the tokens: buttons as
+    brass-edged plates, the active-unit info block styled as a ship's log entry, focus rings
+    visible on parchment.
+  - The four text-on-parchment pairs (body ink, faded ink, warning amber, link/active) meet WCAG
+    AA contrast; the ratios are recorded in the pull request.
+  - Existing e2e specs still pass (they pin structure, not pixels) and the e2e visual baselines in
+    `test/e2e/visual.spec.ts` are unchanged because the canvas is unchanged.
+  **Verify:** `npm run check`; `npm run test:e2e`; the cold-load budget test with
+  `BUDGET=1 npm run test:e2e -- budget`; a screenshot of title, map, dialog and sidebar attached
+  to the pull request.
+  *Built:* the tokens are the `:root` block at the head of `src/ui/style.css`; their names and
+  uses are listed in `docs/ARCHITECTURE.md` (Theme). `test/unit/ui/style.test.ts` holds the file to
+  them: no colour named below the block, textures procedural, the typeface local, and the inks at
+  AA on the sheet, the lit sheet and the shaded one (body ink 12.0, faded ink 7.0, warning amber
+  6.8, link/active 7.2 to 1 on the sheet). The typeface is three faces of about 40 KB each (roman,
+  italic, small capitals): the outlines do not go smaller at basic Latin. A subset is a modified
+  version and the licence reserves the original names, so the files are named "Chartroom" and
+  "Chartroom Caps" (`src/ui/fonts/README.md`). The game element carries `data-nation`, and the
+  ship's log in the sidebar is sealed in that colour. The full-window screens (Europe, colony,
+  reports, encyclopedia) and the save and options dialogs are on the tokens too, plainly; their
+  own items lay them out. The sidebar is still 232px and fits a 640px window without a scroll.
+  The title, map, a dialog and the sidebar as first themed are in `docs/theme/`.
+
 - [x] **R-1011 The unexplored map as an explorer's chart**
   The look is an explorer's chart on a captain's table: unexplored sea and land is aged vellum
   with ink hatching, compass roses and the odd sea serpent, and the known world is painted in on

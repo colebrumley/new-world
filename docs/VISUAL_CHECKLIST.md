@@ -29,4 +29,6 @@ same renderer in the unit suite.
 | 12 | The unexplored map is an explorer's chart: a vellum floor at each grid (32, 16 and 8 art pixels to the square) in place of the dark, hatched in ink along every edge that meets an explored square, with a compass rose four squares across (at most one to a 24 x 24 region), sea serpents and ships standing where every square they cover is still unknown, placed by the map's seed. All of it is in six of the 32 palette colours (parchment, sand, hill, earth, wood, ink), baked from `art/chart/`; beyond the map's edge the canvas stays the page's dark. | unit: `chart.test.ts` (placement), `pixel-art.test.ts` (inks, hatching by edge mask, marks at each grid), `render.test.ts` (vellum, hatching on the vellum side only, a mark goes when one of its squares is known; chart baseline). e2e: `visual.spec.ts` chart baselines at every zoom (`test-results/visual-chart-zoom*.png`), `map.spec.ts` minimap, `shell.spec.ts`. |
 
 Not drawn as pixel art: the sidebar, dialogs, reports and the colony screen's tokens are text
-in the page's own fonts. Colours there are the page's, not the palette's.
+in the page's own fonts. Colours there are the page's, not the palette's. They come from the theme
+tokens at the head of `src/ui/style.css` (parchment, ink, wood, brass, wax; `docs/ARCHITECTURE.md`,
+Theme), which the canvas never reads.

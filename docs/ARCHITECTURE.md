@@ -136,3 +136,26 @@ network-first), which is what lets the game be played offline. `.github/workflow
 runs `npm run check` and the e2e suite on every push to main and publishes `dist/` to GitHub
 Pages. The e2e suite always runs against `vite preview` of the real build, and
 `test/unit/deploy/workflow.test.ts` lints the workflow with actionlint.
+
+## Theme (`src/ui/style.css`, `src/ui/fonts/`)
+The page around the map is an explorer's chart on a captain's table: dark oiled wood with brass
+trim, and on it light parchment sheets with ink text. Every colour, texture and typeface is a
+custom property on `:root` at the head of `style.css`, and no rule below that block names a colour
+of its own (`test/unit/ui/style.test.ts` holds the file to it, and checks the inks against the
+parchment for WCAG AA). Build on the tokens, not on literals. Colours: `--parchment`, `-light`,
+`-shade`; `--ink`, `--ink-faded`, `--ink-amber` (warnings, notes), `--ink-active` (links, the
+current item, focus), `--ink-good`, `--ink-bad`; `--wood`, `--brass`, `--wax`, each with `-light`
+and `-dark`; `--nation-england`, `-france`, `-spain`, `-netherlands`, `-crown`, the map's own. An
+element that shows a nation carries `data-nation`, which sets `--nation` for it and all inside it
+(the game element carries the player's); a wax seal is drawn in `--nation`. Textures are
+procedural: `--grain-parchment` and `--grain-wood` are inline SVG `feTurbulence`, `--planks` a
+gradient. Whole backgrounds: `--sheet` (parchment), `--table` (wood), `--plate` and
+`--plate-brass` (button faces), `--wash-light` (a region of a sheet), `--ink-wash` (a well).
+Lines: `--rule`, `--rule-faint`, `--rule-dashed` are ink rules, used where a panel has an edge;
+`--edge-brass` with `--edge-brass-inner` is a plate's edge, `--trim-brass` a brass strip,
+`--frame` the wood round a sheet that fills the window, `--lift` its shadow, `--focus-ring` the
+ring. Type: `--font-body` ("Chartroom") and `--font-display` ("Chartroom Caps", small capitals for
+headings and labels), with Georgia behind both. The faces are basic-Latin subsets kept in
+`src/ui/fonts/` with their licence and made by `scripts/subset-fonts.py`; they load with
+`font-display: swap`, and nothing is fetched from another site. The map canvas and the minimap
+are not themed: they draw in the palette of `pixel-art.ts` (`docs/VISUAL_CHECKLIST.md`).
