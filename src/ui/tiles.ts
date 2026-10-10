@@ -3,7 +3,7 @@
 // art into a small canvas once and hands it out again, and draws it scaled without smoothing.
 import { terrainOf, type Tile } from '../engine/tile';
 import type { TerrainId } from '../engine/data/terrain';
-import { ART, GROUND, MINI, miniTileArt, PALETTE, tileArt, toRgba, type Sprite, type TileLook } from './pixel-art';
+import { ART, DETAIL, detailedTileArt, GROUND, MINI, miniTileArt, PALETTE, tileArt, toRgba, type Sprite, type TileLook } from './pixel-art';
 
 export type { TileLook } from './pixel-art';
 
@@ -19,9 +19,18 @@ export const TILE_VARIANTS = 4;
 /** Below this many pixels a square is drawn from the simplified art. */
 export const DETAIL_FROM = 12;
 
+/** Which of the three sets of art a square of this many pixels is drawn from: simplified, the 16-pixel grid, or the detailed 32-pixel grid where it divides the square exactly. */
+const grade = (size: number): 's' | 'l' | 'd' => (size < DETAIL_FROM ? 's' : size % DETAIL === 0 ? 'd' : 'l');
+
+/** The art for a tile at a square of `size` pixels. */
+export function tileSprite(look: TileLook, size: number): Sprite {
+  const g = grade(size);
+  return g === 's' ? miniTileArt(look) : g === 'd' ? detailedTileArt(look) : tileArt(look);
+}
+
 export function lookKey(look: TileLook, size: number): string {
   return [
-    size < DETAIL_FROM ? 's' : 'l', look.terrain, look.river, look.riverMask, look.road ? look.roadMask : -1, look.plowed ? 1 : 0,
+    grade(size), look.terrain, look.river, look.riverMask, look.road ? look.roadMask : -1, look.plowed ? 1 : 0,
     look.resource ?? '', look.rumor ? 1 : 0, look.totem ? 1 : 0, look.variant,
   ].join('|');
 }
@@ -67,7 +76,7 @@ export function drawArt(ctx: Ctx, art: CanvasImageSource, x: number, y: number, 
 
 /** Paint one tile at (0, 0) of the context, `size` pixels square. */
 export function paintTile(ctx: Ctx, size: number, look: TileLook): void {
-  drawArt(ctx, spriteCanvas(size < DETAIL_FROM ? miniTileArt(look) : tileArt(look)), 0, 0, size);
+  drawArt(ctx, spriteCanvas(tileSprite(look, size)), 0, 0, size);
 }
 
 export interface TileCache {
@@ -90,7 +99,7 @@ export function createTileCache(): TileCache {
     return canvas;
   };
   return {
-    get: (look, size) => keep(lookKey(look, size), () => (size < DETAIL_FROM ? miniTileArt(look) : tileArt(look))),
+    get: (look, size) => keep(lookKey(look, size), () => tileSprite(look, size)),
     sprite: (key, make) => keep(`sprite|${key}`, make),
     get size() {
       return cache.size;

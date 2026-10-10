@@ -3,9 +3,9 @@
 // blown up by a whole number, so the result is fully determined by the art and owes nothing to
 // any platform's rasteriser. The browser's canvas is then required to match it exactly.
 import type { GameState } from '../../src/engine/state';
-import { miniTileArt, PALETTE, tileArt, toRgba, type Sprite } from '../../src/ui/pixel-art';
+import { PALETTE, toRgba, type Sprite } from '../../src/ui/pixel-art';
 import { render, type RenderExtras } from '../../src/ui/render';
-import { DETAIL_FROM, lookKey, type TileCache } from '../../src/ui/tiles';
+import { lookKey, tileSprite, type TileCache } from '../../src/ui/tiles';
 import type { View } from '../../src/ui/view';
 
 interface Art {
@@ -62,7 +62,7 @@ export function referencePixels(state: GameState, view: View, extras: RenderExtr
     return art;
   };
   const cache = {
-    get: (look: Parameters<TileCache['get']>[0], size: number) => keep(lookKey(look, size), () => (size < DETAIL_FROM ? miniTileArt(look) : tileArt(look))),
+    get: (look: Parameters<TileCache['get']>[0], size: number) => keep(lookKey(look, size), () => tileSprite(look, size)),
     sprite: (key: string, make: () => Sprite) => keep(`sprite|${key}`, make),
     size: 0,
   };

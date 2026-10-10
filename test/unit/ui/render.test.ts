@@ -3,7 +3,7 @@
 // same reference pixel for pixel, so what is pinned here holds on every platform.
 import { describe, expect, it } from 'vitest';
 import type { GameState, Settlement } from '../../../src/engine/state';
-import { PALETTE } from '../../../src/ui/pixel-art';
+import { ART_COLORS } from '../../../src/ui/pixel-art';
 import { makeView } from '../../../src/ui/view';
 import { fingerprint, referencePixels } from '../../helpers/reference-canvas';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
@@ -31,7 +31,7 @@ describe('the map renderer, against a plain pixel buffer', () => {
     // the reference refuses a colour outside the palette, art off the grid, or smoothing: none of those happens
     for (const zoom of [3, 2, 1, 0]) {
       const made = shot(scene(), 960, 768, zoom);
-      for (const c of colours(made.rgb)) expect(PALETTE as readonly string[], `zoom ${zoom}`).toContain(c);
+      for (const c of colours(made.rgb)) expect(ART_COLORS, `zoom ${zoom}`).toContain(c);
       expect(colours(made.rgb).size, `zoom ${zoom}`).toBeGreaterThanOrEqual(zoom === 0 ? 6 : 10);
     }
   });

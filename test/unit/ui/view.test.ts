@@ -13,7 +13,12 @@ describe('view math', () => {
     expect(tileSizeFor(960, 768, 2)).toBe(32);
     expect(tileSizeFor(960, 768, 1)).toBe(16);
     expect(tileSizeFor(960, 768, 0)).toBe(8);
-    expect(tileSizeFor(1040, 800, 3)).toBe(64); // 66 would fit; the art grid wants a multiple of 8
+    expect(tileSizeFor(1040, 800, 3)).toBe(64); // 66 would fit; the detailed art wants a multiple of 32
+    expect(tileSizeFor(1440, 900, 3)).toBe(64); // 75 would fit
+    expect(tileSizeFor(1920, 1200, 3)).toBe(96);
+    expect(tileSizeFor(1440, 900, 2)).toBe(32); // 37 would fit
+    expect(tileSizeFor(1440, 900, 1)).toBe(16); // under 32 a multiple of 8 still serves: 18 would fit
+    expect(tileSizeFor(1800, 1200, 1)).toBe(24);
     expect(tileSizeFor(100, 100, 0)).toBe(2);
   });
 
@@ -46,7 +51,7 @@ describe('view math', () => {
     expect(zoomBy(out, map, -9).zoom).toBe(0);
     expect(viewCenter(centerOn(v, map, 20, 20))).toEqual({ x: 20, y: 20 });
     const r = resizeView(v, map, 640, 512);
-    expect(r.tileSize).toBe(40);
+    expect(r.tileSize).toBe(32); // 42 would fit; from 32 up a square is a multiple of 32
     expect(viewCenter(r).x).toBeCloseTo(30);
   });
 

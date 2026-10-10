@@ -1,6 +1,7 @@
 // Canvas 2D map drawing (R-105): only the tiles inside the view are drawn, each from the tile
 // cache, with fog for unexplored tiles and the visible pieces on top.
 import { holdsUsed } from '../engine/cargo';
+import { COLONY_LIMITS } from '../engine/data/colony';
 import type { NationId } from '../engine/data/nations';
 import { UNIT_TYPES } from '../engine/data/units';
 import { visibleUnits } from '../engine/explore';
@@ -10,7 +11,7 @@ import { attitude, isHostile } from '../engine/alarm';
 import { TRIBES, type TribeId } from '../engine/data/tribes';
 import { tribeOfOwner } from '../engine/settlements';
 import { isExploredBy, isWater, type Tile } from '../engine/tile';
-import { activeFrameArt, colonyArt, cursorArt, halve, INK, PALETTE, pieceArt, settlementArt, type InkId, type Sprite } from './pixel-art';
+import { activeFrameArt, colonyArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, PALETTE, pieceArt, settlementArt, type InkId, type Sprite } from './pixel-art';
 import { DETAIL_FROM, drawArt, lookOf, TILE_VARIANTS, type TileCache } from './tiles';
 import { orderLetter, topUnit } from './unit-queue';
 import type { View } from './view';
@@ -89,6 +90,8 @@ const MOOD_INK: readonly InkId[] = [INK.green, INK.brightBlue, INK.yellow, INK.o
 export const MOOD_COLORS: readonly string[] = MOOD_INK.map((ink) => PALETTE[ink]);
 
 /** Population number ink by Sons of Liberty membership: under half, half or more, everyone. */
+/** The walls a colony may have, weakest first; its picture shows the strongest it has. */
+const FORT_LEVELS: readonly string[] = COLONY_LIMITS.fortifications;
 const BAND_INK = { minority: INK.white, majority: INK.green, unanimous: INK.brightBlue } as const;
 
 export function render(ctx: CanvasRenderingContext2D, state: GameState, view: View, cache: TileCache, extras: RenderExtras = {}): void {
@@ -144,6 +147,12 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
   /** Art for the current zoom: full size, or halved where a square is too small to hold it. */
   const small = t < DETAIL_FROM;
   const art = (key: string, make: () => Sprite): CanvasImageSource => cache.sprite(small ? `half|${key}` : key, small ? () => halve(make()) : make);
+  // a colony or settlement is drawn from its detailed picture once a square can hold it, as large as whole pixels allow, standing on the square's foot
+  const large = Math.floor(t / DETAIL) * DETAIL;
+  const place = (key: string, detailed: () => Sprite | null, plain: () => Sprite, x: number, y: number): void => {
+    if (large > 0) drawArt(ctx, cache.sprite(`detail|${key}`, () => detailed() ?? plain()), ox + x * t + (t - large) / 2, oy + y * t + t - large, large);
+    else drawArt(ctx, art(key, plain), ox + x * t, oy + y * t, t);
+  };
   if (extras.cursor) drawArt(ctx, art('cursor', cursorArt), ox + extras.cursor.x * t, oy + extras.cursor.y * t, t);
   if (view.showHidden) return;
   const colonySquares = new Set<number>();
@@ -155,7 +164,8 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
     const ink = inkOf(state, colony.owner);
     const band = BAND_INK[membershipBand(state, colony)];
     const people = colony.colonists.length;
-    drawArt(ctx, art(`colony|${ink}|${people}|${band}`, () => colonyArt(ink, people, band)), ox + colony.x * t, oy + colony.y * t, t);
+    const fort = FORT_LEVELS.reduce((best, building, i) => (colony.buildings.includes(building) ? i + 1 : best), 0);
+    place(`colony|${ink}|${people}|${band}|${fort}`, () => detailedColonyArt(ink, people, band, fort), () => colonyArt(ink, people, band), colony.x, colony.y);
   }
   const me = state.players[viewer]?.id;
   for (const village of Object.values(state.settlements)) {
@@ -165,8 +175,8 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
     const met = me !== undefined && (state.tribes[village.tribe]?.met.includes(me) ?? false);
     const mood = met && me !== undefined ? (MOOD_INK[isHostile(village, me) ? 4 : attitude(state, village.tribe, me)] as InkId) : null;
     const ink = TRIBE_INK[village.tribe];
-    const tech = Math.min(2, TRIBES[village.tribe].tech);
-    drawArt(ctx, art(`village|${ink}|${tech}|${village.capital ? 1 : 0}|${mood ?? '-'}`, () => settlementArt(ink, tech, village.capital, mood)), ox + village.x * t, oy + village.y * t, t);
+    const tech = TRIBES[village.tribe].tech;
+    place(`village|${ink}|${tech}|${village.capital ? 1 : 0}|${mood ?? '-'}`, () => detailedSettlementArt(ink, tech, village.capital, mood), () => settlementArt(ink, Math.min(2, tech), village.capital, mood), village.x, village.y);
   }
   const pieces = (view.revealAll ? Object.values(state.units) : visibleUnits(state, viewer)).filter((u) => u.aboard === null && u.voyage === null);
   const bySquare = new Map<number, Unit[]>();
@@ -191,7 +201,11 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
     const slide = extras.slide && extras.slide.unitId === unit.id ? extras.slide : null;
     const px = ox + Math.round((unit.x + (slide?.dx ?? 0)) * t);
     const py = oy + Math.round((unit.y + (slide?.dy ?? 0)) * t);
-    drawArt(ctx, art(`piece|${unit.type}|${ink}|${label}|${stacked ? 1 : 0}`, () => pieceArt({ type: unit.type, color: ink, label, stacked })), px, py, t);
+    const piece = { type: unit.type, color: ink, label, stacked };
+    // a kind with a detailed figure is drawn from it once a square can hold it, as large as whole pixels allow, standing on the square's foot
+    const large = hasFigure(unit.type) ? Math.floor(t / DETAIL) * DETAIL : 0;
+    if (large > 0) drawArt(ctx, cache.sprite(`figure|${unit.type}|${ink}|${label}|${stacked ? 1 : 0}`, () => detailedPieceArt(piece) ?? pieceArt(piece)), px + (t - large) / 2, py + t - large, large);
+    else drawArt(ctx, art(`piece|${unit.type}|${ink}|${label}|${stacked ? 1 : 0}`, () => pieceArt(piece)), px, py, t);
     // the piece awaiting orders blinks its frame
     if (unit.id === extras.activeUnitId && extras.blinkOn !== false) drawArt(ctx, art('active', activeFrameArt), px, py, t);
   }

@@ -94,7 +94,7 @@ test('Shift-D asks before disbanding; unavailable commands say so', async ({ pag
   await expect(field(page, 'unit')).toHaveText('No active unit');
 });
 
-test('units carry a nation-coloured orders box', async ({ page }) => {
+test('units stand on a nation-coloured base', async ({ page }) => {
   await start(page);
   const canvas = page.locator('canvas.map');
   // where the active unit stands, from the sidebar
@@ -108,8 +108,8 @@ test('units carry a nation-coloured orders box', async ({ page }) => {
       const [r, g, b] = c.getContext('2d')!.getImageData(px, py, 1, 1).data;
       return r! > 150 && g! < 100 && b! < 100;
     }, [dx, dy, ux, uy]);
-  expect(await redAt(5, 5)).toBe(true); // inside the corner plate
-  expect(await redAt(40, 22)).toBe(true); // body of the piece, beside the sail
+  expect(await redAt(5, 5)).toBe(false); // a unit with no orders carries no tab, and nothing sits in the corner
+  expect(await redAt(5, 57)).toBe(true); // the base the figure stands on, clear of the hull
   await page.screenshot({ path: 'test-results/orders-box.png' });
 });
 
