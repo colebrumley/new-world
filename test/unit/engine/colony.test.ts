@@ -253,6 +253,31 @@ describe('abandoning and renaming', () => {
     expect(code(town, { type: 'abandonColony', colonyId: 'nope' })).toBe('noColonyHere');
   });
 
+  it('abandoning a port colony does not strand ships on land', () => {
+    // a one-square island: the caravel in port has no drydock to make for, so it limps to Europe and its hold is lost
+    const island = withColony(world({ rows: ['~~~', '~.~', '~~~'] }), { id: 'col', x: 1, y: 1, name: 'Roanoke', colonists: crowd(1) });
+    const port = withUnit(withUnit(island, { id: 'ship', type: 'caravel', x: 1, y: 1, cargo: { furs: 50 } }), { id: 'rider', x: 1, y: 1, aboard: 'ship' });
+    const r = applyAction(deepFreeze(port), { type: 'abandonColony', colonyId: 'col' });
+    expect(checkInvariants(r.state)).toEqual([]);
+    expect(u(r.state, 'ship')).toMatchObject({ voyage: { phase: 'inEurope' }, cargo: {}, orders: 'none' });
+    expect(u(r.state, 'ship').repair).toBeGreaterThan(0);
+    expect(r.state.units['rider']).toBeUndefined();
+    expect(u(r.state, 'x0')).toMatchObject({ x: 1, y: 1, type: 'colonist' });
+    expect(r.events.map((e) => e.type)).toEqual(['shipDamaged', 'colonyAbandoned']);
+    expect(r.events[0]).toMatchObject({ unitId: 'ship', to: 'europe', lost: { furs: 50 } });
+  });
+
+  it('a ship in an abandoned port makes for another colony with a drydock', () => {
+    const two = withColony(
+      withColony(world({ rows: ROWS }), { id: 'col', x: 7, y: 2, name: 'Roanoke', colonists: crowd(1) }),
+      { id: 'yard', x: 1, y: 1, name: 'Yard', colonists: [{ ...crowd(1)[0]!, id: 'y0' }], buildings: ['drydock'] },
+    );
+    const r = applyAction(withUnit(two, { id: 'ship', type: 'caravel', x: 7, y: 2 }), { type: 'abandonColony', colonyId: 'col' });
+    expect(checkInvariants(r.state)).toEqual([]);
+    expect(u(r.state, 'ship')).toMatchObject({ x: 1, y: 1, voyage: null });
+    expect(r.events[0]).toMatchObject({ type: 'shipDamaged', unitId: 'ship', to: 'yard' });
+  });
+
   it('renames a colony', () => {
     const r = applyAction(town, { type: 'renameColony', colonyId: 'col', name: ' Croatoan ' });
     expect(only(r.state).name).toBe('Croatoan');

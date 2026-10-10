@@ -10,7 +10,7 @@ import { UNIT_TYPES } from './data/units';
 import { DIFFICULTIES } from './data/yields';
 import { createRng } from './rng';
 import { settlementAt } from './settlements';
-import { damageShip, type ShipEvent } from './ships';
+import { shipsLeavePort, type ShipEvent } from './ships';
 import { colonyAt, type Colony, type GameState, type Player, type PlayerId, type Unit } from './state';
 
 export type AssaultEvent =
@@ -63,10 +63,7 @@ function capture(state: GameState, colony: Colony, victor: Unit, events: Assault
     players: state.players.map((p) => (p.id === loser.id ? { ...p, gold: p.gold - plunder } : p.id === captor.id ? { ...p, gold: p.gold + plunder } : p)),
   };
   // ships in port slip their cables, damaged; everyone else on the square is taken with the colony
-  for (const u of Object.values(next.units)) {
-    if (u.x !== colony.x || u.y !== colony.y || u.owner !== loser.id || u.voyage !== null || u.aboard !== null) continue;
-    if (UNIT_TYPES[u.type].domain === 'sea') next = damageShip(next, u.id, events, colony.id);
-  }
+  next = shipsLeavePort(next, colony, events);
   const units = { ...next.units };
   for (const u of Object.values(next.units)) {
     if (u.x === colony.x && u.y === colony.y && u.owner === loser.id && u.voyage === null) {

@@ -11,6 +11,7 @@ import { firstProject } from './construction';
 import { revealAround } from './explore';
 import { isInlandLake } from './movement';
 import { suggestPlacement } from './placement';
+import { shipsLeavePort, type ShipEvent } from './ships';
 import {
   colonyAt, hasFather, playerIndexOf, tileAt, type Colonist, type Colony, type ColonyId, type GameState, type Goods, type Job, type PlayerId,
   type Unit, type UnitId,
@@ -37,7 +38,9 @@ export type ColonyEvent =
   | { readonly type: 'colonistJoined'; readonly colonyId: ColonyId; readonly colonistId: UnitId }
   | { readonly type: 'colonistLeft'; readonly colonyId: ColonyId; readonly colonistId: UnitId }
   | { readonly type: 'colonyAbandoned'; readonly colonyId: ColonyId; readonly name: string }
-  | { readonly type: 'colonyRenamed'; readonly colonyId: ColonyId; readonly name: string };
+  | { readonly type: 'colonyRenamed'; readonly colonyId: ColonyId; readonly name: string }
+  /** Ships that were in the port of an abandoned colony. */
+  | ShipEvent;
 
 export type ColonyCheck = { readonly ok: true } | { readonly ok: false; readonly code: ColonyErrorCode; readonly message: string };
 
@@ -260,10 +263,13 @@ export function checkAbandon(colony: Colony | undefined): ColonyCheck {
   return OK;
 }
 
-/** Give the colony up: its people walk out as units; buildings and stores are lost. */
+/**
+ * Give the colony up: its people walk out as units; buildings and stores are lost. Ships in port
+ * cannot stay on what is now bare land: they leave damaged, as from a colony that has fallen.
+ */
 export function abandonColony(state: GameState, colony: Colony, events: ColonyEvent[]): GameState {
   const { [colony.id]: _gone, ...colonies } = state.colonies;
-  const units = { ...state.units };
+  const units = { ...shipsLeavePort(state, colony, events).units };
   for (const colonist of colony.colonists) units[colonist.id] = asUnit(colony, colonist);
   const tiles = [...state.map.tiles];
   const i = colony.y * state.map.width + colony.x;

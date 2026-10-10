@@ -4,7 +4,7 @@ import { FOOD, HORSES } from '../../../src/engine/data/food';
 import { colonyProduction, colonyTurn, type EconomyEvent } from '../../../src/engine/economy';
 import { checkInvariants } from '../../../src/engine/invariants';
 import type { Colonist, Colony, GameState, Goods } from '../../../src/engine/state';
-import { withColony, world } from '../../helpers/world';
+import { withColony, withUnit, world } from '../../helpers/world';
 
 // Colony on arctic ice (the square yields no food) with plains to the east and south.
 const ROWS = ['~~~~~~', '~~~~~~', '~~a..~', '~~...~', '~~~~~~'];
@@ -106,6 +106,15 @@ describe('hunger', () => {
     expect(events).toContainEqual({ type: 'colonistStarved', colonyId: 'col', colonistId: 'i0' });
     expect(events).toContainEqual({ type: 'colonyVanished', colonyId: 'col', name: 'col', lost: { furs: 30 } });
     expect(state.map.tiles[2 * 6 + 2]?.claim).toBeNull();
+  });
+
+  it('a ship in port when the colony starves out is not left standing on land', () => {
+    const port = withUnit(town(0, 1), { id: 'ship', type: 'caravel', x: 2, y: 2, cargo: { furs: 20 } });
+    const { state, events } = turn(port); // turn() checks the invariants
+    expect(col(state)).toBeUndefined();
+    expect(state.units['ship']).toMatchObject({ voyage: { phase: 'inEurope' }, cargo: {} });
+    expect(state.units['ship']?.repair).toBeGreaterThan(0);
+    expect(events).toContainEqual(expect.objectContaining({ type: 'shipDamaged', unitId: 'ship', to: 'europe', lost: { furs: 20 } }));
   });
 
   it('on Discoverer and Explorer nobody starves before 1520, and later only sometimes', () => {
