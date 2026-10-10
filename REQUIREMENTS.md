@@ -1404,7 +1404,7 @@ Phases 0 to 11 are built. Work now arrives as a bug report, a problem or a featu
 [CLAUDE.md](CLAUDE.md)). Each work item gets one line here, written by the planner; the worker that
 builds it ticks the line in its own pull request and nobody else edits it. The spec holds the detail.
 
-- [ ] **R-1018 Tile description model** — docs/specs/map-tile-tooltips.md, item W1, size S.
+- [x] **R-1018 Tile description model** — docs/specs/map-tile-tooltips.md, item W1, size S.
 - [x] **R-1019 Terrain tooltips option** — docs/specs/map-tile-tooltips.md, item W2, size S.
 - [ ] **R-1020 Map tile tooltip** — docs/specs/map-tile-tooltips.md, item W3, size M.
 - [ ] **R-1021 Europe button state** — docs/specs/europe-call.md, item W1, size S.
