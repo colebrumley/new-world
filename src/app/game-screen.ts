@@ -90,6 +90,9 @@ declare global {
 export function startGame(root: HTMLElement, initial: GameSession): void {
   const screen = document.createElement('div');
   screen.className = 'game';
+  // the stylesheet seals what it shows with wax of the player's colour (--nation)
+  const seat = initial.state.players[viewerIndex(initial.state)];
+  if (seat) screen.dataset['nation'] = seat.nation;
   /** Set when another game is loaded over this one: this screen's loop ends. */
   let stopped = false;
   let options: Options = readOptions();
