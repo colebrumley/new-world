@@ -9,7 +9,7 @@ ESLint enforces this (`eslint.config.js`, the `PURE_GLOBS` block) and
 `test/unit/boundaries.test.ts` asserts the rule exists and the tree passes it.
 
 ## `src/engine/data/`
-Static rule tables transcribed from the original's data files: terrain, goods, units, buildings,
+Static rule tables: terrain, goods, units, buildings,
 fathers, tribes, prices, nations. Every table is `as const satisfies Record<...>` and has a snapshot
 test. Rule numbers live here and nowhere else.
 

@@ -1,4 +1,4 @@
-// Title screen: the original's five opening choices as plain DOM buttons, and the level to play at.
+// Title screen: five opening choices as plain DOM buttons, and the level to play at.
 import { DEFAULT_DIFFICULTY, DIFFICULTIES, type Difficulty } from '../engine/data/yields';
 
 export type TitleChoice = 'newWorld' | 'america' | 'customize' | 'load' | 'hallOfFame';

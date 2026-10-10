@@ -22,7 +22,7 @@ const NATION_INK: Readonly<Record<NationId, InkId>> = { england: INK.red, france
 /** Box colours in nation order. */
 export const PLAYER_COLORS = [PALETTE[INK.red], PALETTE[INK.blue], PALETTE[INK.yellow], PALETTE[INK.orange]] as const;
 
-/** Our own colours for the eight tribes (not the original palette). */
+/** Our own colours for the eight tribes. */
 const TRIBE_INK: Readonly<Record<TribeId, InkId>> = {
   inca: INK.sand, aztec: INK.orange, arawak: INK.marsh, iroquois: INK.purple, cherokee: INK.green, apache: INK.earth, sioux: INK.lightGrey, tupi: INK.brightBlue,
 };

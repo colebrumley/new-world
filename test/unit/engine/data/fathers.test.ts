@@ -14,7 +14,7 @@ describe('Founding Fathers table', () => {
     expect(FATHER_ERAS).toEqual([1600, 1700]);
   });
 
-  it('carries the era weights of the original table', () => {
+  it('carries the era weights of the table', () => {
     const w = (id: keyof typeof FATHERS): readonly number[] => FATHERS[id].weights;
     expect(w('adamSmith')).toEqual([2, 8, 6]);
     expect(w('jakobFugger')).toEqual([0, 5, 8]);

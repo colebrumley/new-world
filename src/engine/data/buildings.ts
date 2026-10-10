@@ -1,10 +1,9 @@
 import type { FatherId } from './fathers';
 
-// Colony buildings, transcribed from NAMES.TXT @BUILDING in file order:
+// Colony buildings. Each row:
 //   name, hammers, tools (x10), class, minimum population, upkeep.
 // Buildings come in chains (house -> shop -> factory); a later link replaces the one before it
-// and needs it first. Chain membership and special requirements are from the manual's building
-// chart and the original's encyclopedia.
+// and needs it first.
 
 export const BUILDING_IDS = [
   'stockade', 'fort', 'fortress', 'armory', 'magazine', 'arsenal', 'docks', 'drydock', 'shipyard',

@@ -1,5 +1,4 @@
-// Immigration numbers (VICEROY 3000:2824, 3000:29d4, FUN_3000_399a, FUN_3000_4174; see
-// docs/RULES.md "Recruiting" and "Immigration").
+// Immigration numbers (docs/RULES.md "Recruiting" and "Immigration").
 import type { ProfessionId } from './professions';
 import type { Difficulty } from './yields';
 

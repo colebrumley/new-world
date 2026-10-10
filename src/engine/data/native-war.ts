@@ -1,5 +1,4 @@
-// War and dealings between natives and colonists (VICEROY 3000:cb90, 5000:483e, 5000:9a84,
-// 5000:b266-c306, FUN_4000_5f0e; docs/RULES.md "Natives at war").
+// War and dealings between natives and colonists (docs/RULES.md "Natives at war").
 import type { BuildingId } from './buildings';
 
 export const NATIVE_WAR = {

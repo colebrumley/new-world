@@ -83,7 +83,7 @@ test('the colony lies over the whole game, and a click on a colonist then on a p
   const game = (await page.locator('.game').boundingBox())!;
   expect(await colony.boundingBox()).toEqual(game);
   expect((await page.locator('canvas.map').boundingBox())!.width).toBeGreaterThan(game.width / 2); // the map keeps its room underneath
-  // the six views sit where the manual puts them
+  // the six views sit in their places
   const box = async (name: string) => (await colony.locator(`[data-region="${name}"]`).boundingBox())!;
   const [settlement, area, people, transport, multi, warehouse] = [await box('settlement'), await box('area'), await box('people'), await box('transport'), await box('multi'), await box('warehouse')];
   expect(settlement.x).toBeLessThan(area.x);

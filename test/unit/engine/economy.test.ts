@@ -60,7 +60,7 @@ describe('tables', () => {
     }
   });
 
-  it('carries the costs that differ from the manual (NAMES wins)', () => {
+  it('carries the costs of the cheap shops and the fortifications', () => {
     const cost = (id: keyof typeof BUILDINGS): number[] => [BUILDINGS[id].hammers, BUILDINGS[id].tools, BUILDINGS[id].minPopulation];
     expect(cost('fort')).toEqual([120, 100, 3]);
     expect(cost('drydock')).toEqual([80, 50, 4]);
@@ -157,7 +157,7 @@ describe('turning raw materials into goods', () => {
     expect(events).toContainEqual({ type: 'ranOutOf', colonyId: 'col', good: 'tobacco' });
   });
 
-  it("this turn's raw output feeds this turn's workshop before stock is touched (the manual's ore example)", () => {
+  it("this turn's raw output feeds this turn's workshop before stock is touched", () => {
     // a free colonist mines 4 ore on the hills, a blacksmith makes 3 tools: stock of ore rises by 1
     const miner: Colonist = { id: 'm', profession: 'freeColonist', job: { kind: 'field', dx: 0, dy: -1, good: 'ore' }, turns: 0 };
     const s = town([miner, worker('blacksmith')], { ore: 20 }, HOUSES, LAND);

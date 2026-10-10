@@ -1,4 +1,4 @@
-// Unit types, transcribed from NAMES.TXT @UNIT:
+// Unit types. Each row:
 //   name, icon, movement, attack, combat, cargo, size, cost, tools, guns, hull, AI role bits.
 // Build cost in a colony is cost x 32 hammers and tools x 10 tools.
 import { SIGHT } from './sight';
@@ -94,7 +94,7 @@ export const UNIT_TYPES = {
   continentalArmy: unit('continentalArmy', 'Continental Army', 1, 4, 4, 0, 1, 3, 0, 0, 0, '00011100'),
   treasure: unit('treasure', 'Treasure Train', 1, 0, 0, 0, 6, 4, 0, 0, 0, '00000000'),
   artillery: unit('artillery', 'Artillery', 1, 7, 5, 0, 1, 6, 4, 0, 0, '00011000', { build: built(6, 4), europePrice: 500 }),
-  // Not a table row: artillery that lost a battle. Strength from the manual's unit chart.
+  // Not a table row: artillery that lost a battle.
   damagedArtillery: unit('damagedArtillery', 'Damaged Artillery', 1, 5, 3, 0, 1, 6, 4, 0, 0, '00011000'),
   wagonTrain: unit('wagonTrain', 'Wagon Train', 2, 0, 1, 2, NOT_CARRIED, 1, 0, 0, 0, '00000000', { build: { hammers: WAGON_TRAIN_HAMMERS, tools: 0 } }),
   caravel: unit('caravel', 'Caravel', 4, 0, 2, 2, NOT_CARRIED, 4, 4, 0, 4, '10100010', { domain: 'sea', build: built(4, 4), europePrice: 1000 }),

@@ -208,7 +208,7 @@ export interface GameMap {
   readonly tiles: readonly Tile[];
 }
 
-/** Standing orders, as the original's order letters: - S G F F P R T. */
+/** Standing orders, by their order letters: - S G F F P R T. */
 export type UnitOrders = 'none' | 'sentry' | 'goto' | 'fortify' | 'fortified' | 'plow' | 'road' | 'trade';
 
 /** Movement is counted in thirds of a move so that roads (one third) stay integral. */

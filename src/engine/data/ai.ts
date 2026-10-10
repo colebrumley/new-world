@@ -1,5 +1,4 @@
-// Numbers the computer powers plan by (R-802). These are ours: the original's own planning was
-// only outlined, so they are tuned to give sensible play rather than copied.
+// Numbers the computer powers plan by (R-802), tuned to give sensible play.
 export const AI_PLAN = {
   /** Colonies wanted at the start, one more every so many turns, up to a limit; the leader's bent for expansion shifts it. */
   coloniesAtStart: 4,

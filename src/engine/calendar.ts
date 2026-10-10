@@ -1,5 +1,5 @@
 // Turn counter to calendar date. One turn per year from 1492 to 1600, then two per year,
-// Spring and Autumn (GAME.TXT @TIMECHANGE, @SEASONS).
+// Spring and Autumn.
 export const CALENDAR = {
   startYear: 1492,
   /** From this year on there are two turns per year. */

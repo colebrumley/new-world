@@ -1,14 +1,13 @@
-// Guards constraint C1: none of the original game's prose may appear in src/.
+// Guards constraint C1: no prose from anyone else's game may appear in src/.
 //
-// The backlog asks for a maintained list of 40 distinctive original sentences. Committing those
-// sentences would itself break the constraint, so the list is kept as fingerprints: for each
-// sentence, a hash of its first eight words (lower-cased, punctuation dropped). Twenty are
-// drawn from the original's encyclopedia text and twenty from its dialog text, evenly spaced
-// through each file. The test fingerprints every run of eight words in src/ the same way and
-// fails if any matches.
+// The backlog asks for a maintained list of 40 sentences that must never appear. Committing
+// those sentences would itself break the constraint, so the list is kept as fingerprints: for
+// each sentence, a hash of its first eight words (lower-cased, punctuation dropped). The test
+// fingerprints every run of eight words in src/ the same way and fails if any matches.
 //
-// Where the original files are present (ref/orig, never committed), a second test checks every
-// run of eight words in them against src/, not just the forty.
+// Where a local folder of text to keep out is present (ref/orig, never committed, with the
+// files to read named one per line in ref/prose.txt), a second test checks every run of eight
+// words in them against src/, not just the forty.
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -34,11 +33,11 @@ const walk = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
 });
 const SRC = join(__dirname, '../../src');
 const sources = (): { file: string; words: string[] }[] => walk(SRC).filter((f) => /\.(ts|css|html)$/.test(f)).map((file) => ({ file, words: words(readFileSync(file, 'utf8')) }));
-/** Runs made mostly of numbers are table rows, which may be transcribed. */
+/** Runs made mostly of numbers are table rows, not prose. */
 const isProse = (run: readonly string[]): boolean => run.filter((w) => /^[a-z]+$/.test(w)).length >= RUN - 1;
 
 describe('no copied text', () => {
-  it('keeps forty fingerprints of distinctive original sentences', () => {
+  it('keeps forty fingerprints of sentences to keep out', () => {
     expect(FINGERPRINTS).toHaveLength(40);
     expect(new Set(FINGERPRINTS).size).toBe(40);
     for (const f of FINGERPRINTS) expect(f).toMatch(/^[0-9a-f]{16}$/);
@@ -59,23 +58,24 @@ describe('no copied text', () => {
   });
 
   const REF = join(__dirname, '../../ref/orig');
-  it.skipIf(!existsSync(REF))('with the original files to hand: no run of eight words from them appears in src/', () => {
-    const original = new Set<string>();
-    for (const name of ['GAME.TXT', 'PEDIA.TXT', 'MANUAL.txt', 'MENU.TXT', 'LABELS.TXT']) {
+  const LIST = join(__dirname, '../../ref/prose.txt');
+  it.skipIf(!existsSync(REF) || !existsSync(LIST))('with the text to keep out to hand: no run of eight words from it appears in src/', () => {
+    const theirs = new Set<string>();
+    for (const name of readFileSync(LIST, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean)) {
       const path = join(REF, name);
       if (!existsSync(path)) continue;
       const all = words(readFileSync(path, 'latin1'));
       for (let i = 0; i + RUN <= all.length; i++) {
         const run = all.slice(i, i + RUN);
-        if (isProse(run)) original.add(run.join(' '));
+        if (isProse(run)) theirs.add(run.join(' '));
       }
     }
-    expect(original.size).toBeGreaterThan(10000);
+    expect(theirs.size).toBeGreaterThan(10000);
     const found: string[] = [];
     for (const { file, words: all } of sources()) {
       for (let i = 0; i + RUN <= all.length; i++) {
         const run = all.slice(i, i + RUN).join(' ');
-        if (original.has(run)) found.push(`${file}: ${run}`);
+        if (theirs.has(run)) found.push(`${file}: ${run}`);
       }
     }
     expect(found).toEqual([]);

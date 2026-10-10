@@ -1,5 +1,5 @@
-// How braves behave (R-507). The original's scoring routine was not traced in detail, so the
-// figures here are our own, chosen to give the behaviour the manual and the outline describe:
+// How braves behave (R-507). The figures here are our own, chosen to give this
+// behaviour:
 // braves stay near home, call on colonies that are close, and hunt their enemies when hostile.
 export const NATIVE_AI = {
   /** How far from home a brave strays when at peace, by tribe level (the nomads go furthest). */

@@ -1,4 +1,4 @@
-// Buying or taking native land (VICEROY FUN_4000_40c2, 2000:6746, 3000:e4f4; docs/RULES.md "Native land").
+// Buying or taking native land (docs/RULES.md "Native land").
 export const LAND = {
   /** Price steps: a human pays this per point, a computer power the second figure. */
   unit: 65,

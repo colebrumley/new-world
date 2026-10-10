@@ -1,4 +1,4 @@
-// Lost City Rumors (VICEROY 5000:f054; docs/RULES.md "Lost City Rumors").
+// Lost City Rumors (docs/RULES.md "Lost City Rumors").
 import type { OpenTerrain } from './terrain';
 
 /** The nine things a rumor may turn out to be, each as likely as the next before the conditions are applied. */

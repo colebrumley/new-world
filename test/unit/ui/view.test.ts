@@ -5,7 +5,7 @@ import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, tile
 const map = { width: 58, height: 72, tiles: Array.from({ length: 58 * 72 }, () => makeTile()) };
 
 describe('view math', () => {
-  it("offers the original's four view sizes", () => {
+  it('offers four view sizes', () => {
     expect(ZOOM_LEVELS).toEqual([
       { cols: 120, rows: 96 }, { cols: 60, rows: 48 }, { cols: 30, rows: 24 }, { cols: 15, rows: 12 },
     ]);
