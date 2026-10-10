@@ -31,10 +31,13 @@ type Tab = 'production' | 'units' | 'construction';
 const TABS: readonly Tab[] = ['production', 'units', 'construction'];
 const TAB_TITLES: Readonly<Record<Tab, string>> = { production: 'Production', units: 'Units', construction: 'Construction' };
 const TILE = 64;
-/** How many screen pixels an art pixel of a building, of a goods icon and of the flag is drawn at. */
+/** How many screen pixels an art pixel of a building is drawn at: three in a small town, two once there are more than this many buildings to fit on the plan. */
 const BUILDING_SCALE = 3;
+const CROWDED_SCALE = 2;
+const CROWDED_FROM = 9;
+/** And an art pixel of a goods icon and of the flag. */
 const GOOD_SCALE = 2;
-const FLAG_SCALE = 3;
+const FLAG_SCALE = 2;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = ''): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -347,7 +350,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       box.title = b.name;
       // the picture of the chain's present link, and on it the people who work there and the places still free
       const plot = el('div', 'building-plot');
-      const art = picture(buildingArt(b.id, ink), 'building-art', BUILDING_SCALE);
+      const art = picture(buildingArt(b.id, ink), 'building-art', view.buildings.length >= CROWDED_FROM ? CROWDED_SCALE : BUILDING_SCALE);
       if (art) plot.append(art);
       const slots = el('div', 'building-slots');
       for (const w of b.workers) slots.append(personToken('colonist', w));

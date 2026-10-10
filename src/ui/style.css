@@ -403,7 +403,7 @@ canvas.minimap {
   background: var(--table); color: var(--ink); outline: none; font-size: 0.82rem; user-select: none;
   display: grid; gap: 6px;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(240px, 300px);
-  grid-template-rows: auto minmax(auto, 3fr) minmax(0, 2fr) auto auto;
+  grid-template-rows: auto minmax(auto, 7fr) minmax(0, 3fr) auto auto;
   grid-template-areas:
     'header header header'
     'settlement settlement area'
@@ -435,11 +435,14 @@ canvas.minimap {
   font-family: var(--font-display); font-weight: normal; font-size: 0.85rem; letter-spacing: var(--tracking-display); color: var(--ink-faded);
 }
 .colony-screen p { margin: 0; }
-.colony-settlement { grid-area: settlement; display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 4px 6px; align-content: start; }
+.colony-settlement { grid-area: settlement; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px; align-content: start; }
 .colony-settlement h3, .colony-warehouse h3 { grid-column: 1 / -1; }
 .colony-area { grid-area: area; }
-.colony-people { grid-area: people; display: flex; flex-direction: column; gap: 4px; }
+/* the two lines of figures across the top, then those not working and those outside the gates side by side */
+.colony-people { grid-area: people; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px; align-content: start; }
+.colony-people h3, .colony-people p { grid-column: 1 / -1; }
 .colony-transport { grid-area: transport; display: flex; flex-direction: column; gap: 4px; }
+.colony-transport > * { flex: none; }
 .colony-multi { grid-area: multi; }
 .colony-warehouse { grid-area: warehouse; display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px; }
 @media (max-width: 1100px) { .colony-warehouse { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
@@ -470,7 +473,7 @@ canvas.minimap {
 .token-colonist, .token-unit, .token-carrier { align-items: center; text-align: center; padding: 1px 3px 2px; background: color-mix(in srgb, var(--parchment-light) 86%, transparent); }
 .token-colonist .token-label, .token-unit .token-label { font-size: 0.72rem; }
 .token-colonist:hover:not(:disabled), .token-unit:hover:not(:disabled), .token-carrier:hover:not(:disabled) { background: var(--parchment-shade); }
-.token-selected, .token-selected:hover { border: 1px solid var(--ink-good); box-shadow: 0 0 0 2px var(--ink-good); }
+.token.token-selected, .token.token-selected:hover { border: 1px solid var(--ink-good); box-shadow: 0 0 0 2px var(--ink-good); }
 .token-good, .token-cargo { align-items: center; padding: 3px 2px 2px; font-size: 0.7rem; }
 .token-good .token-label, .token-cargo .token-label { color: var(--ink-faded); }
 .token-good .token-sub, .token-cargo .token-sub { font-size: 0.9rem; color: var(--ink); }
@@ -480,21 +483,27 @@ canvas.minimap {
 
 /* a building is its picture on a plot of the plan; the people who work in it stand along its foot, on the ground line */
 .building { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding: 2px 2px 3px; border-radius: 3px; text-align: center; }
+/* the buildings nobody works in are drawn after the workplaces, so a row of the plan is all of one height */
+.building:not([data-drop]) { order: 1; }
 .building-plot { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; border-bottom: var(--rule); }
 .building-art { display: block; }
-.building-slots { display: flex; justify-content: center; align-items: flex-end; gap: 2px; width: 100%; min-height: 0; margin-top: -34px; }
+.building-slots { display: flex; justify-content: center; align-items: flex-start; gap: 2px; width: 100%; min-height: 0; margin-top: -18px; margin-bottom: 2px; }
 .building-slots:empty { display: none; }
-.building-slots .token { flex: 0 1 auto; max-width: 34%; }
-.building-slots .token-label, .building-slots .token-sub { white-space: normal; overflow-wrap: anywhere; }
+.building-slots .token { flex: 0 1 auto; padding: 0 1px 1px; background: none; border-color: transparent; }
+.building-slots .token-label, .building-slots .token-sub { font-size: 0.66rem; line-height: 1.05; letter-spacing: -0.02em; }
+/* a name of two words takes two lines under the figure, so three people side by side can all be read */
+.building-slots .token-label { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; white-space: normal; overflow-wrap: break-word; }
+.building-slots .token:hover:not(:disabled) { background: color-mix(in srgb, var(--parchment-shade) 80%, transparent); }
 .building-name { font-family: var(--font-display); font-size: 0.8rem; letter-spacing: var(--tracking-display); line-height: 1.1; }
 /* a free place: the outline of someone who could stand there */
-.slot-free { flex: none; width: 22px; height: 30px; box-sizing: border-box; border: var(--rule-dashed); border-radius: 11px 11px 2px 2px; background: color-mix(in srgb, var(--parchment-light) 70%, transparent); }
+.slot-free { flex: none; width: 18px; height: 26px; box-sizing: border-box; border: var(--rule-dashed); border-radius: 9px 9px 2px 2px; background: color-mix(in srgb, var(--parchment-light) 55%, transparent); }
 
 /* kept small enough on a short window that all nine squares stay in sight */
 .area-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; max-width: 34vh; margin: 0 auto; }
 .square { position: relative; aspect-ratio: 1; border: 1px solid var(--ink); overflow: hidden; }
 .square-art { display: block; width: 100%; height: 100%; }
-.square .token { position: absolute; left: 2px; right: 2px; bottom: 2px; padding: 1px 3px; font-size: 0.72rem; background: color-mix(in srgb, var(--parchment-light) 80%, transparent); }
+.square .token { position: absolute; left: 2px; right: 2px; bottom: 2px; padding: 0; font-size: 0.72rem; background: none; border-color: transparent; }
+.square .token-label, .square .token-sub { align-self: stretch; max-width: none; padding: 0 2px; background: color-mix(in srgb, var(--parchment-light) 86%, transparent); }
 .square .token-label { white-space: normal; }
 .square-note { position: absolute; left: 0; right: 0; bottom: 0; padding: 1px 3px; background: color-mix(in srgb, var(--parchment) 85%, transparent); font-size: 0.72rem; text-align: center; }
 .square-center { border-color: var(--brass-light); box-shadow: 0 0 0 1px var(--brass-dark); }
@@ -507,7 +516,8 @@ canvas.minimap {
 .square-foreignUnit::after { content: 'Occupied'; }
 
 .food-line, .liberty-line { color: var(--ink); }
-.idle-row, .outside-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 2.5em; padding: 3px; border: var(--rule-dashed); }
+.idle-row, .outside-row { display: flex; flex-wrap: wrap; align-items: center; align-content: start; gap: 4px; min-height: 2.5em; padding: 3px; border: var(--rule-dashed); }
+.row-title { flex: 1 0 100%; }
 .row-title { color: var(--ink-faded); font-style: italic; }
 .carrier { display: flex; flex-wrap: wrap; align-items: stretch; gap: 4px; padding: 3px; border: var(--rule-faint); }
 .carrier-active { border-color: var(--ink-active); }
