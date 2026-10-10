@@ -35,12 +35,23 @@ const CHANGES_TREE = /\bgit\s+(?:-C\s+\S+\s+)?(?:commit|checkout|switch|stash|me
 /** Commands after which text is public. */
 const GOES_PUBLIC = /\bgit\s+(?:-C\s+\S+\s+)?(?:commit|push|tag|notes)\b|\bgh\s+(?:pr|issue|release|repo)\s+(?:create|edit|comment|review|merge|close|reopen)\b|\bgh\s+api\b.*(?:\s-[fF]\s|--field|--input|--method|\s-X\s)/;
 
-/** Where the command will run: the hook's cwd, or where a leading `cd` takes it. */
+const unquote = (m) => m?.[2] ?? m?.[3] ?? m?.[4];
+const at = (cwd, target) => (isAbsolute(target) ? target : resolve(cwd, target.replace(/^~/, process.env['HOME'] ?? '~')));
+
+/** Where the command will act: the hook's cwd, where a leading `cd` takes it, or git's `-C`. */
 function effectiveDir(command, cwd) {
   const cd = /^\s*cd\s+("([^"]+)"|'([^']+)'|(\S+))\s*(?:&&|;)/.exec(command);
-  const target = cd?.[2] ?? cd?.[3] ?? cd?.[4];
-  if (!target) return cwd;
-  return isAbsolute(target) ? target : resolve(cwd, target.replace(/^~/, process.env['HOME'] ?? '~'));
+  const after = unquote(cd) ? at(cwd, unquote(cd)) : cwd;
+  const dashC = /\bgit\s+-C\s+("([^"]+)"|'([^']+)'|(\S+))/.exec(command);
+  return unquote(dashC) ? at(after, unquote(dashC)) : after;
+}
+
+/** Files the command reads a message or body from: commit -F, gh --body-file and the like. */
+function messageFiles(command, cwd) {
+  const files = [];
+  const re = /(?:^|\s)(?:-F|--file|--body-file|--notes-file|--template)[=\s]+("([^"]+)"|'([^']+)'|(\S+))/g;
+  for (let m = re.exec(command); m; m = re.exec(command)) files.push(at(cwd, unquote(m)));
+  return files;
 }
 
 /** The patterns of the private list: one regular expression a line, `#` lines are comments. */
@@ -55,11 +66,24 @@ function patterns(cwd) {
   return { file, list };
 }
 
-/** Lines that are about to become public: added diff lines, commit messages, new files, the command. */
+/**
+ * Lines that are about to become public: the command, the files it reads a message from, what is
+ * staged, what is in the tree, new files, and before a push or a pull request every commit not yet
+ * on origin/main, message and patch alike (history is public too, so a line added and removed again
+ * on the branch still counts).
+ */
 function publicText(command, dir, { againstBase }) {
   const sources = [];
   const added = (label, diff) => sources.push({ label, lines: diff.split('\n').filter((line) => line.startsWith('+') && !line.startsWith('+++')) });
   if (command) sources.push({ label: 'command', lines: command.split('\n') });
+  for (const file of messageFiles(command, dir)) {
+    try {
+      sources.push({ label: `message file ${file}`, lines: readFileSync(file, 'utf8').split('\n') });
+    } catch {
+      // not there yet, or not a file
+    }
+  }
+  added('staged changes', git(dir, 'diff', '--cached'));
   added('changes against HEAD', git(dir, 'diff', 'HEAD'));
   for (const path of git(dir, 'ls-files', '--others', '--exclude-standard').split('\n').filter(Boolean)) {
     const full = join(dir, path);
@@ -71,8 +95,8 @@ function publicText(command, dir, { againstBase }) {
     }
   }
   if (againstBase && git(dir, 'rev-parse', '--verify', '--quiet', 'origin/main')) {
-    added('commits not on origin/main', git(dir, 'log', 'origin/main..HEAD', '--format=+%B'));
-    added('diff against origin/main', git(dir, 'diff', 'origin/main...HEAD'));
+    sources.push({ label: 'commit messages not on origin/main', lines: git(dir, 'log', 'origin/main..HEAD', '--format=%B').split('\n') });
+    added('commits not on origin/main', git(dir, 'log', '-p', '--format=', 'origin/main..HEAD'));
   }
   return sources;
 }

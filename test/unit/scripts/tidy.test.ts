@@ -76,6 +76,31 @@ describe('tidy', () => {
     expect(existsSync(join(claims, 'R-2.json'))).toBe(true);
   });
 
+  it('trusts a merged pull request only at the commit it merged, and only under .claude/worktrees', () => {
+    const { root, main, branch } = repo();
+    const squashed = branch('squashed'); // "merged" by GitHub's account, by squash: not in origin/main
+    const movedOn = branch('moved-on');
+    const tips = { squashed: git(squashed, 'rev-parse', 'HEAD'), movedOn: git(movedOn, 'rev-parse', 'HEAD') };
+    writeFileSync(join(movedOn, 'later.txt'), 'new work after the merge\n');
+    git(movedOn, 'add', '.');
+    git(movedOn, 'commit', '-q', '-m', 'later');
+    const elsewhere = join(root, 'manual-checkout');
+    git(main, 'worktree', 'add', '-q', elsewhere, '-b', 'elsewhere');
+    git(main, 'merge', '-q', '--no-edit', 'elsewhere');
+    git(main, 'push', '-q', 'origin', 'main');
+    for (const name of ['squashed', 'moved-on']) execFileSync('touch', ['-t', '202001010000', join(main, '.git', 'worktrees', name, 'logs', 'HEAD')]);
+    const gh = join(root, 'merged.json');
+    writeFileSync(gh, JSON.stringify([{ headRefName: 'squashed', headRefOid: tips.squashed }, { headRefName: 'moved-on', headRefOid: tips.movedOn }]));
+    const out = execFileSync('node', [join(process.cwd(), 'scripts/tidy.mjs')], { cwd: main, encoding: 'utf8', env: { ...process.env, TIDY_GH_JSON: gh } });
+    expect(out).toContain(`remove worktree ${squashed}`);
+    expect(existsSync(squashed)).toBe(false);
+    expect(git(main, 'ls-remote', '--heads', 'origin', 'squashed')).toBe('');
+    expect(out).not.toContain('moved-on');
+    expect(existsSync(movedOn)).toBe(true);
+    expect(out).not.toContain('manual-checkout');
+    expect(existsSync(elsewhere)).toBe(true);
+  });
+
   it('never removes the worktree it is run from', () => {
     const { main, branch, merge } = repo();
     const self = branch('self');

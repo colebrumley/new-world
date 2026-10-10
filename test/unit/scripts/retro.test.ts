@@ -14,6 +14,8 @@ describe('retro', () => {
     const key = main.replace(/[/.]/g, '-');
     mkdirSync(join(projects, key), { recursive: true });
     mkdirSync(join(projects, `${key}--claude-worktrees-x`), { recursive: true });
+    mkdirSync(join(projects, `${key}-tools`), { recursive: true }); // a sibling repository, not ours
+    writeFileSync(join(projects, `${key}-tools`, 'c.jsonl'), line('user', 'sibling repo message', '2026-10-03T12:00:00Z'));
     const board = join(root, 'board');
     mkdirSync(board, { recursive: true });
     writeFileSync(
@@ -43,6 +45,7 @@ describe('retro', () => {
     expect(everything).toMatch(/\n\s+1\s+open a PR\n/);
     expect(everything).toMatch(/\n\s+1\s+hand-off preamble\n/);
     expect(everything).toContain('--claude-worktrees-x');
+    expect(everything).not.toContain('sibling repo message');
 
     expect(run('--mark')).toContain('marked');
     expect(run()).toContain('0 message(s)');

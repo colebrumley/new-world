@@ -40,9 +40,11 @@ if (process.argv.includes('--mark')) {
 }
 const since = !all && existsSync(stampFile) ? JSON.parse(readFileSync(stampFile, 'utf8')).at : '';
 
-// ~/.claude/projects keys a folder by the session's working directory with every "/" and "." as "-".
+// ~/.claude/projects keys a folder by the session's working directory with every "/" and "." as "-":
+// the main checkout, and its worktrees under .claude/worktrees/ (a sibling folder such as
+// new-world-tools shares the prefix but is another repository).
 const prefix = main.replace(/[/.]/g, '-');
-const dirs = existsSync(projects) ? readdirSync(projects).filter((name) => name === prefix || name.startsWith(`${prefix}-`)) : [];
+const dirs = existsSync(projects) ? readdirSync(projects).filter((name) => name === prefix || name.startsWith(`${prefix}--claude-worktrees-`)) : [];
 
 /** Text a person typed, or the automatic things that stand in for it, which are left out. */
 function typed(entry) {

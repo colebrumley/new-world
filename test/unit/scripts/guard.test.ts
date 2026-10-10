@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -50,8 +50,10 @@ describe('the guard hook', () => {
     }
   });
 
-  it('follows a leading cd, and lets the main checkout do what is read-only or cleanup', () => {
+  it('follows a leading cd or a git -C, and lets the main checkout do what is read-only or cleanup', () => {
     expect(guard(worktree, `cd ${main} && git commit -m x`, words).decision).toBe('deny');
+    expect(guard(worktree, `git -C ${main} reset --hard`, words).decision).toBe('deny');
+    expect(guard(main, `git -C "${worktree}" commit -m x`, words).decision).toBe('allow');
     expect(guard(main, `cd ${worktree} && git commit -m x`, words).decision).toBe('allow');
     for (const command of ['git status', 'git log --oneline', 'git worktree add .claude/worktrees/z -b z origin/main', 'git branch -D z', 'git push origin --delete z', 'git worktree prune', 'npm run board', 'npm run tidy']) {
       expect(guard(main, command, words).decision, command).toBe('allow');
@@ -69,6 +71,20 @@ describe('the guard hook', () => {
     expect(guard(worktree, 'git add note.md && git commit -m "ok"', words).decision).toBe('allow');
   });
 
+  it('sees what is staged even when the working copy was restored, and reads message files', () => {
+    writeFileSync(join(worktree, 'staged.md'), 'a zorblax here\n');
+    sh(worktree, 'add', 'staged.md');
+    writeFileSync(join(worktree, 'staged.md'), 'clean now\n');
+    expect(guard(worktree, 'git commit -m "ok"', words).reason).toContain('staged changes');
+    sh(worktree, 'reset', '-q', '--', 'staged.md');
+    rmSync(join(worktree, 'staged.md'));
+    const body = join(tmpdir(), `guard-body-${process.pid}.md`);
+    writeFileSync(body, 'A clean title\n\nbut a zorblax in the body\n');
+    expect(guard(worktree, `git commit -F ${body}`, words).reason).toContain('message file');
+    expect(guard(worktree, `gh pr create --title t --body-file "${body}"`, words).decision).toBe('deny');
+    expect(guard(worktree, 'git commit -m "ok"', words).decision).toBe('allow');
+  });
+
   it('checks the commits not yet on origin/main before a push or a pull request', () => {
     sh(worktree, 'config', 'user.email', 'test@example.com');
     sh(worktree, 'config', 'user.name', 'test');
@@ -79,6 +95,18 @@ describe('the guard hook', () => {
     expect(guard(worktree, 'gh pr create --title t --body b', words).decision).toBe('deny');
     expect(guard(worktree, 'git status', words).decision).toBe('allow');
     sh(worktree, 'commit', '-q', '--amend', '-m', 'a clean message');
+    expect(guard(worktree, 'git push -u origin wt', words).decision).toBe('allow');
+    // a body line, and text added in one commit and removed in the next, are history: still public
+    sh(worktree, 'commit', '-q', '--amend', '-m', 'clean subject', '-m', 'zorblax in the body');
+    expect(guard(worktree, 'git push -u origin wt', words).reason).toContain('commit messages');
+    sh(worktree, 'commit', '-q', '--amend', '-m', 'clean subject');
+    writeFileSync(join(worktree, 'gone.md'), 'zorblax briefly\n');
+    sh(worktree, 'add', 'gone.md');
+    sh(worktree, 'commit', '-q', '-m', 'add');
+    sh(worktree, 'rm', '-q', 'gone.md');
+    sh(worktree, 'commit', '-q', '-m', 'remove');
+    expect(guard(worktree, 'git push -u origin wt', words).reason).toContain('commits not on origin/main');
+    sh(worktree, 'reset', '-q', '--hard', 'HEAD~2');
     expect(guard(worktree, 'git push -u origin wt', words).decision).toBe('allow');
   });
 
