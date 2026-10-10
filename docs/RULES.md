@@ -132,6 +132,21 @@ crossing (Revolution Now uses east 2 / west 4 turns, 2 with Magellan). Turning a
 mid-ocean takes a flat two turns. Europe being closed during the War of Independence is enforced
 with R-900.
 
+### Go To Europe (R-205)
+**Rule:**
+- The Go To menu of a ship lists Europe first, ahead of the colonies, when the water she lies
+  in reaches a Sea Lane square. Land units and ships on closed waters are not offered it.
+- A ship ordered to Europe makes for the nearest Sea Lane square she can sail to, over as many
+  turns as it takes, and is not asked on the way whether to sail. On a Sea Lane square with
+  moves in hand she sets sail, carrying all aboard; one that arrives with her last move sails
+  at the start of her next turn. A ship already on a Sea Lane sails at once.
+- During the War of Independence the order is refused, and one already given is dropped when
+  the ship reaches the Sea Lane.
+- A manual move cancels the order like any other Go To.
+
+**Notes:** the entry reads "Europe" rather than the name of the power's home port. The squares
+on the rim of the map do not count as Sea Lane for this, as for a returning ship.
+
 ### Pioneer work (R-204)
 **Compare:** Revolution Now `config/rcl/command.rcl`.
 **Rule:**

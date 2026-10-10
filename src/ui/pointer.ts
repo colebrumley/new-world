@@ -1,4 +1,4 @@
-// What the mouse means on the map: a click, a drag begun on the active unit, a turn of the wheel.
+// What the mouse means on the map: a click, a drag begun on the active unit, a turn of the wheel, a pinch.
 // Pure, so the rules can be tested without a browser.
 import { colonyAt, type GameState, type Unit, type UnitId } from '../engine/state';
 
@@ -30,6 +30,12 @@ export const STEP_RIM = 0.35;
 export const WHEEL_STEP = 100;
 /** Pixels a wheel that reports lines is taken to turn per line. */
 export const WHEEL_LINE = 33;
+/**
+ * Wheel travel that makes one zoom step when it comes from a pinch (a wheel event with Ctrl held).
+ * A pinch reports far less travel than a wheel does: 100 for each e-fold its fingers spread, so
+ * this is a spread of about two thirds again.
+ */
+export const PINCH_STEP = 50;
 
 const order = (id: UnitId): number => Number(id.replace(/\D+/g, '')) || 0;
 
@@ -93,11 +99,20 @@ export function mapDrag(active: Unit, tile: { x: number; y: number } | null): Ma
 /**
  * Add a wheel event to the travel kept so far. A full step's worth zooms once (away from the
  * player zooms in) and starts the count again, so a trackpad's stream of small events does not
- * race through the levels.
+ * race through the levels. `full` is the travel that makes a step: less for a pinch (PINCH_STEP).
  */
-export function wheelStep(kept: number, deltaY: number): { kept: number; step: -1 | 0 | 1 } {
+export function wheelStep(kept: number, deltaY: number, full: number = WHEEL_STEP): { kept: number; step: -1 | 0 | 1 } {
   // a change of direction forgets what was kept
   const total = Math.sign(kept) === -Math.sign(deltaY) ? deltaY : kept + deltaY;
-  if (Math.abs(total) < WHEEL_STEP) return { kept: total, step: 0 };
+  if (Math.abs(total) < full) return { kept: total, step: 0 };
   return { kept: 0, step: total < 0 ? 1 : -1 };
+}
+
+/**
+ * The wheel travel a pinch stands for where the browser gives the fingers themselves rather than a
+ * wheel event (Safari's gestures, a touch screen): `ratio` is how far apart they are now over how
+ * far they were. Spreading zooms in, as the wheel turned away does.
+ */
+export function pinchTravel(ratio: number): number {
+  return ratio > 0 && Number.isFinite(ratio) ? -100 * Math.log(ratio) : 0;
 }

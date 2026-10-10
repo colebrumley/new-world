@@ -375,6 +375,38 @@ describe('Go To', () => {
     expect(turns).toBe(8); // one plains step a turn, never over the mountains
   });
 
+  it('a ship ordered to Europe makes for the nearest Sea Lane and sails from it', () => {
+    //            0123456789012
+    const sea = ['~~~~~~~~~~~~~', '~~~~~~~~~~sss', '~..~~~~~~~sss', '~~~~~~~~~~sss', '~~~~~~~~~~~~~'];
+    let s = withUnit(world({ rows: sea }), { id: 'ship', type: 'caravel', x: 3, y: 2 });
+    s = withUnit(s, { id: 'p', x: 3, y: 2, aboard: 'ship' });
+    s = withUnit(s, { id: 'c', x: 1, y: 2 });
+    expect(code(s, { type: 'goToEurope', unitId: 'c' })).toBe('badOrders');
+    expect(code(s, { type: 'goToEurope', unitId: 'ship' })).toBe('ok');
+    s = applyAction(deepFreeze(s), { type: 'goToEurope', unitId: 'ship' }).state;
+    // four squares a turn: short of the lane, still under orders, and not asked whether to sail
+    expect(u(s, 'ship')).toMatchObject({ x: 7, y: 2, orders: 'goto', voyage: null });
+    expect(checkInvariants(s)).toEqual([]);
+    s = endRound(s);
+    expect(u(s, 'ship')).toMatchObject({ orders: 'none', destination: null, voyage: { phase: 'toEurope' } });
+    expect(u(s, 'ship').voyage?.origin[0]).toBe(10);
+    expect(u(s, 'p').voyage).toMatchObject({ phase: 'toEurope' });
+    expect(checkInvariants(s)).toEqual([]);
+  });
+
+  it('sails at once from the Sea Lane; not while Europe is closed, nor from waters that reach no lane', () => {
+    const sea = ['~~~~~~~', '~~~~sss', '~~~~sss', '~~~~~~~'];
+    const onLane = withUnit(world({ rows: sea }), { id: 'ship', type: 'caravel', x: 4, y: 1 });
+    const r = applyAction(deepFreeze(onLane), { type: 'goToEurope', unitId: 'ship' });
+    expect(u(r.state, 'ship').voyage).toMatchObject({ phase: 'toEurope', origin: [4, 1] });
+    expect(r.events.map((e) => e.type)).toEqual(['ordersChanged', 'shipSailed']);
+    const atWar = withUnit(world({ rows: sea, players: [{ id: 'a', atWar: true }, { id: 'b' }] }), { id: 'ship', type: 'caravel', x: 4, y: 1 });
+    expect(code(atWar, { type: 'goToEurope', unitId: 'ship' })).toBe('europeClosed');
+    // land between her and the lane, and the map's rim is not sailed
+    const cut = withUnit(world({ rows: ['~~~~~~~', '~~~.sss', '~~~.sss', '~~~~~~~'] }), { id: 'ship', type: 'caravel', x: 1, y: 1 });
+    expect(code(cut, { type: 'goToEurope', unitId: 'ship' })).toBe('noPath');
+  });
+
   it('ships route by water only, units ashore by land only', () => {
     // the COAST layout with a row of open water north and south, so ships can round the land
     const open = ['~~~~~~~~~~', '~~~~~~~~~~', ...COAST.slice(1, 4), '~~~~~~~~~~', '~~~~~~~~~~'];

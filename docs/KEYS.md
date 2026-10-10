@@ -16,7 +16,7 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | B | Build a colony, or join the colony on this square | works |
 | P | Pioneer: clear forest or plow | works |
 | R | Pioneer: build a road | works |
-| G | Go to: choose a colony from the list, or pick a square with the arrows or the mouse and Enter | works |
+| G | Go to: choose a colony from the list (a ship that can reach the Sea Lane is offered Europe first), or pick a square with the arrows or the mouse and Enter | works |
 | L | Load the most valuable cargo in this colony | works |
 | U | Unload cargo into this colony | works |
 | O | Dump cargo overboard | works |
@@ -54,7 +54,8 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | Click beside the active unit | Move it one square; the pointer is an arrow showing which way | works |
 | Click the near edge of a colony or unit beside the active unit | Move onto that square (the near corner, for a diagonal) where the pointer is an arrow; the rest of the square opens the colony or picks the unit | works |
 | Drag from the active unit | Send it to the square where the button is let go: one step if adjacent, Go To if farther | works |
-| Wheel | Zoom in / zoom out about the pointer | works |
+| Wheel / pinch | Zoom in / zoom out about the pointer (a pinch on a trackpad or a touch screen zooms the map, not the page) | works |
+| Ctrl/Cmd + Plus / Minus | Zoom in / zoom out: the browser's zoom keys zoom the map while it has the keyboard | works |
 | Sidebar buttons | Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel | works |
 | Enter (view mode, on your colony) | Open the colony | works |
 | Click on the New World view | Centre the view there | works |
