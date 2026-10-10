@@ -85,6 +85,75 @@ exports[`colony screen art > matches the snapshot of a flag, an icon and a build
 }
 `;
 
+exports[`colony screen art > matches the snapshot of the four seals 1`] = `
+{
+  "anchor": ".....111111.....
+...11qqqqqq11...
+..1qqqqqqqqqq11.
+.1q22qqqqqqqqq1.
+.1q2qqq33qqqqqq1
+1qqqqq3qq3qqqqq1
+1qqqqqq33qqqqqq1
+1qqqq333333qqqq1
+1qqqqqq33qqqqqq1
+1qqq3qq33qq3qqq1
+1qqq33q33q33qqq1
+.1qqq333333qqq1.
+.1qqqqqqqqqqqq1.
+..11qqqqqqqq11..
+....11qqqq11....
+......1111......",
+  "cross": ".....111111.....
+...11qqqqqq11...
+..1qqqqqqqqqq11.
+.1q22qqqqqqqqq1.
+.1q2qqq33qqqqqq1
+1qqqqqq33qqqqqq1
+1qqqq333333qqqq1
+1qqqq333333qqqq1
+1qqqqqq33qqqqqq1
+1qqqqqq33qqqqqq1
+1qqqqqq33qqqqqq1
+.1qqqqq33qqqqq1.
+.1qqqqqqqqqqqq1.
+..11qqqqqqqq11..
+....11qqqq11....
+......1111......",
+  "quill": ".....111111.....
+...11qqqqqq11...
+..1qqqqqqqqqq11.
+.1q22qqqqqqqqq1.
+.1q2qqqqq333qqq1
+1qqqqqqq3333qqq1
+1qqqqqq3333qqqq1
+1qqqqq3333qqqqq1
+1qqqqq333qqqqqq1
+1qqqq33qqqqqqqq1
+1qqqq3qqqqqqqqq1
+.1qq3qqqqqqqqq1.
+.1qqqqqqqqqqqq1.
+..11qqqqqqqq11..
+....11qqqq11....
+......1111......",
+  "wheat": ".....111111.....
+...11qqqqqq11...
+..1qqqqqqqqqq11.
+.1q22qqqqqqqqq1.
+.1q2qqq33qqqqqq1
+1qqqq3q33q3qqqq1
+1qqqqq3333qqqqq1
+1qqqq3q33q3qqqq1
+1qqqqq3333qqqqq1
+1qqqq3q33q3qqqq1
+1qqqqq3333qqqqq1
+.1qqqqq33qqqqq1.
+.1qqqqqqqqqqqq1.
+..11qqqqqqqq11..
+....11qqqq11....
+......1111......",
+}
+`;
+
 exports[`helpers > matches the art snapshot 1`] = `
 {
   "caravel": "11111...........

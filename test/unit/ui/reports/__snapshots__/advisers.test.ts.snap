@@ -5,6 +5,7 @@ exports[`Terrain Information (F1) > sets out the terrain table: every kind of la
   "id": "terrain",
   "sections": [
     {
+      "columns": true,
       "heading": "Open land",
       "rows": [
         [
@@ -136,6 +137,7 @@ exports[`Terrain Information (F1) > sets out the terrain table: every kind of la
       ],
     },
     {
+      "columns": true,
       "heading": "Forest",
       "rows": [
         [
@@ -267,6 +269,7 @@ exports[`Terrain Information (F1) > sets out the terrain table: every kind of la
       ],
     },
     {
+      "columns": true,
       "heading": "Other",
       "rows": [
         [

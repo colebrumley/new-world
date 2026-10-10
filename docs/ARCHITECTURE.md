@@ -160,3 +160,14 @@ headings and labels), with Georgia behind both. The faces are basic-Latin subset
 `src/ui/fonts/` with their licence and made by `scripts/subset-fonts.py`; they load with
 `font-display: swap`, and nothing is fetched from another site. The map canvas and the minimap
 are not themed: they draw in the palette of `pixel-art.ts` (`docs/VISUAL_CHECKLIST.md`).
+
+The reports, the encyclopedia and the save, options and combat panels are pages of parchment
+(R-1015). A report (`src/ui/report.ts`) has a head: a wax seal drawn on a canvas by `sealArt` in
+`pixel-art.ts` (one of four marks, in a wax from the map's palette), the title, and an empty
+`.report-portrait` element (`data-slot="portrait"`) that takes no room until something is put in
+it. `src/ui/reports/heads.ts` holds, by report id, each adviser's mark, wax and opening sentence;
+a report with no entry there is sealed in plain red. A section whose first row names its columns
+says so with `columns: true`, and that row is ruled off in small capitals. The rest is stylesheet
+alone: the encyclopedia's index is a table of contents whose current entry (`aria-current`)
+carries a ribbon, the save table is a ledger, the options are a checklist whose boxes and ticks
+are drawn in ink (as are the rings of Customize), and the result of a fight is a stamped slip.

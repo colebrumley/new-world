@@ -9,7 +9,7 @@ import { TERRAIN_IDS } from '../../../src/engine/data/terrain';
 import { UNIT_TYPE_IDS } from '../../../src/engine/data/units';
 import { BUILDING_ART, BUILDING_SIZE } from '../../../src/ui/building-art';
 import { GOODS_ART, GOODS_SIZE } from '../../../src/ui/goods-art';
-import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, flagArt, goodArt } from '../../../src/ui/pixel-art';
+import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, flagArt, goodArt, SEAL_GLYPHS, sealArt } from '../../../src/ui/pixel-art';
 import { CHART, CHART_MARK_KINDS } from '../../../src/ui/chart';
 import { CHART_ART, CHART_COLORS } from '../../../src/ui/chart-art';
 import { activeFrameArt, ART, at, blank, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, halve, hasFigure, INK, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
@@ -474,6 +474,26 @@ describe('colony screen art', () => {
     expect(inks(flagArt('crown'))).toContain(INK.yellow);
   });
 
+  it('there are four seals, each a round of wax in the colour asked for with its own mark pressed in', () => {
+    expect(SEAL_GLYPHS).toEqual(['quill', 'cross', 'anchor', 'wheat']);
+    const seals = SEAL_GLYPHS.map((glyph) => sealArt(glyph, INK.red));
+    expect(new Set(seals.map(text)).size).toBe(4);
+    for (const s of seals) {
+      expect(s.size).toBe(ART);
+      // round: the corners are clear and the edge is ink
+      for (const [x, y] of [[0, 0], [15, 0], [0, 15], [15, 15]] as const) expect(at(s, x, y)).toBe(0);
+      expect(at(s, 0, 8)).toBe(INK.ink + 1);
+      expect(at(s, 8, 15)).toBe(INK.ink + 1);
+      expect([...inks(s)].sort()).toEqual([INK.ink, INK.white, INK.parchment, INK.red].sort());
+      // the mark is the same whatever the wax
+      const marked = (seal: Sprite, ink: number): string => text(seal).replace(new RegExp(`[^${ink.toString(32)}\n]`, 'g'), '.');
+      expect(marked(sealArt(SEAL_GLYPHS[seals.indexOf(s)]!, INK.blue), INK.parchment)).toBe(marked(s, INK.parchment));
+    }
+    // the wax is the colour asked for, and a pale wax takes its mark in ink so it can still be read
+    expect(inks(sealArt('anchor', INK.sea))).toContain(INK.sea);
+    expect([...inks(sealArt('anchor', INK.yellow))].sort()).toEqual([INK.ink, INK.white, INK.yellow].sort());
+  });
+
   it('a figure for a token is the unit\'s detailed figure with nothing under it', () => {
     const colonist = figureArt('colonist') as Sprite;
     expect(colonist.size).toBe(30);
@@ -485,6 +505,10 @@ describe('colony screen art', () => {
   it('all the colours of all the art still fit in a byte', () => {
     expect(ART_COLORS.length).toBeLessThanOrEqual(255);
     for (const colour of ART_COLORS) expect(colour).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  it('matches the snapshot of the four seals', () => {
+    expect(Object.fromEntries(SEAL_GLYPHS.map((glyph) => [glyph, text(sealArt(glyph, INK.red))]))).toMatchSnapshot();
   });
 
   it('matches the snapshot of a flag, an icon and a building', () => {

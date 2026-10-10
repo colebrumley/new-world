@@ -1305,6 +1305,47 @@ they are started.
   and person on the docks. `test/e2e/harbour.spec.ts` covers the pictures, the facing, the kept
   stalls and the focus ring. Pictures are in `docs/europe/`.
 
+- [x] **R-1015 Reports, encyclopedia, saves and options as parchment pages**
+  Depends on R-1010 (theme tokens and the Fell face in `src/ui/style.css`). Parchment panels over
+  a dark wood frame, ink text in the Fell face. The report screen (`src/ui/report.ts` and
+  `src/ui/reports/*`, the `.report-*` rules), the encyclopedia (`src/ui/pedia-screen.ts`,
+  `.pedia-*`), the save dialog (`src/ui/save-dialog.ts`), the options dialog
+  (`src/ui/options-dialog.ts`), the combat analysis panel and the customize screen
+  (`src/ui/customize.ts`) each become a parchment page: tables ruled in ink with headers in small
+  caps, a drop cap on the first paragraph of each report, a wax seal at the head of each report in
+  the colour of its adviser (one of four seal glyphs drawn procedurally in `src/ui/pixel-art.ts`;
+  R-1016 adds portraits beside them, so a slot is left), the encyclopedia's index as a book's
+  contents with the current page marked by a ribbon, the save table as a ledger, the options as a
+  checklist with ink tick marks, the combat flash as a stamped notice.
+  - All of the above restyled on the R-1010 tokens, with no colour literal left in their
+    stylesheet rules.
+  - Every role, name and data-field attribute the e2e specs use is unchanged, so
+    `test/e2e/reports.spec.ts` (and its structural snapshot), `saves.spec.ts`, `options.spec.ts`,
+    `combat.spec.ts` and the encyclopedia coverage pass unchanged.
+  - Keyboard navigation and focus rings remain visible on parchment; `prefers-reduced-motion`
+    still disables the combat flash animation.
+  - The in-game text stays our own prose (`test/unit/no-copied-text.test.ts`).
+  **Verify:** `npm run test:e2e -- reports`, `saves`, `options`, `combat`; `npm run check`;
+  screenshots of one report, the encyclopedia and the save dialog in the pull request.
+  *Built:* a report opens with a head (`src/ui/report.ts`): its adviser's seal, the title, and an
+  empty `.report-portrait` slot for R-1016, over a double rule; under it the adviser's opening
+  sentence or two, our own words, with a drop capital. `sealArt` in `pixel-art.ts` draws the seal on
+  the 16-pixel grid: a round of wax with a glint, and a quill (affairs of state), a cross (the
+  church), an anchor (the sea and its trade) or an ear of wheat (the land) pressed into it, the
+  mark in ink on a pale wax. `src/ui/reports/heads.ts` gives each of the ten reports and the Hall
+  of Fame its mark, its wax and its opening; no two share a seal. A section whose first row names
+  the columns is marked `columns: true`, and that row is set in small capitals over a full rule;
+  the cells themselves are as they were, so the e2e snapshots are untouched. Everything else is
+  the stylesheet: sections head a rule and their lines are ruled faintly across the page; the
+  encyclopedia is an open book, its index led out with dots and the current entry marked by a
+  ribbon in sealing-wax red; the save table is a ledger with its columns ruled off in red; the
+  options are a checklist with a box and a tick drawn in ink (Customize has ink rings to match);
+  the combat analysis sets the two sides in columns with the sum under a line, and the result is
+  a slip of parchment stamped askew in green or red. Rows that go to the map and entries of the
+  index show the ink focus ring; `test/unit/ui/style.test.ts` holds these pages to that and to
+  the still stamp under `prefers-reduced-motion`. The save notice is amber rather than red, since
+  it reports successes too. Pictures are in `docs/theme/` (report, pedia, saves, options, combat).
+
 ---
 
 ## Appendix A — Terrain
