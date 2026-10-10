@@ -1,6 +1,6 @@
 # The call to Europe: spec for R-1021 to R-1022
 
-Written by `/plan` on 2026-10-10. Status: approved.
+Written by `/plan` on 2026-10-10. Status: built.
 
 **The request, in the owner's words:** "I want to make it more obvious to the player when there is
 something to do in Europe. Perhaps the Europe button could be highlighted or something? Right now
