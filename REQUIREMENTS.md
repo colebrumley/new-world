@@ -1273,7 +1273,7 @@ they are started.
   **Verify:** `npm run test:e2e -- colony`; `npm test -- test/unit/ui`; `npm run check`;
   screenshots of a one-colonist and a large colony in the pull request.
 
-- [~] **R-1014 Europe harbour**
+- [x] **R-1014 Europe harbour**
   Depends on R-1010 (theme tokens and the Fell face) and reuses the goods icons and `drawGood`
   from R-1013 (`src/ui/goods-art.ts`). Parchment panels over a dark wood frame: the Europe screen
   (`src/ui/europe-screen.ts`, `europe-model.ts`, the `.europe-*` rules in `src/ui/style.css`)
@@ -1293,6 +1293,17 @@ they are started.
   - The JS budget (`scripts/check-size.mjs`) still passes.
   **Verify:** `npm run test:e2e -- europe` and `trade`; `npm run check`; screenshots with a ship
   in port and with a ship at sea in the pull request.
+  *Built:* the screen is a grid with west on the left: the open water and its two lanes, then the
+  quay with the ships alongside, under them the docks and the wall of the offices, the stalls, and
+  the note at the foot. Water, stone, boards, awnings, tags, crates and doors are CSS gradients on
+  the tokens (`--waves` and `--stone` are set on `.europe-screen`); there is no backdrop picture and
+  no new art. Ships and people are `figureArt`, goods `goodArt` and the crest `flagArt('crown')` on
+  canvases hidden from screen readers, so every button keeps its name. The ship art has the bow to
+  the left, so a ship heading east (coming in, or alongside) is mirrored. `europe-screen.ts` now
+  makes the header, regions, stalls and doors once and writes changes into them: a price is
+  rewritten on the tag of the same stall. `EuropeView` gives the unit type of each ship, passenger
+  and person on the docks. `test/e2e/harbour.spec.ts` covers the pictures, the facing, the kept
+  stalls and the focus ring. Pictures are in `docs/europe/`.
 
 ---
 

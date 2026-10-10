@@ -13,11 +13,20 @@ import { unitLabel } from './sidebar';
 
 export interface EuropeShip {
   readonly id: string;
+  /** The kind of ship, which is also the name of its picture. */
+  readonly type: UnitTypeId;
   readonly label: string;
   readonly holds: number;
   readonly used: number;
   readonly cargo: readonly { readonly good: GoodId; readonly name: string; readonly amount: number }[];
-  readonly passengers: readonly { readonly id: string; readonly label: string }[];
+  readonly passengers: readonly { readonly id: string; readonly type: UnitTypeId; readonly label: string }[];
+}
+
+export interface EuropeVoyage {
+  readonly id: string;
+  readonly type: UnitTypeId;
+  readonly label: string;
+  readonly turns: number;
 }
 
 export interface EuropeView {
@@ -25,10 +34,10 @@ export interface EuropeView {
   readonly gold: number;
   readonly taxRate: number;
   /** Ships on their way here, and on their way back, with turns to go. */
-  readonly expected: readonly { readonly id: string; readonly label: string; readonly turns: number }[];
-  readonly outbound: readonly { readonly id: string; readonly label: string; readonly turns: number }[];
+  readonly expected: readonly EuropeVoyage[];
+  readonly outbound: readonly EuropeVoyage[];
   readonly inPort: readonly EuropeShip[];
-  readonly docks: readonly { readonly id: string; readonly label: string; readonly boarding: boolean }[];
+  readonly docks: readonly { readonly id: string; readonly type: UnitTypeId; readonly label: string; readonly boarding: boolean }[];
   readonly prices: readonly { readonly good: GoodId; readonly name: string; readonly bid: number; readonly ask: number; readonly boycotted: boolean }[];
   /** The immigrant pool, and what passage for any one of them costs now. */
   readonly pool: readonly { readonly slot: number; readonly label: string }[];
@@ -44,7 +53,7 @@ export function europeView(state: GameState, playerId: string): EuropeView | nul
   if (!player) return null;
   const mine = Object.values(state.units).filter((u) => u.owner === playerId);
   const transit = (phase: 'toEurope' | 'toNewWorld') =>
-    mine.filter((u) => u.voyage?.phase === phase && u.aboard === null).map((u) => ({ id: u.id, label: shipLabel(u), turns: u.voyage?.turnsLeft ?? 0 }));
+    mine.filter((u) => u.voyage?.phase === phase && u.aboard === null).map((u) => ({ id: u.id, type: u.type, label: shipLabel(u), turns: u.voyage?.turnsLeft ?? 0 }));
   return {
     port: NATIONS[player.nation].homePort,
     gold: player.gold,
@@ -53,13 +62,14 @@ export function europeView(state: GameState, playerId: string): EuropeView | nul
     outbound: transit('toNewWorld'),
     inPort: shipsInEurope(state, playerId).map((ship) => ({
       id: ship.id,
+      type: ship.type,
       label: shipLabel(ship),
       holds: UNIT_TYPES[ship.type].holds,
       used: holdsUsed(state, ship),
       cargo: GOOD_IDS.filter((g) => (ship.cargo[g] ?? 0) > 0).map((g) => ({ good: g, name: GOOD_NAMES[g], amount: ship.cargo[g] ?? 0 })),
-      passengers: mine.filter((u) => u.aboard === ship.id).map((u) => ({ id: u.id, label: unitLabel(u) })),
+      passengers: mine.filter((u) => u.aboard === ship.id).map((u) => ({ id: u.id, type: u.type, label: unitLabel(u) })),
     })),
-    docks: docksOf(state, playerId).map((u) => ({ id: u.id, label: unitLabel(u), boarding: u.orders === 'sentry' })),
+    docks: docksOf(state, playerId).map((u) => ({ id: u.id, type: u.type, label: unitLabel(u), boarding: u.orders === 'sentry' })),
     prices: GOOD_IDS.map((g) => ({ good: g, name: GOOD_NAMES[g], bid: bidPrice(state, playerId, g), ask: askPrice(state, playerId, g), boycotted: isBoycotted(state, playerId, g) })),
     pool: player.pool.map((p, slot) => ({ slot, label: PROFESSIONS[p].name })),
     recruitPrice: recruitPrice(state, playerId),
