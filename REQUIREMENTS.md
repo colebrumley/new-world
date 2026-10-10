@@ -1182,6 +1182,26 @@ they are started.
   own items lay them out. The sidebar is still 232px and fits a 640px window without a scroll.
   The title, map, a dialog and the sidebar as first themed are in `docs/theme/`.
 
+- [~] **R-1012 Title frontispiece**
+  The title screen as a book's engraved frontispiece. "New World" is set large in the Fell face
+  in small caps with a rule beneath; the menu (`src/ui/title.ts`) is a list inside a cartouche on
+  parchment, with the difficulty control and its note on the same tokens; behind it all hangs a
+  painting of a caravel off a wooded coast in a dark wood frame. The painting is one 320 x 200
+  picture of our own (constraint C1), its source kept in `art/title/`, baked by
+  `scripts/bake-art.py` to the 32 colours of `PALETTE` in `src/ui/pixel-art.ts` and drawn to a
+  canvas enlarged by whole numbers with no smoothing, so it matches the map's look. Its data is a
+  chunk of its own, asked for after the title and menu are painted; the menu is usable before it
+  arrives.
+  - Title, menu, difficulty control and notice are styled as above on the R-1010 tokens; keyboard
+    focus and the disabled Load Game state remain visible.
+  - The painting renders behind the menu at every window size without stretching (letterboxed on
+    the wood), from palette colours only.
+  - The painting chunk loads after first paint; the entry script stays under 20 KB and the cold
+    load under 1.5 s.
+  - The Hall of Fame and Customize screens reached from the title keep the same frame.
+  **Verify:** `BUDGET=1 npm run test:e2e -- budget`; `npm run test:e2e -- shell`; `npm run check`;
+  a screenshot in the pull request.
+
 ---
 
 ## Appendix A — Terrain
