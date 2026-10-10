@@ -9,7 +9,7 @@ export const AI_PLAN = {
   /** How far a ship, and a party on foot, look for a site. */
   shipSearch: 14,
   landSearch: 7,
-  /** A power thinks of landings abroad only once it has this many colonies (ours). */
+  /** A power thinks of landings abroad only once it has this many colonies. */
   coloniesBeforeGarrison: 2,
   /** A ship tries this many anchorages beside a site before giving it up for the turn. */
   berthsTried: 3,
@@ -378,7 +378,7 @@ export const AI_SUPPLY = {
   cargoEvery: 3,
   /** Holds kept free on a turn when somebody was fitted out. */
   holdsKept: 2,
-  /** The good a port asks for counts this much toward a ship's choosing it: 4 x (8 + turns since a ship called), which we do not keep, so 4 x 8. */
+  /** The good a port asks for counts this much toward a ship's choosing it. */
   askedBonus: 32,
 } as const;
 
@@ -448,6 +448,9 @@ export const AI_JOBS = {
   nearness: 7,
   /** Food and fish weigh this in a colony of under sixteen, nothing in a larger one; other crops their price level. */
   foodWeight: 4,
+  /** While a colony short of food is being fed, a food square counts this many times over (fish `fishFirst` more beforehand), less the worth of its terrain; while it is fed and not short, food counts for nothing. */
+  starvingTimes: 32,
+  fishFirst: 8,
   /** Ore weighs this much more in a colony of [people] from [turn], and more again with smithies and an armory. */
   oreBonus: 2,
   oreFrom: [8, 80],

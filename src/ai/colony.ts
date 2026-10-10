@@ -12,7 +12,7 @@ import { BUILDING_CHAINS, BUILDINGS, chainLevel, type BuildingChain, type Buildi
 import type { GoodId } from '../engine/data/goods';
 import { TRADE_IDS, TRADES, type TradeId } from '../engine/data/production';
 import { PROFESSIONS, UNSKILLED } from '../engine/data/professions';
-import { RAW_GOODS, type RawGood } from '../engine/data/terrain';
+import { RAW_GOODS, TERRAIN, type RawGood } from '../engine/data/terrain';
 import type { TribeId } from '../engine/data/tribes';
 import { solPercent } from '../engine/liberty';
 import { isNativeLand } from '../engine/settlements';
@@ -25,7 +25,7 @@ import { fieldOutput, squareStatus } from '../engine/jobs';
 import { priceLevel } from '../engine/market';
 import { warehouseCapacity } from '../engine/pioneer';
 import { tileAt, type BuildItem, type Colonist, type Colony, type GameState, type Job } from '../engine/state';
-import { isWater } from '../engine/tile';
+import { isWater, terrainOf } from '../engine/tile';
 import { memo } from './campaign';
 import { wagonRefusal } from './wagons';
 
@@ -85,10 +85,13 @@ function workOutJobs(state: GameState, colony: Colony): Map<string, Job> {
    * scores: for every free square and crop, (8 x yield, no more than the warehouse has room
    * for) + 7 - its distance, times a weight for the crop.
    */
-  const automatic = (c: Colonist): { job: Job; yield: number; score: number } | null => {
+  const automatic = (c: Colonist, feeding = false): { job: Job; yield: number; score: number } | null => {
     const here = world();
     const r = colonyProduction(here, now);
     const capacity = warehouseCapacity(now);
+    // while the colony is being fed and food is short, food comes before everything; while it is being fed and is not short, food counts for nothing
+    const foodLack = r.consumed.food - r.produced.food;
+    const starving = feeding && foodLack > 0 && stock(now, 'food') <= capacity && stock(now, 'food') <= AI_COLONY.shortTimes * foodLack;
     let best: { job: Job; yield: number; score: number } | null = null;
     for (const [dx, dy] of NEIGHBORS) {
       if (squareStatus(here, now, dx, dy) !== 'free') continue;
@@ -103,13 +106,20 @@ function workOutJobs(state: GameState, colony: Colony): Map<string, Job> {
         if (amount <= 0) continue;
         let reach = AI_JOBS.yieldTimes * amount + AI_JOBS.nearness - Math.abs(dx) - Math.abs(dy);
         const kept = stored(good);
+        if (starving) {
+          let urgent = reach;
+          if (kept === 'food') urgent = Math.max(1, (reach + (good === 'fish' ? AI_JOBS.fishFirst : 0)) * AI_JOBS.starvingTimes - TERRAIN[terrainOf(tile)].aiValue);
+          if (isNativeLand(state, tile, colony.owner)) urgent >>= 1;
+          if (!best || urgent > best.score) best = { job: { kind: 'field', dx, dy, good }, yield: raw, score: urgent };
+          continue;
+        }
         let weight: number;
-        if (good === 'food' || good === 'fish') weight = now.colonists.length < 2 * NEIGHBORS.length ? AI_JOBS.foodWeight : 0;
+        if (good === 'food' || good === 'fish') weight = !feeding && now.colonists.length < 2 * NEIGHBORS.length ? AI_JOBS.foodWeight : 0;
         else {
           weight = level(kept);
           if (good === 'ore' && now.colonists.length >= AI_JOBS.oreFrom[0] && state.turn >= AI_JOBS.oreFrom[1]) {
             weight += AI_JOBS.oreBonus;
-            if (standing >= 0) weight += Math.max(0, chainLevel(now.buildings, 'blacksmith') - 1) + 2 * chainLevel(now.buildings, 'armory');
+            if (human !== undefined && standing >= 0) weight += Math.max(0, chainLevel(now.buildings, 'blacksmith') - 1) + 2 * chainLevel(now.buildings, 'armory');
           }
         }
         let more = weight + 1;
@@ -162,9 +172,12 @@ function workOutJobs(state: GameState, colony: Colony): Map<string, Job> {
   food: for (const pass of [0, 1]) {
     for (const c of waiting()) {
       const hungry = short();
+      // (a colony of sixteen or more with no horses to feed goes on with this only while it is short)
+      const horses = stock(now, 'horses');
+      if (!hungry && now.colonists.length >= 2 * NEIGHBORS.length && !(horses > 1 && horses < warehouseCapacity(now))) break;
       const due = pass === 0 ? (hungry && !skilled(c)) || c.profession === 'indianConvert' : !skilled(c) || hungry;
       if (!due) continue;
-      const square = automatic(c);
+      const square = automatic(c, true);
       if (!square) continue;
       // the first square not worth working ends the round
       if (square.yield < (hungry ? AI_COLONY.yieldLeastShort : AI_COLONY.yieldLeast)) break food;

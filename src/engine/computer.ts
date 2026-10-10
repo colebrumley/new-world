@@ -266,9 +266,13 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: (
       if (to && at !== undefined) {
         // the fee is the price of the trade that stands at his place in the list of trades, which may be none at all (then a gold piece comes back)
         const listed = PROFESSION_IDS[at];
-        gold -= (listed ? trainingPrice(listed) : null) ?? -1;
-        taxRate = Math.min(AI_UPKEEP.taxMost, taxRate + 1);
-        c = { ...c, colonists: c.colonists.map((k, i) => (i === at ? { ...k, profession: to } : k)) };
+        const fee = (listed ? trainingPrice(listed) : null) ?? -1;
+        // (never on credit: a fee the treasury cannot meet is not paid and nobody is trained)
+        if (gold >= fee) {
+          gold -= fee;
+          taxRate = Math.min(AI_UPKEEP.taxMost, taxRate + 1);
+          c = { ...c, colonists: c.colonists.map((k, i) => (i === at ? { ...k, profession: to } : k)) };
+        }
       }
     }
 

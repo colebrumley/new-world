@@ -1128,9 +1128,11 @@ What a computer power does is set out section by section below. Numbers are in
 
 - **Same rules.** A computer power plays through the same actions as a person: nothing it does
   bypasses validation, and its turn is recorded in the session log like anyone's.
-- **Expansion.** Whether a colonist founds a colony or joins one is under "Computer powers:
-  founding and joining". A site must be flat open land on the coast, three squares clear of any
-  colony or native settlement, with enough workable land around it.
+- **Expansion.** Whether a colonist founds a colony or joins one, how a square is rated as a
+  site and what a settler reckons it worth are under "Computer powers: founding and joining".
+  A ship or a party on foot takes the site whose worth, less 4 for every square it lies off,
+  is highest (`AI_PLAN`); a ship looks 14 squares about and then the whole map, a party 7
+  squares and then 14.
 - **Landing.** A ship carrying founders makes for water beside the best site within reach; they
   step ashore and found the colony. Passengers who are to join a colony are taken to a port
   chosen as under "founding and joining".
@@ -1142,14 +1144,13 @@ What a computer power does is set out section by section below. Numbers are in
 - **War.** Troops guard, march and fight by the rules of "Computer powers: campaigns" (R-807).
 - **Independence.** A computer power is granted independence by colonist support under R-702.
 - **First colony.** Until it has one, a power counts distance six times over when weighing
-  sites, so it settles the nearest fair place; a ship judges every site by how far it must
-  really sail to lie beside it. A ship does not wait beside a landing square somebody
+  sites (24 a square), so it settles the nearest fair place; a ship judges every site by how
+  far it must really sail to lie beside it. A ship does not wait beside a landing square somebody
   else is standing on, and puts its settlers into a colony if no site can be reached at all.
   From turn 6 a power still without a colony founds one wherever its settlers stand, if the
   ground allows.
-- **Liberty.** A colony of three or more keeps one colonist in its Town Hall as a statesman for
-  every three it has (three at most), provided it still feeds itself (it is part of the job
-  plan of "Computer powers: the colony").
+- **Liberty.** A seat in the Town Hall is weighed against every other job a colonist could do
+  (the statesman's weight, under "Computer powers: the colony").
 - **Garrison.** How many defenders a colony wants, and how it arms its own people, are under
   "Computer powers: arming and taking in colonists". A soldier brought into port goes ashore as
   a soldier.
@@ -1181,8 +1182,9 @@ Numbers are `AI_WAGONS` in `src/engine/data/ai.ts`.
   village then offers its wares as to a human; the power buys the one whose price level in
   Europe is highest (the first on a tie) at the price first asked, if it has the gold, and
   otherwise nothing. What it bought is unloaded at home.
-- **Trade goods.** A colony with a wagon sends for trade goods while it holds under 100 and
-  their price level is 3 or less.
+- **Trade goods.** A colony with a wagon asks for trade goods while it holds under 100 and
+  their price level is 3 or less; they come only by ship (see "Computer powers: supplies by
+  ship").
 - **Ships** of computer powers never trade with a settlement.
 - *Price level* is the level the market keeps for the power, one above the bid.
 - *Which colony a wagon serves:* a wagon standing in one of its colonies serves that one; the
@@ -1192,12 +1194,10 @@ Numbers are `AI_WAGONS` in `src/engine/data/ai.ts`.
   moves are spent.
 - *A threat* next to a colony is an armed unit of a European power it has no treaty with, or of
   a tribe whose alarm toward it is 50 or more.
-- *Trade goods* arrive in the colony as a full cargo of 100 bought at Europe's asking price, when
-  the treasury holds the price and the 200 gold reserve.
 - *Building it.* The wagon train has its place on the colony's building list (see "Computer
   powers: the colony"): after the stockade, stable, warehouse and custom house, and only in a
-  colony of four or more. Computer powers spread their people over many small colonies, so not
-  every game sees a wagon before 1600.
+  colony of four or more. Ships and the Custom House carry off most of what a wagon would
+  sell, so a wagon's sale by a computer power is uncommon.
 
 ### Computer powers: missions (R-805)
 
@@ -1224,7 +1224,7 @@ Numbers are `AI_MISSIONS` in `src/engine/data/ai.ts`.
   alarm is below 75; everything else does nothing. Computer powers never demand tribute.
 - **Stepping in.** A free colonist or servant next to a settlement that has taught nobody, with
   tribal alarm below 25 and the settlement's own alarm below 64, goes in; so does a scout next
-  to a settlement none of its scouts has visited, with tribal alarm below 25.
+  to a settlement whose chief nobody's scout has yet spoken with, with tribal alarm below 25.
 - A candidate needs no alarm at all: among calm peoples every score is 0 and the first settlement
   listed is taken.
 - "Becomes a colonist again" needs a colony: the missionary walks to the nearest colony of its
@@ -1245,7 +1245,8 @@ Numbers are `AI_NAVY` in `src/engine/data/ai.ts`.
   see whatever the treaty; 2 + min(2, (population + 4) >> 3) at the blockade square of every
   port colony of a power it is not at firm peace with; 5 at each of its own port colonies with
   a foreign armed ship within 5 squares, 8 if one of them is a frigate. The list is kept most
-  pressing first.
+  pressing first. A human's colony on a square the power has not seen is not blockaded while
+  difficulty level (0..4) x turn is 180 or less.
 - **Firm peace** is a treaty the power does not intend to break. A power not yet met is not at
   peace.
 - **The blockade square** is, of the 16 squares exactly two from the colony that are open sea,
@@ -1274,8 +1275,8 @@ Numbers are `AI_NAVY` in `src/engine/data/ai.ts`.
 - *Getting one.* Warships are bought in Europe by the round of buying described under
   "Computer powers: the treasury and the fleet". Privateers and men-of-war sail from Europe
   without waiting for passengers.
-- Not built: an exemption for human colonies not yet seen early in the game; a one-turn-in-four
-  test for ship holds in the blockaded colony; seeking frigates only after the Declaration.
+- Not built: a one-turn-in-four test for ship holds in the blockaded colony; seeking frigates
+  only after the Declaration.
 
 ### Computer powers: the treasury and the fleet (R-806, R-802)
 
@@ -1315,16 +1316,22 @@ Numbers are `AI_FLEET` in `src/engine/data/ai.ts`.
 
 ### Computer powers: the colony (R-802)
 
-The automatic placement used here is that of "Automatic placement". Numbers are `AI_COLONY` in
-`src/engine/data/ai.ts`.
+The placement on the land used here is the scoring of squares set out below, not that of
+"Automatic placement". Numbers are `AI_COLONY` and `AI_JOBS` in `src/engine/data/ai.ts`.
 
 - **Jobs are dealt out afresh every turn**, in this order.
   1. *Food.* Expert farmers, and expert fishermen where there are docks, go to their own trade
-     on the best free square, if it yields 3 or more. Then two passes with the automatic
-     placement: first the unskilled while food is short (and converts always), then the
+     on the best free square, if it yields 3 or more. Then two passes with the best-scoring
+     square: first the unskilled while food is short (and converts always), then the
      unskilled always and the skilled while food is short. "Short" = this turn's food need is
      not met and 16 x the shortfall is at least the food in store. A placement is kept only if
      its square yields 3 (when short) or 5; the first that does not ends the food round.
+     In this round the squares are scored differently: while the colony is short (and its food
+     store is not over capacity) a food square counts 32 times over, fish 8 more beforehand,
+     less the worth of its terrain, and other crops by their plain score; while it is not
+     short, food and fish weigh nothing. So a fed colony seldom places anyone here, and its
+     hands are left for the steps below. A colony of 16 or more with no horses to feed (under
+     2, or a full warehouse of them) goes on with the round only while it is short.
   2. *Lumber and hammers*, only while the colony has a project that wants hammers. With nobody
      felling and under 10 lumber, one lumberjack: an expert, else someone unskilled, else
      anyone not yet placed. With 2 or more lumber counting this turn's, one carpenter: a master
@@ -1333,9 +1340,46 @@ The automatic placement used here is that of "Automatic placement". Numbers are 
      unless the colony already holds more of it than its warehouse capacity.
   4. *Experts of the workshops* go to their own building where it stands, has room, and the
      input is in store or being made.
-  5. *Everyone else* takes whichever pays best of the automatic placement on the land and each
-     workshop with room and input; failing both, the carpenter's bench (with a project) or the
-     pulpit.
+  5. *Everyone else* takes the best-scoring bench or the best-scoring square, whichever
+     scores higher; the land wins a tie. A convert takes the best square and never a bench.
+- **A square's score,** for each free square and each crop it can give: (8 x the yield, no more
+  than the warehouse has room for and room counting as at least 1, + 7 - its distance) x
+  (the larger of m and 0, + the crop's weight). Distance is 1 beside the colony and 2 at a
+  corner. Room for fish is measured against the horses in store.
+  - *The crop's weight:* food and fish 4 in a colony of under 16, nothing from 16; any other
+    crop its price level. Ore 2 more in a colony of 8 or more from turn 80, and then, for a
+    power not ranked below the human, its blacksmith level less 1 and twice its armory level
+    more.
+  - *m* is the weight + 1; 1 more when the colony uses more of the good than it makes, and
+    then the first factor is doubled if the shortfall is more than it has in store; otherwise 1
+    less for lumber when the lumber in store and this turn's come to 2; 2 more for sugar,
+    tobacco, cotton, furs and ore; on native land less (4 - the tribe's alarm toward the
+    power - the units with defence above 1 standing in the colony), if that is above 0.
+  - The highest score above 0 wins, the first found on a tie.
+- **A bench's score** = (8 x what he would add there, no more than the input to hand, + 5) x
+  the bench's weight. The benches are looked at in this order, the first with the highest score
+  winning: distiller, tobacconist, weaver, fur trader, carpenter, blacksmith, gunsmith,
+  preacher, statesman; each only where its building stands and has room.
+  - *The input to hand* is the stock, less what the colony already uses a turn, plus what it
+    makes; a bench with less than none is passed over, and none counts as 1. The pulpit and
+    the Town Hall, which use nothing, take the figure of the last bench with an input looked
+    at before them.
+  - *Weights:* distiller, tobacconist, weaver and fur trader the price level of the product
+    less that of the input. Blacksmith and gunsmith the price level of tools or muskets + 4,
+    doubled from turn 50 for a power not ranked below the human. Carpenter 5 less a third of
+    the hammers the colony makes, at least 1, then halved (rounded down) with no project
+    wanting hammers. Preacher 9 less half the crosses it makes and a hundredth of the turn,
+    at least 1.
+  - *The statesman's weight:* 7 + the colony's Tories + 4 for each level of printing press;
+    doubled with 10 or more Tories; doubled with Jefferson; nothing before 1540; doubled after
+    1600 and again after 1700; nothing after the Declaration; halved under 6 people and again
+    under 4; halved for a power ranked above the human and doubled for one ranked below; then
+    less the bells the colony already makes, and kept within 1 to 100. Tories are its people x
+    (100 - its Sons of Liberty percentage) / 100, rounded to the nearest; none after the
+    Declaration.
+  - *With no square and no bench scoring,* he takes the pulpit where a church stands with a
+    place free and the colony has more lumber in store and coming than it uses; otherwise the
+    carpenter's bench, if it has a place.
 - **Lumber sent out.** On every eighth turn a colony with a project, nobody felling and under
   2 lumber is given 100 lumber; 200 gold is taken if the treasury has it.
 - **What to build** is chosen afresh every turn (hammers carry over): the first of this list
@@ -1365,24 +1409,30 @@ The automatic placement used here is that of "Automatic placement". Numbers are 
   20. Each processing chain a level higher when it makes 3 of its product (to the second
       level) or 8, or holds 100 (to the third).
   21. Cathedral; then, with fewer than 3 guns, Armory, artillery, Arsenal.
-- The seat in the Town Hall (see "Computer powers", Liberty) is how bells are weighed against
-  other work.
-- "Pays best" compares output x the good's price level.
+- *Rank* is that of "Computer powers: missions". With no human in the game no power counts as
+  ranked above or below, and the doubling for tools and muskets is not made.
 - The plan is worked out once a turn and carried through by ordinary job changes.
 - What a computer colony's turn does besides is under "Computer powers: arming and taking in
   colonists", "Computer powers: upkeep of a colony" and "Computer powers: supplies by ship".
 
 ### Computer powers: campaigns (R-807)
 
-Numbers are `AI_CAMPAIGN` in `src/engine/data/ai.ts`.
+Numbers are `AI_CAMPAIGN` and `AI_NATIVE_WAR` in `src/engine/data/ai.ts`.
 
 - **The size test.** A colony is worth a campaign when its population plus the units on its
   square exceed 6 - turn / 50 (rounded down).
 - **Attack.** A request at every foreign colony on a landmass where the power has a unit or
   colony, if it passes the size test, except on the turns when (the colony's place in the list
   + the turn) is divisible by 4: priority 3 at firm peace, 5 otherwise. A request at every
-  native settlement on such a landmass whose tribe's alarm toward the power is 75 or more:
+  native settlement on such a landmass whose people it is fighting (below):
   priority 4 where a mission stands, 2 where none does.
+- **Peoples it fights.** A power treats a native people as an enemy when their alarm toward it
+  is 75 or more, or when it has made up its mind to fight them, whatever their alarm (see
+  "Computer powers: upkeep of a colony"); once made up, its mind is not changed.
+- **Colonies not yet seen.** A human's colony on a square the power has not seen is not marched
+  on (and not blockaded) while difficulty level (0..4) x turn is 180 or less; no landing is
+  planned beside any colony on an unseen square while level x turn is 200 or less. On the
+  easiest level that is the whole game.
 - **Defend.** A request at each of its colonies that is short of defenders: priority =
   the shortfall + 2. The troops a colony wants are its garrison (artillery first, then soldiers,
   then dragoons) and answer no other call.
@@ -1397,24 +1447,40 @@ Numbers are `AI_CAMPAIGN` in `src/engine/data/ai.ts`.
   size test, a request at a beach. The beach is the open-sea square within 3 squares of C
   (either way) that touches C's landmass and scores highest by 2 x (|dx| + |dy| + land squares
   of that landmass beside it), the later square on a tie; no request if a unit stands on it.
-  Priority 3; +1 if C's owner is the human; -1 if 16 x (European colonies on the landmass)
-  exceeds its size; +1 at war with the owner; doubled before turn 150.
+  Priority 3; +1 if C's owner is the human, and where every European colony on the landmass
+  is the human's, +1 more if it has 16 squares and another +1 if it has 64; -1 if 16 x
+  (European colonies on the landmass) exceeds its size; +1 at war with the owner; doubled
+  before turn 150.
 - **Taking a landing.** A ship whose holds are all taken (passengers count as cargo does) and
   that carries a soldier, dragoon or gun takes the invasion request with the lowest
   load x distance / (priority + 1) within range, sails to the beach, and the troops step ashore
-  on a neighbouring free square of that landmass. Privateers never do.
+  on a neighbouring free square of that landmass. Privateers never do. Once off the beach the
+  ship lies there, doing nothing else, until every soldier who can land is ashore.
+- **Guns for the garrisons.** A ship carrying troops but nobody of a colonist's kind and no
+  missionary (guns, or troops who will not settle), with no landing to make, carries them to
+  the port she can reach that is shortest of defenders, the nearest of those; in port they go
+  ashore themselves.
 - **Quiet regions.** A landmass is quiet for a power when 20 x (its colonies there + the
   colonies of every European power there) exceed the landmass's size and nobody it is not at
-  firm peace with, and no tribe at 75 alarm, is on it. Troops with nothing to do in a quiet
+  firm peace with, and no people it is fighting, is on it. Troops with nothing to do in a quiet
   region board a transport lying in their port.
 - **Fighting.** A troop with a whole move left attacks a neighbouring square only if: it holds
-  Europeans the power is at war with (after the Declaration only the human's), or natives whose
-  tribe is at 75 alarm on a landmass where the power has a colony; and the scaled odds are 12
-  or more. Scaled odds = 8 x attack / (defence + 1) (rounded down), times 3 against a colony and
-  2 against a settlement; artillery scores 0 against anything else. Soldiers and dragoons do
-  not assault a colony unless the summed attack values of the power's units on the 8 squares
-  around it exceed those of the units in it (an undefended colony needs no massing); a unit
+  Europeans the power is at war with (after the Declaration only the human's), or natives of
+  a people it is fighting on a landmass where the power has a colony; and the scaled odds are
+  12 or more. Soldiers and dragoons do
+  not assault a colony unless the summed attack values of the power's land units on the 8
+  squares around it exceed those of the land units in it (an undefended colony needs no
+  massing; ships are not counted on either side); a unit
   that may not assault waits beside it. Troops never attack from aboard ship.
+- **Scaled odds** = 8 x attack / (defence + 1) (rounded down), x the worth of a head there
+  ((the summed cost of the units on the square + 1) / their number, rounded down) / the
+  attacker's own cost (rounded down), then times 3 against a colony and 2 against a
+  settlement, times 3 again for a soldier, dragoon or gun standing on land that is to be
+  taken, and never more than 1000. Artillery scores 0 against anything but a colony or a
+  settlement. Costs are those of the unit table; units aboard ship are not counted.
+- *Land to be taken* is a landmass where the power has no unit or colony, or where somebody
+  it is not at firm peace with, or a people it is fighting, stands and the power is the
+  stronger there (by summed attack values) or has no colony there.
 - *Strengths* in the odds are the engine's (with terrain, fortification and the other
   modifiers), in whole units of strength.
 - *Defenders wanted* is the count under "Computer powers: arming and taking in colonists"; a
@@ -1426,14 +1492,13 @@ Numbers are `AI_CAMPAIGN` in `src/engine/data/ai.ts`.
   troops. Troops board only when enough of them are spare to fill the transport and an invasion
   is within its reach, so that the ship sails at once.
 - A ship makes no landing until the power has two colonies.
-- Not built: weighting the odds by the cost of the units on each side; tripled eagerness in a
-  contested region; "settle beside a rival" landings (a transport request where the planner has
-  no colony on a thinly peopled landmass); an early-game exemption of human colonies not yet
-  seen; extra priority where the human holds a whole landmass.
+- Not built: "settle beside a rival" landings (a transport request where the planner has
+  no colony on a thinly peopled landmass).
 
 ### Computer powers: founding and joining
 
-Numbers are `AI_SETTLE` and `AI_MUSTER` in `src/engine/data/ai.ts`.
+Numbers are `AI_SETTLE`, `AI_MUSTER`, `AI_SITE`, `AI_SCOUT` and `AI_PIONEER` in
+`src/engine/data/ai.ts`.
 
 - **A colony wants colonists** while it has under 12 people and its people less 4 are fewer than
   the squares it can work (the eight around it that are land, and the water too once it has
@@ -1461,7 +1526,44 @@ Numbers are `AI_SETTLE` and `AI_MUSTER` in `src/engine/data/ai.ts`.
 - **Which port a ship takes joiners to:** the highest of 4 x ((17 - people, 16 at most)^2 + 2)
   + 2 x (8 - people) + 20 where the human has a colony on that landmass, + 25 if it wants
   colonists and - 25 if not, - (distance / 2 + 1), with a throw of 0 to 8 added.
-- The choice of a site and the first-colony rules are under "Computer powers (R-802)".
+- **A site's rating,** 0 to 15, from the land alone; nothing on water or mountains. Each of
+  the 21 squares of the colony cross (the 5 x 5 block less its corners) has a worth: its
+  resource's AI value, or else its terrain's; for ocean without a resource, (2 + 2 x the land
+  squares beside it) / 4; 1 more with a river; an ocean square directly beside the centre
+  counts half (rounded up). Each adds weight x worth / 2 (rounded down), the weight being 9
+  directly beside the centre, 6 at its corners, 4 two away in a line, 3 a knight's move
+  away and 4 for the centre itself. The sum is halved with no open sea beside the site and
+  halved on hills, then divided by 10; never over 15.
+- **A settler's reckoning** of a site is 4 x its rating, and nothing where the rating is 0,
+  on mountains, away from the open sea, or where no colony may be founded.
+  - *Colonies.* By the nearest colony of all, d squares off: nothing at 1; if it is the
+    power's own, nothing at 2 and (9 - d) squared less under 9; if a rival's, 20 less at 2 and
+    (7 - d) squared less under 7, or (5 - d) squared under 5 on land where the power has no
+    colony.
+  - *Natives.* By the nearest native settlement, d squares off, counted 1 further when the
+    power has no colony on the settlement's landmass: under 6, less half a measure, and a
+    whole measure more at 4 or nearer, 2 more at 3, 4 more at 2, 8 more at 1. A measure is
+    2 x (the tribe's level + its alarm level toward the power + 3), halved for a settlement
+    on another landmass. The whole is doubled for a capital, halved for the French, quartered
+    for the Spanish, and halved with Pocahontas.
+  - *A good site,* rated 4 or more, is worth half again on land where the power has no colony,
+    and then double. Never below 0.
+- **Choosing a site** by its reckoning and its distance, and the first-colony rules, are under
+  "Computer powers (R-802)".
+- **Scouts.** On land that is quiet (see "campaigns") a scout goes home. Otherwise it rides a
+  step at a time to the neighbouring land square it may enter that scores highest (the first,
+  from the north clockwise, on a tie): a throw of 1 to 8; + 2 from a river square to a river
+  square in a straight line, else + 1 from a road (or a colony) to a road (or a colony), else
+  less 3 x the ground's movement cost; looking 4 squares on in that direction, + 8 if that is
+  land with no unit or colony of the power's within 2 squares, + 2 for each land square around
+  it the power has not seen and - 2 for each square around it with a unit on it. It speaks
+  with a chief only where nobody's scout has yet spoken with him (see "missions").
+- **Pioneers in the field.** A pioneer away from the power's colonies who is not to found
+  one goes home on quiet land. Otherwise he lays a road where he stands, unless the nearest
+  native settlement is within its people's land (1 square, 2 for the third level of
+  advancement, 3 for the fourth) and their alarm toward the power is under 75, or the nearest
+  colony of all is a rival's less than 3 squares off. Where he lays none he goes home, or
+  founds where he stands if the power has no colony.
 - A colonist with no colony to join who stands in a colony is made a pioneer, given tools for
   one job (20) at no cost; elsewhere he founds. A pioneer for whom the test above fails waits
   in the colony, and boards a transport lying there when the land is settled and quiet or
@@ -1505,38 +1607,91 @@ human uses.
   free colonist from then on; a convert never. A colony with 102 horses that has 10 people or
   is at its cap of 8, and wants no colonists, sends out a scout instead.
 - Region states come from "Computer powers: campaigns"; strength there is summed attack values.
-- A scout rides to the nearest friendly village on its land that the power has not spoken
-  with, and otherwise home.
+- Where a scout then rides is under "Computer powers: founding and joining".
 - An unarmed brave's attack value of 1 falls to nothing at any distance.
-- Not built: a pioneer sent out one turn in four by a large quiet colony; a colony's decision
-  to turn on a native people.
+- Not built: a pioneer sent out one turn in four by a large quiet colony.
 
 ### Computer powers: upkeep of a colony
 
-What a computer power's colonies are given at the start of each turn (`AI_UPKEEP` in
-`src/engine/data/ai.ts`); none of it is open to a human.
+What a computer power's colonies are given or do by themselves at the start of each turn
+(`AI_UPKEEP` and `AI_NATIVE_WAR` in `src/engine/data/ai.ts`); none of it is open to a human.
 
-- **Tools.** With under 20 tools, and ground to improve or on every tenth turn, the colony
+- **Work for tools.** A colony has work for tools when it is to clear forest, or when a
+  colonist works a land square that has no road, or no plow where it is flat, open and not
+  arctic. It is to clear forest when more than one of its eight squares is forest and either
+  7 or more of them count as poor, or its good farm squares are fewer than (people + 3) / 4
+  and some forest would be good farmland cleared. Good farmland is open land yielding 3 food
+  or more by the terrain table; each water square counts as one good square too. Poor: open
+  land yielding under 2 and every forest count 1, water 2, a square off the map 1.
+- **Tools.** With under 20 tools, and work for tools or on every tenth turn, the colony
   buys 20 at their price level each, if the treasury can pay.
-- **Land.** With 20 tools, on turns not divisible by 7, one square of its ground is improved
-  and the tools used up, once it has waited as many turns since the last time as the work
-  takes plus 2 (plus 2 more for clearing forest). A square a colonist works comes first: the
-  plow where he raises a crop, a road otherwise. Forest is cleared only when the colony has
-  fewer open farm squares than a quarter of its people and more than one forest.
+- **Land.** With 20 tools and work for them, on turns not divisible by 7, the best of its
+  squares is improved and the 20 tools used up, once the colony has waited long enough.
+  - *The square* is the highest-scoring land square of the eight (the first on a tie), leaving
+    out those another European power has claimed and those with both road and plow. Its score
+    is its resource's AI value, or else its terrain's; doubled for a forest when the colony is
+    to clear forest; otherwise doubled when a colonist works it without the fitting
+    improvement (the plow for food, sugar, tobacco and cotton, a road for anything else).
+  - *Native ground* scores less by (4 - the tribe's alarm toward the power), that figure
+    doubled on a resource; doubled again, on a landmass with native settlements, for a colony
+    no wagon train serves, which takes such ground only when it is to clear forest; then
+    doubled with under 2,000 gold in the treasury and halved with more.
+  - *Never beside a human's.* If a unit or colony of a human's stands next to the square
+    chosen, nothing is done that turn, unless a unit of the power's own stands on it.
+  - *The job:* clearing, for a forest when the colony is to clear forest; for a square worked
+    for a crop and not plowed, clearing if it is forest and the plow if it can be plowed; for
+    a square worked for anything else with no road, a road; for a square nobody works, the plow
+    on flat open land (plains, grassland, prairie, savannah, marsh, swamp) and a road
+    elsewhere. If that is done already nothing is done.
+  - *The wait* is the terrain's improvement number + 2, and 2 more for clearing forest when
+    the colony is to clear forest. The colony counts the turns since work was last done for it
+    (127 at most); land work, a stretch of road and the school all start the count again.
+- **Roads between colonies.** On every seventh turn, instead, a colony with 20 tools may lay
+  a stretch of road toward a sister colony: another of the power's colonies on its landmass
+  less than 7 squares off east-west or north-south, each in turn having one chance in the
+  number of the others. The road goes on the first square without one on the straight way
+  there (diagonally, then along), short of any water. A square with a foreign unit on it is
+  passed over for the next sister. The first sister with a square decides: the road is laid,
+  for 20 tools, if the colony has waited that terrain's improvement number + 2, and otherwise
+  nothing is done that turn.
 - **Carpenters.** A servant or criminal at the carpenter's bench becomes a free colonist; in a
   colony of 6 or more an unskilled carpenter becomes a master one turn in (17 - level).
-- **School.** A colony with a schoolhouse, after 4 turns' wait for each level of it (the third
-  counting twice), makes one colonist chosen at random the expert of the trade he is working.
-  The wait is the same count as the land's.
-- **Training.** A colony short of food (as for docks under "the colony"), while the tax rate is
-  25 or less, pays the fee to make its last unskilled colonist an expert fisherman (with docks)
-  or farmer, if it has none.
+- **School.** A colony with a schoolhouse that has waited 4 turns (a college 8, a university
+  16; the count is the land's) makes one colonist an expert. The pupil is chosen at random,
+  never a convert, nor an expert who is working his own trade or standing idle. His new trade
+  is found so:
+  1. For each of these workshops, in this order, where the colony makes the stuff it works
+     and has no master of it: the armory (tools; any level), and at the second level or
+     above the blacksmith's (ore), fur trader's (furs), distiller's (sugar), tobacconist's
+     (tobacco) and weaver's (cotton). The pupil gets the trade at the same place in this
+     list: expert farmer, master sugar planter, master tobacco planter, master cotton planter,
+     expert fur trapper, expert lumberjack. The last workshop that applies decides.
+  2. In a colony of under 10 with no more expert farmers and fishermen than it has people
+     farming or fishing: expert fisherman while it has fewer of them than water squares,
+     else expert farmer.
+  3. The trade he is working, if there is an expert of it; if not he learns nothing, and the
+     count starts again all the same.
+- **Training.** A colony short of food (as for docks under "the colony", but counting the
+  food in store with what it grows) and not building docks, while the tax rate is 25 or less and
+  the treasury holds an expert farmer's training price, makes its last unskilled colonist
+  (never a convert) an expert fisherman if it has docks and no such expert, else an expert
+  farmer if it has none of those. The fee is the training price of the trade that stands at
+  the pupil's place (his place among the colony's people) in the list of trades; where that
+  trade has no price, or the list is shorter, no fee is paid and one gold piece comes back.
+  A fee the treasury cannot meet is not paid and nobody is trained. Each one trained raises
+  the power's tax rate by 1, up to 75.
 - **Horses.** From turn 40 a colony with fewer than 2 horses and a ship or wagon in it has
   them made up to 2 for 10 gold.
-- Native land is never improved this way.
-- Training asks only the fee; there is no further test of the treasury.
-- Not built: a school first looking for a farmer or fisherman for a hungry colony, or for a
-  trade the colony has a building for and no expert in.
+- **Turning on a native people.** Each colony looks to the people of the native settlement
+  nearest it on its landmass, and its power makes up its mind to fight them (see "Computer
+  powers: campaigns") when all of these hold: no rival European colony or land unit is on
+  that landmass; the power's field strength there is 2 or more; the people's whole strength
+  is no more than twice the power's whole strength; their strength on that landmass is under
+  4 times its field strength; and their alarm toward the power is above 25. Strength is 8 x
+  the defence of the power's land units, or 8 x the attack of the people's braves; field
+  strength counts only units on that landmass not standing in a colony; all but the power's
+  whole strength stop at 255. The Spanish need neither the absence of rivals nor the alarm,
+  and dare twice as much on both counts of strength.
 
 ### Computer powers: supplies by ship
 
@@ -1544,9 +1699,10 @@ Numbers are `AI_SUPPLY` in `src/engine/data/ai.ts`.
 
 - **A colony asks** for one good, the last of these that applies, and only one it holds less
   of than its warehouse takes and does not make: muskets under 50 x (its leader's aggression +
-  2); trade goods as under "wagon trains"; horses under 50; tools under 20 with ground to
-  improve; and muskets again, before all but tools, with under 50 while it is short of
-  defenders (before tools too while the defenders wanted are not all standing in it).
+  2); trade goods as under "wagon trains"; horses under 50; tools under 20 with work for
+  tools (see "upkeep of a colony"); and muskets again, before all but tools, with under 50
+  while it is short of defenders (before tools too while the defenders wanted are not all
+  standing in it).
 - **A power's want** of a good is the number of its colonies asking for it, muskets counting
   twice; and once more for every colony with no muskets, with no horses, with no tools.
 - **In port** a ship of the power's puts everything in her hold ashore.
@@ -1575,7 +1731,11 @@ fleet test of "the treasury and the fleet".
    on one throw in 2 (3 for a skilled man) while the power wants muskets, or from turn 100 on
    one in 3 (4) while it wants colonies, if not short and it can pay; he takes a horse too if
    it can pay for that. Muskets and horses come free from the reserve while it holds a kit
-   (one lot; 50 horses), and are bought at the ask otherwise. Else a pioneer: on one throw in 3 while it wants more colonies than it
+   (one lot; 50 horses), and are bought at the ask otherwise. A skilled man who is armed
+   leaves his trade in the first pool slot that holds an unskilled man and takes that one's
+   place in life; with no such slot he becomes a free colonist. A power with a college in
+   any of its colonies finds the man it arms a veteran soldier on one chance in (its soldiers
+   and dragoons + 1). Else a pioneer: on one throw in 3 while it wants more colonies than it
    has pioneers and none waits already (a skilled man on one in 5 besides; from turn 100 only
    with fewer pioneers than a throw of 0 to 2). Arming one counts one off the muskets wanted,
    and after any fitting-out no more colonies count as wanted that turn. Missionaries as under
@@ -1583,8 +1743,11 @@ fleet test of "the treasury and the fleet".
 4. **Dragoons.** With an armed man waiting, not short, not on a cargo turn, before the
    Declaration: recruits are paid for one after another and armed and mounted, while the docks
    hold fewer than its largest ship carries and the gold lasts. Their fare is by half the
-   level, and from turn 100 a tenth less for each level. With no gun on the docks and a
-   largest ship of 6 holds, from turn 40, a piece of artillery is bought as well.
+   level, and from turn 100 a tenth less for each level. While an armed man already waits,
+   from turn 100 the muskets and horses bought for another cost a tenth less for each level,
+   and at any time a horse is found for him at no cost if the treasury cannot pay for it.
+   With no gun on the docks and a largest ship of 6 holds, from turn 40, a piece of artillery
+   is bought as well.
 5. **Goods.** Each ship, while she has a hold free, the power is not short and has a colony,
    buys a lot of 100 of each good in turn, muskets first and food last, that at least as many
    colonies want as there are people on the docks (one more on odd turns), which with empty
@@ -1598,10 +1761,11 @@ fleet test of "the treasury and the fleet".
   each turn, a lot for 50 horses, to within one lot of each other.
 - Which fare applies is told by whether an armed man stands on the docks. The gun is bought at
   the engine's price.
+- *Guns owed.* Each piece of artillery one of its colonies builds earns a computer power one
+  piece in Europe at no cost: while it is owed one, the price of artillery is 0, and a gun so
+  had does not raise the price of the next.
 - A lot of goods is bought only when the power can pay its price.
-- Not built: mounting a drafted dragoon the power cannot pay for; a discount on those muskets
-  and horses; a credit toward artillery for a colony that builds a gun; an artillery price of
-  (10 - level) x 100; veterans made by a power with a college.
+- Not built: an artillery price of (10 - level) x 100.
 
 ### Computer powers: freight
 
@@ -1621,7 +1785,7 @@ Numbers are `AI_FREIGHT` and `AI_RESERVE` in `src/engine/data/ai.ts`.
   frigate and 1 for each privateer, are under 4. A privateer only as under "warships and
   privateers".
 - **Fetching.** A port is worth a call when a good she would load stands at 75 or more, or a
-  unit waits for passage there: a pioneer, where the colony has no ground left to improve
+  unit waits for passage there: a pioneer, where the colony has no work for tools
   (800), or a troop beyond the garrison on land that is well settled and quiet (1,500). Its
   value is those and price level x what she would load of each good; an empty ship goes to the
   port with the highest value / (distance / 4 + 1), never the one she lies in; a ship that may
@@ -1631,7 +1795,11 @@ Numbers are `AI_FREIGHT` and `AI_RESERVE` in `src/engine/data/ai.ts`.
   with produce aboard, when she is full or has more than one hold of it; and with nothing to
   fetch, if she is the *Europe ship* (the first merchantman of a power with two merchantmen or
   galleons, else the first of two caravels) or on one turn in 32. Otherwise she stays.
-- A computer colony with a Custom House also exports the set list of R-802 down to 50.
+- **Custom House.** After the overflow, a computer colony with a Custom House sells every
+  good of which it holds 100 or more down to 50, at the bid and taxed as under "Custom
+  House", except food, lumber, horses, tools and muskets; ore too is kept by a colony that
+  has an armory or makes tools or muskets. The export flags are not consulted, and a warship
+  near by stops nothing.
 - A ship's "one turn in 32" goes by her id.
 - Not built: adding the turns since a ship last called to a port's value; the wait of small
   ships in a blockaded port.

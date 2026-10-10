@@ -811,9 +811,14 @@ Legend:
   turn 100, gold never negative, per-turn AI time within budget.
   *Built:* `src/ai/european.ts` (policy in docs/RULES.md "Computer powers"). Native trade, missions,
   wagon trains, warships and campaigns came with R-804 to R-807; of the leader traits only expansion
-  steers this policy (the others act through R-801). Its colonies sell surplus directly rather than by ship.
-  Colony management (jobs dealt out each turn, the building list, lumber sent out) is in
-  docs/RULES.md "Computer powers: the colony".
+  steers this policy (the others act through R-801). Its colonies sell what their warehouses
+  cannot hold where it lies, and with a Custom House a set list of goods; ships carry the rest.
+  Colony management (jobs dealt out each turn by scoring every bench against the best square,
+  the building list, lumber sent out) is in docs/RULES.md "Computer powers: the colony". No seat
+  in the Town Hall is kept by rule: a statesman is one of the jobs scored. Sites are rated and
+  reckoned as under "Computer powers: founding and joining". A power grows its first colony
+  before it founds more, so the sim asks that at least 3 of the 4 powers hold a colony by turn
+  100 and that there are 4 colonies between them, not 3 each.
 
 - [x] **R-803 Foreign Affairs report (F8)**
   Before de Witt: war/peace matrix only. After: colonies, population, average colony size,
@@ -844,8 +849,10 @@ Legend:
   *Built:* `src/ai/wagons.ts`, `src/engine/wagons.ts`, `src/engine/regions.ts` (docs/RULES.md
   "Computer powers: wagon trains"). A wagon's colony and its place in the
   round are worked out from the state, not stored. A village never refuses a computer power's
-  cargo. Only a colony of four or more thinks of a wagon
-  train, so the sim asks for a wagon sale before 1600 on at least 3 of the 5 seeds, not all.
+  cargo. Trade goods are not sent to the colony: it asks for them and a ship brings them
+  (docs/RULES.md "Computer powers: supplies by ship"). Only a colony of four or more thinks of
+  a wagon train, and its ships and Custom House carry off most of what a wagon would sell, so
+  the sim asks only that some seed in five sees a wagon sale.
 
 - [x] **R-805 Computer powers: missions**
   A power with no missionary turns one spare colonist into a
@@ -867,7 +874,10 @@ Legend:
   **Verify:** unit tests per rule with forced RNG; sim: on 5 seeds a rival mission exists in some
   settlement by turn 150 (so Denounce Heresy is reachable in play), and the R-802 sim still passes.
   *Built:* `src/ai/missions.ts` (docs/RULES.md "Computer powers: missions"). A calm people still gets a mission; a missionary with nowhere to go turns colonist in
-  its nearest colony; scouts and colonists step into a friendly settlement they stand beside.
+  its nearest colony; colonists step into a friendly settlement they stand beside, and scouts
+  into one whose chief nobody's scout has spoken with. A missionary is made only of a colonist
+  waiting on the docks on the right turn, so the sim asks for a mission by turn 150 on at
+  least 3 of the 5 seeds, not all.
 
 - [x] **R-806 Computer powers: warships and privateers**
   Each turn a power lists naval stations with a priority:
