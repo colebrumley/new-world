@@ -1214,6 +1214,37 @@ they are started.
   The minimap's view box is now lined in ink, since white alone is lost on vellum. The four
   views as first drawn are in `docs/chart/`.
 
+- [x] **R-1012 Title frontispiece**
+  The title screen as a book's engraved frontispiece. "New World" is set large in the Fell face
+  in small caps with a rule beneath; the menu (`src/ui/title.ts`) is a list inside a cartouche on
+  parchment, with the difficulty control and its note on the same tokens; behind it all hangs a
+  painting of a caravel off a wooded coast in a dark wood frame. The painting is one 320 x 200
+  picture of our own (constraint C1), its source kept in `art/title/`, baked by
+  `scripts/bake-art.py` to the 32 colours of `PALETTE` in `src/ui/pixel-art.ts` and drawn to a
+  canvas enlarged by whole numbers with no smoothing, so it matches the map's look. Its data is a
+  chunk of its own, asked for after the title and menu are painted; the menu is usable before it
+  arrives.
+  - Title, menu, difficulty control and notice are styled as above on the R-1010 tokens; keyboard
+    focus and the disabled Load Game state remain visible.
+  - The painting renders behind the menu at every window size without stretching (letterboxed on
+    the wood), from palette colours only.
+  - The painting chunk loads after first paint; the entry script stays under 20 KB and the cold
+    load under 1.5 s.
+  - The Hall of Fame and Customize screens reached from the title keep the same frame.
+  **Verify:** `BUDGET=1 npm run test:e2e -- budget`; `npm run test:e2e -- shell`; `npm run check`;
+  a screenshot in the pull request.
+  *Built:* the title and menu sit on a `.cartouche` (parchment with scooped corners and an ink rule,
+  `src/ui/title.ts`; Customize uses the same sheet), styled in the section at the end of
+  `src/ui/style.css`. The painting was generated, redrawn in the map palette's colours, and baked by
+  a `painting()` step in `scripts/bake-art.py` into `src/ui/title-art.ts` (26 of the 32 colours,
+  rows of letters with run lengths). `src/app/shell.ts` hangs an empty `canvas.frontispiece` beside
+  the game's element and asks for `src/ui/frontispiece.ts` a frame and a task after the title is
+  up; `paintingScale` leaves at least 8 px of wood on every side, so the picture is three times its
+  size at 1024x640 and at 1280x800. A report opened from the title (the Hall of Fame) is a sheet in
+  the same frame, and the menu steps aside for it. `scripts/shrink-art.py` now cuts colours with an
+  octree, which keeps a small patch of strong colour that the median cut lost. The entry script is
+  2.6 KB gzipped and the painting's chunk 6.7 KB. Pictures are in `docs/theme/`.
+
 ---
 
 ## Appendix A — Terrain
