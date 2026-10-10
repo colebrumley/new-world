@@ -122,6 +122,7 @@ export function colonyProduction(state: GameState, colony: Colony): ProductionRe
     const def = TRADES[trade];
     if (!def.output) continue;
     const level = chainLevel(colony.buildings, def.chain);
+    if (level === 0) continue; // no building, no work: anyone still assigned (their building burned) makes nothing
     for (const c of workersIn(colony, trade)) potential[def.output] += indoorOutput(trade, c.profession, { level, sol, hasPenn });
   }
 

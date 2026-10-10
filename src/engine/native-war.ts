@@ -7,10 +7,11 @@ import { addGoods, amountOf, equipmentOf } from './cargo';
 import { coloniesOf } from './colony';
 import { promoteWinner, unitBeaten, type BattleEvent } from './battle';
 import { combatOdds, pickDefender, rollCombat, type Fighter } from './combat';
-import { BUILDING_CHAINS, type BuildingId } from './data/buildings';
+import { BUILDING_CHAINS, chainLevel, type BuildingId } from './data/buildings';
 import { BRAVE_WITH_HORSES, BRAVE_WITH_MUSKETS, COMBAT } from './data/combat';
 import { GOOD_IDS, type GoodId } from './data/goods';
 import { NATIVE_WAR as W, RAID_SPARES, TREASURE } from './data/native-war';
+import { TRADES } from './data/production';
 import { NATIVES, TRIBES, type TribeId } from './data/tribes';
 import { UNIT_TYPES, type UnitTypeId } from './data/units';
 import { DIFFICULTIES } from './data/yields';
@@ -239,7 +240,11 @@ function raid(state: GameState, colony: Colony, tribe: TribeId, rng: Rng, events
     if (targets.length === 0) outcome = 'nothing';
     else {
       building = rng.pick(targets);
-      next = putColony(next, { ...colony, buildings: colony.buildings.filter((b) => b !== building) });
+      // those who worked in a chain that has lost its last building are left without a job
+      const buildings = colony.buildings.filter((b) => b !== building);
+      const colonists = colony.colonists.map((c) =>
+        c.job.kind === 'work' && chainLevel(buildings, TRADES[c.job.trade].chain) === 0 ? { ...c, job: { kind: 'idle' as const } } : c);
+      next = putColony(next, { ...colony, buildings, colonists });
     }
   } else if (outcome === 'ship') {
     const ship = Object.values(state.units).find((u) => u.x === colony.x && u.y === colony.y && u.owner === colony.owner && u.voyage === null && UNIT_TYPES[u.type].domain === 'sea' && u.repair === 0);
