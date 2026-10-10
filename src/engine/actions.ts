@@ -41,7 +41,7 @@ import { UNIT_TYPES, type UnitTypeId } from './data/units';
 import { GOOD_IDS, type GoodId } from './data/goods';
 import { assignJob, checkAssign, type JobErrorCode } from './jobs';
 import { heldByBlockade } from './computer';
-import { EUROPE_BOUND, advanceGoto, boundForEurope, executeMove, isShipUnit, laneFor, planMove, turnMoves, routeFor, type MoveChoices, type MoveErrorCode, type MoveEvent } from './movement';
+import { EUROPE_BOUND, advanceGoto, boundForEurope, executeMove, isShipUnit, laneFor, planMove, sailWatched, turnMoves, routeFor, type MoveChoices, type MoveErrorCode, type MoveEvent } from './movement';
 import {
   bidPrice, buyGoods, checkBuyGoods, checkPayBackTaxes, checkSellGoods, evaluateMarket, payBackTaxes, sellGoods,
   type MarketErrorCode, type MarketEvent,
@@ -678,7 +678,7 @@ function unitPhase(state: GameState, playerId: PlayerId, events: GameEvent[]): G
   events.push(...grudges);
   const trade: TradeRouteEvent[] = [];
   for (const u of Object.values(next.units)) {
-    if (u.owner === playerId && u.orders === 'trade' && !u.voyage) next = runTradeRoute(next, u.id, trade);
+    if (u.owner === playerId && u.orders === 'trade' && !u.voyage) next = runTradeRoute(next, u.id, trade, patrolAndForts);
   }
   events.push(...trade);
   for (const u of Object.values(next.units)) {
@@ -694,7 +694,7 @@ function unitPhase(state: GameState, playerId: PlayerId, events: GameEvent[]): G
 
 /** Carry a Go To order on. A ship bound for Europe that lies on the Sea Lane with moves in hand sets sail. */
 function carryOn(state: GameState, unitId: UnitId): { state: GameState; events: GameEvent[] } {
-  const advanced = advanceGoto(state, unitId);
+  const advanced = advanceGoto(state, unitId, patrolAndForts);
   const ship = advanced.state.units[unitId];
   if (!ship || !boundForEurope(ship) || ship.movesLeft <= 0 || tileAt(advanced.state.map, ship.x, ship.y)?.base !== 'seaLane') return advanced;
   // Europe may have closed to us since the order was given
@@ -785,9 +785,8 @@ function applyCore(state: GameState, action: Action): ActionResult {
       const outcome = executeMove(fresh, unit.id, plan.plan);
       if (plan.plan.kind !== 'sail' || !outcome.moved) return { state: outcome.state, events: outcome.events };
       // a ship that has moved may be held up by warships and forts it passes
-      const held: NavalEvent[] = [];
-      const watched = patrolAndForts(outcome.state, unit.id, held);
-      return { state: watched, events: [...outcome.events, ...held] };
+      const events: (MoveEvent | NavalEvent)[] = [...outcome.events];
+      return { state: sailWatched(outcome.state, unit.id, patrolAndForts, events), events };
     }
     case 'buyGoods':
     case 'sellGoods': {
@@ -1002,7 +1001,7 @@ function applyCore(state: GameState, action: Action): ActionResult {
       const unit = state.units[action.unitId] as Unit;
       const ordered = replaceUnit(state, { ...unit, orders: 'trade', destination: null, workTurns: 0, route: { routeId: action.routeId, stop: action.stop ?? 0 } });
       const events: TradeRouteEvent[] = [];
-      const running = runTradeRoute(ordered, unit.id, events);
+      const running = runTradeRoute(ordered, unit.id, events, patrolAndForts);
       return { state: running, events: [{ type: 'ordersChanged', unitId: unit.id, orders: 'trade' }, ...events] };
     }
     case 'setConstruction': {
@@ -1033,7 +1032,7 @@ function applyCore(state: GameState, action: Action): ActionResult {
     case 'goTo': {
       const unit = state.units[action.unitId] as Unit;
       const ordered = replaceUnit(state, { ...unit, orders: 'goto', destination: [action.x, action.y], workTurns: 0, route: null });
-      const advanced = advanceGoto(ordered, unit.id);
+      const advanced = advanceGoto(ordered, unit.id, patrolAndForts);
       return { state: advanced.state, events: [{ type: 'ordersChanged', unitId: unit.id, orders: 'goto' }, ...advanced.events] };
     }
     case 'goToEurope': {

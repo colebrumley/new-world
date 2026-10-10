@@ -4,7 +4,8 @@ import { amountOf, loadCargo, roomFor, unloadCargo } from './cargo';
 import { GOOD_IDS, type GoodId } from './data/goods';
 import { TRADE_ROUTES } from './data/trade-routes';
 import { UNIT_TYPES } from './data/units';
-import { executeMove, isShipUnit, planMove, routeFor, type MoveEvent } from './movement';
+import { executeMove, isShipUnit, planMove, routeFor, sailWatched, type MoveEvent, type SailWatch } from './movement';
+import type { NavalEvent } from './naval';
 import { colonyAt, type Colony, type GameState, type PlayerId, type RouteStop, type TradeRoute, type Unit, type UnitId } from './state';
 
 export type TradeRouteErrorCode = 'tooManyRoutes' | 'badRoute' | 'noSuchRoute' | 'notCarrier' | 'wrongKindOfRoute';
@@ -12,6 +13,7 @@ export type TradeRouteCheck = { readonly ok: true } | { readonly ok: false; read
 
 export type TradeRouteEvent =
   | MoveEvent
+  | NavalEvent
   | { readonly type: 'routeTraded'; readonly unitId: UnitId; readonly colonyId: string; readonly unloaded: Partial<Record<GoodId, number>>; readonly loaded: Partial<Record<GoodId, number>> }
   | { readonly type: 'routeEnded'; readonly unitId: UnitId };
 
@@ -93,9 +95,10 @@ function put(state: GameState, unit: Unit): GameState {
 
 /**
  * Carry a unit on with its trade route for this turn: trade if it is standing in the stop it
- * was making for, then set out for the next, as far as its movement goes.
+ * was making for, then set out for the next, as far as its movement goes. A ship's steps are
+ * watched for the zone of patrol and forts, as a Go To ship's are.
  */
-export function runTradeRoute(state: GameState, unitId: UnitId, events: TradeRouteEvent[]): GameState {
+export function runTradeRoute(state: GameState, unitId: UnitId, events: TradeRouteEvent[], watch: SailWatch): GameState {
   let next = state;
   for (let guard = 0; guard < 80; guard++) {
     const unit = next.units[unitId];
@@ -132,6 +135,7 @@ export function runTradeRoute(state: GameState, unitId: UnitId, events: TradeRou
     next = outcome.state;
     events.push(...outcome.events);
     if (!outcome.moved) break;
+    if (check.plan.kind === 'sail') next = sailWatched(next, unitId, watch, events);
   }
   return next;
 }
