@@ -6,7 +6,7 @@
 // whether each earlier finding is resolved and whether the fixes broke anything. A branch gets
 // those two runs and no third.
 // When the branch has an open pull request, CodeRabbit (a GitHub app) is asked to read it too, once
-// with the first run and, if it has not approved, once more with the second. Its open comments and
+// with the first run and once more with the second, to read the fixes. Its open comments and
 // its verdict (approved or changes requested) are printed under the Codex findings so both are
 // read together. A rate limit or silence is reported; the exit code stays the Codex verdict's.
 //   npm run review                  this branch against origin/main
@@ -43,8 +43,8 @@ if (codex.error) {
 
 // CodeRabbit. Its automatic reviews are off (.coderabbit.yaml); it reads a pull request when a
 // comment asks, and approves it or requests changes. It is asked at most twice, in step with the
-// two Codex runs: once for the whole pull request, and once for the fix commits if it has not
-// approved by then. The asking comments are the record of how often it has been asked.
+// two Codex runs: once for the whole pull request, and once for the fix commits. The asking
+// comments are the record of how often it has been asked.
 const BOT = /^coderabbitai/;
 const ASK = '@coderabbitai review';
 const WAIT_FOR_SIGN = 3 * 60 * 1000;
@@ -88,7 +88,8 @@ function rabbitAsk(second) {
     return { skip: 'no open pull request for this branch; push and open it before the review so CodeRabbit reads it too' };
   }
   const now = rabbitActivity(pr, 0);
-  const due = now.asks === 0 || (second && now.asks === 1 && now.verdict !== 'APPROVED');
+  // The second ask is made even after an approval: that approval was of the commits before the fixes.
+  const due = now.asks === 0 || (second && now.asks === 1);
   if (!due) return { pr, since: 0 };
   if (pr.headRefOid !== git('rev-parse', 'HEAD')) {
     return { pr, since: 0, note: 'the pull request is behind this branch, so CodeRabbit was not asked; push first' };
@@ -189,8 +190,11 @@ if (earlier.length >= 2) {
   console.error('review: this branch has had its two reviews; leave what is open under Open findings in the pull request (--full reads the whole branch again)');
   process.exit(2);
 }
-// A run to narrow from is one that read an earlier commit; a repeat at the same commit reads it all again.
-const last = earlier.filter((r) => !r.atTip).at(-1);
+if (earlier.some((r) => r.atTip)) {
+  console.error('review: this commit has already been reviewed; commit your fixes before reviewing again');
+  process.exit(2);
+}
+const last = earlier.at(-1);
 
 const answerForm = `Answer in exactly this form and nothing else after it:
 
