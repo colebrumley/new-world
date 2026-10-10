@@ -11,7 +11,8 @@ test('game options and colony report options are remembered across a reload', as
   await start(page);
   await page.keyboard.press('Alt+G');
   const game = page.getByRole('dialog', { name: 'Game Options' });
-  await expect(game.getByRole('checkbox')).toHaveCount(8);
+  await expect(game.getByRole('checkbox')).toHaveCount(9);
+  await expect(game.getByLabel('Terrain tooltips')).toBeChecked();
   await expect(game.getByLabel('Combat analysis')).toBeChecked();
   await expect(game.getByLabel('Fast piece slide')).not.toBeChecked();
   await game.getByLabel('Combat analysis').uncheck();
