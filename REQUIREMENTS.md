@@ -1273,6 +1273,31 @@ they are started.
   **Verify:** `npm run test:e2e -- colony`; `npm test -- test/unit/ui`; `npm run check`;
   screenshots of a one-colonist and a large colony in the pull request.
 
+- [~] **R-1016 Portraits**
+  Depends on R-1010 (theme tokens) and R-1015 (parchment reports with a seal and a portrait slot
+  at the head of each). Engraved-style head-and-shoulders portraits from the sprite pipeline
+  (`scripts/bake-art.py`, sources in `art/portraits/`; our own pictures, constraint C1): 64 x 64
+  art pixels on the 32 px grid, baked to the 32 colours of `PALETTE` in `src/ui/pixel-art.ts` and
+  no others as `src/ui/portrait-art.ts`, drawn enlarged by whole numbers with no smoothing. One
+  for each of the four advisers (one per report module in `src/ui/reports/`: advisers, congress,
+  foreign, score; each wears the colour of the wax R-1015 seals its report with), the King for
+  the tax and royal dialogs (`src/engine/data/royal.ts`, `tax.ts`), and one for each of the 25
+  founding fathers in `src/engine/data/fathers.ts`. Every face is invented, in period dress: none
+  is a likeness of a historical person, whatever name the seat it fills goes by. The folder
+  shares one palette, so the portraits read as one set.
+  - Each report shows its adviser's portrait beside the seal in the slot R-1015 left; the
+    tax-raise and other Crown dialogs show the King; the Continental Congress report and the
+    father-choice dialog show each father's portrait by name, and the encyclopedia page for a
+    father shows it too.
+  - Portrait data loads with the game chunk or lazily, and `scripts/check-size.mjs` (400 KB
+    gzipped JS) still passes; if the full set does not fit, the fathers go into their own lazily
+    imported chunk.
+  - Portraits are palette colours only, scaled by whole numbers; a unit test pins that every
+    portrait is 64 x 64 and in palette.
+  - The structural snapshots in `test/e2e/__snapshots__/reports.spec.ts` are unchanged in content.
+  **Verify:** `npm test -- test/unit/ui`; `npm run test:e2e -- reports`; `npm run check`; a
+  contact sheet of all portraits in the pull request.
+
 ---
 
 ## Appendix A — Terrain
