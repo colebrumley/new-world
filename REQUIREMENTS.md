@@ -997,7 +997,8 @@ Legend:
   Over the map a pinch zooms the map about the fingers: Ctrl+wheel with a shorter step
   (`PINCH_STEP`), Safari's gesture events and two fingers on a touch screen (`pinchTravel`; the
   canvas sets `touch-action: none`). The browser's zoom keys, Ctrl/Cmd with plus or minus, zoom the
-  map while it has the keyboard; with Ctrl or Cmd held no other key is a map command.
+  map while it has the keyboard; with Ctrl or Cmd held no other key is a map command or a move.
+  Where Safari tells of a touch-screen pinch in gestures and touches both, the touches are heard.
   Later: the pointer's shape says what a click will do (`mapCursor`): an arrow the way the active
   unit would step, a hand on a colony that would open or a unit that would be picked. A colony or
   unit of ours beside the active unit is stepped onto by a click on the part of its square nearest
