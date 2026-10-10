@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeTile } from '../../../src/engine/tile';
-import { groundFeatures, tileTip } from '../../../src/ui/tile-tooltip';
+import { groundFeatures, placeTooltip, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_GAP } from '../../../src/ui/tile-tooltip';
 import { setTile, world } from '../../helpers/world';
 
 const land = () => world({ rows: ['.....', '.....', '.....'] });
@@ -63,5 +63,45 @@ describe('groundFeatures', () => {
     expect(groundFeatures(makeTile({ base: 'plains', resource: 'wheat', river: 'minor', road: true, plowed: true, rumor: true })))
       .toEqual(['Minor River', 'Road', 'Plowed', 'Wheat', 'Lost City Rumor']);
     expect(groundFeatures(makeTile({ base: 'plains' }))).toEqual([]);
+  });
+});
+
+describe('placeTooltip', () => {
+  const slip = { width: 120, height: 60 };
+  const canvas = { width: 800, height: 600 };
+
+  it('waits 400 ms and stands 14 pixels off the pointer', () => {
+    expect(TOOLTIP_DELAY_MS).toBe(400);
+    expect(TOOLTIP_GAP).toBe(14);
+  });
+
+  it('puts the slip right of and below the pointer where there is room', () => {
+    expect(placeTooltip({ x: 5, y: 5 }, slip, canvas)).toEqual({ x: 19, y: 19 }); // top left corner
+    expect(placeTooltip({ x: 400, y: 300 }, slip, canvas)).toEqual({ x: 414, y: 314 });
+    // it may touch the edges without turning over
+    expect(placeTooltip({ x: 666, y: 526 }, slip, canvas)).toEqual({ x: 680, y: 540 });
+  });
+
+  it('turns to the left of the pointer at the right edge', () => {
+    expect(placeTooltip({ x: 795, y: 5 }, slip, canvas)).toEqual({ x: 661, y: 19 }); // top right corner
+    expect(placeTooltip({ x: 667, y: 300 }, slip, canvas)).toEqual({ x: 533, y: 314 });
+  });
+
+  it('turns above the pointer at the bottom edge', () => {
+    expect(placeTooltip({ x: 5, y: 595 }, slip, canvas)).toEqual({ x: 19, y: 521 }); // bottom left corner
+    expect(placeTooltip({ x: 400, y: 527 }, slip, canvas)).toEqual({ x: 414, y: 453 });
+  });
+
+  it('turns both ways in the bottom right corner', () => {
+    expect(placeTooltip({ x: 795, y: 595 }, slip, canvas)).toEqual({ x: 661, y: 521 });
+  });
+
+  it('is kept on the canvas when it fits on neither side', () => {
+    const small = { width: 150, height: 80 };
+    // no room right of the pointer, nor left of it: held at the left edge; the same down and up
+    expect(placeTooltip({ x: 100, y: 50 }, slip, small)).toEqual({ x: 0, y: 0 });
+    expect(placeTooltip({ x: 140, y: 75 }, slip, small)).toEqual({ x: 6, y: 1 });
+    // a slip larger than the canvas starts at its corner
+    expect(placeTooltip({ x: 10, y: 10 }, { width: 300, height: 200 }, small)).toEqual({ x: 0, y: 0 });
   });
 });
