@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, validateAction, type Action } from '../../../src/engine/actions';
 import { BUILDING_CHAINS, BUILDING_IDS, BUILDINGS, chainLevel } from '../../../src/engine/data/buildings';
+import { CROSSES } from '../../../src/engine/data/crosses';
 import { CONVERSION_ORDER, PRODUCTION, TRADE_IDS, TRADES, type TradeId } from '../../../src/engine/data/production';
 import { PROFESSION_IDS } from '../../../src/engine/data/professions';
 import { colonyProduction, colonyTurn, indoorOutput, tradeCapacity, type EconomyEvent } from '../../../src/engine/economy';
@@ -234,6 +235,22 @@ describe('who may work where', () => {
     expect(code(three, { type: 'assignJob', colonyId: 'col', colonistId: first, job: { kind: 'work', trade: 'weaver' } })).toBe('ok'); // already there
     const moved = applyAction(three, { type: 'assignJob', colonyId: 'col', colonistId: 'x', job: { kind: 'work', trade: 'statesman' } }).state;
     expect(col(moved).colonists[3]?.job).toEqual({ kind: 'work', trade: 'statesman' });
+  });
+
+  it('a worker whose building is gone makes nothing and uses nothing', () => {
+    const gunsmith = town([worker('gunsmith', 'masterGunsmith')], { tools: 50 });
+    expect(report(gunsmith).potential.muskets).toBe(0);
+    expect(report(gunsmith).produced.muskets).toBe(0);
+    expect(report(gunsmith).consumed.tools).toBe(0);
+    expect(report(gunsmith).ranOut).toEqual([]);
+    expect(stock(turn(gunsmith).state)).toEqual({ tools: 50 });
+    const armed = town([worker('gunsmith')], { tools: 50 }, [...HOUSES, 'armory']);
+    expect(stock(turn(armed).state)).toEqual({ tools: 47, muskets: 3 });
+
+    const preacher = town([worker('preacher', 'firebrandPreacher')]);
+    expect(report(preacher).produced.crosses).toBe(CROSSES.perColony);
+    const church = town([worker('preacher')], {}, [...HOUSES, 'church']);
+    expect(report(church).produced.crosses).toBeGreaterThan(CROSSES.perColony + CROSSES.perChurchLevel);
   });
 
   it('teachers are limited by the school: 1, 2, 3', () => {

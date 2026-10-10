@@ -349,6 +349,21 @@ describe('a brave attacks a colony', () => {
     expect(['drydock', 'stable']).toContain(b);
     expect(burned.state.colonies['col']?.buildings).not.toContain(b);
     expect(burned.state.colonies['col']?.buildings).toContain('docks');
+    // a chain that loses its only building puts its workers out of a job; the others stay at theirs
+    const trades = ['preacher', 'gunsmith', 'statesman'] as const;
+    const staffed = (seed: number): GameState => {
+      const s = town({ seed, buildings: ['townHall', 'carpentersShop', 'church', 'armory'] });
+      const c = s.colonies['col']!;
+      return { ...s, colonies: { ...s.colonies, col: { ...c, colonists: c.colonists.map((p, i) => ({ ...p, job: { kind: 'work' as const, trade: trades[i]! } })) } } };
+    };
+    const emptied = until(staffed, (x) => raidOf(x)?.outcome === 'building');
+    const lost = raidOf(emptied)!.building!;
+    expect(['church', 'armory']).toContain(lost);
+    expect(emptied.state.colonies['col']?.colonists.map((c) => c.job)).toEqual([
+      lost === 'church' ? { kind: 'idle' } : { kind: 'work', trade: 'preacher' },
+      lost === 'armory' ? { kind: 'idle' } : { kind: 'work', trade: 'gunsmith' },
+      { kind: 'work', trade: 'statesman' },
+    ]);
     const robbed = until((seed) => town({ seed, gold: 5000 }), (x) => raidOf(x)?.outcome === 'gold');
     const taken = raidOf(robbed)!.amount;
     expect(taken).toBeGreaterThanOrEqual(50);
