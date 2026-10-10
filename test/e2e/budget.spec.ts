@@ -33,8 +33,12 @@ test('cold load: the title screen is up within 1.5 s on throttled Fast 3G', asyn
 /** A long game between four powers, topped up to forty colonies, on the human's turn. */
 function fortyColonies(): string {
   const options = { seed: 11, world: DEFAULT_WORLD, players: NATION_IDS.map((nation, i) => ({ id: nation, name: nation, kind: i === 0 ? ('human' as const) : ('ai' as const), nation })) };
-  let state: GameState = createGame(options);
-  while (state.turn < 200 || state.current !== 0) state = playTurn(state).state;
+  // all four are played as computer powers (a human's seat played by the policy has none of their upkeep and may lose
+  // its last colony, which ends the game); the first seat is handed to a human once the two hundred turns are up
+  let state: GameState = createGame({ ...options, players: options.players.map((p) => ({ ...p, kind: 'ai' as const })) });
+  while ((state.turn < 200 || state.current !== 0) && !state.over) state = playTurn(state).state;
+  if (state.over) throw new Error(`the game ended on turn ${state.turn}`);
+  state = { ...state, players: state.players.map((p, i) => (i === 0 ? { ...p, kind: 'human' as const } : p)) };
   // the computer powers stop at eight colonies each: found more by decree until there are forty
   const taken = (x: number, y: number): boolean =>
     Object.values(state.colonies).some((c) => Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) <= 2)
