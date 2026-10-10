@@ -4,7 +4,14 @@ import { defineConfig, devices } from '@playwright/test';
 // several runs on one machine (other checkouts, other sessions in this one) never test each
 // other's build. The runner picks the port; its workers read the same one from the environment.
 const local = !process.env['CI'];
-const port = Number((process.env['PW_PORT'] ??= String(4200 + (process.pid % 2000))));
+// 20000-29999 holds none of the ports Chromium refuses to open (ERR_UNSAFE_PORT) and lies below the
+// range the system hands out for outgoing connections.
+const port = Number((process.env['PW_PORT'] ??= String(20000 + (process.pid % 10000))));
+/** Ports from 1024 up that Chromium will not navigate to (net/base/port_util.cc). */
+const UNSAFE_PORTS = [1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080];
+if (!Number.isInteger(port) || port < 1024 || port > 65535 || UNSAFE_PORTS.includes(port)) {
+  throw new Error(`PW_PORT=${process.env['PW_PORT']} cannot be used: give a whole number from 1024 to 65535 that Chromium will open`);
+}
 const outDir = `node_modules/.cache/new-world-e2e/${port}`;
 process.env['PW_OUT_DIR'] = outDir;
 

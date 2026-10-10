@@ -1,5 +1,5 @@
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { execFile, execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -34,6 +34,23 @@ describe('the board shared by every worktree', () => {
     expect(board(dir, join(tmpdir(), 'no-such-worktree-anywhere'), 'claim', 'R-805').ok).toBe(true);
     expect(board(dir, mkdtempSync(join(tmpdir(), 'wt-')), 'status').out).toContain('worktree gone');
     expect(board(dir, mkdtempSync(join(tmpdir(), 'wt-')), 'claim', 'R-805').ok).toBe(true);
+  });
+
+  it('gives a lapsed claim to exactly one of many sessions asking at once', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'board-'));
+    expect(board(dir, join(tmpdir(), 'no-such-worktree-anywhere'), 'claim', 'R-806').ok).toBe(true);
+    const worktrees = Array.from({ length: 8 }, () => mkdtempSync(join(tmpdir(), 'wt-')));
+    const won = await Promise.all(
+      worktrees.map(
+        (worktree) =>
+          new Promise<boolean>((done) => {
+            execFile('node', ['scripts/board.mjs', 'claim', 'R-806'], { env: { ...process.env, BOARD_DIR: dir, BOARD_WORKTREE: worktree } }, (error) => done(!error));
+          }),
+      ),
+    );
+    expect(won.filter(Boolean)).toHaveLength(1);
+    const holder = (JSON.parse(readFileSync(join(dir, 'claims', 'R-806.json'), 'utf8')) as { worktree: string }).worktree;
+    expect(holder).toBe(worktrees[won.indexOf(true)]);
   });
 
   it('shows claims and notes to everyone', () => {
