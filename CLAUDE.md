@@ -15,9 +15,12 @@ This repo is New World, a browser strategy game of founding colonies and leading
 4. **Implement** the smallest change that satisfies every acceptance bullet. Put rule numbers in
    `src/engine/data/*`, never inline. Write the tests named in the **Verify** line first or
    alongside; they are the definition of done.
-5. **Verify** with `npm run check` (lint, typecheck, unit tests, build). If the Verify line
-   names e2e or sim tests, also run `npm run test:e2e` / `SIM=1 npm test`. All previously
-   passing tests must still pass. Fix regressions before anything else.
+5. **Verify.** While you work, run only the tests for what you are touching:
+   `npm test -- test/unit/engine/colony/food.test.ts`, or `npm run test:e2e -- colony` for one
+   spec. Before the commit, run `npm run check` (lint, typecheck, unit tests, build) once. Run
+   `npm run test:e2e` only if the Verify line names e2e or you changed `src/ui` or `src/app`, and
+   `SIM=1 npm test` only if it names sim tests. All previously passing tests must still pass. Fix
+   regressions before anything else.
 6. **Record fidelity.** For every `[VERIFY]` value you implemented, add a row to
    `docs/FIDELITY.md` (value used, source, confidence). If unresolved, use the backlog value and
    move on.
@@ -38,6 +41,21 @@ This repo is New World, a browser strategy game of founding colonies and leading
 - Do not ask the user questions. Make the choice a careful engineer would make, write it in the
   commit body, and continue.
 
+## Sharing the machine
+
+Many sessions work on this repo at once, and the full suites are the main cost. Keep them rare.
+
+- Work in a git worktree of your own, never in a checkout another session is using.
+- Do not re-run a whole suite to look at one failure; re-run the one file or the one test.
+- A test that times out when the machine is busy and passes alone is not a regression. Check
+  `uptime` before chasing it, and do not raise timeouts or write a second Playwright config.
+- Each Playwright run builds and serves its own copy on its own port; never start a preview
+  server for tests by hand. The time budgets in `test/e2e/budget.spec.ts` run in CI, or with `BUDGET=1`.
+- The balance simulation (`SIM=1 npm test -- balance`) takes minutes of every core. Run it for
+  R-1009 only.
+- If a test command is killed or times out, run `npm run sweep` so its workers and browsers do
+  not go on running.
+
 ## Conventions
 
 - TypeScript strict, ESM, no default exports from engine modules, no classes in `GameState`.
@@ -53,6 +71,7 @@ This repo is New World, a browser strategy game of founding colonies and leading
 ```bash
 npm run check          # lint + typecheck + unit tests + build (must pass before every commit)
 npm run test:e2e       # playwright, chromium
+npm run sweep          # end test workers, browsers and servers left by a killed run
 SIM=1 npm test         # slow headless simulations
 npm run dev            # local dev server
 ```
