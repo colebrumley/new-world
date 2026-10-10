@@ -14,6 +14,7 @@ export function congressReport(state: GameState, playerId: PlayerId): Report {
   const cost = fatherCost(state, playerId);
   const rebels = rebelSentiment(state, playerId);
   const session: string[][] = [];
+  const seated = FATHER_CATEGORIES.flatMap((category) => player.fathers.filter((id) => FATHERS[id].category === category));
   if (player.atWar) session.push(['Independence is declared. The Congress seeks no more members; its bells now speak to the powers of Europe.']);
   else if (player.candidate) {
     const left = Math.max(0, cost - player.fatherBells);
@@ -29,10 +30,11 @@ export function congressReport(state: GameState, playerId: PlayerId): Report {
     sections: [
       {
         heading: `Members (${player.fathers.length} of 25)`,
-        rows: FATHER_CATEGORIES.flatMap((category) => player.fathers.filter((id) => FATHERS[id].category === category).map((id) => [FATHERS[id].name, FIELD[category], FATHERS[id].effect])),
+        rows: seated.map((id) => [FATHERS[id].name, FIELD[FATHERS[id].category], FATHERS[id].effect]),
+        portraits: seated,
         empty: 'No Founding Father has joined the Congress yet.',
       },
-      { heading: 'Next session', rows: session },
+      { heading: 'Next session', rows: session, portraits: [player.atWar ? null : player.candidate] },
       {
         heading: 'Rebel sentiment',
         rows: [

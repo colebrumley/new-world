@@ -20,6 +20,7 @@ import { playTurn } from '../ai/european';
 import { analyseAttack } from '../engine/analysis';
 import { alliancePrice } from '../engine/diplomacy';
 import { askCombat } from '../ui/combat-analysis';
+import { portraitCanvas } from '../ui/portraits';
 import { showReport, type Report } from '../ui/report';
 import { foreignAffairsReport } from '../ui/reports/foreign';
 import { scoreReport } from '../ui/reports/score';
@@ -372,7 +373,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
       const where = session.state.colonies[tax.colonyId]?.name ?? 'the colonies';
       const pick = await ask(screen, {
         text: `The Crown has raised the tax rate by ${tax.increase}%, to ${mine()?.taxRate}%. The people of ${where} talk of throwing their ${tax.good} into the harbor.`,
-        choices: ['Pay the new tax', `Hold a ${tax.good} party in ${where}`], escape: 0,
+        choices: ['Pay the new tax', `Hold a ${tax.good} party in ${where}`], escape: 0, picture: portraitCanvas('king', 2),
       });
       dispatch({ type: 'answerTax', party: pick === 1 });
     }
@@ -380,12 +381,12 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     for (let guard = 0; guard < 6 && (mine()?.fatherOffer.length ?? 0) > 0; guard++) {
       const names = mine()?.fatherOffer ?? [];
       const labels = names.map((id) => `${FATHERS[id].name} (${FATHERS[id].category}): ${FATHERS[id].effect}`);
-      const pick = await ask(screen, { text: 'Which Founding Father shall the Continental Congress next seek to seat?', choices: labels });
+      const pick = await ask(screen, { text: 'Which Founding Father shall the Continental Congress next seek to seat?', choices: labels, choicePictures: names.map((id) => portraitCanvas(id)) });
       const father = names[pick] ?? names[0];
       if (!father) break;
       const joined = stepSession(session, { type: 'chooseFather', father }).events.find((e) => e.type === 'fatherJoined');
       if (!dispatch({ type: 'chooseFather', father })) break;
-      if (joined && joined.type === 'fatherJoined') await ask(screen, { text: `${FATHERS[joined.father].name} has joined the Continental Congress. ${FATHERS[joined.father].effect}`, choices: ['Continue'], escape: 0 });
+      if (joined && joined.type === 'fatherJoined') await ask(screen, { text: `${FATHERS[joined.father].name} has joined the Continental Congress. ${FATHERS[joined.father].effect}`, choices: ['Continue'], escape: 0, picture: portraitCanvas(joined.father, 2) });
     }
     const offer = mine()?.pendingOffer;
     if (offer) {
@@ -394,7 +395,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
         : offer.kind === 'continentals'
           ? `The Crown of ${NATIONS[offer.from].name} will hire out trained troops for our cause: ${offer.army} Continental Army${offer.cavalry ? `, ${offer.cavalry} Continental Cavalry` : ''}${offer.artillery ? `, ${offer.artillery} artillery` : ''} for ${offer.price} gold, all or none.`
           : `The Crown of ${NATIONS[offer.from].name} offers mercenaries: ${offer.dragoons} veteran dragoons${offer.artillery ? ` and ${offer.artillery} artillery` : ''} for ${offer.price} gold, all or none.`;
-      const pick = await ask(screen, { text, choices: ['Decline', 'Accept'], escape: 0 });
+      const pick = await ask(screen, { text, choices: ['Decline', 'Accept'], escape: 0, picture: portraitCanvas('king', 2) });
       dispatch({ type: 'answerOffer', accept: pick === 1 });
     }
     for (let guard = 0; guard < 20 && (mine()?.demands.length ?? 0) > 0; guard++) {
@@ -1102,7 +1103,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
           say(check.error.code === 'tooTory' ? `We cannot declare yet: ${check.error.message}.` : 'Independence has already been declared.');
           return;
         }
-        const answer = await ask(screen, { text: 'Declare independence from the Crown? There is no going back: Europe will be closed to us, and the King will send his army.', choices: ['Not yet', 'Yes, declare independence'], escape: 0 });
+        const answer = await ask(screen, { text: 'Declare independence from the Crown? There is no going back: Europe will be closed to us, and the King will send his army.', choices: ['Not yet', 'Yes, declare independence'], escape: 0, picture: portraitCanvas('king', 2) });
         if (answer === 1) dispatch({ type: 'declareIndependence' });
         return;
       }

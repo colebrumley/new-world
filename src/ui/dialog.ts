@@ -8,6 +8,10 @@ export interface DialogOptions {
   readonly initial?: number;
   /** Choice taken on Escape; without it Escape does nothing. */
   readonly escape?: number;
+  /** A picture set beside the question: whoever is asking. */
+  readonly picture?: HTMLElement;
+  /** A picture for each choice, set before its words; null for a choice without one. */
+  readonly choicePictures?: readonly (HTMLElement | null)[];
 }
 
 /** Show the question over `host` and resolve with the index of the answer picked. */
@@ -22,12 +26,21 @@ export function ask(host: HTMLElement, options: DialogOptions): Promise<number> 
     box.setAttribute('aria-modal', 'true');
     const text = document.createElement('p');
     text.textContent = options.text;
+    if (options.picture) {
+      box.classList.add('dialog-pictured');
+      box.append(options.picture);
+    }
     box.append(text);
 
     const buttons = options.choices.map((label, index) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = label;
+      const picture = options.choicePictures?.[index];
+      if (picture) {
+        button.classList.add('pictured');
+        button.prepend(picture);
+      }
       button.addEventListener('click', () => finish(index));
       box.append(button);
       return button;

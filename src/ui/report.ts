@@ -1,8 +1,10 @@
 // A full-screen adviser's report: a title and sections of headed lines. Esc, Enter or the button
 // closes it. Each adviser builds its content as plain data (see ui/reports/*). It is laid out as a
 // page of parchment (R-1015): the adviser's wax seal and the title at its head, the adviser's
-// opening words under them, then the sections as ruled tables.
+// opening words under them, then the sections as ruled tables. The adviser's portrait stands in
+// the head too (R-1016), and a line may open with a portrait of whom it is about.
 import { drawSprite, sealArt } from './pixel-art';
+import { adviserFor, portraitCanvas, type PortraitId } from './portraits';
 import { reportHead } from './reports/heads';
 
 /** Screen pixels to one art pixel of the seal. */
@@ -18,6 +20,8 @@ export interface ReportSection {
   readonly empty?: string;
   /** For each row, the map square it is about (clicking the row goes there), or null. */
   readonly zoom?: readonly (readonly [number, number] | null)[];
+  /** For each row, whose portrait stands at its head (ui/portraits.ts), or null. */
+  readonly portraits?: readonly (PortraitId | null)[];
 }
 
 export interface Report {
@@ -37,7 +41,7 @@ export function showReport(host: HTMLElement, report: Report): Promise<readonly 
     root.setAttribute('aria-modal', 'true');
     root.setAttribute('aria-label', report.title);
     root.tabIndex = -1;
-    // the head of the page: the seal, the title, and a place kept beside them for the adviser's portrait
+    // the head of the page: the seal, the title, and the adviser's portrait beside them
     const about = reportHead(report.id);
     const head = document.createElement('div');
     head.className = 'report-head';
@@ -56,6 +60,8 @@ export function showReport(host: HTMLElement, report: Report): Promise<readonly 
     portrait.className = 'report-portrait';
     portrait.dataset['slot'] = 'portrait';
     portrait.setAttribute('aria-hidden', 'true');
+    // the adviser who writes this report, in a coat of the wax it is sealed with (R-1016)
+    portrait.append(portraitCanvas(adviserFor(report.id), 1, about.wax));
     head.append(seal, title, portrait);
     root.append(head);
     if (about.lead) {
@@ -101,11 +107,14 @@ export function showReport(host: HTMLElement, report: Report): Promise<readonly 
               finish(target);
             });
           }
+          const face = section.portraits?.[rowIndex] ?? null;
+          if (face) tr.classList.add('pictured');
           cells.forEach((cell, index) => {
             const td = document.createElement(index === 0 ? 'th' : 'td');
             if (index === 0) td.scope = 'row';
             if (cells.length === 1) td.colSpan = 4;
             td.textContent = cell;
+            if (face && index === 0) td.prepend(portraitCanvas(face));
             tr.append(td);
           });
           table.append(tr);

@@ -36,6 +36,11 @@ test('F3 opens the Continental Congress report', async ({ page }) => {
   })));
   expect(JSON.stringify(summary, null, 2)).toMatchSnapshot('congress-report.json');
 
+  // the adviser's portrait stands in the head beside the seal, and each father named has his own at the head of his line
+  await expect(report.locator('.report-head .report-portrait canvas[data-portrait="congress"]')).toBeVisible();
+  const faces = await report.evaluate((root) => [...root.querySelectorAll('.report-section tr')].map((tr) => [tr.querySelector('th')?.textContent, tr.querySelector<HTMLElement>('canvas.portrait')?.dataset['portrait'] ?? null]).filter(([, face]) => face));
+  expect(faces).toEqual([['Peter Minuit', 'peterMinuit'], ['Thomas Jefferson', 'thomasJefferson'], ['Next to be seated', 'paulRevere']]);
+
   // Esc closes it and the map has the keys again
   await page.keyboard.press('Escape');
   await expect(report).toHaveCount(0);
