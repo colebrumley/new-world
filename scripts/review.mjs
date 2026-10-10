@@ -6,9 +6,9 @@
 // whether each earlier finding is resolved and whether the fixes broke anything. A branch gets
 // those two runs and no third.
 // When the branch has an open pull request, CodeRabbit (a GitHub app) is asked to read it too, once
-// per pull request and never again after later pushes, and its open comments are printed under the
-// Codex findings so both are read together. It is advisory: a rate limit or silence is reported and
-// the exit code stays the Codex verdict's.
+// with the first run and, if it has not approved, once more with the second. Its open comments and
+// its verdict (approved or changes requested) are printed under the Codex findings so both are
+// read together. A rate limit or silence is reported; the exit code stays the Codex verdict's.
 //   npm run review                  this branch against origin/main
 //   npm run review -- --base <ref>  another base
 //   npm run review -- --full        read the whole branch again, whatever was reviewed before
@@ -41,8 +41,10 @@ if (codex.error) {
   process.exit(2);
 }
 
-// CodeRabbit. Its automatic reviews are off (.coderabbit.yaml); a pull request gets one when a
-// comment asks for it, and that comment is also the record that it has had its one review.
+// CodeRabbit. Its automatic reviews are off (.coderabbit.yaml); it reads a pull request when a
+// comment asks, and approves it or requests changes. It is asked at most twice, in step with the
+// two Codex runs: once for the whole pull request, and once for the fix commits if it has not
+// approved by then. The asking comments are the record of how often it has been asked.
 const BOT = /^coderabbitai/;
 const ASK = '@coderabbitai review';
 const WAIT_FOR_SIGN = 3 * 60 * 1000;
@@ -63,12 +65,15 @@ const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 
 function rabbitActivity(pr, since) {
   const after = (at) => !since || Date.parse(at) >= since;
   const comments = ghLines(`repos/{owner}/{repo}/issues/${pr.number}/comments`, '.[] | {login: .user.login, body, at: .updated_at}');
-  const reviews = ghLines(`repos/{owner}/{repo}/pulls/${pr.number}/reviews`, '.[] | {login: .user.login, at: .submitted_at}');
-  const statuses = ghLines(`repos/{owner}/{repo}/commits/${pr.headRefOid}/statuses`, '.[] | {context, state, at: .updated_at}');
+  const reviews = ghLines(`repos/{owner}/{repo}/pulls/${pr.number}/reviews`, '.[] | {login: .user.login, at: .submitted_at, state}');
+  const statuses = ghLines(`repos/{owner}/{repo}/commits/${pr.headRefOid}/statuses`, '.[] | {context, state, description, at: .updated_at}');
   const fromBot = comments.filter((c) => BOT.test(c.login) && after(c.at));
-  const status = statuses.find((s) => /coderabbit/i.test(s.context) && after(s.at));
+  // With automatic reviews off, every push gets a "review skipped" status; that is not a review.
+  const status = statuses.find((s) => /coderabbit/i.test(s.context) && !/skipped/i.test(s.description ?? '') && after(s.at));
+  const verdicts = reviews.filter((r) => BOT.test(r.login) && (r.state === 'APPROVED' || r.state === 'CHANGES_REQUESTED'));
   return {
-    asked: comments.some((c) => !BOT.test(c.login) && c.body.includes(ASK)),
+    asks: comments.filter((c) => !BOT.test(c.login) && c.body.includes(ASK)).length,
+    verdict: verdicts.at(-1)?.state,
     reviewed: reviews.some((r) => BOT.test(r.login) && after(r.at)),
     limited: fromBot.find((c) => /rate limit/i.test(c.body)),
     finished: status !== undefined && status.state !== 'pending',
@@ -77,13 +82,14 @@ function rabbitActivity(pr, since) {
 }
 
 // Before Codex starts, so the two read at the same time. Returns what rabbitReport needs.
-function rabbitAsk() {
+function rabbitAsk(second) {
   const pr = ghJson('pr', 'view', '--json', 'number,url,state,headRefOid');
   if (!pr || pr.state !== 'OPEN') {
     return { skip: 'no open pull request for this branch; push and open it before the review so CodeRabbit reads it too' };
   }
   const now = rabbitActivity(pr, 0);
-  if (now.asked || now.reviewed) return { pr, since: 0 };
+  const due = now.asks === 0 || (second && now.asks === 1 && now.verdict !== 'APPROVED');
+  if (!due) return { pr, since: 0 };
   if (pr.headRefOid !== git('rev-parse', 'HEAD')) {
     return { pr, since: 0, note: 'the pull request is behind this branch, so CodeRabbit was not asked; push first' };
   }
@@ -137,6 +143,8 @@ function rabbitReport(asked) {
   console.log(open.length
     ? `review: CodeRabbit: ${open.length} open comment(s); confirm each against the code as you would a Codex finding`
     : 'review: CodeRabbit: no open comments');
+  const verdict = rabbitActivity(asked.pr, 0).verdict;
+  console.log(`review: CodeRabbit: ${verdict === 'APPROVED' ? 'APPROVED' : verdict === 'CHANGES_REQUESTED' ? 'CHANGES REQUESTED' : 'has not read this pull request to a verdict'}`);
 }
 
 const dir = join(common, 'private', 'reviews');
@@ -146,8 +154,8 @@ const slug = branch.replace(/[^\w.-]/g, '_');
 const report = join(dir, `${slug}-${head}-${stamp}.md`);
 const verdict = `${report}.last.md`;
 
-// Earlier reviews of this branch that reached a verdict, oldest first: the commit each one read
-// (still on the branch, and behind HEAD) and what it found.
+// Earlier reviews of this branch against the same base that reached a verdict, oldest first: the
+// commit each one read (still on the branch) and what it found.
 function earlierReviews() {
   const onBranch = new Set(git('rev-list', `${base}..HEAD`).split('\n'));
   const tip = git('rev-parse', 'HEAD');
@@ -162,19 +170,27 @@ function earlierReviews() {
     } catch {
       continue;
     }
-    if (commit === tip || !onBranch.has(commit)) continue;
-    const text = readFileSync(join(dir, file), 'utf8');
+    if (!onBranch.has(commit)) continue;
+    let text;
+    try {
+      // The full report's first line names the base that run compared against.
+      if (!readFileSync(join(dir, file.slice(0, -'.last.md'.length)), 'utf8').startsWith(`# Review of ${branch} (${sha}) against ${base}\n`)) continue;
+      text = readFileSync(join(dir, file), 'utf8');
+    } catch {
+      continue;
+    }
     if (!/^## Verdict: /m.test(text)) continue;
-    found.push({ commit, short: sha, findings: text.match(/^- \[P[123]\].*$/gm) ?? [] });
+    found.push({ commit, short: sha, atTip: commit === tip, findings: text.match(/^- \[P[123]\].*$/gm) ?? [] });
   }
   return found;
 }
 const earlier = process.argv.includes('--full') ? [] : earlierReviews();
-if (new Set(earlier.map((r) => r.commit)).size >= 2) {
+if (earlier.length >= 2) {
   console.error('review: this branch has had its two reviews; leave what is open under Open findings in the pull request (--full reads the whole branch again)');
   process.exit(2);
 }
-const last = earlier.at(-1);
+// A run to narrow from is one that read an earlier commit; a repeat at the same commit reads it all again.
+const last = earlier.filter((r) => !r.atTip).at(-1);
 
 const answerForm = `Answer in exactly this form and nothing else after it:
 
@@ -230,7 +246,7 @@ ${answerForm}`;
 console.log(last
   ? `review: ${branch} (${head}), second run: only the commits since ${last.short}; files:\n${git('diff', '--stat', `${last.short}..HEAD`)}\n`
   : `review: ${branch} (${head}) against ${base}; files:\n${stat}\n`);
-const rabbit = rabbitAsk();
+const rabbit = rabbitAsk(Boolean(last));
 const run = spawnSync('codex', ['exec', '--sandbox', 'read-only', '--cd', top, '--color', 'never', '--output-last-message', verdict, prompt], {
   encoding: 'utf8',
   maxBuffer: 256 * 1024 * 1024,
