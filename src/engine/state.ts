@@ -26,6 +26,8 @@ export type ColonyId = string;
 export interface Player {
   /** Computer powers only: arms kept in Europe for fitting out recruits (muskets in lots of 50, horses singly). */
   readonly reserve?: { readonly muskets: number; readonly horses: number };
+  /** Computer powers only: native peoples it has made up its mind to fight, whatever their mood. */
+  readonly tribeWars?: readonly string[];
   /** Computer powers only: guns its colonies have built, each good for one piece of artillery in Europe at no cost. */
   readonly gunCredit?: number;
   readonly id: PlayerId;

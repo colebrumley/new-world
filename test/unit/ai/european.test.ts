@@ -95,7 +95,7 @@ describe('what it does next', () => {
     expect(policy(outside)).toMatchObject({ type: 'goTo', unitId: 'g' });
   });
 
-  it('attacks only an enemy it is at war with, and only at scaled odds of twelve', () => {
+  it('attacks only an enemy it is at war with', () => {
     const facing = (theirs: Unit['type'], stance: 'war' | 'peace'): GameState => {
       let s = withColony(base(), { id: 'c0', x: 6, y: 1, name: 'C0', colonists: people(1), construction: { kind: 'building', id: 'stockade' } });
       s = withColony(s, { id: 'c1', x: 6, y: 5, name: 'C1', colonists: people(1, 'q'), construction: { kind: 'building', id: 'stockade' } });
@@ -104,9 +104,7 @@ describe('what it does next', () => {
     };
     expect(policy(facing('colonist', 'war'))).toEqual({ type: 'attack', unitId: 'g', dx: 1, dy: 0 });
     expect(policy(facing('colonist', 'peace')).type).not.toBe('attack');
-    const strong = facing('soldier', 'war');
-    const dug = { ...strong, units: { ...strong.units, foe: { ...strong.units['foe']!, orders: 'fortified' as const, profession: 'veteranSoldier' as const } } };
-    expect(policy(setTile(dug, 11, 3, { relief: 'hills' })).type).not.toBe('attack');
+    // (the reckoning of the odds is tested with the campaign rules)
   });
 
   it('in Europe it sells its cargo, pays a passage when it can, and every ship sails', () => {

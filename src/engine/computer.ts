@@ -6,7 +6,7 @@ import { addGoods } from './cargo';
 import { NEIGHBORS, coloniesOf } from './colony';
 import type { CustomHouseEvent } from './custom-house';
 import { settlementAlarm, tribalAlarm } from './alarm';
-import { AI_MUSTER, AI_RESERVE, AI_UPKEEP } from './data/ai';
+import { AI_MUSTER, AI_NATIVE_WAR, AI_RESERVE, AI_UPKEEP } from './data/ai';
 import { chainLevel } from './data/buildings';
 import { TRADE_IDS, TRADES } from './data/production';
 import { PROFESSION_IDS, PROFESSIONS, UNSKILLED, type ProfessionId } from './data/professions';
@@ -188,6 +188,7 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: (
   let gold = player.gold;
   let reserve = player.reserve ?? { muskets: 0, horses: 0 };
   let taxRate = player.taxRate;
+  let tribeWars = player.tribeWars ?? [];
   let colonies = state.colonies;
   let tiles = state.map.tiles;
   const level = DIFFICULTIES.indexOf(state.difficulty);
@@ -278,6 +279,9 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: (
       events.push({ type: 'colonySupplied', colonyId: c.id, player: playerId, good: 'horses', amount: AI_UPKEEP.horses - stock(c, 'horses'), cost: AI_UPKEEP.horsesGold });
       c = { ...c, goods: addGoods(c.goods, 'horses', AI_UPKEEP.horses - stock(c, 'horses')) };
     }
+    // it may make up its mind to fight the people nearest it
+    const foe = tribeToFight(now(), c);
+    if (foe && !tribeWars.includes(foe)) tribeWars = [...tribeWars, foe];
     // with its defence seen to and muskets to spare, a lot goes to the power's reserve in Europe
     const troops = Object.values(state.units).filter((u) => u.owner === playerId && afoot(u) && u.x === c.x && u.y === c.y && UNIT_TYPES[u.type].attack > 1).length;
     if (troops >= defendersFor(now(), c) && (c.goods.muskets ?? 0) >= AI_RESERVE.colonyMuskets && reserve.muskets < AI_RESERVE.lotsMost) {
@@ -292,7 +296,7 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: (
     while (reserve.muskets + 1 < Math.trunc(reserve.horses / AI_RESERVE.lot)) reserve = { muskets: reserve.muskets + 1, horses: reserve.horses - AI_RESERVE.lot };
     while (Math.trunc(reserve.horses / AI_RESERVE.lot) + 1 < reserve.muskets) reserve = { muskets: reserve.muskets - 1, horses: reserve.horses + AI_RESERVE.lot };
   }
-  return { ...state, colonies, map: tiles === state.map.tiles ? state.map : { ...state.map, tiles }, players: state.players.map((p) => (p.id === playerId ? { ...p, gold, taxRate, ...(reserve.muskets > 0 || reserve.horses > 0 || p.reserve ? { reserve } : {}) } : p)) };
+  return { ...state, colonies, map: tiles === state.map.tiles ? state.map : { ...state.map, tiles }, players: state.players.map((p) => (p.id === playerId ? { ...p, gold, taxRate, ...(tribeWars.length > 0 ? { tribeWars } : {}), ...(reserve.muskets > 0 || reserve.horses > 0 || p.reserve ? { reserve } : {}) } : p)) };
 }
 
 // --- defenders ------------------------------------------------------------------------------------
@@ -345,4 +349,36 @@ export function defendersFor(state: GameState, colony: Colony): number {
   if (state.crownPlayer !== null) wanted += 1;
   if (threat.adjacent && people > 1) wanted = Math.max(wanted, 1);
   return Math.max(0, wanted);
+}
+
+/**
+ * The native people a colony's power decides to fight, if any: the people of the settlement
+ * nearest the colony on its land, when no rival European is on that land, the power has units
+ * in the field there, the people are not too strong for it, and they are already restless.
+ * The Spanish need neither the absence of rivals nor the restlessness, and dare twice as much.
+ */
+export function tribeToFight(state: GameState, colony: Colony): string | null {
+  const owner = state.players.find((p) => p.id === colony.owner);
+  if (!owner) return null;
+  const land = landmassAt(state.map, colony.x, colony.y);
+  const on = (at: { x: number; y: number }): boolean => landmassAt(state.map, at.x, at.y) === land;
+  const villages = Object.values(state.settlements).filter(on).sort((a, b) => reach(a.x, a.y, colony.x, colony.y) - reach(b.x, b.y, colony.x, colony.y));
+  const nearest = villages[0];
+  if (!nearest) return null;
+  const bold = owner.nation === AI_MUSTER.unbounded;
+  const isRival = (id: string): boolean => id !== colony.owner && state.players.some((p) => p.id === id);
+  const rivals = Object.values(state.colonies).some((c) => isRival(c.owner) && on(c)) || Object.values(state.units).some((u) => isRival(u.owner) && afoot(u) && on(u));
+  if (rivals && !bold) return null;
+  const mine = Object.values(state.units).filter((u) => u.owner === colony.owner && afoot(u));
+  const might = (u: Unit): number => UNIT_TYPES[u.type].defense * AI_NATIVE_WAR.strengthPer;
+  // units in the field are those not standing in one of its colonies
+  const field = Math.min(AI_NATIVE_WAR.cap, mine.filter((u) => on(u) && !colonyAt(state, u.x, u.y)).reduce((n, u) => n + might(u), 0));
+  if (field < AI_NATIVE_WAR.fieldLeast) return null;
+  const total = mine.reduce((n, u) => n + might(u), 0);
+  const braves = Object.values(state.units).filter((u) => tribeOfOwner(u.owner) === nearest.tribe && afoot(u));
+  const theirs = Math.min(AI_NATIVE_WAR.cap, braves.reduce((n, u) => n + UNIT_TYPES[u.type].attack * AI_NATIVE_WAR.strengthPer, 0));
+  const here = Math.min(AI_NATIVE_WAR.cap, braves.filter(on).reduce((n, u) => n + UNIT_TYPES[u.type].attack * AI_NATIVE_WAR.strengthPer, 0));
+  const daring = bold ? 2 : 1;
+  if (theirs > AI_NATIVE_WAR.totalTimes * daring * total || here >= AI_NATIVE_WAR.fieldTimes * daring * field) return null;
+  return bold || tribalAlarm(state, nearest.tribe, colony.owner) > AI_NATIVE_WAR.alarmOver ? nearest.tribe : null;
 }

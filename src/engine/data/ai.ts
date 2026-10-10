@@ -1,9 +1,7 @@
 // Numbers the computer powers plan by (R-802): site choice, the first colony, and a few limits.
 export const AI_PLAN = {
-  /** New colonies keep this far from any other. */
-  colonySpacing: 3,
-  /** A site scores 2 for each workable square around it, 1 for sea or native land, 2 for a resource; below this it is passed over. */
-  siteScoreLeast: 9,
+  /** A ship or a party weighs a site's worth against this much for every square it lies off. */
+  sitePerSquare: 4,
   /** Until its first colony stands, a power counts each square of distance to a site this many times over. */
   firstColonyHaste: 6,
   /** From this turn a power still without a colony founds one wherever its settlers stand, if the ground allows. */
@@ -143,6 +141,12 @@ export const AI_CAMPAIGN = {
   oddsScale: 8,
   colonyTimes: 3,
   settlementTimes: 2,
+  /** ...times the cost of the units there a head (and one) over the attacker's own cost; threefold again for an attacking arm on land that is to be taken; never over `oddsMost`. */
+  contestedTimes: 3,
+  oddsMost: 1000,
+  /** A human's colony on a square the power has not seen is not marched on or blockaded while level x turn is no more than the first; no colony unseen is landed beside while it is no more than the second. */
+  unseenHumanUntil: 180,
+  unseenUntil: 200,
   /** An attack is made only with a whole move in hand (thirds). */
   attackMovesLeast: 3,
   /** Soldiers and dragoons are not sent anywhere from a landmass where the power has fewer land units than this (or just this many and no colony). */
@@ -465,4 +469,41 @@ export const AI_JOBS = {
   bellsFromYear: 1540,
   bellsDoubledAfter: [1600, 1700],
   bellsHalvedUnder: [4, 6],
+} as const;
+
+// When a computer power makes up its mind to fight a native people; see docs/RULES.md
+// "Computer powers: campaigns".
+export const AI_NATIVE_WAR = {
+  /** Strength is a unit's defence (the power's) or attack (a brave's) times this, summed and capped. */
+  strengthPer: 8,
+  cap: 255,
+  /** It needs this much strength in the field on that land... */
+  fieldLeast: 2,
+  /** ...the people's whole strength no more than this many times its own, and their strength on that land under this many times its field strength. */
+  totalTimes: 2,
+  fieldTimes: 4,
+  /** And the people's alarm toward it above this. */
+  alarmOver: 25,
+} as const;
+
+// How a square is rated as a place for a colony, and what a settler makes of it; see
+// docs/RULES.md "Computer powers: founding and joining".
+export const AI_SITE = {
+  /** Weights of the squares of the cross: beside the centre, at its corners, two away in a line, a knight's move away, and the centre itself. */
+  weights: { beside: 9, corner: 6, two: 4, knight: 3, centre: 4 },
+  /** The weighted sum over this, and no more than `ratingMost`. */
+  ratingDivisor: 10,
+  ratingMost: 15,
+  /** Within this many squares of one of its own colonies a site loses (this - distance) squared; of a rival's, by `rivalClear` (`rivalClearNewLand` on land the power has not settled), and `rivalBeside` more two squares from it. */
+  ownClear: 9,
+  rivalClear: 7,
+  rivalClearNewLand: 5,
+  rivalBeside: 20,
+  /** A native settlement within this many squares costs half a measure, and a whole, two, four and eight measures more within each of these; a measure is 2 x (the tribe's level + its alarm level + 3). */
+  villageWithin: 6,
+  villageSteps: [4, 3, 2, 1],
+  /** The French take half of that to heart, the Spanish a quarter. */
+  villageEase: { france: 2, spain: 4 },
+  /** A site rated this or more is worth half again on land new to the power, and double to a plain colonist. */
+  goodFrom: 4,
 } as const;

@@ -4,14 +4,15 @@
 import { validateAction, type Action } from '../engine/actions';
 import { coloniesOf } from '../engine/colony';
 import { isPortColony } from '../engine/construction';
-import { AI_NAVY } from '../engine/data/ai';
+import { AI_CAMPAIGN, AI_NAVY } from '../engine/data/ai';
+import { DIFFICULTIES } from '../engine/data/yields';
 import { NAVAL } from '../engine/data/naval';
 import { UNIT_TYPES, type UnitTypeId } from '../engine/data/units';
 import { dealing } from '../engine/diplomacy';
 import { isBorder, isInlandLake } from '../engine/movement';
 import { seaDefender } from '../engine/naval';
 import { colonyAt, type Colony, type GameState, type Player, type PlayerId, type Unit } from '../engine/state';
-import { isWater } from '../engine/tile';
+import { isExploredBy, isWater } from '../engine/tile';
 
 const DIRS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]] as const;
 const far = (ax: number, ay: number, bx: number, by: number): number => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -33,6 +34,16 @@ export interface Station {
   readonly y: number;
   readonly priority: number;
   readonly why: 'enemyShip' | 'blockade' | 'homePort';
+}
+
+/**
+ * Early in the game a colony on a square the power has not yet seen is left out of its plans:
+ * while level x turn is no more than the limit (on the easiest level, always).
+ */
+export function unseenYet(state: GameState, player: Player, colony: { readonly x: number; readonly y: number }, limit: number): boolean {
+  if (DIFFICULTIES.indexOf(state.difficulty) * state.turn > limit) return false;
+  const tile = state.map.tiles[colony.y * state.map.width + colony.x];
+  return tile !== undefined && !isExploredBy(tile, state.players.findIndex((p) => p.id === player.id));
 }
 
 /** Firm peace: a treaty, and no intention of breaking it. A power not yet met is not at peace. */
@@ -85,6 +96,7 @@ export function navalStations(state: GameState, player: Player): Station[] {
   // off each port colony of a power it is not at firm peace with
   for (const c of Object.values(state.colonies)) {
     if (c.owner === player.id || !isPower(state, c.owner) || firmPeace(state, player, c.owner) || !isPortColony(state, c)) continue;
+    if (state.players.find((p) => p.id === c.owner)?.kind === 'human' && unseenYet(state, player, c, AI_CAMPAIGN.unseenHumanUntil)) continue;
     const square = blockadeSquare(state, c);
     if (!square) continue;
     const priority = AI_NAVY.blockadeBase + Math.min(AI_NAVY.blockadeMost, (c.colonists.length + AI_NAVY.blockadePopulationAdd) >> AI_NAVY.blockadePopulationShift);

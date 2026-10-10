@@ -30,7 +30,7 @@ import { isWarship, privateersCarry, warshipAction } from './navy';
 import { buildAction, jobAction, jobPlan } from './colony';
 import { musterAction } from './muster';
 import { europeBound, inOwnPort, loadChoice, mayLoad, pickupFor } from './freight';
-import { coloniesStillWanted, deliveryPort, joinTarget, mayFound, regionAppeal, wantsColonists } from './settle';
+import { coloniesStillWanted, deliveryPort, joinTarget, mayFound, regionAppeal, siteWorth, wantsColonists } from './settle';
 import { cargoPort, powerWants } from './supply';
 import { aiRng, parleyAction, wagonAction } from './wagons';
 
@@ -43,26 +43,11 @@ const isShip = (u: Unit): boolean => UNIT_TYPES[u.type].domain === 'sea';
 const isSettler = (u: Unit): boolean => UNIT_TYPES[u.type].colonistRole && u.type !== 'missionary' && u.profession !== null && u.profession !== 'indianConvert';
 const isFighter = (u: Unit): boolean => UNIT_TYPES[u.type].domain === 'land' && UNIT_TYPES[u.type].attack > 1;
 
-/** How good a place for a colony this is; 0 if it will not do. Coast, workable land, room, and no neighbours too close. */
-export function siteScore(state: GameState, x: number, y: number): number {
-  const tile = tileOf(state, x, y);
-  if (!tile || isWater(tile) || tile.relief !== 'flat' || tile.base === 'arctic' || tile.base === 'desert') return 0;
-  if (!checkColonySite(state, x, y).ok) return 0;
-  for (const c of Object.values(state.colonies)) if (far(c.x, c.y, x, y) < AI_PLAN.colonySpacing) return 0;
-  for (const s of Object.values(state.settlements)) if (far(s.x, s.y, x, y) <= 1) return 0;
-  let score = 0;
-  let port = false;
-  for (const [dx, dy] of DIRS) {
-    const near = tileOf(state, x + dx, y + dy);
-    if (!near) continue;
-    if (isWater(near)) {
-      if (!isInlandLake(state.map, x + dx, y + dy)) port = true;
-      score += 1;
-    } else if (near.relief === 'mountains' || near.base === 'arctic' || near.base === 'desert') score += 0;
-    else score += near.homeland ? 1 : 2;
-    if (near.resource) score += 2;
-  }
-  return port && score >= AI_PLAN.siteScoreLeast ? score : 0;
+/** How good a place for a colony this is to the power whose turn it is; 0 if it will not do. */
+export function siteScore(state: GameState, x: number, y: number, colonist = true): number {
+  const player = state.players[state.current];
+  if (!player || !tileOf(state, x, y) || !checkColonySite(state, x, y).ok) return 0;
+  return siteWorth(state, player, x, y, colonist);
 }
 
 /** How many squares a ship at (x, y) must sail to reach each water square, by breadth-first search; unreachable water is absent. */
@@ -108,7 +93,7 @@ function bestSite(state: GameState, x: number, y: number, reach: number, bySea: 
         if (berths.length === 0) continue;
         away = Math.min(...berths);
       }
-      const score = raw * 2 - away * haste;
+      const score = raw - AI_PLAN.sitePerSquare * away * haste;
       if (!best || score > best.score) best = { x: tx, y: ty, score };
     }
   }

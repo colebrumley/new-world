@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   assaultReady, colonyThreat, defendersShort, defendersWanted, garrisons, invadeRequests, invasionBeach, invasionFor, invasionRefusal, isFull, isQuiet, landAttackChoice,
-  landingStep, landmassSize, landOrders, landRequests, mayAttack, scaledOdds, worthTaking, type LandRequest,
+  landingStep, landmassSize, landOrders, landRequests, mayAttack, regionState, scaledOdds, worthTaking, type LandRequest,
 } from '../../../src/ai/campaign';
 
 import { playTurn } from '../../../src/ai/european';
@@ -14,7 +14,7 @@ import { landmassAt } from '../../../src/engine/regions';
 import type { Colonist, Colony, Dealing, GameState, Player, Settlement, Unit } from '../../../src/engine/state';
 import { isWater } from '../../../src/engine/tile';
 import { policy } from '../../helpers/policy';
-import { withColony, withUnit, world } from '../../helpers/world';
+import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
 // a mainland (x 1..10, y 1..7: 70 squares) and an island (x 14..17: 28 squares)
 const ROWS = Array.from({ length: 9 }, (_, y) => (y === 0 || y === 8 ? '~'.repeat(20) : `~${'.'.repeat(10)}~~~....~~`));
@@ -371,38 +371,43 @@ describe('fighting on land', () => {
     troop(troop(col(troop(base(stance), 'guard', 2, 4, 'soldier', 'a', { orders: 'fortified' }), 'home', 2, 4), 'mine', 5, 4, mine, 'a', extra), 'foe', 6, 4, theirs, 'b');
   const attacks = (s: GameState): boolean => landAttackChoice(s, u(s, 'mine'), me(s)) !== null;
 
-  it('scaled odds are 8 x attack / (defence + 1), threefold against a colony and twofold against a settlement', () => {
+  it('scaled odds are 8 x attack / (defence + 1), weighed by the cost of what is there against the attacker\'s own; threefold against a colony, twofold against a settlement, threefold again on land to be taken', () => {
+    /** The same reckoning, from the engine's strengths: `cost` is the summed cost of the units there, `heads` how many. */
+    const reckon = (s: GameState, cost: number, heads: number, site: number): number => {
+      const a = analyseAttack(s, u(s, 'mine'), 1, 0)!;
+      const keen = regionState(s, me(s), landmassAt(s.map, 5, 4)) === 4 ? 3 : 1;
+      const base = Math.trunc((8 * a.attacker.strength) / (a.defender.strength + 1));
+      return Math.min(1000, Math.trunc((base * Math.trunc((cost + 1) / Math.max(1, heads))) / 2) * site * keen);
+    };
+    // a soldier (cost 2) on a colonist (cost 1) in the open
     const open = facing('colonist', { b: 'war' });
-    const a = analyseAttack(open, u(open, 'mine'), 1, 0)!;
-    expect(scaledOdds(open, u(open, 'mine'), 1, 0)).toBe(Math.trunc((8 * a.attacker.strength) / (a.defender.strength + 1)));
+    expect(scaledOdds(open, u(open, 'mine'), 1, 0)).toBe(reckon(open, 1, 1, 1));
+    // on a dragoon (cost 3) the prize is greater: (3 + 1) / 1 = 4 against the soldier's own 2
+    const rider = facing('dragoon', { b: 'war' });
+    expect(scaledOdds(rider, u(rider, 'mine'), 1, 0)).toBe(reckon(rider, 3, 1, 1));
     const town = troop(col(base({ b: 'war' }), 'theirs', 6, 4, 'b', 2), 'mine', 5, 4);
-    const t = analyseAttack(town, u(town, 'mine'), 1, 0)!;
-    expect(scaledOdds(town, u(town, 'mine'), 1, 0)).toBe(3 * Math.trunc((8 * t.attacker.strength) / (t.defender.strength + 1)));
+    expect(scaledOdds(town, u(town, 'mine'), 1, 0)).toBe(reckon(town, 0, 0, 3));
     const camp = troop(col(withVillage(base(), village(6, 4), 90), 'home', 2, 4), 'mine', 5, 4);
-    const v = analyseAttack(camp, u(camp, 'mine'), 1, 0)!;
-    expect(scaledOdds(camp, u(camp, 'mine'), 1, 0)).toBe(2 * Math.trunc((8 * v.attacker.strength) / (v.defender.strength + 1)));
+    expect(scaledOdds(camp, u(camp, 'mine'), 1, 0)).toBe(reckon(camp, 0, 0, 2));
     // nothing there: no odds
     expect(scaledOdds(open, u(open, 'mine'), -1, 0)).toBe(0);
   });
 
   it('an attack needs scaled odds of 12', () => {
     // whatever stands opposite, the attack is made exactly when the odds reach twelve
-    const seen = new Set<boolean>();
     for (const theirs of ['colonist', 'soldier', 'dragoon', 'artillery', 'scout'] as const) {
       for (const mine of ['soldier', 'dragoon'] as const) {
         const s = facing(theirs, { b: 'war' }, mine);
-        const due = scaledOdds(s, u(s, 'mine'), 1, 0) >= 12;
-        expect(attacks(s), `${mine} on ${theirs}`).toBe(due);
-        seen.add(due);
+        expect(attacks(s), `${mine} on ${theirs}`).toBe(scaledOdds(s, u(s, 'mine'), 1, 0) >= 12);
       }
     }
-    expect([...seen].sort()).toEqual([false, true]);
-    // soldier on soldier in the open: 8 x 3 / 3 = 8
-    const even = established(facing('soldier', { b: 'war' }));
-    expect(scaledOdds(even, u(even, 'mine'), 1, 0)).toBe(8);
-    expect(policy(even).type).not.toBe('attack');
     const sure = established(facing('colonist', { b: 'war' }));
     expect(policy(sure)).toEqual({ type: 'attack', unitId: 'mine', dx: 1, dy: 0 });
+    // a veteran dug in on a mountain is left alone
+    const dug = facing('soldier', { b: 'war' });
+    const hard = setTile({ ...dug, units: { ...dug.units, foe: { ...u(dug, 'foe'), profession: 'veteranSoldier', orders: 'fortified' } } }, 6, 4, { relief: 'mountains' });
+    expect(scaledOdds(hard, u(hard, 'mine'), 1, 0)).toBeLessThan(12);
+    expect(attacks(hard)).toBe(false);
   });
 
   it('Europeans only at war; after the Declaration only the human', () => {

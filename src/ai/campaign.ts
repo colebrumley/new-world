@@ -15,7 +15,7 @@ import { landmassAt, landmasses } from '../engine/regions';
 import { settlementAt, tribeOfOwner, tribeOwner } from '../engine/settlements';
 import { colonyAt, type Colony, type GameState, type Player, type PlayerId, type Unit } from '../engine/state';
 import { isWater } from '../engine/tile';
-import { baseLoad, firmPeace } from './navy';
+import { baseLoad, firmPeace, unseenYet } from './navy';
 
 const DIRS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]] as const;
 const far = (ax: number, ay: number, bx: number, by: number): number => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -27,6 +27,10 @@ const isLand = (u: Unit): boolean => UNIT_TYPES[u.type].domain === 'land';
 /** Soldiers, dragoons, artillery and the regular types: what answers a call to attack or defend. */
 export const isTroop = (u: Unit): boolean => isLand(u) && UNIT_TYPES[u.type].attack > 1;
 const landOf = (state: GameState, at: { readonly x: number; readonly y: number }): number => landmassAt(state.map, at.x, at.y);
+/** Has the power made up its mind to fight this people, or has the people turned on it? */
+export const atWarWithTribe = (state: GameState, player: Player, tribe: string): boolean =>
+  (player.tribeWars ?? []).includes(tribe) || tribalAlarm(state, tribe as Parameters<typeof tribalAlarm>[1], player.id) >= AI_CAMPAIGN.settlementAlarmFrom;
+
 /** After the Declaration only the human's units and colonies are fought. */
 const spared = (state: GameState, owner: PlayerId): boolean => state.crownPlayer !== null && state.players.find((p) => p.id === owner)?.kind !== 'human';
 
@@ -112,13 +116,14 @@ export function landRequests(state: GameState, player: Player): LandRequest[] {
   Object.values(state.colonies).forEach((c, index) => {
     if (c.owner === player.id || !isPower(state, c.owner) || spared(state, c.owner)) return;
     if ((index + state.turn) % AI_CAMPAIGN.restEvery === 0 || !worthTaking(state, c)) return;
+    if (state.players.find((p) => p.id === c.owner)?.kind === 'human' && unseenYet(state, player, c, AI_CAMPAIGN.unseenHumanUntil)) return;
     const land = landOf(state, c);
     if (!presentOn(state, player, land)) return;
     out.push({ kind: 'attack', x: c.x, y: c.y, land, priority: firmPeace(state, player, c.owner) ? AI_CAMPAIGN.colonyPriorityAtPeace : AI_CAMPAIGN.colonyPriority });
   });
   // settlements of a people that has turned on it
   for (const s of Object.values(state.settlements)) {
-    if (tribalAlarm(state, s.tribe, player.id) < AI_CAMPAIGN.settlementAlarmFrom) continue;
+    if (!atWarWithTribe(state, player, s.tribe)) continue;
     const land = landOf(state, s);
     if (!presentOn(state, player, land)) continue;
     out.push({ kind: 'attack', x: s.x, y: s.y, land, priority: s.mission ? AI_CAMPAIGN.settlementPriority : AI_CAMPAIGN.settlementPriorityNoMission });
@@ -237,7 +242,7 @@ function strengthOn(state: GameState, owner: PlayerId, land: number): { colonies
 export function invasionRefusal(state: GameState, player: Player, colony: Colony): 'own' | 'spared' | 'firmPeace' | 'notOutnumbered' | 'tooFew' | 'tooSmall' | 'noBeach' | null {
   if (colony.owner === player.id || !isPower(state, colony.owner)) return 'own';
   if (spared(state, colony.owner)) return 'spared';
-  if (firmPeace(state, player, colony.owner)) return 'firmPeace';
+  if (firmPeace(state, player, colony.owner) || unseenYet(state, player, colony, AI_CAMPAIGN.unseenUntil)) return 'firmPeace';
   const land = landOf(state, colony);
   const theirs = strengthOn(state, colony.owner, land);
   if (theirs.colonies <= strengthOn(state, player.id, land).colonies) return 'notOutnumbered';
@@ -317,7 +322,7 @@ function enemiesOn(state: GameState, player: Player, land: number): string[] {
   for (const u of Object.values(state.units)) if (u.owner !== player.id && isPower(state, u.owner) && isLand(u) && onMap(u) && u.aboard === null && landOf(state, u) === land) rivals.add(u.owner);
   const out: string[] = [...rivals].filter((o) => !firmPeace(state, player, o));
   for (const s of Object.values(state.settlements)) {
-    if (landOf(state, s) === land && tribalAlarm(state, s.tribe, player.id) >= AI_CAMPAIGN.settlementAlarmFrom && !out.includes(tribeOwner(s.tribe))) out.push(tribeOwner(s.tribe));
+    if (landOf(state, s) === land && atWarWithTribe(state, player, s.tribe) && !out.includes(tribeOwner(s.tribe))) out.push(tribeOwner(s.tribe));
   }
   return out;
 }
@@ -368,8 +373,16 @@ export function scaledOdds(state: GameState, unit: Unit, dx: number, dy: number)
   const village = settlementAt(state, x, y) !== null;
   // guns are for walls
   if ((unit.type === 'artillery' || unit.type === 'damagedArtillery') && !colony && !village) return 0;
-  const odds = Math.trunc((AI_CAMPAIGN.oddsScale * analysis.attacker.strength) / (analysis.defender.strength + 1));
-  return odds * (colony ? AI_CAMPAIGN.colonyTimes : village ? AI_CAMPAIGN.settlementTimes : 1);
+  let odds = Math.trunc((AI_CAMPAIGN.oddsScale * analysis.attacker.strength) / (analysis.defender.strength + 1));
+  // weighed by what stands to be won and what is risked: the cost of the units there, a head, against the attacker's own
+  const there = unitsAt(state, x, y).filter((u) => u.aboard === null);
+  const prize = there.reduce((n, u) => n + UNIT_TYPES[u.type].cost, 0);
+  odds = Math.trunc((odds * Math.trunc((prize + 1) / Math.max(1, there.length))) / Math.max(1, UNIT_TYPES[unit.type].cost));
+  odds *= colony ? AI_CAMPAIGN.colonyTimes : village ? AI_CAMPAIGN.settlementTimes : 1;
+  // an attacking arm is keener still on land that is to be taken
+  const owner = state.players.find((p) => p.id === unit.owner);
+  if (owner && UNIT_TYPES[unit.type].aiRoles.includes('attack') && regionState(state, owner, landOf(state, unit)) === 4) odds *= AI_CAMPAIGN.contestedTimes;
+  return Math.min(odds, AI_CAMPAIGN.oddsMost);
 }
 
 /** Summed attack values of the land units on a square (a ship in port or offshore takes no part in an assault). */
@@ -390,7 +403,7 @@ export function mayAttack(state: GameState, player: Player, x: number, y: number
   const colony = colonyAt(state, x, y);
   const foe = unitsAt(state, x, y).find((u) => u.owner !== player.id);
   const tribe = village?.tribe ?? (foe ? tribeOfOwner(foe.owner) : null);
-  if (tribe) return tribalAlarm(state, tribe, player.id) >= AI_CAMPAIGN.settlementAlarmFrom && presentOn(state, player, landmassAt(state.map, x, y), true);
+  if (tribe) return atWarWithTribe(state, player, tribe) && presentOn(state, player, landmassAt(state.map, x, y), true);
   const owner = colony?.owner ?? foe?.owner;
   if (owner === undefined || owner === player.id || spared(state, owner)) return false;
   return player.stance[owner] === 'war';
