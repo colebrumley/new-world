@@ -17,7 +17,7 @@ const RESTED = TOOLTIP_DELAY_MS + 250;
 
 function land(): GameState {
   const rows = Array.from({ length: 12 }, (_, y) => (y === 0 || y === 11 ? '~'.repeat(16) : `~${'.'.repeat(14)}~`));
-  let state: GameState = world({ rows, seed: 3 });
+  let state: GameState = world({ rows, seed: 3, players: [{ id: 'p0', kind: 'human' }, { id: 'fr', kind: 'ai', nation: 'france' }] });
   const tiles = state.map.tiles.map((tile) => ({ ...tile, explored: 0xff }));
   const put = (at: { x: number; y: number }, t: Parameters<typeof makeTile>[0]): void => {
     tiles[at.y * 16 + at.x] = makeTile({ explored: 0xff, ...t });
@@ -42,6 +42,7 @@ async function start(page: Page, query: string): Promise<{ canvas: Locator; tip:
   await page.getByRole('menuitem', { name: 'Load Game' }).click();
   const canvas = page.locator('canvas.map');
   await expect(canvas).toHaveAttribute('data-frames', /\d+/);
+  await expect(canvas).toHaveAttribute('data-active', 'u0');
   return { canvas, tip: page.locator('.map-tooltip'), state };
 }
 
@@ -130,8 +131,19 @@ test('the pointer resting on a square brings up a slip that says what the square
   await moveTo(page, canvas, COTTON);
   await expect(tip).toBeVisible({ timeout: RESTED });
 
-  // and the pointer leaving the map
+  // a button held as the pointer comes onto the map is not a rest
   const side = (await page.locator('.sidebar').boundingBox())!;
+  await page.mouse.move(side.x + side.width / 2, side.y + side.height / 2);
+  await page.mouse.down();
+  await moveTo(page, canvas, MINERALS);
+  await moveTo(page, canvas, COTTON);
+  await page.waitForTimeout(RESTED);
+  await expect(tip).toBeHidden();
+  await page.mouse.up();
+  await moveTo(page, canvas, MINERALS);
+  await expect(tip).toBeVisible({ timeout: RESTED });
+
+  // and the pointer leaving the map
   await page.mouse.move(side.x + side.width / 2, side.y + side.height / 2);
   await expect(tip).toBeHidden();
   await page.waitForTimeout(RESTED);
@@ -167,8 +179,9 @@ test('an unexplored square has no slip, and a dialog over the map takes the slip
   await expect(tip).toBeHidden();
   await expect(tip).toBeVisible({ timeout: RESTED });
 
-  // a right-click opens the encyclopedia over the map
-  await page.mouse.click((await pixel(canvas, COTTON)).x, (await pixel(canvas, COTTON)).y, { button: 'right' });
+  // the encyclopedia opens over the map; no press, key or movement comes with it, so it is the dialog that takes the slip away
+  const at = await pixel(canvas, COTTON);
+  await canvas.evaluate((c, p) => c.dispatchEvent(new MouseEvent('contextmenu', { clientX: p.x, clientY: p.y, button: 2, bubbles: true, cancelable: true })), at);
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(tip).toBeHidden();
   await page.waitForTimeout(RESTED);

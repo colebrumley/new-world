@@ -1414,7 +1414,9 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     if (!drag) {
       retarget();
       showPointer();
-      hoverTip();
+      // a button held from a press that began elsewhere (or left the map and came back) is not a rest
+      if (event.buttons === 0) hoverTip();
+      else hideTip();
       return;
     }
     const dx = p.x - drag.x;
