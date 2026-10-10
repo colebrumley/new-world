@@ -5,12 +5,11 @@ exports[`AI plan table > matches the snapshot 1`] = `
   "actionsPerTurn": 250,
   "berthsTried": 3,
   "coloniesBeforeGarrison": 2,
-  "colonySpacing": 3,
   "firstColonyAnywhereFrom": 6,
   "firstColonyHaste": 6,
   "goldReserve": 200,
   "landSearch": 7,
   "shipSearch": 14,
-  "siteScoreLeast": 9,
+  "sitePerSquare": 4,
 }
 `;

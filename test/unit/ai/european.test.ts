@@ -28,15 +28,23 @@ describe('AI plan table', () => {
 });
 
 describe('where a computer power settles', () => {
-  it('a site on the coast with land to work, away from other colonies and from native settlements', () => {
+  it('a site beside the open sea, not on a mountain, never next to a colony nor two squares from one of its own', () => {
     const s = base();
     expect(siteScore(s, 6, 3)).toBeGreaterThan(0); // on the shore
     expect(siteScore(s, 9, 3)).toBe(0); // no port
     expect(siteScore(s, 3, 3)).toBe(0); // the sea
-    expect(siteScore(setTile(s, 6, 3, { relief: 'hills' }), 6, 3)).toBe(0);
-    const crowded = withColony(s, { id: 'col', owner: 'b', x: 6, y: 5, name: 'Theirs' });
-    expect(siteScore(crowded, 6, 3)).toBe(0); // too close
-    expect(siteScore(crowded, 6, 2)).toBeGreaterThan(0);
+    expect(siteScore(setTile(s, 6, 3, { relief: 'mountains' }), 6, 3)).toBe(0);
+    // hills will do, at half the rating
+    expect(siteScore(setTile(s, 6, 3, { relief: 'hills' }), 6, 3)).toBeLessThan(siteScore(s, 6, 3));
+    // a rival's colony two squares off costs it dear but does not rule it out; next door does
+    const rival = withColony(s, { id: 'col', owner: 'b', x: 6, y: 5, name: 'Theirs' });
+    expect(siteScore(rival, 6, 3)).toBeGreaterThan(0);
+    expect(siteScore(rival, 6, 3)).toBeLessThan(siteScore(s, 6, 3));
+    expect(siteScore(rival, 6, 4)).toBe(0);
+    // one of its own two squares off does
+    const own = withColony(s, { id: 'col', x: 6, y: 5, name: 'Ours' });
+    expect(siteScore(own, 6, 3)).toBe(0);
+    expect(siteScore(own, 6, 2)).toBeGreaterThan(0);
   });
 });
 
@@ -141,6 +149,27 @@ describe('what it does next', () => {
     // in port the gun goes down the gangway itself and the ship waits for it
     const inPort = { ...s, units: { ...s.units, ship: { ...s.units['ship']!, x: 6, y: 3 }, gun: { ...s.units['gun']!, x: 6, y: 3 } } };
     expect(policy(inPort)).toMatchObject({ type: 'moveUnit', unitId: 'gun' });
+  });
+
+  it('a pioneer in the field with nowhere to found lays a road where he stands; on a road already, he goes home', () => {
+    // (the English want no second colony while theirs is small)
+    let s = withColony(base('england'), { id: 'col', x: 6, y: 3, name: 'C', colonists: people(3), construction: { kind: 'building', id: 'stockade' } });
+    // three villages leave the land no room for another colony, so he does not go to found one
+    const hut = (id: string, y: number): GameState['settlements'][string] => ({ id, tribe: 'sioux', x: 13, y, capital: false, population: 2, growth: 0, taught: false, tributePaid: false, alarm: {}, mission: null, scouted: [], lastBought: null, lastSold: null, haggleMemory: null });
+    s = { ...s, settlements: { v1: hut('v1', 1), v2: hut('v2', 3), v3: hut('v3', 6) } };
+    s = withUnit(s, { id: 'p', type: 'pioneer', x: 9, y: 5, tools: 20 });
+    expect(policy(s)).toEqual({ type: 'pioneerWork', unitId: 'p', job: 'road' });
+    expect(policy(setTile(s, 9, 5, { road: true }))).toEqual({ type: 'goTo', unitId: 'p', x: 6, y: 3 });
+  });
+
+  it('a scout rides a step at a time: every step is to a land square beside it, and it never stands still while it can move', () => {
+    let s = withColony(base('england'), { id: 'col', x: 6, y: 3, name: 'C', colonists: people(3), construction: { kind: 'building', id: 'stockade' } });
+    s = withUnit(s, { id: 'sc', type: 'scout', x: 9, y: 4 });
+    const turn = playTurn(s);
+    const rides = turn.actions.filter((a) => a.type === 'moveUnit' && a.unitId === 'sc');
+    expect(rides.length).toBeGreaterThan(0);
+    expect(checkInvariants(turn.state)).toEqual([]);
+    expect(turn.state.units['sc']?.movesLeft).toBe(0);
   });
 
   it('ends the turn when there is nothing to do, and for nobody', () => {

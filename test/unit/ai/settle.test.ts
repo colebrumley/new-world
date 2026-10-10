@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { coloniesStillWanted, deliveryPort, joinTarget, mayFound, regionAppeal, wantsColonists, willingness } from '../../../src/ai/settle';
+import { coloniesStillWanted, deliveryPort, joinTarget, mayFound, regionAppeal, siteRating, siteWorth, wantsColonists, willingness } from '../../../src/ai/settle';
 import { AI_SETTLE } from '../../../src/engine/data/ai';
 import { landmassAt } from '../../../src/engine/regions';
 import type { Colonist, Colony, GameState, Player, Unit } from '../../../src/engine/state';
 import { policy } from '../../helpers/policy';
-import { withColony, withUnit, world } from '../../helpers/world';
+import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
 // a mainland (x 1..10, y 1..7: 70 squares) and an island (x 14..17: 28 squares)
 const ROWS = Array.from({ length: 9 }, (_, y) => (y === 0 || y === 8 ? '~'.repeat(20) : `~${'.'.repeat(10)}~~~....~~`));
@@ -170,5 +170,36 @@ describe('who joins which colony', () => {
     // never the port she lies in
     const inPort = withUnit(s, { id: 'ship', type: 'caravel', profession: null, x: 1, y: 2 });
     expect(deliveryPort(inPort, u(inPort, 'ship'), ports, () => 0)?.id).toBe('large');
+  });
+});
+
+describe('how a square is rated for a colony', () => {
+  // open plains (worth 4 a square) with the sea to the west
+  const land = (): GameState => base();
+  it('the worth of the squares of the cross around it, weighted by nearness, over ten and no more than fifteen', () => {
+    // well inland every square of the cross is plains: 4 x 18 + 4 x 12 + 4 x 8 + 8 x 6 + 8 = 208, halved away from the sea: 104 -> 10
+    expect(siteRating(land(), 5, 4)).toBe(10);
+    // on the shore it is not halved, and the sea squares count for less: still over the cap
+    expect(siteRating(land(), 1, 4)).toBe(15);
+    // nothing on water or mountains; half on hills
+    expect(siteRating(land(), 0, 4)).toBe(0);
+    expect(siteRating(setTile(land(), 5, 4, { relief: 'mountains' }), 5, 4)).toBe(0);
+    expect(siteRating(setTile(land(), 5, 4, { relief: 'hills' }), 5, 4)).toBeLessThan(10);
+    // a silver deposit next door is worth 12 where plains are worth 4: 9 x 12 / 2 = 54 in place of 18
+    expect(siteRating(setTile(land(), 5, 3, { resource: 'silverDeposit' }), 5, 4)).toBe(Math.trunc((208 + (54 - 18)) / 2 / 10));
+    // a river adds one to a square's worth
+    expect(siteRating(setTile(land(), 5, 4, { river: 'minor' }), 5, 4)).toBe(Math.trunc((208 + (10 - 8)) / 2 / 10));
+  });
+
+  it('a settler reckons four times the rating, less for colonies and native settlements near it; more on land new to his power, and double for a plain colonist', () => {
+    const s = base();
+    // the shore: rating 15, on land with no colony of ours: 60, half again, doubled
+    expect(siteWorth(s, me(s), 1, 4, true)).toBe(180);
+    expect(siteWorth(s, me(s), 1, 4, false)).toBe(90);
+    // inland sites are never chosen
+    expect(siteWorth(s, me(s), 5, 4, true)).toBe(0);
+    // with a colony of ours on the land already, five squares off: four times the rating less (9 - 5)^2, doubled
+    const settled = col(s, 'home', 1, 1 + 5, 3);
+    expect(siteWorth(settled, me(settled), 1, 1, true)).toBe(2 * (4 * siteRating(settled, 1, 1) - 16));
   });
 });

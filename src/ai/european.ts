@@ -12,7 +12,7 @@ import { applyAction, validateAction, type Action, type GameEvent } from '../eng
 import { holdsFree } from '../engine/cargo';
 import { landmassAt } from '../engine/regions';
 import { coloniesOf, checkColonySite } from '../engine/colony';
-import { AI_DOCKS, AI_FLEET, AI_MISSIONS, AI_MUSTER, AI_PLAN, AI_RESERVE, AI_SETTLE, AI_SUPPLY } from '../engine/data/ai';
+import { AI_DOCKS, AI_FLEET, AI_MUSTER, AI_PIONEER, AI_PLAN, AI_RESERVE, AI_SCOUT, AI_SETTLE, AI_SUPPLY } from '../engine/data/ai';
 import { fleetCensus, fleetWants } from '../engine/fleet';
 import { GOOD_IDS } from '../engine/data/goods';
 import { UNSKILLED } from '../engine/data/professions';
@@ -23,7 +23,9 @@ import { askPrice } from '../engine/market';
 import { isInlandLake } from '../engine/movement';
 import { tribalAlarm } from '../engine/alarm';
 import { colonyAt, type Colony, type GameState, type Job, type Player, type Unit } from '../engine/state';
-import { isWater, type Tile } from '../engine/tile';
+import { TERRAIN } from '../engine/data/terrain';
+import { TRIBES } from '../engine/data/tribes';
+import { isExploredBy, isWater, terrainOf, type Tile } from '../engine/tile';
 import { defendersShort, garrisons, invasionFor, isFull, isQuiet, isTroop, landAttackChoice, landingStep, landOrders } from './campaign';
 import { missionaryAction, ordain, villageVisit, type Chances } from './missions';
 import { isWarship, privateersCarry, warshipAction } from './navy';
@@ -536,19 +538,47 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
     return back && ok(state, back) ? back : null;
   }
   if (unit.type === 'scout') {
-    // ours: it rides to the nearest friendly village on its land that none of ours has spoken with, and otherwise home
     const land = landmassAt(state.map, unit.x, unit.y);
-    const calls = Object.values(state.settlements)
-      .filter((v) => landmassAt(state.map, v.x, v.y) === land && v.scouted.length === 0 && tribalAlarm(state, v.tribe, player.id) < AI_MISSIONS.visitAlarmBelow)
-      .sort((a, b) => far(a.x, a.y, unit.x, unit.y) - far(b.x, b.y, unit.x, unit.y));
-    for (const v of calls) {
-      for (const [dx, dy] of DIRS) {
-        const go: Action = { type: 'goTo', unitId: unit.id, x: v.x + dx, y: v.y + dy };
-        if (ok(state, go)) return go;
-      }
+    // on land that is settled and quiet a scout goes home
+    if (isQuiet(state, player, land)) {
+      const back: Action | null = home && !here ? { type: 'goTo', unitId: unit.id, x: home.x, y: home.y } : null;
+      return back && ok(state, back) ? back : null;
     }
-    const back: Action | null = home && !here ? { type: 'goTo', unitId: unit.id, x: home.x, y: home.y } : null;
-    return back && ok(state, back) ? back : null;
+    // otherwise it rides a step at a time, by chance, along rivers and roads, over easy ground, and toward empty land it has not seen
+    const from = tileOf(state, unit.x, unit.y);
+    const seat = state.players.findIndex((p) => p.id === player.id);
+    const throws = aiRng(state, `${unit.id}:ride:${unit.movesLeft}`);
+    let best: Action | null = null;
+    let top = -999;
+    DIRS.forEach(([dx, dy], d) => {
+      const to = tileOf(state, unit.x + dx, unit.y + dy);
+      const step: Action = { type: 'moveUnit', unitId: unit.id, dx, dy };
+      const roll = throws.int(1, AI_SCOUT.chance);
+      if (!from || !to || isWater(to) || !ok(state, step)) return;
+      let score = roll;
+      if (from.river !== 'none' && to.river !== 'none' && d % 2 === 0) score += AI_SCOUT.river;
+      else if ((from.road || here) && (to.road || colonyAt(state, unit.x + dx, unit.y + dy))) score += AI_SCOUT.road;
+      else score -= AI_SCOUT.costTimes * TERRAIN[terrainOf(to)].moveCost;
+      // four squares on: empty land of its own kind draws it, the more of it unseen the better
+      const px = unit.x + AI_SCOUT.ahead * dx;
+      const py = unit.y + AI_SCOUT.ahead * dy;
+      const ahead = tileOf(state, px, py);
+      if (ahead && !isWater(ahead)) {
+        const crowded = Object.values(state.units).some((u) => u.owner === player.id && u.voyage === null && far(u.x, u.y, px, py) <= 2) || mine.some((c) => far(c.x, c.y, px, py) <= 2);
+        if (!crowded) score += AI_SCOUT.emptyAhead;
+      }
+      for (const [ex, ey] of DIRS) {
+        const q = tileOf(state, px + ex, py + ey);
+        if (!q) continue;
+        if (!isWater(q) && !isExploredBy(q, seat)) score += AI_SCOUT.unseen;
+        if (Object.values(state.units).some((u) => u.voyage === null && u.x === px + ex && u.y === py + ey)) score -= AI_SCOUT.unseen;
+      }
+      if (score > top) {
+        top = score;
+        best = step;
+      }
+    });
+    return best;
   }
   const found: Action = { type: 'foundColony', unitId: unit.id };
   const mineHere = here !== null && here.owner === player.id;
@@ -575,7 +605,16 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
       if (leave !== (unit.orders === 'sentry')) return { type: 'setOrders', unitId: unit.id, orders: leave ? 'sentry' : 'none' };
       return null;
     }
+    // in the field he lays a road where he stands, unless a people not yet at odds with us hold the ground, or a rival's colony is close
+    const land = landmassAt(state.map, unit.x, unit.y);
     const back: Action | null = home ? { type: 'goTo', unitId: unit.id, x: home.x, y: home.y } : null;
+    if (isQuiet(state, player, land)) return back && ok(state, back) ? back : null;
+    const village = Object.values(state.settlements).sort((p, q) => far(p.x, p.y, unit.x, unit.y) - far(q.x, q.y, unit.x, unit.y))[0];
+    const theirGround = village !== undefined && far(village.x, village.y, unit.x, unit.y) <= AI_PIONEER.tribeLand[TRIBES[village.tribe].tech] && tribalAlarm(state, village.tribe, player.id) < AI_PIONEER.alarmFrom;
+    const colony = Object.values(state.colonies).sort((p, q) => far(p.x, p.y, unit.x, unit.y) - far(q.x, q.y, unit.x, unit.y))[0];
+    const rivalNear = colony !== undefined && colony.owner !== player.id && far(colony.x, colony.y, unit.x, unit.y) < AI_PIONEER.rivalWithin;
+    const road: Action = { type: 'pioneerWork', unitId: unit.id, job: 'road' };
+    if (!theirGround && !rivalNear && ok(state, road)) return road;
     return back && ok(state, back) ? back : ok(state, found) ? found : null;
   }
   // the rest join the colony on their land that wants them most

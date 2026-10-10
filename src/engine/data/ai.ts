@@ -507,3 +507,25 @@ export const AI_SITE = {
   /** A site rated this or more is worth half again on land new to the power, and double to a plain colonist. */
   goodFrom: 4,
 } as const;
+
+// How a computer power's scout picks each step, and what its pioneers do in the field; see
+// docs/RULES.md "Computer powers: founding and joining".
+export const AI_SCOUT = {
+  /** Each neighbouring square scores a throw of 1 to this... */
+  chance: 8,
+  /** ...this much more from river to river (straight on, not across a corner), else this much from road to road, else this many times the ground's movement cost less. */
+  river: 2,
+  road: 1,
+  costTimes: 3,
+  /** Looking this many squares on in that direction: land with none of its own people about counts this much, and each unseen land square round it (less for each occupied one) the last. */
+  ahead: 4,
+  emptyAhead: 8,
+  unseen: 2,
+} as const;
+
+export const AI_PIONEER = {
+  /** A pioneer lays no road within a native settlement's land (this far, by the tribe's level) while the tribe's alarm is under `alarmFrom`, nor within `rivalWithin` squares of a rival's colony when that is the nearest. */
+  tribeLand: [1, 1, 2, 3],
+  alarmFrom: 75,
+  rivalWithin: 3,
+} as const;

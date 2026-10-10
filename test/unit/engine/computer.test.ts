@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computerColonies, groundWanted, landWork } from '../../../src/engine/computer';
+import { computerColonies, groundWanted, landWork, tribeToFight } from '../../../src/engine/computer';
 import { AI_UPKEEP } from '../../../src/engine/data/ai';
 import { checkInvariants } from '../../../src/engine/invariants';
 import type { Colonist, Colony, GameState, Job } from '../../../src/engine/state';
@@ -168,5 +168,23 @@ describe('the upkeep of a computer power\'s colony', () => {
     const s = town({ colonists: [man('grower', 'freeColonist', field(1, 0, 'cotton')), ...Array.from({ length: 9 }, (_, i) => man(`x${i}`))], buildings: ['townHall', 'schoolhouse', 'weaversHouse', 'weaversShop'], goods: { tools: 20, food: 100 }, gold: 0, waited: 3, turn: 14 });
     const taught = col(run(s).state).colonists.map((k) => k.profession).filter((p) => p !== 'freeColonist');
     expect(taught).toEqual(['expertLumberjack']);
+  });
+
+  it('it makes up its mind to fight the people nearest a colony when it has units in the field, they are not too strong, and they are restless', () => {
+    const village = { id: 'v', tribe: 'sioux' as const, x: 5, y: 5, capital: false, population: 2, growth: 0, taught: false, tributePaid: false, alarm: {}, mission: null, scouted: [], lastBought: null, lastSold: null, haggleMemory: null };
+    const at = (alarm: number, field = true, kind: 'ai' | 'human' = 'ai'): GameState => {
+      const t = town({ goods: { tools: 20 }, waited: 0, kind });
+      const s: GameState = { ...t, settlements: { v: village }, tribes: { ...t.tribes, sioux: { ...t.tribes.sioux!, alarm: { a: alarm } } } };
+      return field ? withUnit(s, { id: 'g', type: 'soldier', x: 2, y: 2 }) : s;
+    };
+    expect(tribeToFight(at(26), col(at(26)))).toBe('sioux');
+    expect(tribeToFight(at(25), col(at(25)))).toBeNull();
+    expect(tribeToFight(at(26, false), col(at(26, false)))).toBeNull();
+    // a rival's unit on that land stays its hand
+    const watched = withUnit(at(26), { id: 'r', owner: 'b', type: 'colonist', x: 5, y: 1 });
+    expect(tribeToFight(watched, col(watched))).toBeNull();
+    // the decision is kept
+    expect(run(at(26)).state.players[0]?.tribeWars).toEqual(['sioux']);
+    expect(run(at(25)).state.players[0]?.tribeWars).toBeUndefined();
   });
 });
