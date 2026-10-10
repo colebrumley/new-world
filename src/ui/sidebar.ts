@@ -2,13 +2,13 @@
 import { dateOfTurn, formatDate } from '../engine/calendar';
 import { GOOD_IDS, GOOD_NAMES } from '../engine/data/goods';
 import { PROFESSIONS } from '../engine/data/professions';
-import { RESOURCES } from '../engine/data/resources';
 import { UNIT_TYPES } from '../engine/data/units';
 import { MOVE_THIRDS, type GameState, type Unit } from '../engine/state';
 import { CAPITAL_NAME, TECH_LEVELS, TRIBES, type TribeId } from '../engine/data/tribes';
 import { settlementAt } from '../engine/settlements';
 import { isExploredBy, terrainDef, type Tile } from '../engine/tile';
 import { viewerIndex } from './render';
+import { groundFeatures } from './tile-tooltip';
 
 /** "Free Colonist", "Veteran Soldier", "Caravel": the skill shows unless it is the plain colonist's. */
 export function unitLabel(unit: Unit): string {
@@ -65,12 +65,7 @@ export function sidebarModel(state: GameState, activeUnit: Unit | null, focus: {
   const known = tile !== null && (revealAll || isExploredBy(tile, viewer));
   const features: string[] = [];
   if (tile && known) {
-    if (tile.river === 'minor') features.push('Minor River');
-    if (tile.river === 'major') features.push('Major River');
-    if (tile.road) features.push('Road');
-    if (tile.plowed) features.push('Plowed');
-    if (tile.resource) features.push(RESOURCES[tile.resource].name);
-    if (tile.rumor) features.push('Lost City Rumor');
+    features.push(...groundFeatures(tile));
     const colony = focus ? Object.values(state.colonies).find((c) => c.x === focus.x && c.y === focus.y) : undefined;
     if (colony) features.unshift(`${colony.name} (${colony.colonists.length})`);
     const village = focus ? settlementAt(state, focus.x, focus.y) : null;
