@@ -130,7 +130,8 @@ function eveOf1800(): string {
   let state: GameState = world({ rows, seed: 3, players: [{ id: 'p0', kind: 'human', fathers: ['peterMinuit', 'thomasJefferson', 'adamSmith'] }] });
   state = withColony(state, { id: 'col', owner: 'p0', x: 2, y: 5, name: 'Jamestown', sol: { n: 80, d: 200 }, goods: { food: 100 } });
   state = withUnit(state, { id: 'scout', owner: 'p0', type: 'scout', x: 7, y: 5 });
-  state = { ...state, turn: 507, players: state.players.map((p) => ({ ...p, gold: 42000 })) };
+  // named as every game begun before the power could be chosen was: the Hall shows the leader
+  state = { ...state, turn: 507, players: state.players.map((p) => ({ ...p, gold: 42000, name: 'Player' })) };
   return saveGame({ options: { seed: 3 }, log: [], state });
 }
 

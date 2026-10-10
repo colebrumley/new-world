@@ -3,6 +3,15 @@
 Generated from `src/ui/keymap.ts` (the table the key handlers use). Do not edit by hand:
 run `UPDATE_FIXTURES=1 npm test` after changing the table.
 
+## Choosing a power
+
+| Key | Action | Status |
+|---|---|---|
+| Up / Down, 1-4 | Choose a European Power: move between the four powers | works |
+| Tab | On to the name field, Set Sail and Back | works |
+| Enter | Set Sail: start the game as the chosen power | works |
+| Esc | Back to the title screen, or to Customize with its settings as they were | works |
+
 ## Map
 
 | Key | Action | Status |

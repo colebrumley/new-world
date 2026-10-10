@@ -30,6 +30,14 @@ describe('nations table', () => {
     ]);
     expect(new Set(NATION_IDS.map((n) => NATIONS[n].color)).size).toBe(4);
   });
+
+  it('names each court, and gives each power an account short enough for the screen where one is chosen', () => {
+    expect(NATION_IDS.map((n) => NATIONS[n].court)).toEqual(['the Queen of England', 'the King of France', 'the King of Spain', 'the Stadtholder of the Netherlands']);
+    for (const n of NATION_IDS) {
+      expect(NATIONS[n].account.length, n).toBeGreaterThan(0);
+      expect(NATIONS[n].account.length, n).toBeLessThan(260);
+    }
+  });
 });
 
 describe('what each power lands with', () => {

@@ -2,6 +2,7 @@
 // how hard, how it ended, and the score with its rating.
 import { dateOfTurn, formatDate } from '../engine/calendar';
 import { NATIONS, type NationId } from '../engine/data/nations';
+import { leaderName } from '../engine/game';
 import { HONOURS } from '../engine/data/score';
 import { ratingOf, scoreOf, wonIndependence } from '../engine/score';
 import type { GameState, PlayerId } from '../engine/state';
@@ -31,7 +32,7 @@ export function entryFor(state: GameState, playerId: PlayerId): HallEntry | null
   const rating = ratingOf(state.difficulty, score);
   return {
     game: `${String(state.seed)}:${state.turn}:${state.over?.reason ?? 'playing'}`,
-    leader: NATIONS[player.nation].leader,
+    leader: leaderName(player),
     nation: player.nation,
     declared: player.revolution !== null,
     won: wonIndependence(state, playerId),

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { field } from './helpers';
+import { field, startNewGame } from './helpers';
 
 test('the built game installs as an app and plays with the network gone', async ({ page, context }) => {
   await page.goto('/?seed=11');
@@ -27,7 +27,7 @@ test('the built game installs as an app and plays with the network gone', async 
   // pull the plug: the page still comes up, and a game can be started and played
   await context.setOffline(true);
   await page.reload();
-  await page.getByRole('menuitem', { name: 'Start a Game in New World' }).click();
+  await startNewGame(page);
   await expect(field(page, 'unit')).toHaveText('Caravel');
   await page.keyboard.press('ArrowLeft');
   await expect(field(page, 'moves')).toHaveText('Moves: 3');

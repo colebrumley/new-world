@@ -6,8 +6,9 @@ import { SCHEMA_VERSION, type GameState } from '../../../src/engine/state';
 import { withColony, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~', '~....~', '~....~', '~~~~~~'];
-const session = (turn = 0): GameSession => {
-  const state: GameState = { ...withColony(world({ rows: ROWS, seed: 4, players: [{ id: 'a' }, { id: 'b', kind: 'ai', nation: 'france' }] }), { id: 'col', x: 2, y: 1, name: 'C' }), turn };
+const session = (turn = 0, name = 'Player'): GameSession => {
+  const made = withColony(world({ rows: ROWS, seed: 4, players: [{ id: 'a' }, { id: 'b', kind: 'ai', nation: 'france' }] }), { id: 'col', x: 2, y: 1, name: 'C' });
+  const state: GameState = { ...made, turn, players: made.players.map((p) => (p.id === 'a' ? { ...p, name } : p)) };
   return { options: { seed: 4 }, log: [], state };
 };
 const errorOf = (text: string): unknown => {
@@ -24,6 +25,11 @@ describe('a saved game', () => {
     expect(describeSession(session())).toBe('Walter Raleigh of England, 1492, Conquistador, 1 colony');
     expect(describeSession(session(firstTurnOfYear(1700) + 1))).toBe('Walter Raleigh of England, Autumn 1700, Conquistador, 1 colony');
     expect(exportName(session(firstTurnOfYear(1620)))).toBe('new-world-england-1620.json');
+  });
+
+  it("names the human as they named themselves; a player named only Player (an older save) is the leader", () => {
+    expect(describeSession(session(0, 'Cortes'))).toBe('Cortes of England, 1492, Conquistador, 1 colony');
+    expect(describeSession(session(0, 'Player'))).toBe('Walter Raleigh of England, 1492, Conquistador, 1 colony');
   });
 
   it('loads back exactly as it was saved', () => {

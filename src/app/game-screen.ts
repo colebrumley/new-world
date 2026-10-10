@@ -28,6 +28,7 @@ import { colonyReport, economicReport, indianReport, laborReport, navalReport, r
 import { hallSection, recordGame } from './hall-of-fame';
 import { congressReport } from '../ui/reports/congress';
 import { loadGame, saveGame, stepSession, type GameSession } from '../engine/save';
+import { dateOfTurn } from '../engine/calendar';
 import { showSaveLoad } from '../ui/save-dialog';
 import { describeLoadError, exportName, keepDecade, listSlots, readSlot, writeSlot } from './slots';
 import { colonyAt, type GameState, type Unit, type UnitId } from '../engine/state';
@@ -88,7 +89,8 @@ declare global {
   }
 }
 
-export function startGame(root: HTMLElement, initial: GameSession): void {
+/** `opening`: a game just begun (never one loaded): it opens with an audience with the Crown. */
+export function startGame(root: HTMLElement, initial: GameSession, { opening = false }: { readonly opening?: boolean } = {}): void {
   const screen = document.createElement('div');
   screen.className = 'game';
   // the stylesheet seals what it shows with wax of the player's colour (--nation)
@@ -1602,7 +1604,18 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   window.addEventListener('resize', onResize);
   resize();
   save();
-  offerHint({ where: 'map', activeUnitId: activeId });
-  canvas.focus();
   requestAnimationFrame(frame);
+  const begin = (): void => {
+    offerHint({ where: 'map', activeUnitId: activeId });
+    canvas.focus();
+  };
+  if (opening && seat) {
+    // the first thing seen: the Crown's commission, over the map with the ship already on it
+    const court = NATIONS[seat.nation];
+    void ask(screen, {
+      heading: [`In the year of Our Lord ${dateOfTurn(session.state.turn).year}`, `An audience with ${court.court}`],
+      text: `${seat.name}: for the glory of ${court.name} we name you Viceroy of the New World. Cross the ocean, settle the land you find, and send its wealth home to our Crown.`,
+      choices: ['So be it'], escape: 0, picture: portraitCanvas('king', 2),
+    }).then(begin);
+  } else begin();
 }

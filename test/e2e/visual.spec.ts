@@ -7,6 +7,7 @@ import { ART_COLORS, INK, PALETTE } from '../../src/ui/pixel-art';
 import type { View } from '../../src/ui/view';
 import { fingerprint, referencePixels } from '../helpers/reference-canvas';
 import { withColony, withUnit, world } from '../helpers/world';
+import { startNewGame } from './helpers';
 
 // Visual baselines at 1280 x 800 (docs/VISUAL_CHECKLIST.md). The map is drawn only from
 // palette-indexed art blown up by whole numbers, so what it must show can be worked out without a
@@ -95,7 +96,7 @@ function sheet(): string {
 test('every pixel of the map is one of the 32 palette colours, at every zoom; baselines for each', async ({ page }) => {
   await quiet(page);
   await page.goto('/?seed=11&reveal&still');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   const canvas = page.locator('canvas.map');
   await expect(canvas).toHaveAttribute('data-view', /"zoom":3/);
   const palette = new Set<string>(ART_COLORS);
@@ -120,7 +121,7 @@ test('every pixel of the map is one of the 32 palette colours, at every zoom; ba
 test('the unexplored map is an explorer\'s chart in the same palette, at every zoom; baselines for each', async ({ page }) => {
   await quiet(page);
   await page.goto('/?seed=11&still');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   const canvas = page.locator('canvas.map');
   await expect(canvas).toHaveAttribute('data-view', /"zoom":3/);
   const palette = new Set<string>(ART_COLORS);
@@ -164,7 +165,7 @@ test('one of everything: terrain, features, every unit type, colonies and settle
 test('the active unit\'s frame blinks, the sea shimmers if asked to, and neither happens with ?still', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('new-world:options', JSON.stringify({ tutorialHints: false })));
   await page.goto('/?seed=11');
-  await page.getByRole('menuitem', { name: 'Start a Game in New World' }).click();
+  await startNewGame(page);
   const canvas = page.locator('canvas.map');
   await expect(canvas).toHaveAttribute('data-ticks', /\d+/); // animation redraws are counted apart from the game's own
   const prints = new Set<string>();
@@ -175,7 +176,7 @@ test('the active unit\'s frame blinks, the sea shimmers if asked to, and neither
   expect(prints.size).toBeGreaterThanOrEqual(2);
 
   await page.goto('/?seed=11&still');
-  await page.getByRole('menuitem', { name: 'Start a Game in New World' }).click();
+  await startNewGame(page);
   await expect(canvas).toHaveAttribute('data-frames', /\d+/);
   const before = (await survey(canvas)).fingerprint;
   await page.waitForTimeout(1200);

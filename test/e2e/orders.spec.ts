@@ -1,10 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
+import { startNewGame } from './helpers';
 
 const field = (page: Page, name: string) => page.locator(`[data-field="${name}"]`);
 
 async function start(page: Page): Promise<void> {
   await page.goto('/?seed=11');
-  await page.getByRole('menuitem', { name: 'Start a Game in New World' }).click();
+  await startNewGame(page);
   await expect(field(page, 'unit')).toHaveText('Caravel');
 }
 

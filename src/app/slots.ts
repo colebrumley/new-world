@@ -4,6 +4,7 @@
 import { dateOfTurn, formatDate } from '../engine/calendar';
 import { NATIONS } from '../engine/data/nations';
 import { DIFFICULTY_NAMES } from '../engine/difficulty';
+import { leaderName } from '../engine/game';
 import { loadGame, saveGame, SaveFormatError, type GameSession } from '../engine/save';
 import { DECADE_SLOT, LAST_TURN_SLOT, SLOT_COUNT, slotKey } from './save-keys';
 
@@ -28,7 +29,7 @@ export function describeSession(session: GameSession): string {
   const state = session.state;
   const player = state.players.find((p) => p.kind === 'human') ?? state.players[0];
   const colonies = player ? Object.values(state.colonies).filter((c) => c.owner === player.id).length : 0;
-  const who = player ? `${NATIONS[player.nation].leader} of ${NATIONS[player.nation].name}` : 'Nobody';
+  const who = player ? `${leaderName(player)} of ${NATIONS[player.nation].name}` : 'Nobody';
   return `${who}, ${formatDate(dateOfTurn(state.turn))}, ${DIFFICULTY_NAMES[state.difficulty]}, ${colonies} ${colonies === 1 ? 'colony' : 'colonies'}`;
 }
 
