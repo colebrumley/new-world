@@ -16,7 +16,7 @@ is the Worker protocol in CLAUDE.md and every session reads that file:
 
 ```
 Repo: New World (this repository). Follow the Worker protocol in CLAUDE.md exactly: it is the whole
-process, including the adversarial review before the pull request and the merge after it.
+process, including the pull request, the two reviews of it and the merge after them.
 
 Item: R-xxxx <title> — docs/specs/<slug>.md, item Wn. Read the whole spec once; build only this item.
 

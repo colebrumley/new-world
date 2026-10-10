@@ -2,6 +2,10 @@
 // this machine) reads the branch's diff against origin/main as a hostile reviewer, in a read-only
 // sandbox, and reports findings by severity. The worker fixes every P1 and P2 it confirms, runs
 // this once more, and merges only when the verdict is CLEAN. Commit first: it reads the commits.
+// When the branch has an open pull request, CodeRabbit (a GitHub app) is asked to read it too, once
+// per pull request and never again after later pushes, and its open comments are printed under the
+// Codex findings so both are read together. It is advisory: a rate limit or silence is reported and
+// the exit code stays the Codex verdict's.
 //   npm run review                  this branch against origin/main
 //   npm run review -- --base <ref>  another base
 // The full report goes to <git common dir>/private/reviews/ (never tracked); the verdict and the
@@ -31,6 +35,101 @@ const codex = spawnSync('codex', ['--version'], { encoding: 'utf8' });
 if (codex.error) {
   console.error('review: the codex command is not installed or not on PATH');
   process.exit(2);
+}
+
+// CodeRabbit. Its automatic reviews are off (.coderabbit.yaml); a pull request gets one when a
+// comment asks for it, and that comment is also the record that it has had its one review.
+const BOT = /^coderabbitai/;
+const ASK = '@coderabbitai review';
+const WAIT_FOR_SIGN = 3 * 60 * 1000;
+const WAIT_FOR_REVIEW = 10 * 60 * 1000;
+const gh = (...args) => spawnSync('gh', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+const ghJson = (...args) => {
+  const out = gh(...args);
+  return out.status === 0 ? JSON.parse(out.stdout) : null;
+};
+// One JSON object per line, from `gh api --paginate --jq`.
+const ghLines = (path, jq) => {
+  const out = gh('api', '--paginate', path, '--jq', jq);
+  if (out.status !== 0) return [];
+  return out.stdout.split('\n').filter(Boolean).map((line) => JSON.parse(line));
+};
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+function rabbitActivity(pr, since) {
+  const after = (at) => !since || Date.parse(at) >= since;
+  const comments = ghLines(`repos/{owner}/{repo}/issues/${pr.number}/comments`, '.[] | {login: .user.login, body, at: .updated_at}');
+  const reviews = ghLines(`repos/{owner}/{repo}/pulls/${pr.number}/reviews`, '.[] | {login: .user.login, at: .submitted_at}');
+  const statuses = ghLines(`repos/{owner}/{repo}/commits/${pr.headRefOid}/statuses`, '.[] | {context, state, at: .updated_at}');
+  const fromBot = comments.filter((c) => BOT.test(c.login) && after(c.at));
+  const status = statuses.find((s) => /coderabbit/i.test(s.context) && after(s.at));
+  return {
+    asked: comments.some((c) => !BOT.test(c.login) && c.body.includes(ASK)),
+    reviewed: reviews.some((r) => BOT.test(r.login) && after(r.at)),
+    limited: fromBot.find((c) => /rate limit/i.test(c.body)),
+    finished: status !== undefined && status.state !== 'pending',
+    sign: fromBot.length > 0 || status !== undefined,
+  };
+}
+
+// Before Codex starts, so the two read at the same time. Returns what rabbitReport needs.
+function rabbitAsk() {
+  const pr = ghJson('pr', 'view', '--json', 'number,url,state,headRefOid');
+  if (!pr || pr.state !== 'OPEN') {
+    return { skip: 'no open pull request for this branch; push and open it before the review so CodeRabbit reads it too' };
+  }
+  const now = rabbitActivity(pr, 0);
+  if (now.asked || now.reviewed) return { pr, since: 0 };
+  if (pr.headRefOid !== git('rev-parse', 'HEAD')) {
+    return { pr, since: 0, note: 'the pull request is behind this branch, so CodeRabbit was not asked; push first' };
+  }
+  const since = Date.now() - 60 * 1000;
+  const asked = gh('pr', 'comment', String(pr.number), '--body', ASK);
+  if (asked.status !== 0) return { pr, since: 0, note: `could not ask for a review: ${asked.stderr.trim()}` };
+  console.log(`review: asked CodeRabbit to read ${pr.url}`);
+  return { pr, since, started: Date.now() };
+}
+
+function rabbitWait({ pr, since, started }) {
+  for (;;) {
+    const seen = rabbitActivity(pr, since);
+    if (seen.limited) return `rate limited, so it did not read this pull request: ${seen.limited.body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200)}`;
+    if (seen.reviewed || seen.finished) return '';
+    const waited = Date.now() - started;
+    if (!seen.sign && waited > WAIT_FOR_SIGN) return 'no answer; is the app installed on the repository?';
+    if (waited > WAIT_FOR_REVIEW) return 'still reading after ten minutes; not waiting for it';
+    sleep(20 * 1000);
+  }
+}
+
+function rabbitReport(asked) {
+  console.log('\n## CodeRabbit');
+  if (asked.skip) return console.log(`review: CodeRabbit: ${asked.skip}`);
+  if (asked.note) console.log(`review: CodeRabbit: ${asked.note}`);
+  if (asked.started) {
+    const problem = rabbitWait(asked);
+    if (problem) console.log(`review: CodeRabbit: ${problem}`);
+  }
+  const repo = ghJson('repo', 'view', '--json', 'owner,name');
+  const query = `query($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) { reviewThreads(first: 100) { nodes { isResolved isOutdated path line
+      comments(first: 1) { nodes { author { login } body } } } } } } }`;
+  const data = repo && ghJson('api', 'graphql', '-f', `query=${query}`, '-f', `owner=${repo.owner.login}`, '-f', `name=${repo.name}`, '-F', `number=${asked.pr.number}`);
+  if (!data) return console.log('review: CodeRabbit: could not read the pull request comments');
+  const open = data.data.repository.pullRequest.reviewThreads.nodes
+    .filter((t) => !t.isResolved && !t.isOutdated && BOT.test(t.comments.nodes[0]?.author?.login ?? ''));
+  for (const thread of open) {
+    const body = thread.comments.nodes[0].body
+      .replace(/<details>[\s\S]*?<\/details>/g, '')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/\n\s*\n+/g, '\n')
+      .trim()
+      .slice(0, 1200);
+    console.log(`- ${thread.path}:${thread.line ?? '?'} — ${body.replace(/\n/g, '\n  ')}`);
+  }
+  console.log(open.length
+    ? `review: CodeRabbit: ${open.length} open comment(s); confirm each against the code as you would a Codex finding`
+    : 'review: CodeRabbit: no open comments');
 }
 
 const dir = join(common, 'private', 'reviews');
@@ -71,6 +170,7 @@ not prove its claim. P3: minor. Omit the section when the verdict is CLEAN.)
 - one line per area you inspected and found sound`;
 
 console.log(`review: ${branch} (${head}) against ${base}; files:\n${stat}\n`);
+const rabbit = rabbitAsk();
 const run = spawnSync('codex', ['exec', '--sandbox', 'read-only', '--cd', top, '--color', 'never', '--output-last-message', verdict, prompt], {
   encoding: 'utf8',
   maxBuffer: 256 * 1024 * 1024,
@@ -90,6 +190,7 @@ try {
 }
 console.log(last);
 console.log(`\nreview: full report in ${report}`);
+rabbitReport(rabbit);
 const findings = (last.match(/^- \[(P[123])\]/gm) ?? []).map((line) => line.slice(3, 5));
 const blocking = findings.filter((p) => p !== 'P3').length;
 if (/^## Verdict: CLEAN/m.test(last) && blocking === 0) {

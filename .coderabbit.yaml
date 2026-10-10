@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit reads a pull request once, when `npm run review` asks it to (scripts/review.mjs), and
+# never again on later pushes: the open-source allowance is a few reviews an hour for the whole
+# repository, and the worker reads its comments together with the Codex findings.
+language: en-US
+tone_instructions: >-
+  Report only defects you can tie to a concrete input or state. Skip style, naming and formatting.
+  Describe a rule as what this game does; never name or compare with any other game.
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: false
+  poem: false
+  in_progress_fortune: false
+  sequence_diagrams: false
+  suggested_labels: false
+  auto_review:
+    enabled: false
+    auto_incremental_review: false
