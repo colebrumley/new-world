@@ -135,6 +135,8 @@ export const AI_CAMPAIGN = {
   /** Priority: this, more against the human and at war, less on a landmass with more than one European colony to `crowdedPer` squares, doubled before turn `doubledBefore`. */
   invadePriority: 3,
   invadeHumanBonus: 1,
+  /** ...and one more for each of these sizes his landmass reaches, where every European colony on it is his. */
+  invadeAloneFrom: [16, 64],
   invadeWarBonus: 1,
   crowdedPer: 16,
   crowdedPenalty: 1,

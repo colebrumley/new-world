@@ -258,8 +258,13 @@ function workOutInvasions(state: GameState, player: Player): InvadeRequest[] {
     const beach = invasionBeach(state, c, player.id) as readonly [number, number];
     const land = landOf(state, c);
     let priority: number = AI_CAMPAIGN.invadePriority;
-    if (state.players.find((p) => p.id === c.owner)?.kind === 'human') priority += AI_CAMPAIGN.invadeHumanBonus;
-    const european = Object.values(state.colonies).filter((o) => isPower(state, o.owner) && landOf(state, o) === land).length;
+    const there = Object.values(state.colonies).filter((o) => isPower(state, o.owner) && landOf(state, o) === land);
+    if (state.players.find((p) => p.id === c.owner)?.kind === 'human') {
+      priority += AI_CAMPAIGN.invadeHumanBonus;
+      // more still where the human has a landmass of some size all to himself
+      if (there.every((o) => o.owner === c.owner)) priority += AI_CAMPAIGN.invadeAloneFrom.filter((size) => landmassSize(state, land) >= size).length;
+    }
+    const european = there.length;
     if (AI_CAMPAIGN.crowdedPer * european > landmassSize(state, land)) priority -= AI_CAMPAIGN.crowdedPenalty;
     if (player.stance[c.owner] === 'war') priority += AI_CAMPAIGN.invadeWarBonus;
     if (state.turn < AI_CAMPAIGN.doubledBefore) priority *= 2;

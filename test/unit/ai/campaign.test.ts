@@ -267,14 +267,15 @@ describe('when a landing is planned', () => {
     expect(invasionBeach(s, { x: 5, y: 4 }, 'a')).toBeNull();
   });
 
-  it('priority 3, +1 against the human, +1 at war, -1 on a crowded landmass, doubled before turn 150', () => {
+  it('priority 3, +1 against the human (more where he has the landmass to himself), +1 at war, -1 on a crowded landmass, doubled before turn 150', () => {
     const p = (s: GameState): number | undefined => invadeRequests(s, me(s)).find((r) => r.colonyId === 'theirs')?.priority;
     // the island has 28 squares: two colonies are 32 sixteenths, so it is crowded
     expect(landmassSize(overseas(), landmassAt(overseas().map, 15, 4))).toBe(28);
     expect(p(overseas())).toBe(2);
     expect(p(overseas({ b: 'war' }))).toBe(3);
-    expect(p(overseas({}, 160, [7, 1], 'h'))).toBe(3);
-    expect(p(overseas({ h: 'war' }, 160, [7, 1], 'h'))).toBe(4);
+    // against the human one more, and one more again where a landmass of 16 squares or more is all his (two more from 64)
+    expect(p(overseas({}, 160, [7, 1], 'h'))).toBe(4);
+    expect(p(overseas({ h: 'war' }, 160, [7, 1], 'h'))).toBe(5);
     expect(p(overseas({ b: 'war' }, 149))).toBe(6);
     // on the roomy mainland (70 squares) four colonies are not a crowd: 64 sixteenths
     let main = col(col(base({}, 160), 'theirs', 9, 4, 'b', 7), 'other', 9, 7, 'b', 1);

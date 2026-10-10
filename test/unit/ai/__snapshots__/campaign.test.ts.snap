@@ -12,6 +12,10 @@ exports[`campaign rule table > matches the snapshot 1`] = `
   "crowdedPer": 16,
   "defendBase": 2,
   "doubledBefore": 150,
+  "invadeAloneFrom": [
+    16,
+    64,
+  ],
   "invadeColonistsFrom": 8,
   "invadeHumanBonus": 1,
   "invadePriority": 3,

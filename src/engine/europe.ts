@@ -4,9 +4,11 @@ import { AI_RESERVE } from './data/ai';
 import { equipmentOf, holdsFree } from './cargo';
 import { isColonistRole, PIONEER_TOOLS, ROLE_GOODS, type ColonistRole } from './data/equipment';
 import { GOOD_IDS, type GoodId } from './data/goods';
-import { PROFESSIONS, type ProfessionId } from './data/professions';
+import { PROFESSIONS, UNSKILLED, type ProfessionId } from './data/professions';
 import { ARTILLERY_PRICE_STEP, UNIT_TYPES, type UnitTypeId } from './data/units';
+import { DIFFICULTIES } from './data/yields';
 import { askPrice, bidPrice, dockTrade, isBoycotted } from './market';
+import { createRng } from './rng';
 import { OFF_MAP, type GameState, type PlayerId, type Unit, type UnitId, type Voyage } from './state';
 
 export type EuropeErrorCode = 'boycotted' | 'cannotEquip' | 'notInEurope' | 'notForSale' | 'cannotAfford' | 'shipFull' | 'notOnDocks' | 'europeClosed';
@@ -92,8 +94,10 @@ export function trainUnit(state: GameState, owner: PlayerId, profession: Profess
 export function purchasePrice(state: GameState, owner: PlayerId, type: UnitTypeId): number | null {
   const base = UNIT_TYPES[type].europePrice;
   if (base === null) return null;
-  const bought = state.players.find((p) => p.id === owner)?.artilleryBought ?? 0;
-  return type === 'artillery' ? base + ARTILLERY_PRICE_STEP * bought : base;
+  const buyer = state.players.find((p) => p.id === owner);
+  // a computer power is owed a gun in Europe for each one its colonies have built
+  if (type === 'artillery' && buyer?.kind === 'ai' && (buyer.gunCredit ?? 0) > 0) return 0;
+  return type === 'artillery' ? base + ARTILLERY_PRICE_STEP * (buyer?.artilleryBought ?? 0) : base;
 }
 
 export function checkPurchase(state: GameState, owner: PlayerId, type: UnitTypeId): EuropeCheck {
@@ -109,7 +113,9 @@ export function purchaseUnit(state: GameState, owner: PlayerId, type: UnitTypeId
   const unit = newDockUnit(state, owner, type, null);
   events.push({ type: 'unitPurchased', unitId: unit.id, unitType: type, price });
   const paid = pay(state, owner, price);
-  const players = type === 'artillery' ? paid.players.map((p) => (p.id === owner ? { ...p, artilleryBought: p.artilleryBought + 1 } : p)) : paid.players;
+  const owed = type === 'artillery' && price === 0;
+  const players = type !== 'artillery' ? paid.players
+    : paid.players.map((p) => (p.id !== owner ? p : owed ? { ...p, gunCredit: (p.gunCredit ?? 1) - 1 } : { ...p, artilleryBought: p.artilleryBought + 1 }));
   return { ...paid, players, nextId: state.nextId + 1, units: { ...paid.units, [unit.id]: unit } };
 }
 
@@ -163,6 +169,8 @@ export interface DockEquipPlan {
   readonly cost: number;
   /** Computer powers only: kit taken from the power's reserve in Europe instead of bought. */
   readonly fromReserve: { readonly muskets: number; readonly horses: number };
+  /** Computer powers only: horses a drafted dragoon is given when the treasury cannot pay for them. */
+  readonly given: number;
 }
 
 /** What changing a dock unit's role would buy and sell, at this power's prices. Selling back is at the bid, untaxed. */
@@ -174,6 +182,8 @@ export function dockEquipPlan(state: GameState, unit: Unit, role: ColonistRole):
   const owner = state.players.find((p) => p.id === unit.owner);
   const reserve = owner?.kind === 'ai' ? owner.reserve ?? { muskets: 0, horses: 0 } : { muskets: 0, horses: 0 };
   const fromReserve = { muskets: 0, horses: 0 };
+  const drafting = owner?.kind === 'ai' && docksOf(state, unit.owner).some((u) => u.id !== unit.id && UNIT_TYPES[u.type].attack > 1);
+  let given = 0;
   for (const good of GOOD_IDS) {
     const amount = (want[good] ?? 0) - (have[good] ?? 0);
     if (amount === 0) continue;
@@ -186,10 +196,18 @@ export function dockEquipPlan(state: GameState, unit: Unit, role: ColonistRole):
       fromReserve.horses = amount;
       continue;
     }
+    let price = amount > 0 ? askPrice(state, unit.owner, good) * amount : -bidPrice(state, unit.owner, good) * -amount;
+    // raising dragoons (an armed man already waits): late in the game a tenth off for each level, and a horse found for him even if it cannot be paid for
+    if (drafting && amount > 0 && state.turn >= AI_RESERVE.discountFrom) price -= Math.trunc((DIFFICULTIES.indexOf(state.difficulty) * price) / 10);
+    if (drafting && good === 'horses' && amount > 0 && (owner?.gold ?? 0) < cost + price) {
+      fromReserve.horses = 0;
+      given = amount;
+      continue;
+    }
     changes.push({ good, amount });
-    cost += amount > 0 ? askPrice(state, unit.owner, good) * amount : -bidPrice(state, unit.owner, good) * -amount;
+    cost += price;
   }
-  return { changes, cost, fromReserve };
+  return { changes, cost, fromReserve, given };
 }
 
 export function checkDockEquip(state: GameState, unit: Unit, role: ColonistRole): EuropeCheck {
@@ -206,10 +224,30 @@ export function dockEquip(state: GameState, unit: Unit, role: ColonistRole, even
   const plan = dockEquipPlan(state, unit, role);
   let next = state;
   for (const change of plan.changes) next = dockTrade(next, unit.owner, change.good, Math.abs(change.amount), change.amount < 0);
+  // (what was paid is the plan's cost: a late dragoon's discount is on the price, not on the traffic)
+  next = { ...next, players: next.players.map((p) => (p.id === unit.owner ? { ...p, gold: goldOf(state, unit.owner) - plan.cost } : p)) };
   if (plan.fromReserve.muskets > 0 || plan.fromReserve.horses > 0) {
     next = { ...next, players: next.players.map((p) => (p.id === unit.owner ? { ...p, reserve: { muskets: (p.reserve?.muskets ?? 0) - plan.fromReserve.muskets / AI_RESERVE.lot, horses: (p.reserve?.horses ?? 0) - plan.fromReserve.horses } } : p)) };
   }
   events.push({ type: 'equippedInEurope', unitId: unit.id, role, cost: plan.cost });
-  const fitted: Unit = { ...(next.units[unit.id] as Unit), type: role, tools: role === 'pioneer' ? PIONEER_TOOLS.max : 0 };
+  let fitted: Unit = { ...(next.units[unit.id] as Unit), type: role, tools: role === 'pioneer' ? PIONEER_TOOLS.max : 0 };
+  const owner = next.players.find((p) => p.id === unit.owner);
+  if (owner?.kind === 'ai' && (role === 'soldier' || role === 'dragoon') && unit.type === 'colonist' && unit.profession !== null) {
+    // a computer power's man with a trade leaves it in the pool for an unskilled one's, or loses it
+    let profession = unit.profession;
+    let pool = owner.pool;
+    if (!UNSKILLED.includes(profession) && profession !== 'veteranSoldier') {
+      const slot = pool.findIndex((p) => UNSKILLED.includes(p));
+      const taken = slot >= 0 ? (pool[slot] as ProfessionId) : 'freeColonist';
+      if (slot >= 0) pool = pool.map((p, i) => (i === slot ? profession : p));
+      profession = taken;
+    }
+    // with a college in one of its colonies, now and then he is a veteran: one chance in its soldiers and dragoons and one
+    const college = Object.values(next.colonies).some((c) => c.owner === unit.owner && c.buildings.includes('college'));
+    const troops = Object.values(next.units).filter((u) => u.owner === unit.owner && (u.type === 'soldier' || u.type === 'dragoon')).length;
+    if (college && profession !== 'veteranSoldier' && createRng(next.rng).fork(`veteran:${next.turn}:${unit.id}`).int(0, troops) === 0) profession = 'veteranSoldier';
+    fitted = { ...fitted, profession };
+    next = { ...next, players: next.players.map((p) => (p.id === unit.owner ? { ...p, pool } : p)) };
+  }
   return { ...next, units: { ...next.units, [unit.id]: fitted } };
 }

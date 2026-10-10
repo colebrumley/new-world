@@ -3,7 +3,7 @@ import { cargoPort, colonyAsks, powerWants } from '../../../src/ai/supply';
 import { playTurn } from '../../../src/ai/european';
 import { AI_DOCKS, AI_SUPPLY } from '../../../src/engine/data/ai';
 import { applyAction, validateAction } from '../../../src/engine/actions';
-import { dockEquipPlan } from '../../../src/engine/europe';
+import { dockEquipPlan, purchasePrice } from '../../../src/engine/europe';
 import { recruitPrice } from '../../../src/engine/immigration';
 import { checkInvariants } from '../../../src/engine/invariants';
 import { bidPrice } from '../../../src/engine/market';
@@ -173,5 +173,40 @@ describe('the terms a computer power has in Europe', () => {
     expect(made.units['x']).toMatchObject({ type: 'pioneer', tools: 20 });
     expect(c(made, 'home').goods.tools ?? 0).toBe(0);
     expect(validateAction(human(s), { type: 'equip', unitId: 'x', role: 'pioneer' }).ok).toBe(false);
+  });
+
+  it('a skilled man it arms leaves his trade in the pool for an unskilled one\'s; with a college he may be a veteran', () => {
+    const s = inEurope(withUnit(with_(base('france'), { gold: 5000, pool: ['expertFarmer', 'pettyCriminal', 'freeColonist'] }), { id: 'w', x: 0, y: 0, profession: 'masterBlacksmith' }), 'w');
+    const armed = applyAction(s, { type: 'equipInEurope', unitId: 'w', role: 'soldier' }).state;
+    expect(armed.units['w']).toMatchObject({ type: 'soldier', profession: 'pettyCriminal' });
+    expect(armed.players[0]?.pool).toEqual(['expertFarmer', 'masterBlacksmith', 'freeColonist']);
+    // with no unskilled man in the pool he is a free colonist and the trade is lost
+    const none = applyAction(with_(s, { pool: ['expertFarmer', 'expertFisherman', 'masterCarpenter'] }), { type: 'equipInEurope', unitId: 'w', role: 'soldier' }).state;
+    expect(none.units['w']?.profession).toBe('freeColonist');
+    // a power with a college and no troops yet: the one chance in one comes up
+    const schooled = withColony(s, { id: 'col', x: 3, y: 4, buildings: ['townHall', 'college'] });
+    expect(applyAction(schooled, { type: 'equipInEurope', unitId: 'w', role: 'soldier' }).state.units['w']?.profession).toBe('veteranSoldier');
+    // a human's recruit keeps his trade
+    expect(applyAction(human(s), { type: 'equipInEurope', unitId: 'w', role: 'soldier' }).state.units['w']?.profession).toBe('masterBlacksmith');
+  });
+
+  it('raising dragoons with an armed man already waiting: a horse is found even when it cannot be paid for', () => {
+    let s = inEurope(withUnit(with_(base('france'), { gold: 0 }), { id: 'g', type: 'soldier', x: 0, y: 0 }), 'g');
+    s = inEurope(withUnit(s, { id: 'w', type: 'soldier', x: 0, y: 0 }), 'w');
+    const mounted = applyAction(s, { type: 'equipInEurope', unitId: 'w', role: 'dragoon' }).state;
+    expect(mounted.units['w']?.type).toBe('dragoon');
+    expect(mounted.players[0]?.gold).toBe(0);
+    // the first armed man, with nobody armed beside him, must pay
+    const alone = { ...s, units: Object.fromEntries(Object.entries(s.units).filter(([id]) => id !== 'g')) };
+    expect(validateAction(alone, { type: 'equipInEurope', unitId: 'w', role: 'dragoon' }).ok).toBe(false);
+  });
+
+  it('a gun built in one of its colonies earns it one in Europe at no cost', () => {
+    const s = with_(base('france'), { gold: 0, gunCredit: 1 });
+    expect(purchasePrice(s, 'a', 'artillery')).toBe(0);
+    const bought = applyAction(s, { type: 'purchaseUnit', unit: 'artillery' }).state;
+    expect(bought.players[0]).toMatchObject({ gold: 0, gunCredit: 0, artilleryBought: 0 });
+    expect(purchasePrice(bought, 'a', 'artillery')).toBeGreaterThan(0);
+    expect(purchasePrice(human(s), 'a', 'artillery')).toBeGreaterThan(0);
   });
 });
