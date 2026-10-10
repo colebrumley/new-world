@@ -36,6 +36,7 @@ import { checkFound, coloniesOf, nextColonyName, siteWarnings } from '../engine/
 import { defaultRouteName, routesOf } from '../engine/trade-routes';
 import { openColonyScreen } from '../ui/colony-screen';
 import { ask, askText } from '../ui/dialog';
+import { europeCall } from '../ui/europe-model';
 import { openEuropeScreen } from '../ui/europe-screen';
 import { mapCommandFor, type MapCommand } from '../ui/keymap';
 import { createMagnifiedNotice } from '../ui/magnified';
@@ -1560,7 +1561,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     const focus = mode !== 'move' || !unit || unit.x < 0 ? cursor : { x: unit.x, y: unit.y };
     const status = notice || (unit ? '' : 'End of turn. Press Enter.');
     sidebar.update(sidebarModel(session.state, mode === 'view' ? null : unit, focus, revealAll, status));
-    commandBar.update(unit !== null && mode !== 'view', mode === 'goto');
+    commandBar.update(unit !== null && mode !== 'view', mode === 'goto', europeCall(session.state, me()));
   };
 
   const frame = (time: number): void => {

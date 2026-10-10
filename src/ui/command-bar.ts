@@ -1,5 +1,6 @@
 // The command bar: a button in the sidebar for every map command, for play with the mouse.
 // Each button runs the same command as its key; the lists of reports and menus come from the keyboard table.
+import type { EuropeCall } from './europe-model';
 import { KEYMAP, type MapCommand } from './keymap';
 
 /** A command and the key it is run with (the handler tells Z from X, and one report or menu from another, by key). */
@@ -74,9 +75,10 @@ export interface CommandBar {
   readonly element: HTMLElement;
   /**
    * Enable or disable the orders, according to whether a unit is waiting for them. While a Go To
-   * destination is being picked the Go to button reads Cancel, and gives the targeting up.
+   * destination is being picked the Go to button reads Cancel, and gives the targeting up. The
+   * Europe button shows whether a ship is in port or at sea, by its `data-europe` and its title.
    */
-  update(hasUnit: boolean, targeting: boolean): void;
+  update(hasUnit: boolean, targeting: boolean, europe?: EuropeCall): void;
 }
 
 export function createCommandBar(onPick: (button: CommandButton) => void): CommandBar {
@@ -86,6 +88,7 @@ export function createCommandBar(onPick: (button: CommandButton) => void): Comma
   element.setAttribute('aria-label', 'Commands');
   const orders: HTMLButtonElement[] = [];
   let goTo: HTMLButtonElement | null = null;
+  let europeButton: HTMLButtonElement | null = null;
   for (const button of COMMAND_BUTTONS) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -98,13 +101,14 @@ export function createCommandBar(onPick: (button: CommandButton) => void): Comma
     b.addEventListener('click', () => onPick(button));
     if (button.needsUnit) orders.push(b);
     if (button.id === 'goTo') goTo = b;
+    if (button.id === 'europe') europeButton = b;
     element.append(b);
   }
   let shown: string | null = null;
   return {
     element,
-    update(hasUnit, targeting) {
-      const state = `${hasUnit}${targeting}`;
+    update(hasUnit, targeting, europe = { state: 'none', note: '' }) {
+      const state = `${hasUnit}|${targeting}|${europe.state}|${europe.note}`;
       if (shown === state) return;
       shown = state;
       for (const b of orders) b.disabled = !hasUnit;
@@ -113,6 +117,11 @@ export function createCommandBar(onPick: (button: CommandButton) => void): Comma
         goTo.textContent = label;
         goTo.title = targeting ? `${CANCEL_LABEL} (Esc)` : `${label} (G)`;
         goTo.disabled = !hasUnit && !targeting;
+      }
+      if (europeButton) {
+        if (europe.state === 'none') delete europeButton.dataset['europe'];
+        else europeButton.dataset['europe'] = europe.state;
+        europeButton.title = europe.note ? `Europe (E): ${europe.note}` : 'Europe (E)';
       }
     },
   };
