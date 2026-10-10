@@ -125,6 +125,14 @@ test('the pointer resting on a square brings up a slip that says what the square
   await moveTo(page, canvas, MINERALS);
   await expect(tip).toBeVisible({ timeout: RESTED });
 
+  // so does a button of the command bar worked from the keyboard, the pointer still resting on the map
+  await page.locator('.command-bar [data-command="wait"]').focus();
+  await expect(tip).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(tip).toBeHidden();
+  await moveTo(page, canvas, COTTON);
+  await expect(tip).toBeVisible({ timeout: RESTED });
+
   // so does the wheel
   await page.mouse.wheel(0, 1);
   await expect(tip).toBeHidden();

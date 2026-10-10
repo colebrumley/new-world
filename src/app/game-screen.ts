@@ -1538,6 +1538,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   const commandBar = createCommandBar((button) => {
     // nothing on the map answers while a question, a report or another screen is up
     if (screen.querySelector('[role="dialog"]')) return;
+    hideTip(); // a button worked from the keyboard may change the square under a resting pointer
     canvas.focus();
     if (view.showHidden && button.id !== 'hiddenTerrain') setView({ ...view, showHidden: false });
     if (button.id === 'endTurn') {
