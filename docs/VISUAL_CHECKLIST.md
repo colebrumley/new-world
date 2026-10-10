@@ -27,4 +27,6 @@ same renderer in the unit suite.
 | 11 | The minimap uses the flat terrain colours and marks the view with a white box. | e2e `map.spec.ts`. |
 
 Not drawn as pixel art: the sidebar, dialogs, reports and the colony screen's tokens are text
-in the page's own fonts. Colours there are the page's, not the palette's.
+in the page's own fonts. Colours there are the page's, not the palette's. They come from the theme
+tokens at the head of `src/ui/style.css` (parchment, ink, wood, brass, wax; `docs/ARCHITECTURE.md`,
+Theme), which the canvas never reads.
