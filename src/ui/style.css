@@ -501,13 +501,15 @@ canvas.minimap {
 
 /* --- colony screen ------------------------------------------------------------------------- */
 /* Laid over the whole game, as the Europe screen is: settlement top left, area top right, people
-   and transport below them, the multi-function view under the area, the warehouse along the foot. */
+   and transport below them, the multi-function view under the area, the warehouse along the foot.
+   It is a town plan (R-1013): parchment sheets on the wood of the table, ruled in ink; every
+   building is its picture with its people standing on it, and goods are their icons. */
 .colony-screen {
-  position: absolute; inset: 0; z-index: 8; box-sizing: border-box; padding: 3px; overflow: auto;
-  outline: none; font-size: 0.82rem; user-select: none;
+  position: absolute; inset: 0; z-index: 8; box-sizing: border-box; padding: var(--frame); overflow: auto;
+  background: var(--table); color: var(--ink); outline: none; font-size: 0.82rem; user-select: none;
   display: grid; gap: 6px;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(240px, 300px);
-  grid-template-rows: auto minmax(auto, 3fr) minmax(0, 2fr) auto auto;
+  grid-template-rows: auto minmax(auto, 7fr) minmax(0, 3fr) auto auto;
   grid-template-areas:
     'header header header'
     'settlement settlement area'
@@ -515,31 +517,57 @@ canvas.minimap {
     'warehouse warehouse warehouse'
     'help help exit';
 }
-.colony-header { grid-area: header; display: flex; align-items: baseline; gap: 18px; }
-.colony-header h2 { margin: 0; font-size: 1.4rem; }
-.colony-sol { color: var(--ink-active); }
-.colony-tory { color: var(--ink-bad); }
-.colony-screen [data-region] { border: var(--rule); background: var(--wash-light); padding: 6px; min-width: 0; min-height: 0; overflow: auto; scrollbar-width: thin; }
-.colony-screen h3 { margin: 0 0 4px; font-size: 0.8rem; color: var(--ink-faded); }
+.colony-screen canvas { image-rendering: pixelated; flex: none; }
+/* the head of the sheet: the owner's flag, the name, the population, and the bell gauge at the right */
+.colony-header {
+  grid-area: header; display: flex; align-items: center; gap: 14px; padding: 2px 10px;
+  background: var(--sheet); border: var(--rule); box-shadow: var(--lift);
+}
+.colony-flag { filter: drop-shadow(1px 1px 0 var(--shadow)); }
+.colony-header h2 { margin: 0; font-family: var(--font-display); font-weight: normal; font-size: 1.7rem; letter-spacing: var(--tracking-display); line-height: 1.1; }
+.colony-pop { color: var(--ink-faded); }
+.liberty-gauge { margin-left: auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* the bar is the whole colony: the Sons of Liberty fill it from the left, and what is left is the Tories' */
+.liberty-bar { width: clamp(80px, 16vw, 220px); height: 10px; box-sizing: border-box; border: var(--rule); background: color-mix(in srgb, var(--ink-bad) 38%, var(--parchment-light)); }
+.liberty-fill { height: 100%; background: var(--ink-active); }
+.colony-sol { color: var(--ink-active); white-space: nowrap; }
+.colony-tory { color: var(--ink-bad); white-space: nowrap; }
+.colony-screen [data-region] {
+  border: var(--rule); background: var(--sheet); box-shadow: var(--lift); padding: 6px 8px;
+  min-width: 0; min-height: 0; overflow: auto; scrollbar-width: thin;
+}
+.colony-screen h3 {
+  margin: 0 0 5px; padding-bottom: 2px; border-bottom: var(--rule-faint);
+  font-family: var(--font-display); font-weight: normal; font-size: 0.85rem; letter-spacing: var(--tracking-display); color: var(--ink-faded);
+}
 .colony-screen p { margin: 0; }
-.colony-settlement { grid-area: settlement; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 5px; align-content: start; }
+.colony-settlement { grid-area: settlement; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px 4px; align-content: start; }
 .colony-settlement h3, .colony-warehouse h3 { grid-column: 1 / -1; }
 .colony-area { grid-area: area; }
-.colony-people { grid-area: people; display: flex; flex-direction: column; gap: 4px; }
+/* the two lines of figures across the top, then those not working and those outside the gates side by side */
+.colony-people { grid-area: people; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px; align-content: start; }
+.colony-people h3, .colony-people p { grid-column: 1 / -1; }
 .colony-transport { grid-area: transport; display: flex; flex-direction: column; gap: 4px; }
+.colony-transport > * { flex: none; }
 .colony-multi { grid-area: multi; }
 .colony-warehouse { grid-area: warehouse; display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px; }
 @media (max-width: 1100px) { .colony-warehouse { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
-.colony-message, .colony-help { grid-area: help; align-self: center; min-height: 1.3em; }
+/* the foot of the sheet: what happened, or else what can be done, as a footnote in faded ink */
+.colony-message, .colony-help {
+  grid-area: help; align-self: center; min-height: 1.3em; padding: 3px 10px;
+  background: var(--sheet); border: var(--rule); box-shadow: var(--lift);
+}
 .colony-message { color: var(--ink-amber); }
 .colony-message:empty, .colony-message:not(:empty) + .colony-help { display: none; }
-.colony-help { color: var(--ink-faded); }
+.colony-help { color: var(--ink-faded); font-style: italic; font-size: 0.78rem; }
+.colony-help::before { content: '* '; font-style: normal; }
 .colony-close { grid-area: exit; justify-self: end; align-self: center; }
 
 .colony-close, .tab, .construction-change, .construction-buy { padding: 2px 10px; }
 .colony-close { background: var(--plate-brass); padding: 4px 16px; }
 .colony-screen button:focus-visible { outline-offset: -1px; }
 
+/* anything that can be picked up: its name, and a line under it (the Europe screen has these too) */
 .token {
   display: inline-flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 2px 6px; line-height: 1.15;
   background: var(--parchment-light); border: var(--rule); border-radius: 3px; box-shadow: none; cursor: grab; text-align: left;
@@ -555,17 +583,42 @@ canvas.minimap {
 .token-empty { opacity: 0.45; }
 .token-over .token-sub { color: var(--ink-bad); }
 .hide-numbers .token-colonist .token-sub { display: none; }
+/* on the town plan a token is its picture first: people and units are their figure, named on a slip of parchment */
+.colony-screen .token { border: var(--rule-faint); color: var(--ink); }
+.colony-screen :is(.token-colonist, .token-unit, .token-carrier) { align-items: center; text-align: center; padding: 1px 3px 2px; background: color-mix(in srgb, var(--parchment-light) 86%, transparent); }
+.colony-screen :is(.token-colonist, .token-unit) .token-label { font-size: 0.72rem; }
+.colony-screen :is(.token-colonist, .token-unit, .token-carrier):hover:not(:disabled) { background: var(--parchment-shade); }
+.colony-screen .token.token-selected, .colony-screen .token.token-selected:hover { border: 1px solid var(--ink-good); box-shadow: 0 0 0 2px var(--ink-good); }
+/* goods and cargo are their icon, the name small under it, and the count */
+.colony-screen :is(.token-good, .token-cargo) { padding: 3px 2px 2px; font-size: 0.7rem; }
+.colony-screen :is(.token-good, .token-cargo) .token-label { color: var(--ink-faded); }
+.colony-screen :is(.token-good, .token-cargo) .token-sub { font-size: 0.9rem; color: var(--ink); }
+.colony-screen .token-over .token-sub { color: var(--ink-bad); }
+.colony-screen .token-empty { opacity: 0.5; }
 
-.building { border: var(--rule-faint); background: var(--ink-wash); padding: 4px; display: flex; flex-direction: column; gap: 3px; }
-.building-slots { display: flex; flex-wrap: wrap; gap: 3px; min-height: 2.3em; }
-.building-slots .token { flex: 1 1 0; }
-.slot-free { flex: 1 1 0; min-width: 14px; border: 1px dashed var(--ink-rule-faint); border-radius: 3px; }
+/* a building is its picture on a plot of the plan; the people who work in it stand along its foot, on the ground line */
+.building { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; padding: 1px 2px 2px; border-radius: 3px; text-align: center; }
+/* the buildings nobody works in are drawn after the workplaces, so a row of the plan is all of one height */
+.building:not([data-drop]) { order: 1; }
+.building-plot { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; border-bottom: var(--rule); }
+.building-art { display: block; }
+.building-slots { display: flex; justify-content: center; align-items: flex-start; gap: 2px; width: 100%; min-height: 0; margin-top: -26px; margin-bottom: 1px; }
+.building-slots:empty { display: none; }
+.colony-screen .building-slots .token { flex: 0 1 auto; padding: 0 1px 1px; background: none; border-color: transparent; }
+.colony-screen .building-slots :is(.token-label, .token-sub) { font-size: 0.66rem; line-height: 1.05; letter-spacing: -0.02em; }
+/* a name of two words takes two lines under the figure, so three people side by side can all be read */
+.colony-screen .building-slots .token-label { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; white-space: normal; overflow-wrap: break-word; }
+.colony-screen .building-slots .token:hover:not(:disabled) { background: color-mix(in srgb, var(--parchment-shade) 80%, transparent); }
+.building-name { font-family: var(--font-display); font-size: 0.8rem; letter-spacing: var(--tracking-display); line-height: 1.1; }
+/* a free place: the outline of someone who could stand there */
+.slot-free { flex: none; width: 18px; height: 26px; box-sizing: border-box; border: var(--rule-dashed); border-radius: 9px 9px 2px 2px; background: color-mix(in srgb, var(--parchment-light) 55%, transparent); }
 
 /* kept small enough on a short window that all nine squares stay in sight */
 .area-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; max-width: 34vh; margin: 0 auto; }
 .square { position: relative; aspect-ratio: 1; border: 1px solid var(--ink); overflow: hidden; }
-.square-art { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
-.square .token { position: absolute; left: 2px; right: 2px; bottom: 2px; padding: 1px 3px; font-size: 0.72rem; background: color-mix(in srgb, var(--parchment-light) 90%, transparent); }
+.square-art { display: block; width: 100%; height: 100%; }
+.colony-screen .square .token { position: absolute; left: 2px; right: 2px; bottom: 2px; padding: 0; font-size: 0.72rem; background: none; border-color: transparent; }
+.square .token-label, .square .token-sub { align-self: stretch; max-width: none; padding: 0 2px; background: color-mix(in srgb, var(--parchment-light) 86%, transparent); }
 .square .token-label { white-space: normal; }
 .square-note { position: absolute; left: 0; right: 0; bottom: 0; padding: 1px 3px; background: color-mix(in srgb, var(--parchment) 85%, transparent); font-size: 0.72rem; text-align: center; }
 .square-center { border-color: var(--brass-light); box-shadow: 0 0 0 1px var(--brass-dark); }
@@ -577,16 +630,22 @@ canvas.minimap {
 .square-otherColony::after { content: 'In use'; }
 .square-foreignUnit::after { content: 'Occupied'; }
 
-.idle-row, .outside-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 2.5em; padding: 3px; border: var(--rule-dashed); }
+.food-line, .liberty-line { color: var(--ink); }
+.idle-row, .outside-row { display: flex; flex-wrap: wrap; align-items: center; align-content: start; gap: 4px; min-height: 2.5em; padding: 3px; border: var(--rule-dashed); }
+.colony-people .row-title { flex: 1 0 100%; }
 .row-title { color: var(--ink-faded); }
+.colony-screen .row-title { font-style: italic; }
 .carrier { display: flex; flex-wrap: wrap; align-items: stretch; gap: 4px; padding: 3px; border: var(--rule-faint); }
 .carrier-active { border-color: var(--ink-active); }
+.colony-screen .empty { color: var(--ink-faded); font-style: italic; }
 
 .tabs { display: flex; gap: 3px; margin-bottom: 6px; }
 .tab { flex: 1 1 auto; padding: 2px 4px; font-size: 0.75rem; white-space: nowrap; }
 .tab-active { background: var(--plate-brass); }
 .production-table { border-collapse: collapse; width: 100%; }
+.production-table tr + tr { border-top: var(--rule-faint); }
 .production-table th { text-align: left; font-weight: normal; color: var(--ink-faded); }
+.production-table th canvas { vertical-align: -3px; margin-right: 5px; }
 .production-table td { text-align: right; padding-left: 8px; }
 .hide-numbers .production-table td { visibility: hidden; }
 .unit-list { margin: 0; padding-left: 1.1em; }

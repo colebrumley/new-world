@@ -1245,6 +1245,34 @@ they are started.
   octree, which keeps a small patch of strong colour that the median cut lost. The entry script is
   2.6 KB gzipped and the painting's chunk 6.7 KB. Pictures are in `docs/theme/`.
 
+- [x] **R-1013 Colony screen art**
+  Depends on R-1010 (theme tokens and the Fell face in `src/ui/style.css`). Parchment panels over
+  a dark wood frame: the colony screen (`src/ui/colony-screen.ts`, `colony-model.ts`, the
+  `.colony-*` rules) becomes a town plan drawn in ink on parchment. Art comes from the sprite
+  pipeline (`scripts/bake-art.py`, `art/`; sources our own, constraint C1): one picture per
+  building in `src/engine/data/buildings.ts` and per starting house, each a single building on a
+  magenta ground on the 32 px grid with roofs painted cyan so the owner's colour is given when
+  drawn, baked to `src/ui/building-art.ts`; 19 goods icons at 16 px (the 16 goods plus hammers,
+  crosses, bells) baked to `src/ui/goods-art.ts`, with a `drawGood` helper exported from
+  `src/ui/pixel-art.ts` for the Europe screen (R-1014); flags for the four nations and the Crown,
+  16 px, drawn procedurally in `pixel-art.ts`.
+  - The settlement region shows each building as its picture with its worker tokens on it; a chain
+    (Docks/Drydock/Shipyard) shows the picture of its current level; free slots are visible;
+    dragging, clicking and keyboard placement still work exactly as before.
+  - Warehouse, cargo and transport tokens show the goods icon with the count; the hide-numbers
+    option still hides counts.
+  - Header: owner's flag, colony name in the Fell face, population, and a bell gauge for Sons of
+    Liberty with the Tory share.
+  - All regions sit on parchment with ink rules on the R-1010 tokens; the help line at the foot is
+    a footnote in faded ink.
+  - The structural snapshot in `test/e2e/__snapshots__/colony.spec.ts` (names and counts, not
+    pixels) is unchanged in content; if a new field is needed, extend the snapshot deliberately
+    and say so in the pull request.
+  - JS budget in `scripts/check-size.mjs` (400 KB gzipped) still passes with the new art data; if
+    it would not, load building art in the game chunk lazily.
+  **Verify:** `npm run test:e2e -- colony`; `npm test -- test/unit/ui`; `npm run check`;
+  screenshots of a one-colonist and a large colony in the pull request.
+
 ---
 
 ## Appendix A — Terrain

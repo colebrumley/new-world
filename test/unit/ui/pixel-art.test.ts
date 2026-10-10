@@ -1,9 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { BUILDING_IDS } from '../../../src/engine/data/buildings';
+import { ABSTRACT_GOOD_IDS, GOOD_IDS } from '../../../src/engine/data/goods';
+import { NATION_IDS } from '../../../src/engine/data/nations';
 import { RESOURCE_IDS } from '../../../src/engine/data/resources';
 import { TERRAIN_IDS } from '../../../src/engine/data/terrain';
 import { UNIT_TYPE_IDS } from '../../../src/engine/data/units';
+import { BUILDING_ART, BUILDING_SIZE } from '../../../src/ui/building-art';
+import { GOODS_ART, GOODS_SIZE } from '../../../src/ui/goods-art';
+import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, flagArt, goodArt } from '../../../src/ui/pixel-art';
 import { CHART, CHART_MARK_KINDS } from '../../../src/ui/chart';
 import { CHART_ART, CHART_COLORS } from '../../../src/ui/chart-art';
 import { activeFrameArt, ART, at, blank, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, halve, hasFigure, INK, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
@@ -361,5 +367,127 @@ describe('helpers', () => {
       dragoon: text(pieceArt({ type: 'dragoon', color: INK.blue, label: 'F', stacked: true })),
       colony: text(colonyArt(INK.red, 7, INK.green)), village: text(settlementArt(INK.orange, 2, true, INK.yellow)),
     }).toMatchSnapshot();
+  });
+});
+
+describe('colony screen art', () => {
+  /** A stand-in for a canvas context: it keeps every rectangle it is asked to fill. */
+  const brush = (): { fillStyle: string; fills: string[]; fillRect(x: number, y: number, w: number, h: number): void } => ({
+    fillStyle: '',
+    fills: [],
+    fillRect(x, y, w, h) {
+      this.fills.push(`${x},${y} ${w}x${h} ${this.fillStyle}`);
+    },
+  });
+
+  it('every building in the table has a picture of its own on the 32-pixel grid, roofed in its owner\'s colour', () => {
+    expect(BUILDING_SIZE).toBe(32);
+    const seen = new Map<string, string>();
+    for (const id of BUILDING_IDS) {
+      const s = buildingArt(id, INK.red) as Sprite;
+      expect(s, id).not.toBeNull();
+      expect(s.size, id).toBe(32);
+      expect([...s.cells].filter((c) => c > 0).length, id).toBeGreaterThan(250); // a building, not a speck
+      expect([...s.cells].some((c) => c === 0), id).toBe(true); // standing on a clear ground
+      seen.set(id, text(s));
+    }
+    // the two Town Halls that are never built are drawn as the first; every other building is its own picture
+    expect(seen.get('townHall2')).toBe(seen.get('townHall'));
+    expect(seen.get('townHall3')).toBe(seen.get('townHall'));
+    expect(new Set(seen.values()).size).toBe(BUILDING_IDS.length - 2);
+    // nothing is baked that the table does not name
+    expect(Object.keys(BUILDING_ART).filter((name) => !(BUILDING_IDS as readonly string[]).includes(name))).toEqual([]);
+    expect(buildingArt('lighthouse', INK.red)).toBeNull();
+  });
+
+  it('a building takes the owner\'s colour wherever its picture was painted for it', () => {
+    for (const id of ['townHall', 'stockade', 'church', 'docks', 'weaversHouse', 'ironWorks', 'capitol'] as const) {
+      const red = buildingArt(id, INK.red) as Sprite;
+      const blue = buildingArt(id, INK.blue) as Sprite;
+      expect(inks(red), id).toContain(INK.red);
+      expect(inks(blue), id).toContain(INK.blue);
+      expect(inks(blue), id).not.toContain(INK.red);
+      // only the owner's parts change
+      red.cells.forEach((cell, i) => expect(cell - 1 === INK.red).toBe((blue.cells[i] as number) - 1 === INK.blue));
+    }
+  });
+
+  it('each link of a chain is drawn differently, so a chain shows the level it has reached', () => {
+    for (const chain of [['docks', 'drydock', 'shipyard'], ['stockade', 'fort', 'fortress'], ['schoolhouse', 'college', 'university'], ['weaversHouse', 'weaversShop', 'textileMill']] as const) {
+      expect(new Set(chain.map((id) => text(buildingArt(id, INK.red) as Sprite))).size, chain.join()).toBe(chain.length);
+    }
+  });
+
+  it('every good, and hammers, crosses and bells, has an icon of its own on the 16-pixel grid', () => {
+    expect(GOODS_SIZE).toBe(16);
+    const all = [...GOOD_IDS, ...ABSTRACT_GOOD_IDS];
+    expect(all).toHaveLength(19);
+    expect(Object.keys(GOODS_ART).sort()).toEqual([...all].sort());
+    const seen = all.map((good) => {
+      const s = goodArt(good) as Sprite;
+      expect(s.size, good).toBe(16);
+      expect([...s.cells].filter((c) => c > 0).length, good).toBeGreaterThan(40);
+      return text(s);
+    });
+    expect(new Set(seen).size).toBe(19);
+    expect(goodArt('fish')).toBeNull();
+  });
+
+  it('drawGood paints an icon as blocks of colour at any whole size, and says when a good has none', () => {
+    const one = brush();
+    expect(drawGood(one, 'bells', 0, 0)).toBe(true);
+    const bell = goodArt('bells') as Sprite;
+    expect(one.fills).toHaveLength([...bell.cells].filter((c) => c > 0).length);
+    for (const fill of one.fills) expect(fill).toMatch(/^\d+,\d+ 1x1 #[0-9a-f]{6}$/);
+    const doubled = brush();
+    expect(drawGood(doubled, 'bells', 10, 20, 32)).toBe(true);
+    expect(doubled.fills).toHaveLength(one.fills.length);
+    for (const fill of doubled.fills) expect(fill).toMatch(/ 2x2 #/);
+    const [x, y] = (doubled.fills[0] as string).split(' ')[0]!.split(',').map(Number) as [number, number];
+    expect(x).toBeGreaterThanOrEqual(10);
+    expect(y).toBeGreaterThanOrEqual(20);
+    const none = brush();
+    expect(drawGood(none, 'fish', 0, 0)).toBe(false);
+    expect(none.fills).toEqual([]);
+    // an uneven size still covers the square exactly, with no gaps between blocks
+    const odd = brush();
+    drawSprite(odd, flagArt('england'), 0, 0, 24);
+    const widths = new Set(odd.fills.map((f) => (f.split(' ')[1] as string).split('x')[0]));
+    expect([...widths].sort()).toEqual(['1', '2']);
+  });
+
+  it('there is a flag for each of the four powers and for the Crown, each in its own colours inside an ink edge', () => {
+    expect(FLAG_IDS).toEqual([...NATION_IDS, 'crown']);
+    const flags = FLAG_IDS.map((id) => flagArt(id));
+    expect(new Set(flags.map(text)).size).toBe(5);
+    for (const s of flags) {
+      expect(s.size).toBe(ART);
+      expect(at(s, 0, 2)).toBe(INK.ink + 1);
+      expect(at(s, 15, 13)).toBe(INK.ink + 1);
+      expect(at(s, 0, 0)).toBe(0);
+    }
+    expect([...inks(flagArt('england'))].sort()).toEqual([INK.ink, INK.white, INK.red].sort());
+    expect([...inks(flagArt('france'))].sort()).toEqual([INK.ink, INK.blue, INK.yellow].sort());
+    expect([...inks(flagArt('spain'))].sort()).toEqual([INK.ink, INK.white, INK.red].sort());
+    expect([...inks(flagArt('netherlands'))].sort()).toEqual([INK.ink, INK.white, INK.orange, INK.blue].sort());
+    expect(inks(flagArt('crown'))).toContain(INK.purple);
+    expect(inks(flagArt('crown'))).toContain(INK.yellow);
+  });
+
+  it('a figure for a token is the unit\'s detailed figure with nothing under it', () => {
+    const colonist = figureArt('colonist') as Sprite;
+    expect(colonist.size).toBe(30);
+    expect([...colonist.cells].some((c) => c > 0)).toBe(true);
+    expect(text(figureArt('caravel') as Sprite)).not.toBe(text(colonist));
+    expect(figureArt('nobody')).toBeNull();
+  });
+
+  it('all the colours of all the art still fit in a byte', () => {
+    expect(ART_COLORS.length).toBeLessThanOrEqual(255);
+    for (const colour of ART_COLORS) expect(colour).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  it('matches the snapshot of a flag, an icon and a building', () => {
+    expect({ flag: text(flagArt('netherlands')), crown: text(flagArt('crown')), bell: text(goodArt('bells') as Sprite), townHall: text(buildingArt('townHall', INK.red) as Sprite) }).toMatchSnapshot();
   });
 });
