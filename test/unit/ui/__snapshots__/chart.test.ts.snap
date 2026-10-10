@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the chart's marks > matches the layout table 1`] = `
+{
+  "cell": 8,
+  "markChance": 0.25,
+  "region": 24,
+  "roseInset": 4,
+  "squares": {
+    "rose": 4,
+    "serpent": 3,
+    "ship": 2,
+  },
+}
+`;

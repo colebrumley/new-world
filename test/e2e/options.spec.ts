@@ -130,7 +130,7 @@ test('the encyclopedia has a page for every entry, and a right-click opens the p
   await page.mouse.click(at(x - 1, y).x, at(x - 1, y).y, { button: 'right' });
   await expect(pedia).toHaveAttribute('data-entry', /^terrain:(ocean|seaLane)$/);
   await page.keyboard.press('Escape');
-  // the unexplored dark says nothing
+  // the unexplored vellum says nothing
   await page.mouse.click(at(x - 6, y).x, at(x - 6, y).y, { button: 'right' });
   await expect(pedia).toHaveCount(0);
   expect(errors).toEqual([]);

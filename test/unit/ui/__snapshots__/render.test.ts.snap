@@ -8,3 +8,12 @@ exports[`the map renderer, against a plain pixel buffer > matches the baseline a
   "zoom3": "bfc51369",
 }
 `;
+
+exports[`the map renderer, against a plain pixel buffer > matches the chart's baseline at each zoom: a known patch on the vellum 1`] = `
+{
+  "zoom0": "b15b5465",
+  "zoom1": "0960312f",
+  "zoom2": "a5addb24",
+  "zoom3": "8b6d7a09",
+}
+`;
