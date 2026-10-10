@@ -1,7 +1,7 @@
 # Checks the game on pull requests, and checks and publishes the build to GitHub Pages on pushes to
-# main. Both runs are filtered by path: docs, specs, CLAUDE.md, .claude/, art sources and the backlog
-# change neither the build nor the checks, so a push or pull request touching only those does nothing.
-# (Actions has no YAML anchors, so the push list is repeated in the pull request list.)
+# main. Both runs are filtered by path: a push that changes nothing the build is made from, or a pull
+# request that changes nothing the checks read (docs other than KEYS.md, specs, CLAUDE.md, .claude/,
+# the backlog), runs nothing. Actions has no YAML anchors, so the push list is repeated below it.
 name: Deploy
 
 on:
@@ -18,7 +18,8 @@ on:
       - 'package-lock.json'
       - '.github/workflows/deploy.yml'
   pull_request:
-    # the above, plus what the checks and the e2e suite run on
+    # the above, plus what the checks and the e2e suite run on (unit tests read docs/KEYS.md and
+    # look for the art sources the baked art came from)
     paths:
       - 'src/**'
       - 'public/**'
@@ -32,6 +33,8 @@ on:
       - 'scripts/**'
       - 'eslint.config.js'
       - 'playwright.config.ts'
+      - 'docs/KEYS.md'
+      - 'art/**'
   workflow_dispatch:
 
 permissions:

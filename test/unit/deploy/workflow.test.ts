@@ -38,11 +38,12 @@ describe('the deploy workflow', () => {
       const block = source.match(new RegExp(`^  ${trigger}:\\n((?:    .*\\n)+)`, 'm'))?.[1] ?? '';
       return [...block.matchAll(/^ {6}- '(.+)'$/gm)].map((m) => m[1]!);
     };
-    const push = paths('push');
-    const pullRequest = paths('pull_request');
-    for (const input of ['src/**', 'public/**', 'index.html', 'package-lock.json', '.github/workflows/deploy.yml']) expect(push, input).toContain(input);
-    for (const other of ['docs/**', 'test/**', 'art/**', '.claude/**']) expect(push, other).not.toContain(other);
-    for (const input of push) expect(pullRequest, input).toContain(input);
-    expect(pullRequest).toContain('test/**');
+    // what the published build is made from: a push to main runs (and deploys) only for these
+    const build = ['src/**', 'public/**', 'index.html', 'vite.config.ts', 'tsconfig.json', 'package.json', 'package-lock.json', PATH];
+    // what the checks read as well: the tests and tooling, docs/KEYS.md (keymap.test.ts) and the art
+    // sources (frontispiece.test.ts, portraits.test.ts)
+    const checked = ['test/**', 'scripts/**', 'eslint.config.js', 'playwright.config.ts', 'docs/KEYS.md', 'art/**'];
+    expect(paths('push')).toEqual(build);
+    expect(paths('pull_request')).toEqual([...build, ...checked]);
   });
 });

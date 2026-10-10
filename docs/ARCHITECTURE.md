@@ -139,9 +139,9 @@ fetches them all when it installs and then serves them cache-first (the page its
 network-first), which is what lets the game be played offline. `.github/workflows/deploy.yml`
 runs `npm run check` and the e2e suite, then publishes `dist/` to GitHub Pages, on pushes to main
 that change what the build is made from (`src/`, `public/`, `index.html`, the Vite and TypeScript
-config, the package files), and runs the checks alone on pull requests that change those or the
-tests and tooling; a push or pull request touching only docs, specs, `.claude/` or `art/` runs
-nothing. The e2e suite always runs against `vite preview` of the real build, and
+config, the package files), and runs the checks alone on pull requests that change those, the
+tests and tooling, `docs/KEYS.md` or the art sources; a push or pull request touching only the
+other docs, specs or `.claude/` runs nothing. The e2e suite always runs against `vite preview` of the real build, and
 `test/unit/deploy/workflow.test.ts` lints the workflow with actionlint and holds the path lists.
 
 ## Theme (`src/ui/style.css`, `src/ui/fonts/`)
