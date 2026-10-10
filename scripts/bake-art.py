@@ -16,17 +16,24 @@ out as data: src/ui/unit-art.ts, place-art.ts, feature-art.ts and floor-art.ts, 
 draws from. In a place, whatever is painted cyan is given the owner's colour when it is drawn. A
 floor is shifted so that its commonest colour is the terrain's colour on the minimap.
 
+art/chart holds the explorer's chart the unexplored map is drawn as: the vellum floor, the compass
+rose and the chart's creatures, each at 32, 16 and 8 pixels to the square. They are drawn by
+scripts/draw-chart.py at their final size in six inks of the map palette, so they are written out
+as they are, with no shrinking and no colours of their own (src/ui/chart-art.ts). That step alone
+does not need pixelforge:
+
+    uv run --with pillow scripts/draw-chart.py && uv run --with pillow --with numpy scripts/bake-art.py chart
+
 art/title holds the painting that hangs behind the title screen (frontispiece.png, 8:5, generated
 like the others and drawn in the map palette's colours so that none is lost). It is shrunk to 320 x 200 in the 32 colours of PALETTE in
 src/ui/pixel-art.ts and no others, and written out as src/ui/title-art.ts, which frontispiece.ts draws.
 """
 import os
+import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-
-import re
 
 import numpy as np
 from PIL import Image
@@ -151,6 +158,47 @@ def level(colours: list[str], figures: dict[str, list[str]]) -> list[str]:
     return [colours[CODES.index(letter)] for letter in used]
 
 
+# The inks the chart is drawn in, by the letter each goes by: entries of PALETTE in src/ui/pixel-art.ts.
+CHART_INKS = {'p': '#e9dfc4', 's': '#d3bd7a', 'h': '#a39262', 'e': '#7c6b45', 'w': '#6b4a2a', 'k': '#111111'}
+
+
+def chart() -> None:
+    """The chart pictures as data, pixel for pixel: every one must already be in the chart inks alone."""
+    letter = {colour: code for code, colour in CHART_INKS.items()}
+    figures: dict[str, list[str]] = {}
+    for path in sorted((ROOT / 'art/chart').glob('*.png')):
+        rows = []
+        for line in np.array(Image.open(path).convert('RGBA')).astype(int):
+            row = ''
+            for r, g, b, a in line:
+                colour = f'#{r:02x}{g:02x}{b:02x}'
+                if a >= 128 and colour not in letter:
+                    raise SystemExit(f'{path.name}: {colour} is not one of the chart inks')
+                row += letter[colour] if a >= 128 else '.'
+            rows.append(row)
+        figures[path.stem] = rows
+    lines = [
+        "// The explorer's chart the unexplored map is drawn as, made by scripts/bake-art.py from our own pictures",
+        '// (art/chart, drawn by scripts/draw-chart.py; constraint C1). Do not edit by hand.',
+        '',
+        '/** The colours this art is drawn in: six of the 32 of the map palette, and no others. */',
+        'export const CHART_COLORS = [' + ', '.join(f"'{c}'" for c in CHART_INKS.values()) + '] as const;',
+        '',
+        '/** The letter each of CHART_COLORS goes by, in order. */',
+        f"export const CHART_CODES = '{''.join(CHART_INKS)}';",
+        '',
+        '/** One picture per subject and grid (32, 16 or 8 art pixels to the square, which ends its name): rows of letters from CHART_CODES; a full stop is see-through. */',
+        'export const CHART_ART: Readonly<Record<string, readonly string[]>> = {',
+    ]
+    for name, rows in figures.items():
+        lines.append(f'  {name}: [')
+        lines += [f"    '{row}'," for row in rows]
+        lines.append('  ],')
+    lines += ['};', '']
+    (ROOT / 'src/ui/chart-art.ts').write_text('\n'.join(lines))
+    print(f'src/ui/chart-art.ts: {len(figures)} pictures, {len(CHART_INKS)} colours')
+
+
 def write(path: str, title: str, prefix: str, size_name: str, size: int, colours: list[str], figures: dict[str, list[str]], note: str) -> None:
     lines = [
         f'// {title}, made by scripts/bake-art.py from our own pictures (constraint C1). Do not edit by hand.',
@@ -237,6 +285,9 @@ def write_painting(path: str, width: int, height: int, colours: list[str], rows:
 
 
 def main() -> None:
+    chart()
+    if sys.argv[1:] == ['chart']:
+        return
     colours, figures = bake('art/units', 30, 32)
     write('src/ui/unit-art.ts', 'Unit figures for the map', 'UNIT', 'FIGURE_SIZE', 30, colours, figures,
           'One figure per unit type: rows of letters from UNIT_CODES; a full stop is see-through.')

@@ -62,6 +62,24 @@ test('clicking the New World view recentres the map and shows the viewport box',
   expect(box.width).toBe(218);
 });
 
+test('the New World view shows the unexplored map as vellum, and what is beyond the map as the page', async ({ page }) => {
+  await page.goto('/?seed=11&still');
+  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await expect(page.locator('canvas.map')).toHaveAttribute('data-view', /tileSize/);
+  const mini = page.locator('canvas.minimap');
+  const seen = await mini.evaluate((el) => {
+    const c = el as HTMLCanvasElement;
+    const data = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+    let vellum = 0;
+    for (let i = 0; i < data.length; i += 4) if (data[i] === 0xe9 && data[i + 1] === 0xdf && data[i + 2] === 0xc4) vellum++;
+    return { vellum, all: data.length / 4, corner: [data[0], data[1], data[2]] };
+  });
+  // the map is 58 x 72 at 3 px to the square in a 216 x 232 view: nearly all of it unknown at the start
+  expect(seen.vellum / seen.all).toBeGreaterThan((58 * 72 * 9 * 0.95) / (216 * 232));
+  expect(seen.vellum / seen.all).toBeLessThan((58 * 72 * 9) / (216 * 232));
+  expect(seen.corner).toEqual([0x0b, 0x0d, 0x12]);
+});
+
 test('click centres, drag pans, view mode arrows pan, C returns to the unit', async ({ page }) => {
   const canvas = await startAmerica(page);
   await page.keyboard.press('x');

@@ -5,6 +5,8 @@
 import type { ResourceId } from '../engine/data/resources';
 import type { TerrainId } from '../engine/data/terrain';
 import type { UnitTypeId } from '../engine/data/units';
+import { CHART_ART, CHART_CODES, CHART_COLORS } from './chart-art';
+import type { ChartMarkKind } from './chart';
 import { FEATURE_ART, FEATURE_CODES, FEATURE_COLORS, FEATURE_SIZE } from './feature-art';
 import { FLOOR_ART, FLOOR_CODES, FLOOR_COLORS, FLOOR_SIZE } from './floor-art';
 import { PLACE_ART, PLACE_CODES, PLACE_COLORS, PLACE_SIZE } from './place-art';
@@ -323,6 +325,70 @@ export function miniTileArt(look: TileLook): Sprite {
   return s;
 }
 
+// --- the explorer's chart: what the unexplored map is drawn as (R-1011) ------------------------------
+
+/** The colour of bare vellum: what an unexplored square is on the minimap. */
+export const VELLUM: InkId = INK.parchment;
+/** The grids the chart is drawn on, in art pixels to the square: detailed, plain and the smallest zoom. */
+export type ChartGrid = 32 | 16 | 8;
+/** The chart's baked letters as palette inks: it has no colours of its own. */
+const CHART_KEY: Readonly<Record<string, number>> = Object.fromEntries(CHART_COLORS.map((colour, i) => [CHART_CODES[i] as string, (PALETTE as readonly string[]).indexOf(colour)]));
+
+/** Hatching by grid: a stroke every so many art pixels along the edge, and how far each reaches in, in turn. At the smallest grid the edge is a line alone. */
+const HATCH: Readonly<Record<ChartGrid, { readonly every: number; readonly reach: readonly number[] }>> = {
+  32: { every: 3, reach: [6, 3, 5, 2, 7, 4, 3, 6, 2, 5, 4] },
+  16: { every: 2, reach: [3, 1, 2, 3, 1, 2, 2, 1] },
+  8: { every: 0, reach: [] },
+};
+
+/**
+ * Ink hatching along the edges of a vellum square that touch the known world, so that the frontier reads
+ * as a drawn coastline. `mask` has a bit for each of the eight neighbours that is explored, north first
+ * and clockwise, as a road's mask has; a corner neighbour alone gets a tick in its corner.
+ */
+function hatch(s: Sprite, mask: number): void {
+  const n = s.size;
+  const { every, reach } = HATCH[n as ChartGrid];
+  /** The cell `along` the side and `depth` in from it, for north, east, south and west. */
+  const spot = (side: number, along: number, depth: number): readonly [number, number] =>
+    side === 0 ? [along, depth] : side === 1 ? [n - 1 - depth, along] : side === 2 ? [along, n - 1 - depth] : [depth, along];
+  const sides = [0, 1, 2, 3].filter((side) => mask & (1 << (side * 2)));
+  // the strokes of every side first, then the coastlines over them, so that no stroke breaks a line at a corner
+  for (const side of sides) {
+    for (let along = 1; every > 0 && along < n; along += every) {
+      const length = reach[((along - 1) / every + side * 3) % reach.length] as number;
+      for (let depth = 1; depth <= length; depth++) dot(s, ...spot(side, along, depth), INK.earth);
+    }
+  }
+  for (const side of sides) for (let along = 0; along < n; along++) dot(s, ...spot(side, along, 0), every > 0 ? INK.wood : INK.hill);
+  for (let corner = 0; corner < 4; corner++) {
+    // the corner between side `corner` and the next one round
+    if (!(mask & (1 << (corner * 2 + 1))) || mask & (1 << (corner * 2)) || mask & (1 << (((corner + 1) % 4) * 2))) continue;
+    const x = corner === 0 || corner === 1 ? n - 1 : 0;
+    const y = corner === 1 || corner === 2 ? n - 1 : 0;
+    const dx = x === 0 ? 1 : -1;
+    const dy = y === 0 ? 1 : -1;
+    dot(s, x, y, every > 0 ? INK.wood : INK.hill);
+    for (let i = 1; i <= n / 16; i++) dot(s, x + dx * i, y + dy * i, INK.earth);
+  }
+}
+
+/** An unexplored square: the vellum floor, turned one of four ways by the variant, hatched where it meets the known. */
+export function vellumArt(grid: ChartGrid, variant: number, mask: number): Sprite {
+  const s = blank(grid);
+  stamp(s, 0, 0, turned(CHART_ART[`vellum${grid}`] as readonly string[], (variant & 1) === 1, (variant & 2) === 2), CHART_KEY);
+  hatch(s, mask);
+  return s;
+}
+
+/** A compass rose, sea serpent or ship, as many squares across as CHART.squares says; see-through where the vellum shows. */
+export function chartMarkArt(kind: ChartMarkKind, grid: ChartGrid): Sprite {
+  const rows = CHART_ART[`${kind}${grid}`] as readonly string[];
+  const s = blank(rows.length);
+  stamp(s, 0, 0, rows, CHART_KEY);
+  return s;
+}
+
 // --- pieces ------------------------------------------------------------------------------------------
 
 const FIGURE_KEY = { k: INK.ink, w: INK.white, g: INK.lightGrey, d: INK.darkGrey, b: INK.wood, y: INK.yellow, p: INK.parchment, r: INK.red, e: INK.earth } as const;
@@ -504,10 +570,10 @@ function enlarge(s: Sprite, layer: Sprite): void {
 }
 
 /** Baked rows, optionally mirrored left to right and top to bottom. */
-const turned = (rows: readonly string[], mirror: boolean, upend: boolean): readonly string[] => {
+function turned(rows: readonly string[], mirror: boolean, upend: boolean): readonly string[] {
   const across = mirror ? rows.map((row) => [...row].reverse().join('')) : rows;
   return upend ? [...across].reverse() : across;
-};
+}
 
 /**
  * The art for one map square on the 32-pixel grid: the ground of its terrain (a forest stands on the open
