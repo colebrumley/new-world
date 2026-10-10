@@ -295,6 +295,30 @@ canvas.minimap {
   background: var(--brass-light);
 }
 
+/* the Europe button: a brass plate while a ship lies in port, a wax mark while ships are at sea */
+.command-bar [data-europe="port"] {
+  background: var(--plate-brass);
+}
+
+.command-bar [data-europe="port"]:hover:not(:disabled) {
+  background: var(--brass-light);
+}
+
+.command-bar [data-europe="sea"] {
+  position: relative;
+}
+
+.command-bar [data-europe="sea"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wax);
+}
+
 .sidebar-features,
 .sidebar-aboard,
 .sidebar-cargo {

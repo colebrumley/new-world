@@ -4,7 +4,7 @@ import { createGame } from '../../../src/engine/game';
 import { recruitPrice } from '../../../src/engine/immigration';
 import { askPrice, bidPrice } from '../../../src/engine/market';
 import { OFF_MAP, type GameState, type Unit } from '../../../src/engine/state';
-import { dockOptions, europeView } from '../../../src/ui/europe-model';
+import { dockOptions, europeCall, europeView } from '../../../src/ui/europe-model';
 import { withUnit, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~~sss', '~~..~~~sss', '~~..~~~sss', '~~~~~~~sss'];
@@ -83,5 +83,44 @@ describe('starting treasury', () => {
     expect(createGame({ seed: 1, players, difficulty: 'discoverer' }).players.map((p) => p.gold)).toEqual([1000, 0]);
     expect(createGame({ seed: 1, players, difficulty: 'explorer' }).players.map((p) => p.gold)).toEqual([300, 0]);
     expect(createGame({ seed: 1, players }).players.map((p) => p.gold)).toEqual([0, 0]);
+  });
+});
+
+describe('europeCall', () => {
+  const off = { x: OFF_MAP, y: OFF_MAP };
+  const sea = (): GameState => world({ rows: ROWS, players: [{ id: 'a' }, { id: 'b' }] });
+  const sail = (s: GameState, id: string, v: Unit['voyage']): GameState => ({ ...s, units: { ...s.units, [id]: { ...(s.units[id] as Unit), voyage: v } } });
+
+  it('is plain with no ship of ours in port or at sea', () => {
+    let s = withUnit(sea(), { id: 'home', type: 'caravel', x: 2, y: 1 });
+    s = sail(withUnit(s, { id: 'theirs', owner: 'b', type: 'caravel', ...off }), 'theirs', voyage('toEurope', 2));
+    s = sail(withUnit(s, { id: 'docker', ...off }), 'docker', voyage('inEurope', 0));
+    expect(europeCall(s, 'a')).toEqual({ state: 'none', note: '' });
+  });
+
+  it('lists each ship at sea with its turns to go, counting a ship and not who rides in it', () => {
+    let s = withUnit(sea(), { id: 'in', type: 'caravel', ...off });
+    s = withUnit(s, { id: 'out', type: 'galleon', ...off });
+    s = withUnit(s, { id: 'rider', ...off, aboard: 'in' });
+    s = sail(sail(sail(s, 'in', voyage('toEurope', 2)), 'out', voyage('toNewWorld', 1)), 'rider', voyage('toEurope', 2));
+    s = sail(withUnit(s, { id: 'theirs', owner: 'b', type: 'frigate', ...off }), 'theirs', voyage('toEurope', 1));
+    expect(europeCall(s, 'a')).toEqual({ state: 'sea', note: 'Caravel arrives in 2 turns; Galleon returns in 1 turn' });
+  });
+
+  it('names one ship in port and counts several, ahead of any at sea', () => {
+    let s = sail(withUnit(sea(), { id: 'p1', type: 'caravel', ...off }), 'p1', voyage('inEurope', 0));
+    s = sail(withUnit(s, { id: 'away', type: 'galleon', ...off }), 'away', voyage('toEurope', 1));
+    s = sail(withUnit(s, { id: 'theirs', owner: 'b', type: 'merchantman', ...off }), 'theirs', voyage('inEurope', 0));
+    expect(europeCall(s, 'a')).toEqual({ state: 'port', note: 'Caravel in port' });
+    s = sail(withUnit(s, { id: 'p2', type: 'merchantman', ...off }), 'p2', voyage('inEurope', 0));
+    expect(europeCall(s, 'a')).toEqual({ state: 'port', note: '2 ships in port' });
+  });
+
+  it('is plain while Europe is closed to us, whatever ships remain off the map', () => {
+    let s = sail(withUnit(sea(), { id: 'p1', type: 'caravel', ...off }), 'p1', voyage('inEurope', 0));
+    s = sail(withUnit(s, { id: 'away', type: 'galleon', ...off }), 'away', voyage('toEurope', 1));
+    s = { ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, atWar: true } : p)) };
+    expect(europeCall(s, 'a')).toEqual({ state: 'none', note: '' });
+    expect(europeCall(s, 'nobody')).toEqual({ state: 'none', note: '' });
   });
 });

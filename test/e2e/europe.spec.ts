@@ -28,6 +28,9 @@ test('a ship sails to Europe and back to the square it left', async ({ page }) =
   await expect(dialog.getByRole('button')).toHaveText(['Yes, make for Europe', 'No, stay in these waters']);
   await page.keyboard.press('Enter'); // the first answer is highlighted
   await expect(dialog).toHaveCount(0);
+  const button = page.locator('.command-bar [data-command="europe"]');
+  await expect(button).toHaveAttribute('data-europe', 'sea');
+  await expect(button).toHaveAttribute('title', /Caravel arrives in 2 turns/);
 
   await page.keyboard.press('e');
   const inbound = europe(page).locator('.lane-in');
@@ -39,6 +42,8 @@ test('a ship sails to Europe and back to the square it left', async ({ page }) =
   await expect(inbound).toContainText('Caravel, 1 turn');
   await page.keyboard.press('e'); // E leaves as well
   await page.keyboard.press('Enter');
+  await expect(button).toHaveAttribute('data-europe', 'port');
+  await expect(button).toHaveAttribute('title', /Caravel in port/);
   await page.keyboard.press('e');
   const harbor = europe(page).getByRole('group', { name: 'In port' });
   await expect(harbor).toContainText('Caravel (2/2 holds)');
@@ -47,11 +52,15 @@ test('a ship sails to Europe and back to the square it left', async ({ page }) =
   await expect(europe(page).locator('.lane-out')).toContainText('Caravel, 2 turns');
   await expect(harbor).toContainText('No ship is in port.');
   await page.keyboard.press('Escape');
+  await expect(button).toHaveAttribute('data-europe', 'sea');
+  await expect(button).toHaveAttribute('title', /Caravel returns in 2 turns/);
   await page.keyboard.press('Enter');
   await page.keyboard.press('Enter');
 
   await expect(page.locator('[data-field="unit"]')).toHaveText('Caravel');
   await expect(page.locator('[data-field="location"]')).toHaveText(home!);
+  await expect(button).not.toHaveAttribute('data-europe');
+  await expect(button).toHaveAttribute('title', 'Europe (E)');
   await expect(page.locator('[data-field="date"]')).toHaveText('1496');
   expect(errors).toEqual([]);
 });
