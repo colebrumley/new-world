@@ -1138,6 +1138,29 @@ are in `docs/BALANCE.md`. These ranges are checked on those twenty seeds only.
 - [x] **T-7 Colonies per power at 1600.** Was one power at 2. The cause was a deadlock, not a
   number: a ship waited for ever beside a landing square another unit stood on. Fixed; now 4–8.
 
+## Phase 11 — Theme
+
+- [~] **R-1011 The unexplored map as an explorer's chart**
+  The look is an explorer's chart on a captain's table: unexplored sea and land is aged vellum
+  with ink hatching, compass roses and the odd sea serpent, and the known world is painted in on
+  top of it.
+  - Unexplored squares draw a vellum floor (16 px art, and 32 px detailed art where squares are
+    32 px or more, like the terrains) instead of the void colour; the window background outside
+    the map stays the page's.
+  - Where vellum meets an explored square, the vellum side carries light ink hatching along that
+    edge (an edge mask, as rivers and roads are overlaid), so the frontier reads as a drawn
+    coastline of the known.
+  - On open vellum, a 4x4-square compass rose and at least two chart decorations (sea creature,
+    ship in the margin) are placed deterministically from the map seed, never overlapping
+    explored squares, at most one rose per 24x24 region.
+  - The minimap's unexplored area uses the vellum colour.
+  - Checklist point 1 (palette only) and point 2 (pixel grid, no smoothing) still hold; a row in
+    `docs/VISUAL_CHECKLIST.md` for the chart.
+  - The vellum is baked palette art in parchment, sand, hill, earth, wood and ink; the source
+    pictures are our own (constraint C1) and are kept in `art/chart/`.
+  **Verify:** `npm test -- test/unit/ui/render.test.ts` and `pixel-art.test.ts`;
+  `npm run test:e2e -- visual` and `map`; `npm run check`.
+
 ---
 
 ## Appendix A — Terrain
