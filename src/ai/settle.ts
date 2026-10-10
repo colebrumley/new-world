@@ -24,6 +24,17 @@ const onLand = (state: GameState, u: Unit): number => (u.voyage !== null || u.ab
  * nothing left to build; never from thirty-two.
  */
 export function wantsColonists(state: GameState, colony: Colony): boolean {
+  // (settled once for the colony as it stands this turn: it is asked of every colony for every newcomer)
+  const known = wanting.get(colony);
+  if (known && known.turn === state.turn && known.seat === state.current) return known.value;
+  const value = wantsNow(state, colony);
+  wanting.set(colony, { turn: state.turn, seat: state.current, value });
+  return value;
+}
+
+const wanting = new WeakMap<Colony, { turn: number; seat: number; value: boolean }>();
+
+function wantsNow(state: GameState, colony: Colony): boolean {
   return memo(state, `wants:${colony.id}`, () => {
     const pop = colony.colonists.length;
     if (pop >= AI_MUSTER.most) return false;

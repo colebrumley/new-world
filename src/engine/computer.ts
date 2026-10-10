@@ -15,11 +15,16 @@ import { DIFFICULTIES } from './data/yields';
 import { colonyProduction } from './economy';
 import { trainingPrice } from './europe';
 import { priceLevel } from './market';
-import { checkJobSite, jobTurns, type PioneerEvent } from './pioneer';
-import { createRng } from './rng';
+import { checkJobSite, type PioneerEvent } from './pioneer';
+import { landmassAt } from './regions';
+import { RESOURCES } from './data/resources';
+import { TERRAIN } from './data/terrain';
+import type { TribeId } from './data/tribes';
+import { wagonHomes } from './wagons';
+import { createRng, type Rng } from './rng';
 import { homeOfBrave, isNativeLand, tribeOfOwner } from './settlements';
 import { colonyAt, tileAt, type Colonist, type Colony, type GameState, type PlayerId, type Unit } from './state';
-import { hasForest, isWater, type Tile } from './tile';
+import { hasForest, isWater, terrainOf, type Tile } from './tile';
 
 const FARMED: readonly string[] = ['food', 'sugar', 'tobacco', 'cotton'];
 const skilled = (c: Colonist): boolean => !UNSKILLED.includes(c.profession);
@@ -28,47 +33,139 @@ const stock = (colony: Colony, good: 'tools' | 'horses'): number => colony.goods
 export interface LandWork {
   readonly dx: number;
   readonly dy: number;
-  readonly job: 'plow' | 'road' | 'clear';
+  /** Null when the best square has nothing left to do on it: then nothing is done at all. */
+  readonly job: 'plow' | 'road' | 'clear' | null;
   /** Turns the colony must have waited since it last had work done. */
   readonly wait: number;
 }
 
-/** Is the colony so short of farmland that it should clear forest? Fewer good open squares than a quarter of its people, and more than one forest. */
-function needsClearing(state: GameState, colony: Colony): boolean {
-  const tiles = NEIGHBORS.map(([dx, dy]) => tileAt(state.map, colony.x + dx, colony.y + dy)).filter((t): t is Tile => t !== null);
-  const open = tiles.filter((t) => isWater(t) || (!hasForest(t) && t.relief === 'flat')).length;
-  return tiles.filter(hasForest).length > 1 && (colony.colonists.length + 3) >> 2 > open;
+const OPEN_LAND: readonly string[] = ['plains', 'grassland', 'prairie', 'savannah', 'marsh', 'swamp'];
+const landRow = (tile: Tile): number => TERRAIN[terrainOf(tile)].yields.food;
+
+/** What a colony makes of the ground around it: whether it has work for tools at all, and whether it should clear forest. */
+export function groundWanted(state: GameState, colony: Colony): { readonly work: boolean; readonly clear: boolean } {
+  let poor = 0;
+  let good = 0;
+  let forests = 0;
+  let clearable = 0;
+  let unimproved = false;
+  for (const [dx, dy] of NEIGHBORS) {
+    const tile = tileAt(state.map, colony.x + dx, colony.y + dy);
+    if (!tile) {
+      poor += 1;
+      continue;
+    }
+    if (isWater(tile)) {
+      poor += 2;
+      good += 1;
+    } else if (hasForest(tile)) {
+      poor += 1;
+      forests += 1;
+      if (landRow({ ...tile, forest: false }) >= AI_UPKEEP.goodFarm) clearable += 1;
+    } else if (landRow(tile) >= AI_UPKEEP.goodFarm) good += 1;
+    else if (landRow(tile) < AI_UPKEEP.poorFarm) poor += 1;
+    const worked = !isWater(tile) && colony.colonists.some((c) => c.job.kind === 'field' && c.job.dx === dx && c.job.dy === dy);
+    if (worked && (!tile.road || (!tile.plowed && tile.relief === 'flat' && !tile.forest && tile.base !== 'arctic'))) unimproved = true;
+  }
+  const clear = forests > 1 && (NEIGHBORS.length - 1 <= poor || ((colony.colonists.length + 3) >> 2 > good && clearable > 0));
+  return { work: clear || unimproved, clear };
 }
 
 /**
- * The square of its ground a colony would have improved next, if any: one a colonist works
- * without the fitting improvement (the plow for crops, a road for the rest) before any other.
+ * The square of its ground a colony would have improved next, if any, and what would be done
+ * there: scored by the worth of the terrain (or of its resource), doubled where a colonist
+ * works it without the fitting improvement, or where forest is to be cleared.
  */
 export function landWork(state: GameState, colony: Colony): LandWork | null {
-  const clearing = needsClearing(state, colony);
-  let best: LandWork | null = null;
-  let top = 0;
+  const wanted = groundWanted(state, colony);
+  if (!wanted.work) return null;
+  const owner = state.players.find((p) => p.id === colony.owner);
+  const land = landmassAt(state.map, colony.x, colony.y);
+  const natives = Object.values(state.settlements).some((v) => landmassAt(state.map, v.x, v.y) === land);
+  const wagon = Object.values(wagonHomes(state, colony.owner)).includes(colony.id);
+  let best: { dx: number; dy: number; tile: Tile; clearing: boolean; worker: Colonist | undefined } | null = null;
+  let top = -1;
   for (const [dx, dy] of NEIGHBORS) {
-    const x = colony.x + dx;
-    const y = colony.y + dy;
-    const tile = tileAt(state.map, x, y);
-    if (!tile || isWater(tile) || isNativeLand(state, tile, colony.owner) || (tile.claim !== null && tile.claim !== colony.owner)) continue;
+    const tile = tileAt(state.map, colony.x + dx, colony.y + dy);
+    if (!tile || isWater(tile) || (tile.claim !== null && tile.claim !== colony.owner && state.players.some((p) => p.id === tile.claim))) continue;
     const worker = colony.colonists.find((c) => c.job.kind === 'field' && c.job.dx === dx && c.job.dy === dy);
-    const crop = worker !== undefined && worker.job.kind === 'field' && FARMED.includes(worker.job.good);
-    const mayPlow = checkJobSite(state, x, y, 'plow').ok;
-    const mayRoad = checkJobSite(state, x, y, 'road').ok;
-    let job: LandWork['job'] | null = null;
-    if (hasForest(tile)) job = clearing ? 'clear' : worker && !crop && mayRoad ? 'road' : null;
-    else if (worker ? crop : true) job = mayPlow ? 'plow' : null;
-    if (job === null && !hasForest(tile) && mayRoad) job = 'road';
-    if (job === null) continue;
-    const score = (worker ? AI_UPKEEP.workedTimes : 1) * (job === 'clear' ? AI_UPKEEP.workedTimes : 1);
+    let score: number = tile.resource ? RESOURCES[tile.resource].aiValue : TERRAIN[terrainOf(tile)].aiValue;
+    const clearing = wanted.clear && hasForest(tile);
+    if (clearing) score *= 2;
+    else {
+      const crop = worker !== undefined && worker.job.kind === 'field' && FARMED.includes(worker.job.good);
+      if (worker && (crop ? !tile.plowed : !tile.road)) score *= 2;
+      if (tile.road && tile.plowed) continue;
+    }
+    if (isNativeLand(state, tile, colony.owner)) {
+      // native ground: only that of a people already angry is worth the taking
+      let term = AI_UPKEEP.nativeCalm - tribalAlarm(state, tile.homeland as TribeId, colony.owner);
+      if (tile.resource) term *= 2;
+      if (natives && !wagon) {
+        if (!wanted.clear) continue;
+        term *= 2;
+      }
+      term = (owner?.gold ?? 0) < AI_UPKEEP.nativeGold ? term * 2 : term >> 1;
+      score -= term;
+    }
     if (score > top) {
       top = score;
-      best = { dx, dy, job, wait: jobTurns(tile, job === 'road' ? 'road' : 'plow', false) + AI_UPKEEP.waitExtra + (job === 'clear' ? AI_UPKEEP.clearExtra : 0) };
+      best = { dx, dy, tile, clearing, worker };
     }
   }
-  return best;
+  if (!best) return null;
+  const { dx, dy, tile, clearing, worker } = best;
+  // never beside a human's unit or colony, unless something of ours stands on the square
+  const x = colony.x + dx;
+  const y = colony.y + dy;
+  const isHuman = (id: string): boolean => state.players.some((p) => p.id === id && p.kind === 'human');
+  const ours = Object.values(state.units).some((u) => u.owner === colony.owner && u.voyage === null && u.x === x && u.y === y);
+  const beside = (ox: number, oy: number): boolean => Math.max(Math.abs(ox - x), Math.abs(oy - y)) === 1;
+  if (!ours && (Object.values(state.units).some((u) => u.voyage === null && isHuman(u.owner) && beside(u.x, u.y)) || Object.values(state.colonies).some((c) => isHuman(c.owner) && beside(c.x, c.y)))) return null;
+  const crop = worker !== undefined && worker.job.kind === 'field' && FARMED.includes(worker.job.good);
+  const plowable = OPEN_LAND.includes(tile.base) && tile.relief === 'flat' && !tile.forest;
+  let job: LandWork['job'];
+  if (clearing) job = 'clear';
+  else if (worker && crop && !tile.plowed) job = hasForest(tile) ? 'clear' : checkJobSite(state, x, y, 'plow').ok ? 'plow' : null;
+  else if (worker && !crop && !tile.road) job = 'road';
+  else if (plowable) job = tile.plowed ? null : 'plow';
+  else job = tile.road ? null : 'road';
+  return { dx, dy, job, wait: TERRAIN[terrainOf(tile)].improve + AI_UPKEEP.waitExtra + (clearing ? AI_UPKEEP.clearExtra : 0) };
+}
+
+/**
+ * The square on which a colony would lay a stretch of road toward a sister colony this turn:
+ * the first roadless square on the way to one of the power's other colonies on its land that
+ * lies within seven squares one way or the other, each such colony having one chance in the
+ * number of the others. Null when the colony has not waited long enough, or there is none.
+ */
+export function sisterRoad(state: GameState, colony: Colony, rng: Rng): readonly [number, number] | null {
+  const land = landmassAt(state.map, colony.x, colony.y);
+  const mine = coloniesOf(state, colony.owner).filter((c) => landmassAt(state.map, c.x, c.y) === land);
+  if (mine.length < 2) return null;
+  for (const other of mine) {
+    if (other.id === colony.id || (Math.abs(other.x - colony.x) >= AI_UPKEEP.sisterWithin && Math.abs(other.y - colony.y) >= AI_UPKEEP.sisterWithin)) continue;
+    if (rng.int(0, mine.length - 2) !== 0) continue;
+    let x = colony.x;
+    let y = colony.y;
+    let square: readonly [number, number] | null = null;
+    while (x !== other.x || y !== other.y) {
+      x += Math.sign(other.x - x);
+      y += Math.sign(other.y - y);
+      const tile = tileAt(state.map, x, y);
+      if (!tile || isWater(tile)) break;
+      if (!colonyAt(state, x, y) && !tile.road) {
+        square = [x, y];
+        break;
+      }
+    }
+    if (!square) continue;
+    const [sx, sy] = square;
+    if (Object.values(state.units).some((u) => u.owner !== colony.owner && u.voyage === null && u.x === sx && u.y === sy)) continue;
+    const tile = tileAt(state.map, sx, sy) as Tile;
+    return TERRAIN[terrainOf(tile)].improve + AI_UPKEEP.waitExtra > (colony.waited ?? 0) ? null : square;
+  }
+  return null;
 }
 
 /** The trade a colonist is working at, as a profession, if there is an expert of it. */
@@ -90,6 +187,7 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: (
   if (!player || player.kind !== 'ai' || player.withdrawn) return state;
   let gold = player.gold;
   let reserve = player.reserve ?? { muskets: 0, horses: 0 };
+  let taxRate = player.taxRate;
   let colonies = state.colonies;
   let tiles = state.map.tiles;
   const level = DIFFICULTIES.indexOf(state.difficulty);
@@ -97,24 +195,32 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: (
     let c: Colony = { ...start, waited: Math.min(AI_UPKEEP.waitMost, (start.waited ?? 0) + 1) };
     const rng = createRng(state.rng).fork(`upkeep:${state.turn}:${c.id}`);
     const now = (): GameState => ({ ...state, colonies: { ...colonies, [c.id]: c }, map: { ...state.map, tiles } });
-    const work = landWork(now(), c);
+    const wanted = groundWanted(now(), c);
 
-    // a few tools, when there is land to improve or every tenth turn
+    // a few tools, when there is ground to improve or every tenth turn
     const toolsCost = AI_UPKEEP.tools * priceLevel(state, playerId, 'tools');
-    if (stock(c, 'tools') < AI_UPKEEP.tools && (work !== null || state.turn % AI_UPKEEP.toolsEvery === 0) && gold >= toolsCost) {
+    if (stock(c, 'tools') < AI_UPKEEP.tools && (wanted.work || state.turn % AI_UPKEEP.toolsEvery === 0) && gold >= toolsCost) {
       gold -= toolsCost;
       c = { ...c, goods: addGoods(c.goods, 'tools', AI_UPKEEP.tools) };
       events.push({ type: 'colonySupplied', colonyId: c.id, player: playerId, good: 'tools', amount: AI_UPKEEP.tools, cost: toolsCost });
     }
-    // a square of its ground improved with them, once it has waited as long as the work takes
-    if (work !== null && stock(c, 'tools') >= AI_UPKEEP.tools && state.turn % AI_UPKEEP.restEvery !== 0 && (c.waited ?? 0) >= work.wait) {
-      const i = (c.y + work.dy) * state.map.width + c.x + work.dx;
+    const improve = (x: number, y: number, job: 'plow' | 'road' | 'clear'): void => {
+      const i = y * state.map.width + x;
       const tile = tiles[i] as Tile;
       const copy = [...tiles];
-      copy[i] = work.job === 'road' ? { ...tile, road: true } : work.job === 'clear' ? { ...tile, forest: false } : { ...tile, plowed: true };
+      copy[i] = job === 'road' ? { ...tile, road: true } : job === 'clear' ? { ...tile, forest: false } : { ...tile, plowed: true };
       tiles = copy;
-      events.push({ type: 'tileImproved', x: c.x + work.dx, y: c.y + work.dy, improvement: work.job === 'road' ? 'road' : work.job === 'clear' ? 'cleared' : 'plowed', unitId: c.id });
-      c = { ...c, goods: addGoods(c.goods, 'tools', -AI_UPKEEP.tools), waited: 0 };
+      events.push({ type: 'tileImproved', x, y, improvement: job === 'road' ? 'road' : job === 'clear' ? 'cleared' : 'plowed', unitId: c.id });
+      c = { ...c, goods: addGoods(c.goods, 'tools', -Math.min(AI_UPKEEP.tools, stock(c, 'tools'))), waited: 0 };
+    };
+    if (stock(c, 'tools') >= AI_UPKEEP.tools && state.turn % AI_UPKEEP.restEvery === 0) {
+      // every seventh turn: a stretch of road toward a sister colony
+      const square = sisterRoad(now(), c, rng);
+      if (square) improve(square[0], square[1], 'road');
+    } else if (stock(c, 'tools') >= AI_UPKEEP.tools && wanted.work) {
+      // on the others: a square of its own ground, once the colony has waited as long as the work takes
+      const work = landWork(now(), c);
+      if (work && work.job !== null && (c.waited ?? 0) >= work.wait) improve(c.x + work.dx, c.y + work.dy, work.job);
     }
 
     // a carpenter who was a servant or a criminal is a free colonist; in a large colony an unskilled one may become a master
@@ -127,29 +233,41 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: (
       }),
     };
 
-    // a colony with a school turns one colonist into an expert, every so often
+    const r = colonyProduction(now(), c);
+    const has = (p: ProfessionId): boolean => c.colonists.some((k) => k.profession === p);
+    const count = (p: ProfessionId): number => c.colonists.filter((k) => k.profession === p).length;
+    const feeders = c.colonists.filter((k) => k.job.kind === 'field' && (k.job.good === 'food' || k.job.good === 'fish')).length;
+    const water = NEIGHBORS.filter(([dx, dy]) => { const t = tileAt(state.map, c.x + dx, c.y + dy); return t !== null && isWater(t); }).length;
+
+    // a colony with a school turns one colonist into an expert, after a wait that grows with the school
     const school = chainLevel(c.buildings, 'school');
-    if (school > 0 && (c.waited ?? 0) >= AI_UPKEEP.schoolTurns * (school + (school === 3 ? 1 : 0))) {
-      const pupils = c.colonists.filter((k) => k.profession !== 'indianConvert' && !(skilled(k) && tradeWorked(k) === k.profession));
+    if (school > 0 && (c.waited ?? 0) >= (AI_UPKEEP.schoolWait[school - 1] as number)) {
+      let to: ProfessionId | null = null;
+      // a small colony with no more experts on food than it has people feeding it: a fisherman while it has water to spare, else a farmer
+      if (c.colonists.length < AI_UPKEEP.schoolFoodBelow && count('expertFarmer') + count('expertFisherman') <= feeders) to = count('expertFisherman') < water ? 'expertFisherman' : 'expertFarmer';
+      // a workshop of the second level (an armory of any) with stuff to work and no master: an expert of the land that goes with its place in the list
+      AI_UPKEEP.schoolChains.forEach((row, k) => {
+        if (chainLevel(c.buildings, row.chain) >= row.levels && r.produced[row.input] > 0 && !has(row.master)) to = AI_UPKEEP.schoolPupils[k] as ProfessionId;
+      });
+      const pupils = c.colonists.filter((k) => k.profession !== 'indianConvert' && !(skilled(k) && (tradeWorked(k) === k.profession || k.job.kind === 'idle')));
       const pupil = pupils.length > 0 ? pupils[rng.int(0, pupils.length - 1)] : undefined;
-      const trade = pupil ? tradeWorked(pupil) : null;
-      if (pupil && trade) {
-        c = { ...c, colonists: c.colonists.map((k) => (k.id === pupil.id ? { ...k, profession: trade } : k)), waited: 0 };
-      }
+      const trade = pupil ? to ?? tradeWorked(pupil) : null;
+      if (pupil && trade) c = { ...c, colonists: c.colonists.map((k) => (k.id === pupil.id ? { ...k, profession: trade } : k)) };
+      if (pupil) c = { ...c, waited: 0 };
     }
 
-    // short of food: its last unskilled colonist is trained to fish or farm, for the fee, while taxes are low
-    const r = colonyProduction(now(), c);
-    const feeders = c.colonists.filter((k) => k.job.kind === 'field' && (k.job.good === 'food' || k.job.good === 'fish')).length;
-    const hungry = (c.colonists.length >> 1 < feeders && feeders > 1) || r.produced.food < r.consumed.food;
-    if (hungry && player.taxRate <= AI_UPKEEP.trainTaxMost) {
-      const has = (p: ProfessionId): boolean => c.colonists.some((k) => k.profession === p);
+    // short of food and not building docks: its last unskilled colonist is trained to fish or farm, while taxes are low and the treasury deep
+    const hungry = ((c.colonists.length >> 1 < feeders && feeders > 1) || r.produced.food + (c.goods.food ?? 0) < r.consumed.food)
+      && !(c.construction?.kind === 'building' && c.construction.id === 'docks');
+    if (hungry && taxRate <= AI_UPKEEP.trainTaxMost && gold >= (trainingPrice('expertFarmer') ?? 0)) {
       const to: ProfessionId | null = !has('expertFisherman') && c.buildings.includes('docks') ? 'expertFisherman' : !has('expertFarmer') ? 'expertFarmer' : null;
-      const pupil = [...c.colonists].reverse().find((k) => !skilled(k) && k.profession !== 'indianConvert');
-      const fee = to ? trainingPrice(to) : null;
-      if (to && pupil && fee !== null && gold >= fee + AI_UPKEEP.trainGoldOver) {
-        gold -= fee;
-        c = { ...c, colonists: c.colonists.map((k) => (k.id === pupil.id ? { ...k, profession: to } : k)) };
+      const at = c.colonists.map((k, i) => (!skilled(k) && k.profession !== 'indianConvert' ? i : -1)).filter((i) => i >= 0).pop();
+      if (to && at !== undefined) {
+        // the fee is the price of the trade that stands at his place in the list of trades, which may be none at all (then a gold piece comes back)
+        const listed = PROFESSION_IDS[at];
+        gold -= (listed ? trainingPrice(listed) : null) ?? -1;
+        taxRate = Math.min(AI_UPKEEP.taxMost, taxRate + 1);
+        c = { ...c, colonists: c.colonists.map((k, i) => (i === at ? { ...k, profession: to } : k)) };
       }
     }
 
@@ -174,7 +292,7 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: (
     while (reserve.muskets + 1 < Math.trunc(reserve.horses / AI_RESERVE.lot)) reserve = { muskets: reserve.muskets + 1, horses: reserve.horses - AI_RESERVE.lot };
     while (Math.trunc(reserve.horses / AI_RESERVE.lot) + 1 < reserve.muskets) reserve = { muskets: reserve.muskets - 1, horses: reserve.horses + AI_RESERVE.lot };
   }
-  return { ...state, colonies, map: tiles === state.map.tiles ? state.map : { ...state.map, tiles }, players: state.players.map((p) => (p.id === playerId ? { ...p, gold, ...(reserve.muskets > 0 || reserve.horses > 0 || p.reserve ? { reserve } : {}) } : p)) };
+  return { ...state, colonies, map: tiles === state.map.tiles ? state.map : { ...state.map, tiles }, players: state.players.map((p) => (p.id === playerId ? { ...p, gold, taxRate, ...(reserve.muskets > 0 || reserve.horses > 0 || p.reserve ? { reserve } : {}) } : p)) };
 }
 
 // --- defenders ------------------------------------------------------------------------------------

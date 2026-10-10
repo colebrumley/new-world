@@ -115,6 +115,30 @@ function bestSite(state: GameState, x: number, y: number, reach: number, bySea: 
   return best;
 }
 
+type Site = { x: number; y: number; score: number } | null;
+const seaSites = new WeakMap<readonly Tile[], Map<string, Site>>();
+/**
+ * The best site a ship at (x, y) can reach by sea, anywhere on the map: on any land, or
+ * (`fresh`) only on land where this power has no colony and there is room for one. The answer
+ * is kept while the colonies stand where they do, since every passenger asks it every time.
+ */
+function siteBySea(state: GameState, player: Player, x: number, y: number, reach: number, haste: number, fresh: boolean): Site {
+  const mine = coloniesOf(state, player.id);
+  const where = Object.values(state.colonies).map((c) => `${c.x},${c.y},${c.owner === player.id ? 1 : 0}`).join(';');
+  const key = `${player.id}|${x},${y}|${reach}|${haste}|${fresh ? 1 : 0}|${Object.keys(state.settlements).length}|${where}`;
+  let known = seaSites.get(state.map.tiles);
+  if (!known) seaSites.set(state.map.tiles, (known = new Map()));
+  if (!known.has(key)) {
+    const newLand = (tx: number, ty: number): boolean => {
+      const land = landmassAt(state.map, tx, ty);
+      return !mine.some((c) => landmassAt(state.map, c.x, c.y) === land) && regionAppeal(state, player, land) > 0;
+    };
+    if (known.size > 400) known.clear();
+    known.set(key, bestSite(state, x, y, reach, seaDistances(state, x, y), haste, fresh ? newLand : undefined));
+  }
+  return known.get(key) ?? null;
+}
+
 /** A colony site on a square next to this ship, if there is one worth having. */
 function siteBeside(state: GameState, ship: Unit): readonly [number, number] | null {
   let best: readonly [number, number] | null = null;
@@ -363,29 +387,24 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
   const preaching = !riders.some(isSettler) && riders.some((u) => u.type === 'missionary') && mine.length > 0;
   // (pioneers still on the quay go only if there is somewhere to take them)
   const aboard = riders.filter((r) => r.aboard === ship.id);
-  const somewhere = waitingPioneers.length === 0 || aboard.some(isSettler) || bestSite(state, ship.x, ship.y, state.map.width, seaDistances(state, ship.x, ship.y), 1, (x, y) => !mine.some((c) => landmassAt(state.map, c.x, c.y) === landmassAt(state.map, x, y)) && regionAppeal(state, player, landmassAt(state.map, x, y)) > 0) !== null;
+  const somewhere = waitingPioneers.length === 0 || aboard.some(isSettler) || siteBySea(state, player, ship.x, ship.y, state.map.width, 1, true) !== null;
   if (somewhere && (riders.some(isSettler) || preaching)) {
     // a missionary alone aboard is carried to a colony, never to a fresh site
     // pioneers taken off a settled land are put ashore where there is room for a new colony
     const shipped = !preaching && !riders.some((r) => mayFound(state, player, r)) && riders.some((r) => r.type === 'pioneer');
-    const newLand = (x: number, y: number): boolean => {
-      const land = landmassAt(state.map, x, y);
-      return !mine.some((c) => landmassAt(state.map, c.x, c.y) === land) && regionAppeal(state, player, land) > 0;
-    };
-    const fresh = shipped ? bestSite(state, ship.x, ship.y, state.map.width, seaDistances(state, ship.x, ship.y), 1, newLand) : null;
+    const fresh = shipped ? siteBySea(state, player, ship.x, ship.y, state.map.width, 1, true) : null;
     const founding = !preaching && (riders.some((r) => mayFound(state, player, r)) || fresh !== null);
     const inPort = port !== null;
     // they will go ashore themselves: onto a site alongside, or into the colony when they have come to join one
     const ports = mine.filter((c) => ok(state, { type: 'goTo', unitId: ship.id, x: c.x, y: c.y }));
     if ((!inPort && (founding || ports.length === 0) && siteBeside(state, ship)) || (inPort && !founding && waitingPioneers.length === 0)) return null;
     // founders are taken to a fresh site; the rest to the colony that needs them most
-    const bySea = founding ? seaDistances(state, ship.x, ship.y) : null;
     // a power with no colony yet takes the nearest fair site rather than hold out for the best
     const haste = mine.length === 0 ? AI_PLAN.firstColonyHaste : 1;
-    const site = fresh ?? (founding ? bestSite(state, ship.x, ship.y, AI_PLAN.shipSearch, bySea, haste) ?? bestSite(state, ship.x, ship.y, state.map.width, bySea, haste) : null);
+    const site = fresh ?? (founding ? siteBySea(state, player, ship.x, ship.y, AI_PLAN.shipSearch, haste, false) ?? siteBySea(state, player, ship.x, ship.y, state.map.width, haste, false) : null);
     const luck = (c: Colony): number => aiRng(state, `${ship.id}:port:${c.id}`).int(0, AI_SETTLE.portLuck);
     // (with no port of ours she can reach, they are put ashore at the best site she can)
-    const goal = site ?? deliveryPort(state, ship, ports, luck) ?? (ports.length === 0 ? bestSite(state, ship.x, ship.y, state.map.width, seaDistances(state, ship.x, ship.y)) : null) ?? nearestColony(mine, ship.x, ship.y);
+    const goal = site ?? deliveryPort(state, ship, ports, luck) ?? (ports.length === 0 ? siteBySea(state, player, ship.x, ship.y, state.map.width, 1, false) : null) ?? nearestColony(mine, ship.x, ship.y);
     if (!goal) return null;
     if (colonyAt(state, goal.x, goal.y)) {
       const port: Action = { type: 'goTo', unitId: ship.id, x: goal.x, y: goal.y };
@@ -453,7 +472,7 @@ function riderAction(state: GameState, rider: Unit, player: Player, mine: readon
     // come to join: in he goes; founders stay aboard for the site, unless the ship can reach none
     const founding = Object.values(state.units).some((u) => u.aboard === ship.id && mayFound(state, player, u));
     if (isSettler(rider) && !founding && ok(state, join)) return join;
-    if (isSettler(rider) && ok(state, join) && bestSite(state, ship.x, ship.y, state.map.width, seaDistances(state, ship.x, ship.y)) === null) return join;
+    if (isSettler(rider) && ok(state, join) && siteBySea(state, player, ship.x, ship.y, state.map.width, 1, false) === null) return join;
     return null;
   }
   if (ship.orders === 'goto') return null;
@@ -615,8 +634,10 @@ export function europeanAction(state: GameState, idle: Set<string> = new Set()):
     if (job) return job;
     idle.add(`#colony:${colony.id}`);
   }
-  const inEurope = europeAction(state, player, idle);
+  // (nothing done in the New World this turn changes what is to be done in Europe: once that is finished it is not looked at again)
+  const inEurope = idle.has('#europe') ? null : europeAction(state, player, idle);
   if (inEurope) return inEurope;
+  idle.add('#europe');
   const units = Object.values(state.units).filter((u) => u.owner === player.id && u.voyage === null).sort((a, b) => (a.id < b.id ? -1 : 1));
   for (const unit of units) {
     if (idle.has(unit.id)) continue;

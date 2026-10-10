@@ -2,7 +2,7 @@
 // (docs/RULES.md "Computer powers: freight").
 import { holdsFree, holdsUsed } from '../engine/cargo';
 import { coloniesOf } from '../engine/colony';
-import { landWork } from '../engine/computer';
+import { groundWanted } from '../engine/computer';
 import { AI_FREIGHT, AI_SUPPLY } from '../engine/data/ai';
 import { GOOD_IDS, type GoodId } from '../engine/data/goods';
 import { UNIT_TYPES } from '../engine/data/units';
@@ -83,7 +83,7 @@ export function pickups(state: GameState, player: Player): Pickup[] {
     const out: Pickup[] = [];
     for (const colony of coloniesOf(state, player.id)) {
       const waiting = awaitingPassage(state, player, colony);
-      const pioneers = landWork(state, colony) === null ? waiting.filter((u) => u.type === 'pioneer').length : 0;
+      const pioneers = !groundWanted(state, colony).work ? waiting.filter((u) => u.type === 'pioneer').length : 0;
       const troops = waiting.filter(isTroop).length;
       let value = AI_FREIGHT.pioneerValue * pioneers + AI_FREIGHT.troopValue * troops;
       let ready = pioneers + troops > 0;

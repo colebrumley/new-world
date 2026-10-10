@@ -1,7 +1,7 @@
 // What a computer power's colonies ask to be sent, and where its ships take the goods
 // (docs/RULES.md "Computer powers: supplies by ship").
 import { coloniesOf } from '../engine/colony';
-import { landWork } from '../engine/computer';
+import { groundWanted } from '../engine/computer';
 import { AI_SUPPLY, AI_WAGONS } from '../engine/data/ai';
 import { GOOD_IDS, type GoodId } from '../engine/data/goods';
 import { NATIONS } from '../engine/data/nations';
@@ -35,7 +35,7 @@ export function colonyAsks(state: GameState, colony: Colony): Supply | null {
     const wagon = Object.values(wagonHomes(state, colony.owner)).includes(colony.id);
     ask('tradeGoods', stock(colony, 'tradeGoods') < AI_WAGONS.tradeGoodsBelow && priceLevel(state, colony.owner, 'tradeGoods') <= AI_WAGONS.tradeGoodsPriceMost && wagon);
     ask('horses', stock(colony, 'horses') < AI_SUPPLY.horses);
-    ask('tools', stock(colony, 'tools') < AI_SUPPLY.tools && landWork(state, colony) !== null);
+    ask('tools', stock(colony, 'tools') < AI_SUPPLY.tools && groundWanted(state, colony).work);
     // muskets it needs now come before all but tools
     const beforeTools = (asked as Supply | null) !== 'tools';
     ask('muskets', (muster.unmet > 0 && few) || (muster.wanted === 1 && few && beforeTools) || (muster.short && few && beforeTools) || (stocked && asked === 'muskets'));

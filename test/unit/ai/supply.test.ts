@@ -51,8 +51,11 @@ describe('what a colony asks to be sent', () => {
   it('horses while it has none to breed from, and tools under twenty while it has ground to improve: the later want is the one it voices', () => {
     expect(asks(col(base('france'), 'home', 4, 1, { ...FULL, horses: 1 }))).toBe('horses');
     expect(asks(col(base('france'), 'home', 4, 1, { ...FULL, horses: 49 }))).toBeNull(); // it breeds its own
-    expect(asks(col(base('france'), 'home', 4, 1, { ...FULL, tools: 19 }))).toBe('tools');
-    expect(asks(col(base('france'), 'home', 4, 1, { muskets: 60, horses: 0, tools: 0 }))).toBe('tools');
+    // (somebody working unimproved ground is what makes tools wanted)
+    const working = (goods: Colony['goods']): GameState => withColony(base('france'), { id: 'home', x: 3, y: 4, colonists: [{ id: 'w', profession: 'freeColonist', job: { kind: 'field', dx: 1, dy: 0, good: 'food' }, turns: 0 }], goods, construction: { kind: 'building', id: 'stockade' } });
+    expect(asks(working({ ...FULL, tools: 19 }))).toBe('tools');
+    expect(asks(working({ muskets: 60, tools: 0 }))).toBe('tools');
+    expect(asks(col(base('france'), 'home', 4, 1, { ...FULL, tools: 19 }))).toBeNull();
   });
 
   it('muskets it needs now, for a colony short of defenders, come before everything', () => {

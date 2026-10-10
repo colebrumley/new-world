@@ -3,7 +3,7 @@
 // "Indoor production"; integer arithmetic throughout, in the order given there.
 import { creditBells, type CongressEvent } from './congress';
 import { warBells, type IndependenceEvent } from './independence';
-import { customHouseSales, wagonSupplies, type CustomHouseEvent } from './custom-house';
+import { customHouseSales, type CustomHouseEvent } from './custom-house';
 import { dateOfTurn } from './calendar';
 import { addGoods, amountOf } from './cargo';
 import { withoutOne } from './colony';
@@ -302,7 +302,7 @@ export function colonyTurn(state: GameState, colonyId: string, events: EconomyEv
   const after = completeConstruction(stocked, colonyId, built);
   events.push(...built);
   const sales: CustomHouseEvent[] = [];
-  const exported = wagonSupplies(customHouseSales(after, colonyId, sales), colonyId, sales);
+  const exported = customHouseSales(after, colonyId, sales);
   events.push(...sales);
   return trimWarehouse(exported, colonyId, colony.goods, changed, events);
 }

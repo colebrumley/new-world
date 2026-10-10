@@ -11,9 +11,6 @@ export const AI_PLAN = {
   /** How far a ship, and a party on foot, look for a site. */
   shipSearch: 14,
   landSearch: 7,
-  /** A colony of at least this many seats a statesman, and one more for every so many colonists (three at most), if it can still feed itself. */
-  statesmanFrom: 3,
-  colonistsPerStatesman: 3,
   /** A power thinks of landings abroad only once it has this many colonies (ours). */
   coloniesBeforeGarrison: 2,
   /** A ship tries this many anchorages beside a site before giving it up for the turn. */
@@ -22,8 +19,6 @@ export const AI_PLAN = {
   goldReserve: 200,
   /** A power's turn is cut off after this many actions. */
   actionsPerTurn: 250,
-  /** Goods a computer power's colonies sell by themselves, as if through a Custom House. */
-  colonyExports: ['sugar', 'tobacco', 'cotton', 'furs', 'ore', 'silver', 'rum', 'cigars', 'cloth', 'coats'],
 } as const;
 
 // Wagon trains and trade with the native peoples by computer powers (R-804);
@@ -331,16 +326,32 @@ export const AI_UPKEEP = {
   waitExtra: 2,
   clearExtra: 2,
   waitMost: 127,
-  /** A square a colonist works counts this many times over, and clearing where farmland is short as much again. */
-  workedTimes: 2,
+  /** Farmland is good from this food yield (by the terrain table) and poor under the second. */
+  goodFarm: 3,
+  poorFarm: 2,
+  /** Native ground loses (this - the tribe's alarm), reckoned double with under `nativeGold` in the treasury and half with more. */
+  nativeCalm: 4,
+  nativeGold: 2000,
+  /** On every `restEvery`th turn, instead, a stretch of road toward another of the power's colonies within this many squares east-west or north-south. */
+  sisterWithin: 7,
   /** An unskilled carpenter in a colony of this many becomes a master one turn in (`masterOdds` - difficulty level). */
   masterFrom: 6,
   masterOdds: 17,
-  /** A school trains one colonist after this many turns' wait for each of its levels (the third counting twice). */
-  schoolTurns: 4,
-  /** Paid training only while the tax rate is no more than this, and the treasury holds the fee and this much besides (the second is our own figure). */
+  /** A school trains one colonist after this many turns' wait, by its level. */
+  schoolWait: [4, 8, 16],
+  /** A colony under this many, with no more experts on food than people feeding it, is given a fisherman or a farmer. */
+  schoolFoodBelow: 10,
+  /** Otherwise, for each workshop chain at this level or above that has stuff to work and no master... */
+  schoolChains: [
+    { chain: 'armory', levels: 1, input: 'tools', master: 'masterGunsmith' }, { chain: 'blacksmith', levels: 2, input: 'ore', master: 'masterBlacksmith' },
+    { chain: 'furTrader', levels: 2, input: 'furs', master: 'masterFurTrader' }, { chain: 'distiller', levels: 2, input: 'sugar', master: 'masterDistiller' },
+    { chain: 'tobacconist', levels: 2, input: 'tobacco', master: 'masterTobacconist' }, { chain: 'weaver', levels: 2, input: 'cotton', master: 'masterWeaver' },
+  ],
+  /** ...the pupil is given the trade at the same place in this list (the last chain that applies deciding). */
+  schoolPupils: ['expertFarmer', 'masterSugarPlanter', 'masterTobaccoPlanter', 'masterCottonPlanter', 'expertFurTrapper', 'expertLumberjack'],
+  /** Paid training only while the tax rate is no more than this and the treasury holds a farmer's training price; each one trained raises the tax rate by one, up to `taxMost`. */
   trainTaxMost: 25,
-  trainGoldOver: 0,
+  taxMost: 75,
   /** From this turn a colony with fewer horses than this, with a ship or wagon in it, has them made up for this much gold. */
   horses: 2,
   horsesFromTurn: 40,
@@ -405,6 +416,8 @@ export const AI_RESERVE = {
 // What a computer power's ships load in its colonies and where empty ones go;
 // see docs/RULES.md "Computer powers: freight".
 export const AI_FREIGHT = {
+  /** A computer colony's Custom House sells every good but these, and ore only from a colony with no armory that makes no tools or muskets. */
+  customHouseKeeps: ['food', 'lumber', 'horses', 'tools', 'muskets'],
   /** Goods a ship never loads in a colony. */
   neverLoaded: ['lumber', 'food', 'tradeGoods'],
   /** Tools and muskets only from a colony that makes them, and only beyond this many. */
@@ -421,4 +434,35 @@ export const AI_FREIGHT = {
   transportsEnough: 4,
   /** A ship with nothing to fetch, not the Europe ship, sails for Europe one turn in this many. */
   homeEvery: 32,
+} as const;
+
+// How a computer colony weighs one job against another; see docs/RULES.md "Computer powers:
+// the colony".
+export const AI_JOBS = {
+  /** A square scores `yieldTimes` x its yield + `nearness` - its distance, times a weight for the crop. */
+  yieldTimes: 8,
+  nearness: 7,
+  /** Food and fish weigh this in a colony of under sixteen, nothing in a larger one; other crops their price level. */
+  foodWeight: 4,
+  /** Ore weighs this much more in a colony of [people] from [turn], and more again with smithies and an armory. */
+  oreBonus: 2,
+  oreFrom: [8, 80],
+  /** Crops that a workshop works up weigh this much more. */
+  worked: ['sugar', 'tobacco', 'cotton', 'furs', 'ore'],
+  workedBonus: 2,
+  /** A bench scores (`yieldTimes` x what it would make + this) x its weight. */
+  benchBase: 5,
+  /** Weights: tools and muskets their price level + this, doubled from turn `armsDoubledFrom` for a power not behind the human. */
+  armsBonus: 4,
+  armsDoubledFrom: 50,
+  /** A carpenter this less a third of the hammers made; a preacher this less half the crosses made and a hundredth of the turn. */
+  carpenter: 5,
+  preacher: 9,
+  /** A statesman this + the colony's Tories + `bellsPerPress` for each level of printing press; doubled with `toriesMany` Tories; nothing before `bellsFromYear`; doubled after each of these years; halved under each of these sizes. */
+  bells: 7,
+  bellsPerPress: 4,
+  toriesMany: 10,
+  bellsFromYear: 1540,
+  bellsDoubledAfter: [1600, 1700],
+  bellsHalvedUnder: [4, 6],
 } as const;

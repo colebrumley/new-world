@@ -81,7 +81,7 @@ describe('who does what', () => {
 
   it('experts of the land go to their own crop unless the warehouse is full of it; experts of the workshops to their bench when there is something to work', () => {
     expect(plan({ kinds: ['masterCottonPlanter'], construction: null })).toEqual(['cotton']);
-    expect(plan({ kinds: ['masterCottonPlanter'], construction: null, goods: { food: 100, cotton: 101 } })).not.toEqual(['cotton']);
+    expect(plan({ kinds: ['masterCottonPlanter'], construction: null, goods: { food: 50, cotton: 101 } })).not.toEqual(['cotton']);
     expect(plan({ kinds: ['masterWeaver'], construction: null, goods: { food: 100, cotton: 50 } })).toEqual(['weaver']);
     // no sugar in store and none grown: a distiller is no use at the still
     expect(plan({ kinds: ['masterDistiller'], construction: null, goods: { food: 100, sugar: 50 } })).toEqual(['distiller']);
@@ -90,16 +90,21 @@ describe('who does what', () => {
     expect(plan({ kinds: ['elderStatesman'], construction: null })).toEqual(['statesman']);
   });
 
-  it('the rest take whatever pays best, bench or land, and a seat in the Town Hall while one is due', () => {
+  it('the rest take whatever scores best, bench or land; a seat in the Town Hall once bells count for enough', () => {
     // cloth is dear and cotton is piled up: an unskilled hand weaves rather than farm
     // (on good land the unskilled are farming already: here the country round is all mountain)
     let rocky = settled({ kinds: ['freeColonist'], construction: null, goods: { food: 100, cotton: 100 } });
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx || dy) rocky = setTile(rocky, 4 + dx, 4 + dy, { relief: 'mountains' });
     const dear = withBids(rocky, { cloth: 19, cotton: 1, sugar: 1, tobacco: 1, furs: 1, ore: 1 });
     expect(jobs(dear).map(kindOf)).toEqual(['weaver']);
-    // a colony of three that feeds itself keeps one statesman
+    // bells count for little in a small colony early on, and for a great deal in a larger one after 1700
     const three = plan({ kinds: ['expertFarmer', 'expertFarmer', 'freeColonist'], construction: null });
-    expect(three.filter((j) => j === 'statesman')).toHaveLength(1);
+    expect(three).not.toContain('statesman');
+    // (the land is manned first: with nine people and eight squares, the ninth is weighed between the benches)
+    const nine = (turn: number): string[] => plan({ kinds: Array<Kind>(9).fill('freeColonist'), construction: null, turn, goods: { food: 50 } });
+    expect(nine(330)).toContain('statesman');
+    // and for nothing before 1540
+    expect(nine(40)).not.toContain('statesman');
   });
 
   it('the plan is the same whatever the colonists were doing, and the policy carries it out', () => {
