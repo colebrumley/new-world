@@ -92,7 +92,7 @@ market's stalls, the doors of the offices), its parts made once and changes writ
 function in `reports/` (so far the Continental Congress). `title.ts` and
 `customize.ts` are the opening screens. Panels and dialogs are plain DOM.
 
-`ui/options.ts` lists the game and colony report options (kept by `app/storage.ts`, edited in `ui/options-dialog.ts`); `ui/notices.ts` turns a turn's events into log lines as the options allow; `ui/hints.ts` picks the tutorial hint for the moment. `ui/audio-cues.ts` maps events to sound cues and defines each cue as tones (and the ambient phrase generator); `app/audio.ts` plays them through WebAudio. `ui/pedia.ts` generates the encyclopedia pages from the data tables and `ui/pedia-screen.ts` shows them. `ui/report.ts` is the full-screen frame every adviser uses; `ui/reports/` holds the builders
+`ui/options.ts` lists the game and colony report options (kept by `app/storage.ts`, edited in `ui/options-dialog.ts`); `ui/notices.ts` turns a turn's events into log lines as the options allow (a ship of ours reaching Europe is always logged); `ui/hints.ts` picks the tutorial hint for the moment. `ui/audio-cues.ts` maps events to sound cues and defines each cue as tones (and the ambient phrase generator); `app/audio.ts` plays them through WebAudio. `ui/pedia.ts` generates the encyclopedia pages from the data tables and `ui/pedia-screen.ts` shows them. `ui/report.ts` is the full-screen frame every adviser uses; `ui/reports/` holds the builders
 (`advisers.ts` for F1, F2, F4-F7 and F9; `congress.ts`, `foreign.ts`, `score.ts`), each a pure
 function from the state to rows.
 

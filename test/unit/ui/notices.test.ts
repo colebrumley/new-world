@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GameEvent } from '../../../src/engine/actions';
 import type { GameState } from '../../../src/engine/state';
-import { cargoNotices, colonyNotices, movementNotices } from '../../../src/ui/notices';
+import { cargoNotices, colonyNotices, movementNotices, voyageNotices } from '../../../src/ui/notices';
 import { DEFAULT_OPTIONS, type Options } from '../../../src/ui/options';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
@@ -90,5 +90,39 @@ describe('moves seen', () => {
     expect(movementNotices(before, setTile(after, 5, 3, { explored: 0 }), 'a', DEFAULT_OPTIONS).join(' ')).not.toContain('Sioux');
     expect(movementNotices(before, after, 'a', DEFAULT_OPTIONS, 1)).toEqual(['A French Caravel has moved to (3, 4).', '2 more foreign or native units were seen on the move.']);
     expect(movementNotices(before, before, 'a', DEFAULT_OPTIONS)).toEqual([]);
+  });
+});
+
+describe('voyage notices', () => {
+  const docked = (): GameState => {
+    let s = withUnit(base(), { id: 'c1', type: 'caravel', profession: null, x: 0, y: 1 });
+    s = withUnit(s, { id: 'g1', type: 'galleon', profession: null, x: 0, y: 2 });
+    return withUnit(s, { id: 'f1', owner: 'b', type: 'merchantman', profession: null, x: 0, y: 3 });
+  };
+
+  it('a ship of ours that makes port in Europe is logged with its type and our home port', () => {
+    expect(voyageNotices([{ type: 'shipReachedEurope', unitId: 'c1' }], docked(), 'a')).toEqual(['Our Caravel has reached London and awaits orders.']);
+  });
+
+  it('two ships arriving the same turn give two lines, in event order', () => {
+    expect(voyageNotices([{ type: 'shipReachedEurope', unitId: 'g1' }, { type: 'shipReachedEurope', unitId: 'c1' }], docked(), 'a')).toEqual([
+      'Our Galleon has reached London and awaits orders.',
+      'Our Caravel has reached London and awaits orders.',
+    ]);
+  });
+
+  it('a foreign arrival and a ship back in the New World give no line', () => {
+    const events: GameEvent[] = [{ type: 'shipReachedEurope', unitId: 'f1' }, { type: 'shipReachedNewWorld', unitId: 'c1', at: [0, 1] }];
+    expect(voyageNotices(events, docked(), 'a')).toEqual([]);
+    // the other power would hear of its own ship, at its own home port
+    expect(voyageNotices(events, docked(), 'b')).toEqual(['Our Merchantman has reached La Rochelle and awaits orders.']);
+  });
+
+  it('no option governs it: it takes no options and is logged whatever the reports are set to', () => {
+    expect(voyageNotices.length).toBe(3);
+    const events: GameEvent[] = [{ type: 'shipReachedEurope', unitId: 'c1' }];
+    const silent = off(...(Object.keys(DEFAULT_OPTIONS) as (keyof Options)[]).filter((k) => typeof DEFAULT_OPTIONS[k] === 'boolean'));
+    expect(colonyNotices(events, docked(), 'a', silent)).toEqual([]);
+    expect(voyageNotices(events, docked(), 'a')).toEqual(['Our Caravel has reached London and awaits orders.']);
   });
 });
