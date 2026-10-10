@@ -1,5 +1,6 @@
 // The docks in Europe (R-402/R-404): who is waiting there, boarding and landing, training at
 // the Royal University and buying ships and artillery. Buying and selling goods is in market.ts.
+import { AI_RESERVE } from './data/ai';
 import { equipmentOf, holdsFree } from './cargo';
 import { isColonistRole, PIONEER_TOOLS, ROLE_GOODS, type ColonistRole } from './data/equipment';
 import { GOOD_IDS, type GoodId } from './data/goods';
@@ -160,6 +161,8 @@ export interface DockEquipPlan {
   readonly changes: readonly { readonly good: GoodId; readonly amount: number }[];
   /** Gold the change costs (negative when selling kit brings money in). */
   readonly cost: number;
+  /** Computer powers only: kit taken from the power's reserve in Europe instead of bought. */
+  readonly fromReserve: { readonly muskets: number; readonly horses: number };
 }
 
 /** What changing a dock unit's role would buy and sell, at this power's prices. Selling back is at the bid, untaxed. */
@@ -168,13 +171,25 @@ export function dockEquipPlan(state: GameState, unit: Unit, role: ColonistRole):
   const want = kitFor(role);
   const changes: { good: GoodId; amount: number }[] = [];
   let cost = 0;
+  const owner = state.players.find((p) => p.id === unit.owner);
+  const reserve = owner?.kind === 'ai' ? owner.reserve ?? { muskets: 0, horses: 0 } : { muskets: 0, horses: 0 };
+  const fromReserve = { muskets: 0, horses: 0 };
   for (const good of GOOD_IDS) {
     const amount = (want[good] ?? 0) - (have[good] ?? 0);
     if (amount === 0) continue;
+    // a computer power arms a man from its reserve, when it holds a whole kit, before it buys
+    if (good === 'muskets' && amount > 0 && reserve.muskets * AI_RESERVE.lot >= amount) {
+      fromReserve.muskets = amount;
+      continue;
+    }
+    if (good === 'horses' && amount > 0 && reserve.horses >= amount) {
+      fromReserve.horses = amount;
+      continue;
+    }
     changes.push({ good, amount });
     cost += amount > 0 ? askPrice(state, unit.owner, good) * amount : -bidPrice(state, unit.owner, good) * -amount;
   }
-  return { changes, cost };
+  return { changes, cost, fromReserve };
 }
 
 export function checkDockEquip(state: GameState, unit: Unit, role: ColonistRole): EuropeCheck {
@@ -191,6 +206,9 @@ export function dockEquip(state: GameState, unit: Unit, role: ColonistRole, even
   const plan = dockEquipPlan(state, unit, role);
   let next = state;
   for (const change of plan.changes) next = dockTrade(next, unit.owner, change.good, Math.abs(change.amount), change.amount < 0);
+  if (plan.fromReserve.muskets > 0 || plan.fromReserve.horses > 0) {
+    next = { ...next, players: next.players.map((p) => (p.id === unit.owner ? { ...p, reserve: { muskets: (p.reserve?.muskets ?? 0) - plan.fromReserve.muskets / AI_RESERVE.lot, horses: (p.reserve?.horses ?? 0) - plan.fromReserve.horses } } : p)) };
+  }
   events.push({ type: 'equippedInEurope', unitId: unit.id, role, cost: plan.cost });
   const fitted: Unit = { ...(next.units[unit.id] as Unit), type: role, tools: role === 'pioneer' ? PIONEER_TOOLS.max : 0 };
   return { ...next, units: { ...next.units, [unit.id]: fitted } };

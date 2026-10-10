@@ -1,6 +1,7 @@
 // The Europe market (R-400). Each power has its own price and traffic per good; every trade by
 // anyone moves everyone's traffic, and the four processed goods are priced against one another
 // through a volume shared by all powers. Written from docs/RULES.md "Market".
+import { AI_RESERVE } from './data/ai';
 import { dateOfTurn } from './calendar';
 import { addGoods, amountOf, roomFor } from './cargo';
 import { GOOD_IDS, type GoodId } from './data/goods';
@@ -217,6 +218,18 @@ export function saleProceeds(state: GameState, player: PlayerId, good: GoodId, a
 
 export function sellGoods(state: GameState, ship: Unit, good: GoodId, amount: number, events: MarketEvent[]): GameState {
   const trader = state.players.find((p) => p.id === ship.owner) as Player;
+  if (trader.kind === 'ai') {
+    // a computer power keeps muskets and horses brought home as its reserve, and pays no tax on the rest
+    const emptied: GameState = { ...state, units: { ...state.units, [ship.id]: { ...ship, cargo: addGoods(ship.cargo, good, -amount) } } };
+    if (good === 'muskets' || good === 'horses') {
+      const reserve = { muskets: (trader.reserve?.muskets ?? 0) + (good === 'muskets' ? Math.ceil(amount / AI_RESERVE.lot) : 0), horses: (trader.reserve?.horses ?? 0) + (good === 'horses' ? amount : 0) };
+      events.push({ type: 'goodsSold', player: trader.id, good, amount, gross: 0, tax: 0, net: 0 });
+      return { ...emptied, players: emptied.players.map((p) => (p.id === trader.id ? { ...p, reserve } : p)) };
+    }
+    const gross = bidPrice(state, trader.id, good) * amount;
+    events.push({ type: 'goodsSold', player: trader.id, good, amount, gross, tax: 0, net: gross });
+    return evaluateMarket(recordTraffic(withGold(emptied, trader.id, gross), trader, good, amount, true), trader.id, good, events);
+  }
   const sale = saleProceeds(state, trader.id, good, amount);
   let next = withGold(state, trader.id, sale.net, sale.tax);
   next = { ...next, units: { ...next.units, [ship.id]: { ...ship, cargo: addGoods(ship.cargo, good, -amount) } } };

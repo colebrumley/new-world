@@ -133,6 +133,10 @@ describe('founding', () => {
     expect(code(fill(38, 0), { type: 'foundColony', unitId: 'u1' })).toBe('tooManyColonies');
     expect(code(fill(10, 37), { type: 'foundColony', unitId: 'u1' })).toBe('ok');
     expect(code(fill(10, 38), { type: 'foundColony', unitId: 'u1' })).toBe('tooManyColonies');
+    // the 38 is a human's limit: a computer power is held only to the 48 in all
+    const computer = (s: GameState): GameState => ({ ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, kind: 'ai' as const } : p)) });
+    expect(code(computer(fill(38, 0)), { type: 'foundColony', unitId: 'u1' })).toBe('ok');
+    expect(code(computer(fill(40, 8)), { type: 'foundColony', unitId: 'u1' })).toBe('tooManyColonies');
   });
 
   it('warns about a site with no ocean access on every level', () => {

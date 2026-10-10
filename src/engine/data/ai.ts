@@ -349,7 +349,7 @@ export const AI_UPKEEP = {
 // Supplies a computer power ships to its colonies, as traced from the original program; see
 // docs/RULES.md "Computer powers: supplies by ship".
 export const AI_SUPPLY = {
-  /** The goods it ships out, in the order it buys them. (Ours: the original buys a lot of every good on its cargo turns; we keep to the four a colony can ask for.) */
+  /** The supplies: the goods a colony can ask for, and that a ship carries to a port rather than home. */
   goods: ['muskets', 'tools', 'tradeGoods', 'horses'],
   /** A colony asks for muskets under this many x (its leader's aggression + `musketLotsBase`), and at once under this many while it is short of defenders. */
   muskets: 50,
@@ -382,4 +382,42 @@ export const AI_DOCKS = {
   pioneerOdds: 3,
   skilledPioneerOdds: 5,
   pioneersMost: 2,
+} as const;
+
+// Arms a computer power keeps in Europe, as traced from the original program; see docs/RULES.md
+// "Computer powers: on the docks".
+export const AI_RESERVE = {
+  /** Muskets are kept by the lot of this many; a soldier takes one lot, a dragoon this many horses besides. */
+  lot: 50,
+  /** A colony with nothing more wanted for its defence and this many muskets sends a lot to the reserve, while it holds fewer than `lotsMost`. */
+  colonyMuskets: 200,
+  lotsMost: 20,
+  /** After this turn the two are levelled, a lot for 50 horses, to within one lot of each other. */
+  levelAfterTurn: 80,
+  /** A computer power's fare is `priceStep` x (recruits paid for - level + offset), less its crosses' share, with no floor; a dragoon's is by half the level, and from `discountFrom` a tenth off for each level. */
+  discountFrom: 100,
+  /** The second artillery: for a power whose largest ship in port has this many holds, from this turn. */
+  artilleryHolds: 6,
+  artilleryFromTurn: 40,
+} as const;
+
+// What a computer power's ships load in its colonies and where empty ones go, as traced from the
+// original program; see docs/RULES.md "Computer powers: freight".
+export const AI_FREIGHT = {
+  /** Goods a ship never loads in a colony. */
+  neverLoaded: ['lumber', 'food', 'tradeGoods'],
+  /** Tools and muskets only from a colony that makes them, and only beyond this many. */
+  madeKept: 100,
+  /** A good the warehouse is full of counts this many times over; horses count only as stock + this - capacity - 2. */
+  fullTimes: 2,
+  horsesMargin: 25,
+  /** A port is worth a call for a good at this many or more; a pioneer waiting counts this much, a spare troop that much. */
+  readyFrom: 75,
+  pioneerValue: 800,
+  troopValue: 1500,
+  /** A frigate carries goods only while the fleet's holds, less this many for each frigate and one for each privateer, are under the second number. */
+  frigateHolds: 3,
+  transportsEnough: 4,
+  /** A ship with nothing to fetch, not the Europe ship, sails for Europe one turn in this many. */
+  homeEvery: 32,
 } as const;

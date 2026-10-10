@@ -24,6 +24,8 @@ export type Goods = Readonly<Partial<Record<GoodId, number>>>;
 export type ColonyId = string;
 
 export interface Player {
+  /** Computer powers only: arms kept in Europe for fitting out recruits (muskets in lots of 50, horses singly). */
+  readonly reserve?: { readonly muskets: number; readonly horses: number };
   readonly id: PlayerId;
   readonly name: string;
   readonly kind: 'human' | 'ai';

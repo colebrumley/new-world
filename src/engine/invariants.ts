@@ -9,7 +9,6 @@ import { UNIT_TYPES } from './data/units';
 import { colonyAt, inBounds, OFF_MAP, tileAt, type GameState, type Goods } from './state';
 import { isWater, type Tile } from './tile';
 
-export const MAX_COLONIES_PER_PLAYER = COLONY_LIMITS.maxColoniesPerPower;
 export const MAX_COLONY_POPULATION = 32;
 
 export function checkInvariants(state: GameState): string[] {
@@ -113,9 +112,5 @@ export function checkInvariants(state: GameState): string[] {
     }
   }
   if (Object.keys(state.colonies).length > COLONY_LIMITS.maxColonies) problems.push(`there are ${Object.keys(state.colonies).length} colonies`);
-  for (const p of state.players) {
-    const count = Object.values(state.colonies).filter((c) => c.owner === p.id).length;
-    if (count > MAX_COLONIES_PER_PLAYER) problems.push(`player ${p.id} holds ${count} colonies`);
-  }
   return problems;
 }

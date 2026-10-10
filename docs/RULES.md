@@ -196,7 +196,10 @@ validation at 2000:361e-3830 (leaving, stockade rule); GAME.TXT @TOOMOUNTAIN, @T
 - Any colonist unit except an Indian Convert may found, whatever it is equipped as. Not on
   water, not on Mountains (every other land is allowed), not when a colony of any power is on
   one of the 8 neighbouring squares, and not once independence has been declared.
-- There may be 48 colonies in the whole game and 38 for one power.
+- There may be 48 colonies in the whole game. A human power with 38 can found no more; that
+  is the only place a power's colonies are counted, so colonies taken in war, or inherited in
+  the War of Succession, may carry it past 38, and computer powers are held only to the 48
+  (VICEROY 2000:0195 is the one test; the capture at 5000:b862 and the succession have none).
 - Advisory warnings the player may override: no access to the ocean (every level); and on
   Discoverer and Explorer only, fewer than 4 points of land (one point per neighbour that is not
   water, desert or arctic and not held by someone else, one more per special resource) and no
@@ -1227,8 +1230,7 @@ section below; what is still ours is said where it stands. Numbers are in `src/e
   step ashore and found the colony. Passengers who are to join a colony are taken to a port
   chosen as under "founding and joining".
 - **Colonies.** Who works at what and what is built are under "Computer powers: the colony";
-  a colony's surplus of the export goods is sold from the colony itself as if it had a Custom
-  House (the original's computer colonies sell this way too).
+  what becomes of a colony's produce is under "Computer powers: freight".
 - **Europe.** An empty ship sails home. What a power does there is under "Computer powers: on
   the docks"; what ships it buys, and the gold it is given, under "Computer powers: the treasury
   and the fleet".
@@ -1605,10 +1607,14 @@ willingness), 4000:c15e-c39b (who founds), 4000:cc78-ce38 (joining), 4000:da58-d
 
 **Notes:** Ours, or left out:
 - The choice of a site, and the first-colony rules of "Computer powers (R-802)".
-- In the original a colonist with no colony to join who stands in a colony becomes a pioneer,
-  to be shipped elsewhere; ours looks for a site on foot and, finding none, joins after all.
+- A colonist with no colony to join who stands in a colony is made a pioneer, given tools for
+  one job (20) at no cost; elsewhere he founds. A pioneer for whom the test above fails waits
+  in the colony, and boards a transport lying there when the land is settled and quiet or
+  colonies are still wanted; the ship puts him ashore at a site on land where the power has no
+  colony and the appeal is above 0 (the original's test for where settlers are landed, in part).
 - The quota of founders per landmass per turn, the terms for a blockaded port and for how long
-  since a ship last called, and a ship putting pioneers ashore on land it passes, are left out.
+  since a ship last called, are left out. A ship that can reach none of the power's ports puts
+  her passengers ashore beside her to walk (ours).
 - "Last founded" is the newest of the power's standing colonies.
 
 ### Computer powers: arming and taking in colonists
@@ -1697,8 +1703,8 @@ As traced from the original program (`AI_SUPPLY`).
   2); trade goods as under "wagon trains"; horses under 50; tools under 20 with ground to
   improve; and muskets again, before all but tools, with under 50 while it is short of
   defenders (before tools too while the defenders wanted are not all standing in it).
-- **A power's want** of a good is the number of its colonies asking for it; muskets count
-  twice, and once more for every colony with none.
+- **A power's want** of a good is the number of its colonies asking for it, muskets counting
+  twice; and once more for every colony with no muskets, with no horses, with no tools.
 - **In port** a ship of the power's puts everything in her hold ashore.
 - **Where cargo goes:** a ship with supplies and nobody to deliver takes them to the port, other
   than the one she lies in, with the highest sum over what she carries of (warehouse capacity
@@ -1709,10 +1715,8 @@ As traced from the original program (`AI_SUPPLY`).
 4000:cee4-cf0f (unloading), 4000:ddfa-e168 (where cargo goes).
 
 **Notes:** Ours, or left out:
-- With no port to take them a ship carries her supplies back to Europe and sells them (the
-  original turns them into gold where she lies).
-- The original's ships also load a colony's surplus and carry it to Europe; ours still sell it
-  from the colony (R-802).
+- With no port to take them a ship carries her supplies back to Europe (the original turns
+  them into gold where she lies).
 - The bonus for the good asked for grows with the turns since a ship last called, which we do
   not keep: it stands at 4 x 8.
 
@@ -1722,43 +1726,92 @@ As traced from the original program (`AI_DOCKS`, `AI_SUPPLY`), after the buying 
 third turn is a *cargo turn* for a power with a colony. *Short* is the fleet test of "the
 treasury and the fleet".
 
-1. **Selling.** Whatever a ship brought is sold.
+1. **Selling.** Whatever a ship brought is sold at the bid, untaxed; but muskets go to the
+   power's *reserve* in lots of 50 (a part lot counting as one) and horses to it singly.
 2. **A recruit.** Before the Declaration, with nobody on the docks, not short, not on a cargo
    turn, while (its colonies wanting colonists - its colonists afoot) is at least half its
    colonies, and it holds the fare and 2 x (30 x its people - the turn) besides: one of the
-   three in the pool, by lot.
+   three in the pool, by lot. Its fare is 20 x (recruits paid for - level + 7), less the share
+   its crosses have earned, with no floor; its crosses are not spent and its fares do not rise.
 3. **Fitting out** each colonist waiting, the unskilled first, not on a cargo turn. A soldier:
    on one throw in 2 (3 for a skilled man) while the power wants muskets, or from turn 100 on
    one in 3 (4) while it wants colonies, if not short and it can pay; he takes a horse too if
-   it can pay for that. Else a pioneer: on one throw in 3 while it wants more colonies than it
+   it can pay for that. Muskets and horses come free from the reserve while it holds a kit
+   (one lot; 50 horses), and are bought at the ask otherwise. Else a pioneer: on one throw in 3 while it wants more colonies than it
    has pioneers and none waits already (a skilled man on one in 5 besides; from turn 100 only
    with fewer pioneers than a throw of 0 to 2). Arming one counts one off the muskets wanted,
    and after any fitting-out no more colonies count as wanted that turn. Missionaries as under
    "missions".
 4. **Dragoons.** With an armed man waiting, not short, not on a cargo turn, before the
    Declaration: recruits are paid for one after another and armed and mounted, while the docks
-   hold fewer than its largest ship carries and the gold lasts.
-5. **Supplies.** Each ship, while holds are left over from those waiting, not short, and the
-   power has a colony, buys a lot of 100 of each supply (muskets, tools, trade goods, horses)
-   that at least as many colonies want as there are people on the docks (one more on odd
-   turns); on a cargo turn, of each whether wanted or not. Two holds are kept free on a turn
-   when somebody was fitted out.
+   hold fewer than its largest ship carries and the gold lasts. Their fare is by half the
+   level, and from turn 100 a tenth less for each level. With no gun on the docks and a
+   largest ship of 6 holds, from turn 40, a piece of artillery is bought as well.
+5. **Goods.** Each ship, while she has a hold free, the power is not short and has a colony,
+   buys a lot of 100 of each good in turn, muskets first and food last, that at least as many
+   colonies want as there are people on the docks (one more on odd turns), which with empty
+   docks on an even turn is every good; on a cargo turn, of each whether wanted or not. Two
+   holds are kept free on a turn when somebody was fitted out (not on a cargo turn).
 6. **Sailing.** Every ship sails that turn, loaded or not, with whoever waits.
 
 **Source:** VICEROY 5000:0082-016c (recruit), 5000:016c-053f (fitting out), 5000:065f-093a
 (dragoons), 5000:093d-0b7d (ships).
 
 **Notes:** Ours, or left out:
-- Prices are the engine's for everyone. The original gives computer powers their own fare
-  (no floor, cheaper with crosses), free arms from the musket and horse reserves, and mounts a
-  drafted dragoon even when it cannot pay.
-- On a cargo turn the original buys a lot of every good there is, muskets first; ours keeps to
-  the four supplies a colony can ask for.
-- Holds are kept for everyone waiting (the original keeps two, on fitting-out turns only).
-- Left out: veterans made by a power with a college; the second artillery rule (one for the
-  largest ship when an armed man waits), ours being the one under "the treasury and the fleet".
-- This replaced our own rules: a recruit whenever a ship had room and gold allowed, and
-  soldiers armed up to a garrison for every colony.
+- *The reserve* is filled by ships bringing muskets and horses home, by a colony's overflow
+  (see "freight"), and by a lot of 50 from any colony that has all the defenders it wants
+  standing in it and 200 muskets (20 lots at most by that road). After turn 80 it is levelled
+  each turn, a lot for 50 horses, to within one lot of each other.
+- Which fare applies is told by whether an armed man stands on the docks, which is when the
+  original runs its dragoon round. Its mounting a drafted dragoon it cannot pay for, its
+  discount on those muskets and horses, the artillery credit a colony earns by building a gun,
+  the artillery price of (10 - level) x 100, and veterans made by a power with a college, are
+  left out; the gun is bought at the engine's price.
+- The gold test for a lot in the original reads a stale amount, not 100; ours tests the price
+  of the lot.
+- This replaced our own rules: a recruit whenever a ship had room and gold allowed, soldiers
+  armed up to a garrison for every colony, and only four kinds of supplies bought.
+
+### Computer powers: freight
+
+As traced from the original program (`AI_FREIGHT`, `AI_RESERVE`).
+
+- **Overflow.** At the end of a colony's turn, whatever it holds beyond its warehouse's
+  capacity, food apart, is sold where it lies at the good's price level, untaxed; but muskets
+  go to the power's reserve by the 50 (the odd ones are sold) and horses singly. Nothing of a
+  computer colony's spoils.
+- **Loading.** A ship lying in a colony of her power's, after unloading, fills her free holds
+  one at a time (keeping room for those waiting to board) with the good that scores highest:
+  price level x stock, the stock counting twice when the warehouse is full of it. Never
+  lumber, food or trade goods; tools and muskets only from a colony that makes them, and only
+  what it has beyond 100; horses only as stock + 25 - capacity - 2. She takes 100 at most, and
+  as little as there is.
+- **Who may load.** Not a man-of-war. A frigate only while the fleet's holds, less 3 for each
+  frigate and 1 for each privateer, are under 4. A privateer only as under "warships and
+  privateers".
+- **Fetching.** A port is worth a call when a good she would load stands at 75 or more, or a
+  unit waits for passage there: a pioneer, where the colony has no ground left to improve
+  (800), or a troop beyond the garrison on land that is well settled and quiet (1,500). Its
+  value is those and price level x what she would load of each good; an empty ship goes to the
+  port with the highest value / (distance / 4 + 1), never the one she lies in; a ship that may
+  not load goods only to one with troops.
+- **To Europe.** A ship with nobody to deliver makes for Europe: with supplies no port of the
+  power's can take; while more people wait on its docks than it has ships there or on the way;
+  with produce aboard, when she is full or has more than one hold of it; and with nothing to
+  fetch, if she is the *Europe ship* (the first merchantman of a power with two merchantmen or
+  galleons, else the first of two caravels) or on one turn in 32. Otherwise she stays.
+
+**Source:** VICEROY 2000:c430-c482 with c32a-c3bd (overflow), 4000:d0fc-d345 (loading),
+4000:c3a0-c436 (who may load), 4000:b344-b546 and 4000:e19b-e3bb (fetching, the Europe run),
+4000:ddba-de20 (to Europe), planner 4000:a905-aa49 (the Europe ship).
+
+**Notes:** Ours, or left out:
+- A computer colony with a Custom House also exports the set list of R-802 down to 50, as
+  before; what the original's computer colonies do with theirs was not traced.
+- The turns since a ship last called (added to a port's value) and the wait of small ships in
+  a blockaded port are left out; a ship's "one turn in 32" goes by her id.
+- This replaced our own rule that every computer colony sold its export goods down to 50 each
+  turn with no building.
 
 ### Foreign Affairs report (R-803)
 

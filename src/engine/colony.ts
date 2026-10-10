@@ -79,7 +79,9 @@ export function checkFound(state: GameState, unit: Unit): ColonyCheck {
   const site = checkColonySite(state, unit.x, unit.y);
   if (!site.ok) return site;
   if (state.players.find((p) => p.id === unit.owner)?.atWar) return no('atWarNoFounding', 'no new colony can be started while the war for independence lasts');
-  if (Object.keys(state.colonies).length >= COLONY_LIMITS.maxColonies || coloniesOf(state, unit.owner).length >= COLONY_LIMITS.maxColoniesPerPower) {
+  // (the limit for one power is on a human's order to build only: nothing else counts a power's colonies)
+  const human = state.players.find((p) => p.id === unit.owner)?.kind === 'human';
+  if (Object.keys(state.colonies).length >= COLONY_LIMITS.maxColonies || (human && coloniesOf(state, unit.owner).length >= COLONY_LIMITS.maxColoniesPerPower)) {
     return no('tooManyColonies', 'the New World has no room for another colony of ours');
   }
   return OK;

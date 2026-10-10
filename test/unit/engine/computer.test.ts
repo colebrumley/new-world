@@ -109,4 +109,19 @@ describe('the upkeep of a computer power\'s colony', () => {
     expect(gold(state)).toBe(90);
     expect(events).toEqual([{ type: 'colonySupplied', colonyId: 'col', player: 'a', good: 'horses', amount: 2, cost: 10 }]);
   });
+
+  it('with its defence seen to and 200 muskets, a lot of fifty goes to the power\'s reserve; late in the game the reserve is levelled', () => {
+    const s = town({ goods: { tools: 20, muskets: 200 }, waited: 0 });
+    const { state, events } = run(s);
+    expect(col(state).goods.muskets).toBe(150);
+    expect(state.players[0]?.reserve).toEqual({ muskets: 1, horses: 0 });
+    expect(events).toContainEqual({ type: 'reserveStocked', colonyId: 'col', player: 'a', good: 'muskets', amount: 50 });
+    // not with 199, and not from a colony still short of defenders (three people want one)
+    expect(run(town({ goods: { tools: 20, muskets: 199 }, waited: 0 })).state.players[0]?.reserve).toBeUndefined();
+    expect(run(town({ colonists: [man('a1'), man('a2'), man('a3')], goods: { tools: 20, muskets: 200, food: 100 }, waited: 0, gold: 0 })).state.players[0]?.reserve).toBeUndefined();
+    // after turn 80: four lots and no horses become two lots and a hundred horses (to within one lot of each other)
+    const late = town({ goods: { tools: 20 }, waited: 0, turn: 81 });
+    const levelled = run({ ...late, players: late.players.map((p) => (p.id === 'a' ? { ...p, reserve: { muskets: 4, horses: 0 } } : p)) });
+    expect(levelled.state.players[0]?.reserve).toEqual({ muskets: 2, horses: 100 });
+  });
 });

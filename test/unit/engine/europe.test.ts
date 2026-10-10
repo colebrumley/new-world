@@ -156,9 +156,9 @@ describe('fitting out on the docks', () => {
 
   it('charges the asking price for 50 muskets, 50 horses or 100 tools, untaxed', () => {
     const s = docked();
-    expect(dockEquipPlan(s, u(s, 'man'), 'soldier')).toEqual({ changes: [{ good: 'muskets', amount: 50 }], cost: 50 * askPrice(s, 'a', 'muskets') });
+    expect(dockEquipPlan(s, u(s, 'man'), 'soldier')).toMatchObject({ changes: [{ good: 'muskets', amount: 50 }], cost: 50 * askPrice(s, 'a', 'muskets') });
     expect(dockEquipPlan(s, u(s, 'man'), 'dragoon').cost).toBe(50 * askPrice(s, 'a', 'muskets') + 50 * askPrice(s, 'a', 'horses'));
-    expect(dockEquipPlan(s, u(s, 'man'), 'missionary')).toEqual({ changes: [], cost: 0 });
+    expect(dockEquipPlan(s, u(s, 'man'), 'missionary')).toMatchObject({ changes: [], cost: 0 });
     const r = applyAction(s, { type: 'equipInEurope', unitId: 'man', role: 'pioneer' });
     const cost = 100 * askPrice(s, 'a', 'tools');
     expect(u(r.state, 'man')).toMatchObject({ type: 'pioneer', tools: 100, profession: 'freeColonist' });

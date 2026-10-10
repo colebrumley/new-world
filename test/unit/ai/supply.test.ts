@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { cargoPort, colonyAsks, powerWants } from '../../../src/ai/supply';
 import { playTurn } from '../../../src/ai/european';
 import { AI_DOCKS, AI_SUPPLY } from '../../../src/engine/data/ai';
+import { applyAction, validateAction } from '../../../src/engine/actions';
+import { dockEquipPlan } from '../../../src/engine/europe';
+import { recruitPrice } from '../../../src/engine/immigration';
 import { checkInvariants } from '../../../src/engine/invariants';
+import { bidPrice } from '../../../src/engine/market';
 import { OFF_MAP, type Colonist, type Colony, type GameState, type Player, type Unit } from '../../../src/engine/state';
 import { policy } from '../../helpers/policy';
 import { withColony, withUnit, world } from '../../helpers/world';
@@ -56,11 +60,11 @@ describe('what a colony asks to be sent', () => {
     expect(asks(col(base('france'), 'home', 4, 5, { muskets: 0, horses: 0, tools: 0 }))).toBe('muskets');
   });
 
-  it('a power wants each good by its colonies asking; muskets twice over, and once more for every colony with none', () => {
+  it('a power wants each good by its colonies asking, muskets twice over; and once more for every colony with no muskets, horses or tools', () => {
     let s = col(col(base('france'), 'home', 2, 1, { horses: 50, tools: 20 }), 'second', 6, 1, { ...FULL, horses: 0 });
-    expect(powerWants(s, me(s))).toEqual({ muskets: 3, tools: 0, tradeGoods: 0, horses: 1 });
+    expect(powerWants(s, me(s))).toMatchObject({ muskets: 3, tools: 0, tradeGoods: 0, horses: 2, coats: 0 });
     s = col(s, 'third', 4, 1, FULL);
-    expect(powerWants(s, me(s))).toEqual({ muskets: 3, tools: 0, tradeGoods: 0, horses: 1 });
+    expect(powerWants(s, me(s))).toMatchObject({ muskets: 3, tools: 0, tradeGoods: 0, horses: 2 });
   });
 });
 
@@ -94,12 +98,12 @@ describe('on the docks', () => {
   };
   const bought = (s: GameState): string[] => playTurn(s).actions.flatMap((a) => (a.type === 'buyGoods' ? [a.good] : []));
 
-  it('on a cargo turn (every third) a lot of each supply is bought while gold and holds last, asked for or not; then every ship sails', () => {
+  it('on a cargo turn (every third) a lot of each good is bought, muskets first, while gold and holds last, wanted or not; then every ship sails', () => {
     const turn = playTurn(docked(21, 5000));
-    expect(turn.actions.flatMap((a) => (a.type === 'buyGoods' ? [`${a.good} ${a.amount}`] : []))).toEqual(['muskets 100', 'tools 100', 'tradeGoods 100', 'horses 100']);
+    expect(turn.actions.flatMap((a) => (a.type === 'buyGoods' ? [`${a.good} ${a.amount}`] : []))).toEqual(['muskets 100', 'tools 100', 'tradeGoods 100', 'coats 100']);
     expect(turn.actions.some((a) => a.type === 'sailFromEurope')).toBe(true);
     expect(checkInvariants(turn.state)).toEqual([]);
-    expect(turn.state.units['ship']?.cargo).toEqual({ muskets: 100, tools: 100, tradeGoods: 100, horses: 100 });
+    expect(turn.state.units['ship']?.cargo).toEqual({ muskets: 100, tools: 100, tradeGoods: 100, coats: 100 });
   });
 
   it('on other turns only what at least as many colonies want as there are people on the docks (one more on odd turns)', () => {
@@ -119,5 +123,55 @@ describe('on the docks', () => {
     const crowded = docked(21, 600);
     const many = { ...crowded, colonies: { home: { ...c(crowded, 'home'), colonists: people(20, 'm') } } };
     expect(bought(many)).toEqual([]);
+  });
+});
+
+describe('the terms a computer power has in Europe', () => {
+  const inEurope = (s: GameState, id: string): GameState => ({ ...s, units: { ...s.units, [id]: { ...u(s, id), x: OFF_MAP, y: OFF_MAP, voyage: { phase: 'inEurope', turnsLeft: 0, origin: [0, 4] } } } });
+  const with_ = (s: GameState, change: Partial<Player>): GameState => ({ ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, ...change } : p)) });
+  const human = (s: GameState): GameState => with_(s, { kind: 'human' });
+
+  it('its fare falls with the level instead of rising, has no floor, and does not rise with each one paid', () => {
+    const s = with_(base('france'), { gold: 5000, recruits: 3 });
+    // conquistador is the third level (2): 20 x (3 - 2 + 7) against a human's 20 x (3 + 2 + 7)
+    expect(recruitPrice(s, 'a')).toBe(160);
+    expect(recruitPrice(human(s), 'a')).toBe(240);
+    const after = applyAction(s, { type: 'recruit', slot: 0 }).state;
+    expect(after.players[0]).toMatchObject({ gold: 5000 - 160, recruits: 3 });
+    // with an armed man on the docks it is raising dragoons: by half the level, and from turn 100 a tenth off for each level
+    const armed = inEurope(withUnit(s, { id: 'g', type: 'soldier', x: 0, y: 0 }), 'g');
+    expect(recruitPrice(armed, 'a')).toBe(20 * (3 + 7 - 1));
+    expect(recruitPrice({ ...armed, turn: 100 }, 'a')).toBe(180 - 36);
+  });
+
+  it('a man is armed from its reserve when that holds a kit, and bought for otherwise', () => {
+    const s = inEurope(withUnit(with_(base('france'), { gold: 5000 }), { id: 'w', x: 0, y: 0 }), 'w');
+    expect(dockEquipPlan(s, u(s, 'w'), 'soldier').cost).toBeGreaterThan(0);
+    const stocked = with_(s, { reserve: { muskets: 1, horses: 49 } });
+    expect(dockEquipPlan(stocked, u(stocked, 'w'), 'soldier')).toMatchObject({ cost: 0, changes: [], fromReserve: { muskets: 50, horses: 0 } });
+    // a dragoon's horses are bought while the reserve has under fifty
+    expect(dockEquipPlan(stocked, u(stocked, 'w'), 'dragoon')).toMatchObject({ changes: [{ good: 'horses', amount: 50 }], fromReserve: { muskets: 50, horses: 0 } });
+    const armed = applyAction(stocked, { type: 'equipInEurope', unitId: 'w', role: 'soldier' }).state;
+    expect(armed.units['w']?.type).toBe('soldier');
+    expect(armed.players[0]).toMatchObject({ gold: 5000, reserve: { muskets: 0, horses: 49 } });
+    // a human has no reserve to draw on
+    expect(dockEquipPlan(human(stocked), u(stocked, 'w'), 'soldier').cost).toBeGreaterThan(0);
+  });
+
+  it('muskets and horses its ships bring home go to the reserve; the rest is sold untaxed', () => {
+    const s0 = withUnit(with_(base('france'), { taxRate: 30 }), { id: 'ship', type: 'merchantman', profession: null, x: 0, y: 0, cargo: { muskets: 70, horses: 30, furs: 100 } });
+    let s = inEurope(s0, 'ship');
+    for (const [good, amount] of [['muskets', 70], ['horses', 30], ['furs', 100]] as const) s = applyAction(s, { type: 'sellGoods', unitId: 'ship', good, amount }).state;
+    expect(s.players[0]?.reserve).toEqual({ muskets: 2, horses: 30 });
+    expect(s.players[0]?.gold).toBe(100 * bidPrice(s0, 'a', 'furs'));
+    expect(s.units['ship']?.cargo).toEqual({});
+  });
+
+  it('a colonist it makes a pioneer in a colony is given tools for one job', () => {
+    const s = withUnit(col(base('france'), 'home', 4, 1), { id: 'x', x: 3, y: 4 });
+    const made = applyAction(s, { type: 'equip', unitId: 'x', role: 'pioneer' }).state;
+    expect(made.units['x']).toMatchObject({ type: 'pioneer', tools: 20 });
+    expect(c(made, 'home').goods.tools ?? 0).toBe(0);
+    expect(validateAction(human(s), { type: 'equip', unitId: 'x', role: 'pioneer' }).ok).toBe(false);
   });
 });

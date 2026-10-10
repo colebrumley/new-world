@@ -12,7 +12,7 @@ import { applyAction, validateAction, type Action, type GameEvent } from '../eng
 import { holdsFree } from '../engine/cargo';
 import { landmassAt } from '../engine/regions';
 import { coloniesOf, checkColonySite } from '../engine/colony';
-import { AI_DOCKS, AI_FLEET, AI_MISSIONS, AI_MUSTER, AI_PLAN, AI_SETTLE, AI_SUPPLY } from '../engine/data/ai';
+import { AI_DOCKS, AI_FLEET, AI_MISSIONS, AI_MUSTER, AI_PLAN, AI_RESERVE, AI_SETTLE, AI_SUPPLY } from '../engine/data/ai';
 import { fleetCensus, fleetWants } from '../engine/fleet';
 import { GOOD_IDS } from '../engine/data/goods';
 import { UNSKILLED } from '../engine/data/professions';
@@ -29,7 +29,8 @@ import { missionaryAction, ordain, villageVisit, type Chances } from './missions
 import { isWarship, privateersCarry, warshipAction } from './navy';
 import { buildAction, jobAction, jobPlan } from './colony';
 import { musterAction } from './muster';
-import { coloniesStillWanted, deliveryPort, joinTarget, mayFound, wantsColonists } from './settle';
+import { europeBound, inOwnPort, loadChoice, mayLoad, pickupFor } from './freight';
+import { coloniesStillWanted, deliveryPort, joinTarget, mayFound, regionAppeal, wantsColonists } from './settle';
 import { cargoPort, powerWants } from './supply';
 import { aiRng, parleyAction, wagonAction } from './wagons';
 
@@ -91,7 +92,7 @@ function seaDistances(state: GameState, x: number, y: number): Map<number, numbe
  * its sea distances so that a site is judged by how far she must really sail to lie beside it,
  * and one she cannot reach is not considered.
  */
-function bestSite(state: GameState, x: number, y: number, reach: number, bySea: Map<number, number> | null = null, haste = 1): { x: number; y: number; score: number } | null {
+function bestSite(state: GameState, x: number, y: number, reach: number, bySea: Map<number, number> | null = null, haste = 1, allow: (x: number, y: number) => boolean = () => true): { x: number; y: number; score: number } | null {
   let best: { x: number; y: number; score: number } | null = null;
   const x0 = Math.max(1, x - reach);
   const x1 = Math.min(state.map.width - 2, x + reach);
@@ -99,7 +100,7 @@ function bestSite(state: GameState, x: number, y: number, reach: number, bySea: 
   const y1 = Math.min(state.map.height - 2, y + reach);
   for (let ty = y0; ty <= y1; ty++) {
     for (let tx = x0; tx <= x1; tx++) {
-      const raw = siteScore(state, tx, ty);
+      const raw = allow(tx, ty) ? siteScore(state, tx, ty) : 0;
       if (raw === 0) continue;
       let away = far(x, y, tx, ty);
       if (bySea) {
@@ -271,11 +272,17 @@ function europeAction(state: GameState, player: Player, done: Set<string>): Acti
   const largest = Math.max(0, ...ships.map((s) => UNIT_TYPES[s.type].holds));
   if (before && !short && !cargoTurn && armed > 0 && largest - armed > 0 && waiting.length < largest) {
     const order: Action = { type: 'recruit', slot: rng(`draft:${waiting.length}`).int(0, 2) };
-    const kit = AI_MUSTER.muskets * askPrice(state, player.id, 'muskets');
+    const kit = (player.reserve?.muskets ?? 0) > 0 ? 0 : AI_MUSTER.muskets * askPrice(state, player.id, 'muskets');
     if (player.gold >= recruitPrice(state, player.id) + kit && ok(state, order)) {
       done.add('#draft');
       return order;
     }
+  }
+  // and a gun for its largest ship, if she is a big one
+  const gun: Action = { type: 'purchaseUnit', unit: 'artillery' };
+  if (before && !short && !cargoTurn && armed > 0 && !done.has('#gun') && !waiting.some((u) => u.type === 'artillery') && largest >= AI_RESERVE.artilleryHolds && state.turn >= AI_RESERVE.artilleryFromTurn) {
+    done.add('#gun');
+    if (ok(state, gun)) return gun;
   }
   if (ships.length === 0) return null;
 
@@ -283,24 +290,23 @@ function europeAction(state: GameState, player: Player, done: Set<string>): Acti
   const wants = powerWants(state, player);
   const dockUnits = waiting.length + (state.turn % 2);
   const someoneFitted = tally(done, '#fitted:') > 0 || waiting.some((u) => u.type === 'pioneer');
-  let seats = waiting.reduce((n, u) => n + UNIT_TYPES[u.type].size, 0);
   for (const ship of ships) {
     // a privateer or man-of-war carries nothing out
     const carrier = ship.type !== 'manOWar' && (ship.type !== 'privateer' || privateersCarry(state, player));
     const mayLoad = carrier && !short && mine.length > 0 && before;
-    for (const good of AI_SUPPLY.goods) {
+    // a lot of each good, muskets first and food last
+    for (const good of [...GOOD_IDS].reverse()) {
       if (!mayLoad || done.has(`#lot:${ship.id}:${good}`)) continue;
       done.add(`#lot:${ship.id}:${good}`);
-      const free = holdsFree(state, ship) - Math.min(seats, holdsFree(state, ship));
+      const free = holdsFree(state, ship);
       if (free <= 0 || (someoneFitted && !cargoTurn && free <= AI_SUPPLY.holdsKept)) continue;
-      if (!cargoTurn && wants[good] - tally(done, `#bought:${good}:`) < Math.max(1, dockUnits)) continue;
+      if (!cargoTurn && wants[good] - tally(done, `#bought:${good}:`) < dockUnits) continue;
       const order: Action = { type: 'buyGoods', unitId: ship.id, good, amount: AI_SUPPLY.lot };
       if (!ok(state, order)) continue;
       done.add(`#laden:${ship.id}`);
       done.add(`#bought:${good}:${ship.id}`);
       return order;
     }
-    seats -= Math.min(seats, holdsFree(state, ship));
   }
   // every ship sails, loaded or not
   for (const ship of ships) {
@@ -310,18 +316,30 @@ function europeAction(state: GameState, player: Player, done: Set<string>): Acti
   return null;
 }
 
-function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly Colony[]): Action | null {
+function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly Colony[], done: Set<string>): Action | null {
   // warships fight and keep their stations; only when free of that do they do a transport's work
   const duty = isWarship(ship) ? warshipAction(state, ship, player) : undefined;
   if (duty !== undefined) return duty;
   if (ship.repair > 0 || ship.orders === 'goto') return null;
-  const riders = Object.values(state.units).filter((u) => u.aboard === ship.id);
-  // in one of our ports everything in the hold goes ashore
-  if (colonyAt(state, ship.x, ship.y)?.owner === player.id) {
+  const port = inOwnPort(state, ship);
+  // pioneers waiting on the quay to go with her count as her passengers already
+  const waitingPioneers = port ? Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && u.type === 'pioneer') : [];
+  const riders = [...Object.values(state.units).filter((u) => u.aboard === ship.id), ...waitingPioneers];
+  // in one of our ports everything in the hold goes ashore, once each call
+  if (port && !done.has(`#unloaded:${ship.id}`)) {
     for (const good of GOOD_IDS) {
       const unload: Action = { type: 'unloadCargo', unitId: ship.id, good, amount: ship.cargo[good] ?? 0 };
       if ((ship.cargo[good] ?? 0) > 0 && ok(state, unload)) return unload;
     }
+    done.add(`#unloaded:${ship.id}`);
+  }
+  // then she loads what the colony has to send, a hold at a time, keeping room for those waiting to board
+  if (port && !done.has(`#laden:${ship.id}`) && mayLoad(state, player, ship)) {
+    const boarding = Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && !isShip(u)).length;
+    const choice = holdsFree(state, ship) - boarding > 0 ? loadChoice(state, port) : null;
+    const load: Action | null = choice ? { type: 'loadCargo', unitId: ship.id, good: choice.good, amount: choice.amount } : null;
+    if (load && ok(state, load)) return load;
+    done.add(`#laden:${ship.id}`);
   }
   // a full ship with soldiers aboard (or waiting on the quay to board as she sails) may make a landing beside a rival colony
   const quay = colonyAt(state, ship.x, ship.y)?.owner === player.id ? Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && isTroop(u)) : [];
@@ -335,20 +353,31 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
     if (landing && riders.some((r) => landingStep(state, r, ship, player) !== null)) return null;
   }
   const preaching = !riders.some(isSettler) && riders.some((u) => u.type === 'missionary') && mine.length > 0;
-  if (riders.some(isSettler) || preaching) {
+  // (pioneers still on the quay go only if there is somewhere to take them)
+  const aboard = riders.filter((r) => r.aboard === ship.id);
+  const somewhere = waitingPioneers.length === 0 || aboard.some(isSettler) || bestSite(state, ship.x, ship.y, state.map.width, seaDistances(state, ship.x, ship.y), 1, (x, y) => !mine.some((c) => landmassAt(state.map, c.x, c.y) === landmassAt(state.map, x, y)) && regionAppeal(state, player, landmassAt(state.map, x, y)) > 0) !== null;
+  if (somewhere && (riders.some(isSettler) || preaching)) {
     // a missionary alone aboard is carried to a colony, never to a fresh site
-    const founding = !preaching && riders.some((r) => mayFound(state, player, r));
-    const inPort = colonyAt(state, ship.x, ship.y)?.owner === player.id;
+    // pioneers taken off a settled land are put ashore where there is room for a new colony
+    const shipped = !preaching && !riders.some((r) => mayFound(state, player, r)) && riders.some((r) => r.type === 'pioneer');
+    const newLand = (x: number, y: number): boolean => {
+      const land = landmassAt(state.map, x, y);
+      return !mine.some((c) => landmassAt(state.map, c.x, c.y) === land) && regionAppeal(state, player, land) > 0;
+    };
+    const fresh = shipped ? bestSite(state, ship.x, ship.y, state.map.width, seaDistances(state, ship.x, ship.y), 1, newLand) : null;
+    const founding = !preaching && (riders.some((r) => mayFound(state, player, r)) || fresh !== null);
+    const inPort = port !== null;
     // they will go ashore themselves: onto a site alongside, or into the colony when they have come to join one
-    if ((!inPort && founding && siteBeside(state, ship)) || (inPort && !founding)) return null;
+    const ports = mine.filter((c) => ok(state, { type: 'goTo', unitId: ship.id, x: c.x, y: c.y }));
+    if ((!inPort && (founding || ports.length === 0) && siteBeside(state, ship)) || (inPort && !founding && waitingPioneers.length === 0)) return null;
     // founders are taken to a fresh site; the rest to the colony that needs them most
     const bySea = founding ? seaDistances(state, ship.x, ship.y) : null;
     // a power with no colony yet takes the nearest fair site rather than hold out for the best
     const haste = mine.length === 0 ? AI_PLAN.firstColonyHaste : 1;
-    const site = founding ? bestSite(state, ship.x, ship.y, AI_PLAN.shipSearch, bySea, haste) ?? bestSite(state, ship.x, ship.y, state.map.width, bySea, haste) : null;
-    const ports = mine.filter((c) => ok(state, { type: 'goTo', unitId: ship.id, x: c.x, y: c.y }));
+    const site = fresh ?? (founding ? bestSite(state, ship.x, ship.y, AI_PLAN.shipSearch, bySea, haste) ?? bestSite(state, ship.x, ship.y, state.map.width, bySea, haste) : null);
     const luck = (c: Colony): number => aiRng(state, `${ship.id}:port:${c.id}`).int(0, AI_SETTLE.portLuck);
-    const goal = site ?? deliveryPort(state, ship, ports, luck) ?? nearestColony(mine, ship.x, ship.y);
+    // (with no port of ours she can reach, they are put ashore at the best site she can)
+    const goal = site ?? deliveryPort(state, ship, ports, luck) ?? (ports.length === 0 ? bestSite(state, ship.x, ship.y, state.map.width, seaDistances(state, ship.x, ship.y)) : null) ?? nearestColony(mine, ship.x, ship.y);
     if (!goal) return null;
     if (colonyAt(state, goal.x, goal.y)) {
       const port: Action = { type: 'goTo', unitId: ship.id, x: goal.x, y: goal.y };
@@ -367,10 +396,17 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
     return null;
   }
   if (ship.movesLeft <= 0) return null;
-  // supplies in the hold go to the port that needs them most; with none to take them they go back to be sold
-  const needy = cargoPort(state, ship, mine.filter((c) => ok(state, { type: 'goTo', unitId: ship.id, x: c.x, y: c.y })));
+  const reachable = (c: Colony): boolean => ok(state, { type: 'goTo', unitId: ship.id, x: c.x, y: c.y });
+  // supplies in the hold go to the port that needs them most
+  const needy = cargoPort(state, ship, mine.filter(reachable));
   if (needy) return { type: 'goTo', unitId: ship.id, x: needy.x, y: needy.y };
-  // nobody aboard: make for Europe, where the immigrants are (the colonies sell their own surplus)
+  // out on the sea lane with nobody to deliver she is on her way home
+  const onLane = tileOf(state, ship.x, ship.y)?.base === 'seaLane';
+  // otherwise she fetches from the port with most waiting for a ship, unless it is time to make for Europe
+  const fetch = pickupFor(state, player, ship, reachable);
+  if (!onLane && !europeBound(state, player, ship, fetch === null)) {
+    return fetch ? { type: 'goTo', unitId: ship.id, x: fetch.x, y: fetch.y } : null;
+  }
   if (player.atWar) return null;
   // eastward along the lane is the way home, so those steps are tried first
   for (const [dx, dy] of [...DIRS].sort((a, b) => b[0] - a[0])) {
@@ -413,7 +449,22 @@ function riderAction(state: GameState, rider: Unit, player: Player, mine: readon
     return null;
   }
   if (ship.orders === 'goto') return null;
-  const beside = mayFound(state, player, rider) || mine.length === 0 ? siteBeside(state, ship) : null;
+  const stranded = !mine.some((c) => ok(state, { type: 'goTo', unitId: ship.id, x: c.x, y: c.y }));
+  let beside = mayFound(state, player, rider) || stranded ? siteBeside(state, ship) : null;
+  if (!beside && rider.type === 'pioneer') {
+    // a pioneer shipped off settled land goes ashore where there is room for a new colony
+    const site = siteBeside(state, ship);
+    const land = site ? landmassAt(state.map, ship.x + site[0], ship.y + site[1]) : 0;
+    if (site && !mine.some((c) => landmassAt(state.map, c.x, c.y) === land) && regionAppeal(state, player, land) > 0) beside = site;
+  }
+  if (!beside && stranded) {
+    // no port of ours she can reach and no site alongside: ashore on land where we have a colony, to walk the rest
+    for (const [dx, dy] of DIRS) {
+      const land = landmassAt(state.map, ship.x + dx, ship.y + dy);
+      const step: Action = { type: 'moveUnit', unitId: rider.id, dx, dy };
+      if (land > 0 && mine.some((c) => landmassAt(state.map, c.x, c.y) === land) && ok(state, step)) return step;
+    }
+  }
   if (!beside) return null;
   const ashore: Action = { type: 'moveUnit', unitId: rider.id, dx: beside[0], dy: beside[1] };
   return ok(state, ashore) ? ashore : null;
@@ -487,10 +538,15 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
     const back: Action | null = home && !here ? { type: 'goTo', unitId: unit.id, x: home.x, y: home.y } : null;
     return back && ok(state, back) ? back : null;
   }
-  // founders look for a site; so does a colonist no colony on his land has room for
   const found: Action = { type: 'foundColony', unitId: unit.id };
+  const mineHere = here !== null && here.owner === player.id;
   const target = unit.type === 'colonist' && !founding ? joinTarget(state, player, unit) : null;
+  // a colonist no colony on his land has room for: in a colony he is made a pioneer, to be shipped where there is room; elsewhere he founds
   const crowdedOut = unit.type === 'colonist' && !founding && target === null && unit.profession !== 'indianConvert' && state.crownPlayer === null;
+  if (crowdedOut && mineHere) {
+    const tooled: Action = { type: 'equip', unitId: unit.id, role: 'pioneer' };
+    if (ok(state, tooled)) return tooled;
+  }
   if (founding || crowdedOut || mine.length === 0) {
     if (!here && siteScore(state, unit.x, unit.y) > 0 && ok(state, found)) return found;
     for (const reach of [AI_PLAN.landSearch, 2 * AI_PLAN.landSearch]) {
@@ -499,14 +555,24 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
       if (go && ok(state, go)) return go;
     }
   }
+  if (unit.type === 'pioneer') {
+    // in port with a transport lying there he waits to board, where the land is settled or colonies are still wanted; else he stays or goes home
+    if (mineHere) {
+      const carrier = Object.values(state.units).some((u) => u.owner === player.id && u.x === unit.x && u.y === unit.y && isShip(u) && u.repair === 0 && holdsFree(state, u) > 0 && u.type !== 'manOWar' && (u.type !== 'privateer' || privateersCarry(state, player)));
+      const leave = carrier && (isQuiet(state, player, landmassAt(state.map, unit.x, unit.y)) || coloniesStillWanted(state, player) > 0);
+      if (leave !== (unit.orders === 'sentry')) return { type: 'setOrders', unitId: unit.id, orders: leave ? 'sentry' : 'none' };
+      return null;
+    }
+    const back: Action | null = home ? { type: 'goTo', unitId: unit.id, x: home.x, y: home.y } : null;
+    return back && ok(state, back) ? back : ok(state, found) ? found : null;
+  }
   // the rest join the colony on their land that wants them most
   const join: Action = { type: 'joinColony', unitId: unit.id };
   if (target && (target.x !== unit.x || target.y !== unit.y)) {
     const go: Action = { type: 'goTo', unitId: unit.id, x: target.x, y: target.y };
     if (ok(state, go)) return go;
   }
-  // (with no site in reach either, better a pair of hands here than an idler)
-  if (here && here.owner === player.id) return ok(state, join) ? join : null;
+  if (mineHere) return ok(state, join) ? join : null;
   const walk: Action | null = home ? { type: 'goTo', unitId: unit.id, x: home.x, y: home.y } : null;
   if (walk && ok(state, walk)) return walk;
   // nowhere to go: make the best of where we stand
@@ -546,7 +612,7 @@ export function europeanAction(state: GameState, idle: Set<string> = new Set()):
   const units = Object.values(state.units).filter((u) => u.owner === player.id && u.voyage === null).sort((a, b) => (a.id < b.id ? -1 : 1));
   for (const unit of units) {
     if (idle.has(unit.id)) continue;
-    const action = unit.type === 'wagonTrain' ? wagonAction(state, unit) : unit.aboard !== null ? riderAction(state, unit, player, mine) : isShip(unit) ? shipAction(state, unit, player, mine) : landAction(state, unit, player, mine);
+    const action = unit.type === 'wagonTrain' ? wagonAction(state, unit) : unit.aboard !== null ? riderAction(state, unit, player, mine) : isShip(unit) ? shipAction(state, unit, player, mine, idle) : landAction(state, unit, player, mine);
     if (action) return action;
     // nothing for it now: do not ask again this turn unless something it waits on changes (a ship arriving, say)
     if (unit.aboard === null || unit.movesLeft <= 0) idle.add(unit.id);

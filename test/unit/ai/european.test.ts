@@ -122,8 +122,12 @@ describe('what it does next', () => {
     expect(policy(waiting)).toEqual({ type: 'sailFromEurope', unitId: 'ship' });
   });
 
-  it('an idle ship in the New World heads for the sea lane and then for Europe', () => {
-    const s = patch(withUnit(base(), { id: 'ship', type: 'caravel', profession: null, x: 4, y: 3 }), { entry: [2, 3] });
+  it('an empty ship heads for the sea lane and then for Europe while somebody waits on the docks there', () => {
+    const idle = patch(withUnit(base(), { id: 'ship', type: 'caravel', profession: null, x: 4, y: 3 }), { entry: [2, 3] });
+    // with nobody waiting and nothing to fetch she stays where she is (but for one turn in thirty-two)
+    const turns = Array.from({ length: 32 }, (_, i) => i).filter((turn) => policy({ ...idle, turn }).type !== 'endTurn');
+    expect(turns).toHaveLength(1);
+    const s = inEurope(withUnit(idle, { id: 'w', x: 0, y: 0, orders: 'sentry' }), 'w');
     expect(policy(s)).toEqual({ type: 'goTo', unitId: 'ship', x: 2, y: 3 });
     const onLane = { ...s, units: { ...s.units, ship: { ...s.units['ship']!, x: 1, y: 3 } } };
     const sail = policy(onLane);

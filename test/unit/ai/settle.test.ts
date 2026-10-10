@@ -152,6 +152,14 @@ describe('who joins which colony', () => {
     expect(policy(at)).toEqual({ type: 'joinColony', unitId: 'x' });
   });
 
+  it('one whom no colony on his land has room for, standing in a colony, is made a pioneer to be shipped where there is room', () => {
+    // the English want no new colony while theirs average under ten; the big one wants nobody, the one that does is over the water
+    const s = withUnit(col(col(base('england'), 'home', 5, 4, 12), 'isle', 15, 4, 1), { id: 'x', x: 5, y: 4 });
+    expect(coloniesStillWanted(s, me(s))).toBe(0);
+    expect(mayFound(s, me(s), u(s, 'x'))).toBe(false);
+    expect(policy(s)).toEqual({ type: 'equip', unitId: 'x', role: 'pioneer' });
+  });
+
   it('a ship takes passengers who are to join to a small colony that wants colonists', () => {
     let s = col(col(base(), 'small', 1, 2, 2), 'large', 1, 6, 9);
     s = withUnit(s, { id: 'ship', type: 'caravel', profession: null, x: 0, y: 4 });

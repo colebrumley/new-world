@@ -3,7 +3,7 @@
 import { coloniesOf } from '../engine/colony';
 import { landWork } from '../engine/computer';
 import { AI_SUPPLY, AI_WAGONS } from '../engine/data/ai';
-import type { GoodId } from '../engine/data/goods';
+import { GOOD_IDS, type GoodId } from '../engine/data/goods';
 import { NATIONS } from '../engine/data/nations';
 import { colonyProduction } from '../engine/economy';
 import { priceLevel } from '../engine/market';
@@ -43,14 +43,18 @@ export function colonyAsks(state: GameState, colony: Colony): Supply | null {
   });
 }
 
-/** How strongly the power wants each good sent: its colonies asking for it; muskets count twice, and once more for every colony with none. */
-export function powerWants(state: GameState, player: Player): Record<Supply, number> {
+/**
+ * How strongly the power wants each good sent: its colonies asking for it, muskets counting
+ * twice; and once more for every colony with no muskets, no horses, no tools. Nothing else is
+ * ever wanted.
+ */
+export function powerWants(state: GameState, player: Player): Record<GoodId, number> {
   return memo(state, `powerWants:${player.id}`, () => {
-    const out: Record<Supply, number> = { muskets: 0, tools: 0, tradeGoods: 0, horses: 0 };
+    const out = Object.fromEntries(GOOD_IDS.map((g) => [g, 0])) as Record<GoodId, number>;
     for (const c of coloniesOf(state, player.id)) {
       const asked = colonyAsks(state, c);
       if (asked) out[asked] += asked === 'muskets' ? 2 : 1;
-      if (stock(c, 'muskets') === 0) out.muskets += 1;
+      for (const good of ['muskets', 'horses', 'tools'] as const) if (stock(c, good) === 0) out[good] += 1;
     }
     return out;
   });

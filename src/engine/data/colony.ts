@@ -39,7 +39,7 @@ export const COLONY_NAMES = {
 export const COLONY_LIMITS = {
   /** Colonies in the whole game, all powers together. */
   maxColonies: 48,
-  /** Colonies one power may hold. */
+  /** Colonies a human power may hold before it can found no more (colonies taken in war are not counted against it). */
   maxColoniesPerPower: 38,
   /** Colonists one colony may hold. */
   maxPopulation: 32,

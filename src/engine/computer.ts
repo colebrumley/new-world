@@ -5,7 +5,8 @@
 import { addGoods } from './cargo';
 import { NEIGHBORS, coloniesOf } from './colony';
 import type { CustomHouseEvent } from './custom-house';
-import { AI_UPKEEP } from './data/ai';
+import { settlementAlarm, tribalAlarm } from './alarm';
+import { AI_MUSTER, AI_RESERVE, AI_UPKEEP } from './data/ai';
 import { chainLevel } from './data/buildings';
 import { TRADE_IDS, TRADES } from './data/production';
 import { PROFESSION_IDS, PROFESSIONS, UNSKILLED, type ProfessionId } from './data/professions';
@@ -16,8 +17,8 @@ import { trainingPrice } from './europe';
 import { priceLevel } from './market';
 import { checkJobSite, jobTurns, type PioneerEvent } from './pioneer';
 import { createRng } from './rng';
-import { isNativeLand } from './settlements';
-import { tileAt, type Colonist, type Colony, type GameState, type PlayerId } from './state';
+import { homeOfBrave, isNativeLand, tribeOfOwner } from './settlements';
+import { colonyAt, tileAt, type Colonist, type Colony, type GameState, type PlayerId, type Unit } from './state';
 import { hasForest, isWater, type Tile } from './tile';
 
 const FARMED: readonly string[] = ['food', 'sugar', 'tobacco', 'cotton'];
@@ -88,6 +89,7 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: (
   const player = state.players.find((p) => p.id === playerId);
   if (!player || player.kind !== 'ai' || player.withdrawn) return state;
   let gold = player.gold;
+  let reserve = player.reserve ?? { muskets: 0, horses: 0 };
   let colonies = state.colonies;
   let tiles = state.map.tiles;
   const level = DIFFICULTIES.indexOf(state.difficulty);
@@ -158,7 +160,71 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: (
       events.push({ type: 'colonySupplied', colonyId: c.id, player: playerId, good: 'horses', amount: AI_UPKEEP.horses - stock(c, 'horses'), cost: AI_UPKEEP.horsesGold });
       c = { ...c, goods: addGoods(c.goods, 'horses', AI_UPKEEP.horses - stock(c, 'horses')) };
     }
+    // with its defence seen to and muskets to spare, a lot goes to the power's reserve in Europe
+    const troops = Object.values(state.units).filter((u) => u.owner === playerId && afoot(u) && u.x === c.x && u.y === c.y && UNIT_TYPES[u.type].attack > 1).length;
+    if (troops >= defendersFor(now(), c) && (c.goods.muskets ?? 0) >= AI_RESERVE.colonyMuskets && reserve.muskets < AI_RESERVE.lotsMost) {
+      reserve = { ...reserve, muskets: reserve.muskets + 1 };
+      c = { ...c, goods: addGoods(c.goods, 'muskets', -AI_RESERVE.lot) };
+      events.push({ type: 'reserveStocked', colonyId: c.id, player: playerId, good: 'muskets', amount: AI_RESERVE.lot });
+    }
     colonies = { ...colonies, [c.id]: c };
   }
-  return { ...state, colonies, map: tiles === state.map.tiles ? state.map : { ...state.map, tiles }, players: state.players.map((p) => (p.id === playerId ? { ...p, gold } : p)) };
+  // late in the game the reserve's muskets and horses are levelled, a lot for fifty horses
+  if (state.turn > AI_RESERVE.levelAfterTurn) {
+    while (reserve.muskets + 1 < Math.trunc(reserve.horses / AI_RESERVE.lot)) reserve = { muskets: reserve.muskets + 1, horses: reserve.horses - AI_RESERVE.lot };
+    while (Math.trunc(reserve.horses / AI_RESERVE.lot) + 1 < reserve.muskets) reserve = { muskets: reserve.muskets - 1, horses: reserve.horses + AI_RESERVE.lot };
+  }
+  return { ...state, colonies, map: tiles === state.map.tiles ? state.map : { ...state.map, tiles }, players: state.players.map((p) => (p.id === playerId ? { ...p, gold, ...(reserve.muskets > 0 || reserve.horses > 0 || p.reserve ? { reserve } : {}) } : p)) };
+}
+
+// --- defenders ------------------------------------------------------------------------------------
+
+const reach = (ax: number, ay: number, bx: number, by: number): number => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+const afoot = (u: Unit): boolean => u.voyage === null && u.aboard === null && UNIT_TYPES[u.type].domain === 'land';
+
+/** What threatens a colony: the weight of foreign land units within five squares, and whether any that count stand next to it. */
+export function threatTo(state: GameState, colony: Colony): { readonly total: number; readonly adjacent: boolean } {
+  let total = 0;
+  let adjacent = false;
+  for (const u of Object.values(state.units)) {
+    if (u.owner === colony.owner || !afoot(u)) continue;
+    const away = reach(u.x, u.y, colony.x, colony.y);
+    if (away > AI_MUSTER.threatRange) continue;
+    let weight: number = UNIT_TYPES[u.type].attack;
+    const tribe = tribeOfOwner(u.owner);
+    if (tribe) {
+      // braves count only when their people, and their own village, have turned on us
+      const home = homeOfBrave(state, u.id);
+      if (tribalAlarm(state, tribe, colony.owner) < AI_MUSTER.tribeAlarmFrom || (home ? settlementAlarm(home, colony.owner) : 0) < AI_MUSTER.villageAlarmFrom) weight = 0;
+    } else {
+      if (weight <= 1) weight = 0;
+      else if (state.players.find((p) => p.id === u.owner)?.kind === 'human') weight += weight >> 1;
+    }
+    if (colonyAt(state, u.x, u.y)) weight >>= 1;
+    weight = Math.trunc((weight * (AI_MUSTER.threatFalloff - away)) / AI_MUSTER.threatFalloff);
+    if (weight !== 0 && away <= 1) adjacent = true;
+    total += weight;
+  }
+  // walls divide it, but never below what it was up to sixteen
+  total = Math.max(Math.trunc(total / (chainLevel(colony.buildings, 'fortification') + 1)), Math.min(total, AI_MUSTER.threatFloor));
+  return { total, adjacent };
+}
+
+/** A colony's people for these reckonings: its colonists and the colonist-type units standing on its square. */
+export function peopleAt(state: GameState, colony: Colony): number {
+  return colony.colonists.length + Object.values(state.units).filter((u) => u.owner === colony.owner && afoot(u) && u.x === colony.x && u.y === colony.y && UNIT_TYPES[u.type].colonistRole).length;
+}
+
+/**
+ * Defenders a colony wants: half its people less one, or an eighth of the threat if that is
+ * more, but never over half its people; one more after the Declaration; at least one while a
+ * threat stands next to it and it has more than one person.
+ */
+export function defendersFor(state: GameState, colony: Colony): number {
+  const people = peopleAt(state, colony);
+  const threat = threatTo(state, colony);
+  let wanted = Math.min(Math.max((people - 1) >> 1, Math.trunc(threat.total / AI_MUSTER.threatPerDefender)), people >> 1);
+  if (state.crownPlayer !== null) wanted += 1;
+  if (threat.adjacent && people > 1) wanted = Math.max(wanted, 1);
+  return Math.max(0, wanted);
 }

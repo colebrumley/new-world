@@ -6,14 +6,13 @@ import { validateAction, type Action } from '../engine/actions';
 import { analyseAttack } from '../engine/analysis';
 import { holdsUsed } from '../engine/cargo';
 import { coloniesOf } from '../engine/colony';
-import { tribalAlarm, settlementAlarm } from '../engine/alarm';
-import { AI_CAMPAIGN, AI_MUSTER } from '../engine/data/ai';
-import { chainLevel } from '../engine/data/buildings';
-import { COLONY_LIMITS } from '../engine/data/colony';
+import { tribalAlarm } from '../engine/alarm';
+import { defendersFor, peopleAt, threatTo } from '../engine/computer';
+import { AI_CAMPAIGN } from '../engine/data/ai';
 import { UNIT_TYPES } from '../engine/data/units';
 import { isBorder, isInlandLake } from '../engine/movement';
 import { landmassAt, landmasses } from '../engine/regions';
-import { homeOfBrave, settlementAt, tribeOfOwner, tribeOwner } from '../engine/settlements';
+import { settlementAt, tribeOfOwner, tribeOwner } from '../engine/settlements';
 import { colonyAt, type Colony, type GameState, type Player, type PlayerId, type Unit } from '../engine/state';
 import { isWater } from '../engine/tile';
 import { baseLoad, firmPeace } from './navy';
@@ -81,53 +80,14 @@ function troopsIn(state: GameState, colony: Colony): Unit[] {
     .sort((a, b) => rank(a) - rank(b) || byId(a, b));
 }
 
-/** What threatens a colony: the weight of foreign land units within five squares, and whether any that count stand next to it. */
+/** What threatens a colony (worked out once per state). */
 export function colonyThreat(state: GameState, colony: Colony): { readonly total: number; readonly adjacent: boolean } {
-  return memo(state, `threat:${colony.id}`, () => {
-    let total = 0;
-    let adjacent = false;
-    for (const u of Object.values(state.units)) {
-      if (u.owner === colony.owner || !isLand(u) || !onMap(u) || u.aboard !== null) continue;
-      const away = far(u.x, u.y, colony.x, colony.y);
-      if (away > AI_MUSTER.threatRange) continue;
-      let weight: number = UNIT_TYPES[u.type].attack;
-      const tribe = tribeOfOwner(u.owner);
-      if (tribe) {
-        // braves count only when their people, and their own village, have turned on us
-        const home = homeOfBrave(state, u.id);
-        if (tribalAlarm(state, tribe, colony.owner) < AI_MUSTER.tribeAlarmFrom || (home ? settlementAlarm(home, colony.owner) : 0) < AI_MUSTER.villageAlarmFrom) weight = 0;
-      } else {
-        if (weight <= 1) weight = 0;
-        else if (state.players.find((p) => p.id === u.owner)?.kind === 'human') weight += weight >> 1;
-      }
-      if (colonyAt(state, u.x, u.y)) weight >>= 1;
-      weight = Math.trunc((weight * (AI_MUSTER.threatFalloff - away)) / AI_MUSTER.threatFalloff);
-      if (weight !== 0 && away <= 1) adjacent = true;
-      total += weight;
-    }
-    // walls divide it, but never below what it was up to sixteen
-    total = Math.max(Math.trunc(total / (chainLevel(colony.buildings, 'fortification') + 1)), Math.min(total, AI_MUSTER.threatFloor));
-    return { total, adjacent };
-  });
+  return memo(state, `threat:${colony.id}`, () => threatTo(state, colony));
 }
 
-/** A colony's people for these reckonings: its colonists and the colonist-type units standing on its square. */
-export function peopleAt(state: GameState, colony: Colony): number {
-  return colony.colonists.length + Object.values(state.units).filter((u) => u.owner === colony.owner && onMap(u) && u.aboard === null && u.x === colony.x && u.y === colony.y && UNIT_TYPES[u.type].colonistRole).length;
-}
-
-/**
- * Defenders a colony wants: half its people less one, or an eighth of the threat if that is
- * more, but never over half its people; one more after the Declaration; at least one while a
- * threat stands next to it and it has more than one person.
- */
+/** Defenders a colony wants (worked out once per state). */
 export function defendersWanted(state: GameState, colony: Colony): number {
-  const people = peopleAt(state, colony);
-  const threat = colonyThreat(state, colony);
-  let wanted = Math.min(Math.max((people - 1) >> 1, Math.trunc(threat.total / AI_MUSTER.threatPerDefender)), people >> 1);
-  if (state.crownPlayer !== null) wanted += 1;
-  if (threat.adjacent && people > 1) wanted = Math.max(wanted, 1);
-  return Math.max(0, wanted);
+  return memo(state, `defenders:${colony.id}`, () => defendersFor(state, colony));
 }
 
 /** Of the troops in a colony, those it keeps as garrison: as many as it wants, taken in order. */
@@ -428,8 +388,6 @@ export function mayAttack(state: GameState, player: Player, x: number, y: number
   if (tribe) return tribalAlarm(state, tribe, player.id) >= AI_CAMPAIGN.settlementAlarmFrom && presentOn(state, player, landmassAt(state.map, x, y), true);
   const owner = colony?.owner ?? foe?.owner;
   if (owner === undefined || owner === player.id || spared(state, owner)) return false;
-  // (a power that already holds all the colonies one may hold takes no more)
-  if (colony && coloniesOf(state, player.id).length >= COLONY_LIMITS.maxColoniesPerPower) return false;
   return player.stance[owner] === 'war';
 }
 
@@ -453,3 +411,5 @@ export function landAttackChoice(state: GameState, unit: Unit, player: Player): 
   }
   return best;
 }
+
+export { peopleAt };

@@ -152,7 +152,7 @@ export interface EquipPlan {
 }
 
 /** What switching `unit` to `role` in `colony` would do, or why it cannot be done. */
-export function planEquip(colony: Colony, unit: Unit, role: ColonistRole): CargoCheck | { ok: true; plan: EquipPlan } {
+export function planEquip(colony: Colony, unit: Unit, role: ColonistRole, given = false): CargoCheck | { ok: true; plan: EquipPlan } {
   if (!isColonistRole(unit.type) || unit.profession === null) return no('cannotEquip', 'only colonists change roles');
   if (unit.type === role) return no('cannotEquip', `already a ${role}`);
   if (role === 'missionary' && !colony.buildings.some((b) => MISSIONARY_BUILDINGS.includes(b))) {
@@ -163,7 +163,11 @@ export function planEquip(colony: Colony, unit: Unit, role: ColonistRole): Cargo
   for (const good of GOOD_IDS) stock[good] = amountOf(colony.goods, good) + amountOf(equipmentOf(unit), good);
   const need: Partial<Record<GoodId, number>> = { ...ROLE_GOODS[role] };
   let tools = 0;
-  if (role === 'pioneer') {
+  if (role === 'pioneer' && given) {
+    // a computer power's colonist turned pioneer is simply given tools for one job
+    tools = PIONEER_TOOLS.min;
+    need.tools = 0;
+  } else if (role === 'pioneer') {
     tools = pioneerKit(stock.tools ?? 0);
     if (tools < PIONEER_TOOLS.min) return no('notEnough', `a pioneer needs at least ${PIONEER_TOOLS.min} tools`);
     need.tools = tools;
@@ -182,13 +186,13 @@ export function checkEquip(state: GameState, unit: Unit | undefined, role: Colon
   if (!unit) return no('cannotEquip', 'no such unit');
   const colony = colonyAt(state, unit.x, unit.y);
   if (!colony || colony.owner !== unit.owner) return no('notInColony', 'roles change only in one of your colonies');
-  const plan = planEquip(colony, unit, role);
+  const plan = planEquip(colony, unit, role, state.players.find((p) => p.id === unit.owner)?.kind === 'ai');
   return plan.ok ? OK : plan;
 }
 
 export function equip(state: GameState, unit: Unit, role: ColonistRole): GameState {
   const colony = colonyAt(state, unit.x, unit.y) as Colony;
-  const planned = planEquip(colony, unit, role);
+  const planned = planEquip(colony, unit, role, state.players.find((p) => p.id === unit.owner)?.kind === 'ai');
   if (!('plan' in planned)) throw new Error('equip called without a valid plan');
   let goods = colony.goods;
   for (const good of GOOD_IDS) {
