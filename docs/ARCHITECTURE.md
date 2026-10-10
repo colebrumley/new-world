@@ -98,6 +98,11 @@ meet. Outside CI both runners use a few workers (`PW_WORKERS`, `VITEST_WORKERS`)
 run stops after three failures or five minutes. `npm run sweep` (`scripts/sweep-test-procs.mjs`)
 ends test workers, browsers and preview servers left behind by a run that was killed.
 
+Sessions work in worktrees under `.claude/worktrees/` and talk through the board
+(`scripts/board.mjs`, `npm run board`): one file per claimed requirement and a log of notes, kept
+in the repository's shared git directory so that every worktree sees the same board and none of
+it is committed. A claim whose worktree no longer exists is free to take.
+
 ## Balance
 `test/sim/balance.test.ts` (`SIM=1 npm test -- balance`) plays twenty full games between four
 computer powers and writes `docs/BALANCE.md`, comparing what happened with the target ranges of

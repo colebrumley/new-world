@@ -3,12 +3,53 @@
 This repo is New World, a browser strategy game of founding colonies and leading them to independence. The backlog is
 [REQUIREMENTS.md](REQUIREMENTS.md). Work through it hands-off using the protocol below.
 
+## Two rules before anything else
+
+Many sessions work on this repo at the same time. Both rules are mandatory, for every change,
+however small.
+
+1. **All code changes happen in a git worktree of your own.** Never edit, commit, switch branches,
+   stash or run test suites in the main checkout or in a worktree another session made. If your
+   working directory is not under `.claude/worktrees/`, make one before you touch a file:
+
+   ```bash
+   git fetch origin
+   git worktree add .claude/worktrees/r-xxx-short-name -b r-xxx-short-name origin/main
+   cd .claude/worktrees/r-xxx-short-name
+   npm run board -- claim R-xxx "what, briefly"   # before the install: it may be refused
+   npm ci
+   ```
+
+   One worktree, one branch, one requirement. Read-only questions about the code may be answered
+   from wherever you are. If you find uncommitted changes in the main checkout, they are someone
+   else's: leave them exactly as they are.
+2. **The board is how sessions tell each other things.** It is shared by every worktree and is
+   never committed (`scripts/board.mjs`). Read it before you pick work, claim what you take, and
+   write to it whenever another session would want to know.
+
+   ```bash
+   npm run board                              # who is doing what, and the latest notes
+   npm run board -- claim R-xxx "what, briefly"   # from your worktree; fails if another holds it
+   npm run board -- note "what the others need to know"
+   npm run board -- release R-xxx             # merged, blocked or abandoned
+   ```
+
+   Write a note when you: change something others build on (a type in `state.ts`, an action, a
+   save version, a helper in `test/`, a config file), find a test that is broken on `main`, are
+   about to edit a file outside your requirement's area, open or merge a pull request, or give
+   up on an item. Say what and where in one line. Read the notes again before your final
+   `npm run check`; if one concerns files you touched, bring `origin/main` into your branch first.
+
 ## One iteration
 
-1. **Pick.** Open REQUIREMENTS.md. Choose the first `[ ]` or `[~]` requirement in the lowest
-   phase that still has open items. Skip `[!]` items unless their stated blocker is now resolved.
+1. **Pick.** Run `npm run board`, then open REQUIREMENTS.md as it is on `origin/main`. Choose
+   the first `[ ]` or `[~]` requirement in the lowest phase that still has open items and that no
+   other worktree has claimed. Skip `[!]` items unless their stated blocker is now resolved.
    Do exactly one requirement per iteration (R-1009 may spawn sub-items; treat each as one).
-2. **Mark `[~]`** and commit that one-line change: `R-xxx: start`.
+2. **Claim it, then mark `[~]`.** Make your worktree for the item and claim it from there
+   (rule 1). If the claim is refused, someone else holds the item: remove the worktree and branch
+   you just made and pick again. Then mark the item `[~]` and commit that one-line change:
+   `R-xxx: start`.
 3. **Read before writing.** Read the requirement, its appendix rows, `docs/FIDELITY.md`, and the
    files you will touch. Do not re-read the whole backlog. If the rule tables in `src/engine/data/*`
    and the appendix disagree, fix the appendix in the same commit.
@@ -26,13 +67,17 @@ This repo is New World, a browser strategy game of founding colonies and leading
    move on.
 7. **Mark `[x]`** in REQUIREMENTS.md and commit everything: `R-xxx: <title>` with a 2–5 line body
    listing what was built and which tests cover it.
-8. **Report** in one short paragraph: what was done, test counts, anything flagged. Then start
-   the next iteration if the session budget allows.
+8. **Hand over.** Push the branch and open a pull request against `main`. Post a note with its
+   address and anything it changes that others build on. Release the claim once it is merged, or
+   at once if you are giving the item up. After the merge, remove the worktree
+   (`git worktree remove`) from the main checkout's side; never remove one you did not make.
+9. **Report** in one short paragraph: what was done, test counts, anything flagged. Then start
+   the next iteration, in a new worktree, if the session budget allows.
 
 ## Blocking rules
 
 - Three failed attempts at the same acceptance bullet → mark the item `[!] <one-line reason>`,
-  commit, and move on. Never leave a `[~]` item without a commit describing its state.
+  commit, post the reason as a note, release the claim, and move on. Never leave a `[~]` item without a commit describing its state.
 - If a requirement contradicts a constraint in REQUIREMENTS.md §0, the constraint wins; note the
   conflict under the item and implement the constraint-compatible subset.
 - Never add a runtime dependency unless the requirement names it. Dev dependencies are fine if
@@ -43,9 +88,8 @@ This repo is New World, a browser strategy game of founding colonies and leading
 
 ## Sharing the machine
 
-Many sessions work on this repo at once, and the full suites are the main cost. Keep them rare.
+The full suites are the main cost of many sessions on one machine. Keep them rare.
 
-- Work in a git worktree of your own, never in a checkout another session is using.
 - Do not re-run a whole suite to look at one failure; re-run the one file or the one test.
 - A test that times out when the machine is busy and passes alone is not a regression. Check
   `uptime` before chasing it, and do not raise timeouts or write a second Playwright config.
@@ -71,6 +115,7 @@ Many sessions work on this repo at once, and the full suites are the main cost. 
 ```bash
 npm run check          # lint + typecheck + unit tests + build (must pass before every commit)
 npm run test:e2e       # playwright, chromium
+npm run board          # claims and notes shared by every worktree
 npm run sweep          # end test workers, browsers and servers left by a killed run
 SIM=1 npm test         # slow headless simulations
 npm run dev            # local dev server
