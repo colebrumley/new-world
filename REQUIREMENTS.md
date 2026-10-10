@@ -1144,9 +1144,9 @@ The look of the page around the map: an explorer's chart on a captain's table. T
 dark oiled wood with brass trim; panels are light parchment sheets with ink text, ink rules in
 place of 1px borders, and wax-seal accents in the nation colour where a nation is shown. The map
 canvas keeps its own palette (`docs/VISUAL_CHECKLIST.md`). R-1010 defines the tokens; the items
-after it (R-1011 to R-1016: the chart-style unexplored map, the title frontispiece, the colony
-screen, the Europe harbour, reports/pedia/saves, portraits) build on them and are written up as
-they are started.
+after it (R-1011 to R-1017: the chart-style unexplored map, the title frontispiece, the colony
+screen, the Europe harbour, reports/pedia/saves, portraits, choosing a power) build on them and
+are written up as they are started.
 
 - [x] **R-1010 Theme tokens and chrome**
   Typeface: a self-hosted basic-Latin subset of IM Fell English (SIL Open Font License; the
@@ -1370,6 +1370,30 @@ they are started.
   - The structural snapshots in `test/e2e/__snapshots__/reports.spec.ts` are unchanged in content.
   **Verify:** `npm test -- test/unit/ui`; `npm run test:e2e -- reports`; `npm run check`; a
   contact sheet of all portraits in the pull request.
+
+- [ ] **R-1017 Choosing a power** (`docs/NATION_SELECTION.md`)
+  Depends on R-1012 (title frame) and R-1016 (the King's portrait). A new game no longer seats
+  the player as England under the name "Player". After any of the three ways of starting a new
+  game (New World, America, Customize's Start) a title-framed screen "Choose a European Power"
+  offers the four powers of Appendix I as a radio group, each with its flag (`flagArt`), leader,
+  home port and strength line, with an account of the selected power, a "Lands with" line
+  computed from `STARTING_FORCE` and the difficulty, and a name field prefilled with the leader's
+  name; Set Sail starts the game, Back returns to the screen it came from. The game then opens
+  with one audience dialog from the Crown (the King's portrait, the power's `court`, the
+  player's name) on a fresh game only, never on a load. The full design, keys, texts, data and
+  test list are in `docs/NATION_SELECTION.md`; where this entry and that file differ, the file wins.
+  - `NATIONS` gains `court` and `account` strings; `landingParty` and `standardPowers` are pure
+    exports of `src/engine/game.ts` used by `createGame` and `boot.ts`; no save schema change.
+  - The human's `name` is shown wherever the leader's name was (Hall of Fame, slot summaries);
+    a player named "Player" (older saves) still shows the leader.
+  - `?nation=` and `?name=` preselect; the last power and name used are remembered in the
+    browser store (keys in `save-keys.ts`); `?rivals=0` still works.
+  - Fits at 1024 x 640; keys in `docs/KEYS.md`; `docs/ARCHITECTURE.md`'s shell paragraph and
+    a screenshot `docs/theme/title-power.png` are updated with the pull request.
+  - All e2e specs start games through a shared `startNewGame` helper in `test/e2e/helpers.ts`.
+  **Verify:** `npm test -- test/unit/engine/data/nations.test.ts test/unit/engine/game.test.ts
+  test/unit/app`; `npm run test:e2e -- shell`; `npm run test:e2e` (the helper touches every
+  spec); `npm run check`.
 
 ---
 
