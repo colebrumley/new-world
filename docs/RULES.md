@@ -1090,7 +1090,7 @@ computer power always digs.
 - **The audience**, in order, each a question for the human: piracy (agree: privateers at sea go
   home, the demand shrinks, the hard line is dropped); troops at their colonies (agree: they are
   sent home, 100 gold off the demand per point, hard line dropped); tribute, if it is taking a
-  hard line and the human can pay (pay, or refuse). If it is still taking a hard line at the end:
+  hard line and the human can pay, a treasury equal to the demand included (pay, or refuse). If it is still taking a hard line at the end:
   war if a treaty is in force and the demand is over 100, or if tribute was refused; otherwise
   only a threat. If not, and there is no treaty, it proposes one; refused, a power that fears the
   human offers gold for peace (100 x the lesser of its hundreds of gold and 2 x (fear - 2)).

@@ -230,7 +230,8 @@ function nextStage(state: GameState, a: Audience, after: Audience['stage'] | nul
       const people = coloniesOf(state, a.ai).reduce((n, c) => n + c.colonists.length, 0);
       if (a.pressure > 0 && (a.pressure * D.siegeShare >= people || (a.pressure > D.siegeAlways && rng.int(1, D.siegeOdds) === 1))) return { stage, gold: 0 };
     }
-    if (stage === 'tribute' && a.hostile && a.demand > 0 && h.gold > a.demand) return { stage, gold: a.demand };
+    // a treasury that just covers the demand can pay it: a demand cut to fit a round treasury equals it
+    if (stage === 'tribute' && a.hostile && a.demand > 0 && h.gold >= a.demand) return { stage, gold: a.demand };
     if (stage === 'worthy' && !a.hostile && !treaty) return { stage, gold: 0 };
     // a power still set on a quarrel has nothing more to discuss
     if (stage === 'menu' && treaty && !a.hostile) return { stage, gold: 0 };
