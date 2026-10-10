@@ -5,7 +5,7 @@ import { GOOD_IDS, GOOD_NAMES, type GoodId } from '../engine/data/goods';
 import { NATIONS } from '../engine/data/nations';
 import { PROFESSION_IDS, PROFESSIONS, type ProfessionId } from '../engine/data/professions';
 import { UNIT_TYPE_IDS, UNIT_TYPES, type UnitTypeId } from '../engine/data/units';
-import { checkDockEquip, dockEquipPlan, docksOf, purchasePrice, shipsInEurope, trainingPrice } from '../engine/europe';
+import { checkDockEquip, checkEuropeOpen, dockEquipPlan, docksOf, purchasePrice, shipsInEurope, trainingPrice } from '../engine/europe';
 import { recruitPrice } from '../engine/immigration';
 import { askPrice, bidPrice, isBoycotted } from '../engine/market';
 import type { GameState, Unit } from '../engine/state';
@@ -78,6 +78,27 @@ export function europeView(state: GameState, playerId: string): EuropeView | nul
       .sort((a, b) => a.price - b.price),
     purchase: UNIT_TYPE_IDS.filter((t) => purchasePrice(state, playerId, t) !== null).map((t) => ({ unit: t, label: UNIT_TYPES[t].name, price: purchasePrice(state, playerId, t) as number })),
   };
+}
+
+/** What the Europe button in the command bar shows: a ship in port, ships at sea, or nothing. */
+export interface EuropeCall {
+  readonly state: 'none' | 'sea' | 'port';
+  /** The tooltip's note after "Europe (E)", empty in the plain state. */
+  readonly note: string;
+}
+
+const turnsWord = (n: number): string => `${n} ${n === 1 ? 'turn' : 'turns'}`;
+
+export function europeCall(state: GameState, playerId: string): EuropeCall {
+  if (!state.players.some((p) => p.id === playerId) || !checkEuropeOpen(state, playerId).ok) return { state: 'none', note: '' };
+  const inPort = shipsInEurope(state, playerId);
+  if (inPort.length === 1) return { state: 'port', note: `${shipLabel(inPort[0] as Unit)} in port` };
+  if (inPort.length > 1) return { state: 'port', note: `${inPort.length} ships in port` };
+  const crossing = Object.values(state.units).filter((u) => u.owner === playerId && u.aboard === null && UNIT_TYPES[u.type].domain === 'sea'
+    && (u.voyage?.phase === 'toEurope' || u.voyage?.phase === 'toNewWorld'));
+  if (crossing.length === 0) return { state: 'none', note: '' };
+  const note = crossing.map((u) => `${shipLabel(u)} ${u.voyage?.phase === 'toEurope' ? 'arrives' : 'returns'} in ${turnsWord(u.voyage?.turnsLeft ?? 0)}`).join('; ');
+  return { state: 'sea', note };
 }
 
 const ROLE_LABEL: Readonly<Record<ColonistRole, string>> = {

@@ -36,6 +36,7 @@ import { checkFound, coloniesOf, nextColonyName, siteWarnings } from '../engine/
 import { defaultRouteName, routesOf } from '../engine/trade-routes';
 import { openColonyScreen } from '../ui/colony-screen';
 import { ask, askText } from '../ui/dialog';
+import { europeCall } from '../ui/europe-model';
 import { openEuropeScreen } from '../ui/europe-screen';
 import { mapCommandFor, type MapCommand } from '../ui/keymap';
 import { createMagnifiedNotice } from '../ui/magnified';
@@ -55,7 +56,7 @@ import { createAudioPlayer } from './audio';
 import { showOptions } from '../ui/options-dialog';
 import { showPedia, type PediaTarget } from '../ui/pedia-screen';
 import { isExploredBy, terrainOf } from '../engine/tile';
-import { cargoNotices, colonyNotices, movementNotices } from '../ui/notices';
+import { cargoNotices, colonyNotices, movementNotices, voyageNotices } from '../ui/notices';
 import { nextHint, type HintContext } from '../ui/hints';
 
 /** Direction keys: arrows, numeric keypad digits, and the keypad's navigation names. */
@@ -313,7 +314,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     if (turnEnded) {
       // the autosave slots: the game as it stands is kept as play goes on; a copy is put by as each decade opens
       if (options.autosave && session.state.players[session.state.current]?.id === me()) keepDecade(session);
-      for (const line of [...colonyNotices(stepped.events, session.state, me(), options), ...cargoNotices(before, session.state, me(), options), ...movementNotices(before, session.state, me(), options)]) record(line);
+      for (const line of [...colonyNotices(stepped.events, session.state, me(), options), ...cargoNotices(before, session.state, me(), options), ...movementNotices(before, session.state, me(), options), ...voyageNotices(stepped.events, session.state, me())]) record(line);
       for (const e of stepped.events) {
         if (e.type === 'independenceDeclared' && e.player === me()) record(`Independence is declared, with ${e.sentiment}% of our colonists behind it. The other powers have left the New World; the Crown's army is coming.`);
         if (e.type === 'unitsSeized' && e.player === me()) record(`The Crown has seized everything of ours in Europe and on the ocean: ${e.ships.length} ship${e.ships.length === 1 ? '' : 's'} and ${e.others} other unit${e.others === 1 ? '' : 's'}.`);
@@ -1560,7 +1561,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     const focus = mode !== 'move' || !unit || unit.x < 0 ? cursor : { x: unit.x, y: unit.y };
     const status = notice || (unit ? '' : 'End of turn. Press Enter.');
     sidebar.update(sidebarModel(session.state, mode === 'view' ? null : unit, focus, revealAll, status));
-    commandBar.update(unit !== null && mode !== 'view', mode === 'goto');
+    commandBar.update(unit !== null && mode !== 'view', mode === 'goto', europeCall(session.state, me()));
   };
 
   const frame = (time: number): void => {
