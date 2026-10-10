@@ -1422,3 +1422,37 @@ train · L / = / + buy · U / − / _ sell · Esc or E exit.
 - Native wars per game: 1–6. Settlements destroyed by 1800: 5–40%.
 - At least one AI power reaches 50% rebel sentiment by 1800 in ≥30% of seeds.
 - Scoring at 1800 in 100% of seeds; no turn exceeds 2 s with 4 AIs in Node.
+
+---
+
+## Phase 11 — Theme
+
+The look of the page around the map: an explorer's chart on a captain's table. The page chrome is
+dark oiled wood with brass trim; panels are light parchment sheets with ink text, ink rules in
+place of 1px borders, and wax-seal accents in the nation colour where a nation is shown. The map
+canvas keeps its own palette (`docs/VISUAL_CHECKLIST.md`). R-1010 defines the tokens; the items
+after it (R-1011 to R-1016: the chart-style unexplored map, the title frontispiece, the colony
+screen, the Europe harbour, reports/pedia/saves, portraits) build on them and are written up as
+they are started.
+
+- [~] **R-1010 Theme tokens and chrome**
+  Typeface: a self-hosted basic-Latin subset of IM Fell English (SIL Open Font License; the
+  licence file is kept next to the font) for headings and body, with small caps, Georgia as the
+  fallback. woff2, roughly 30 KB a face, `font-display: swap`, no font fetched from the web at
+  runtime. The service worker precaches everything built; the entry script stays under its 20 KB limit.
+  - `src/ui/style.css` defines colour, texture and type tokens as custom properties on `:root`
+    (parchment, ink, faded ink, wood, brass, wax, the four nation colours and the Crown) and every
+    colour literal in the stylesheet outside the map canvas uses them. The map canvas itself is
+    untouched: `docs/VISUAL_CHECKLIST.md` requires every canvas pixel to be a palette colour.
+  - Parchment grain and wood grain are procedural: inline SVG `feTurbulence` data URIs or CSS
+    gradients, no bitmap asset.
+  - Sidebar, command bar, title menu, dialogs and event log are restyled on the tokens: buttons as
+    brass-edged plates, the active-unit info block styled as a ship's log entry, focus rings
+    visible on parchment.
+  - The four text-on-parchment pairs (body ink, faded ink, warning amber, link/active) meet WCAG
+    AA contrast; the ratios are recorded in the pull request.
+  - Existing e2e specs still pass (they pin structure, not pixels) and the e2e visual baselines in
+    `test/e2e/visual.spec.ts` are unchanged because the canvas is unchanged.
+  **Verify:** `npm run check`; `npm run test:e2e`; the cold-load budget test with
+  `BUDGET=1 npm run test:e2e -- budget`; a screenshot of title, map, dialog and sidebar attached
+  to the pull request.
