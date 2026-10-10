@@ -8,6 +8,7 @@ import { CAPITAL_NAME, TECH_LEVELS, TRIBES } from '../engine/data/tribes';
 import { UNIT_TYPES } from '../engine/data/units';
 import { VILLAGE_ACTION_NAMES } from '../engine/data/village';
 import { landlord, landPrice } from '../engine/land';
+import { isShipUnit, laneFor } from '../engine/movement';
 import { incitePrice } from '../engine/missions';
 import type { ParleyReply } from '../engine/native-trade';
 import { settlementAt, tribeOfOwner } from '../engine/settlements';
@@ -334,7 +335,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
       }
       void royalBusiness();
     }
-    if (action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'foundColony' || action.type === 'endTurn') void afterMoving(stepped.events);
+    if (action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'foundColony' || action.type === 'endTurn') void afterMoving(stepped.events);
     if (session.state.over) void announceEnd();
     audio.play(cuesFor(stepped.events, session.state, me()), options);
     canvas.dataset['cues'] = audio.played.slice(-6).join(',');
@@ -482,7 +483,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   const LOG_KEPT = 200;
   const HINT_MARK = '\u0001';
   /** Orders that can use up the last unit's turn. */
-  const UNIT_ORDER_ACTIONS: ReadonlySet<Action['type']> = new Set(['moveUnit', 'goTo', 'setOrders', 'skipUnit', 'attack', 'pioneerWork', 'foundColony', 'joinColony', 'disbandUnit', 'enterSettlement']);
+  const UNIT_ORDER_ACTIONS: ReadonlySet<Action['type']> = new Set(['moveUnit', 'goTo', 'goToEurope', 'setOrders', 'skipUnit', 'attack', 'pioneerWork', 'foundColony', 'joinColony', 'disbandUnit', 'enterSettlement']);
   const record = (text: string, hint = false): void => {
     if (!text) return;
     log.push(hint ? `${HINT_MARK}${text}` : text);
@@ -1161,13 +1162,18 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
         return;
       }
       case 'goTo': {
-        // Named destinations first (our colonies), with the map as the last choice.
+        // Named destinations first (Europe for a ship that can reach the Sea Lane, then our colonies), with the map as the last choice.
         const colonies = coloniesOf(session.state, me());
-        if (colonies.length > 0) {
-          const cancelled = colonies.length + 1;
-          const pick = await ask(screen, { text: 'Go to which place?', choices: [...colonies.map((c) => c.name), 'Pick a square on the map'], escape: cancelled });
+        const europe = isShipUnit(unit) && laneFor(session.state, unit) !== null ? ['Europe'] : [];
+        if (europe.length + colonies.length > 0) {
+          const cancelled = europe.length + colonies.length + 1;
+          const pick = await ask(screen, { text: 'Go to which place?', choices: [...europe, ...colonies.map((c) => c.name), 'Pick a square on the map'], escape: cancelled });
           if (pick === cancelled) return;
-          const colony = colonies[pick];
+          if (pick < europe.length) {
+            dispatch({ type: 'goToEurope', unitId: unit.id });
+            return;
+          }
+          const colony = colonies[pick - europe.length];
           if (colony) {
             dispatch({ type: 'goTo', unitId: unit.id, x: colony.x, y: colony.y });
             return;

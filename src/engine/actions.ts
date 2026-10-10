@@ -40,7 +40,7 @@ import { SPECIALISTS, type ProfessionId } from './data/professions';
 import { UNIT_TYPES, type UnitTypeId } from './data/units';
 import { GOOD_IDS, type GoodId } from './data/goods';
 import { assignJob, checkAssign, type JobErrorCode } from './jobs';
-import { advanceGoto, executeMove, planMove, turnMoves, routeFor, type MoveChoices, type MoveErrorCode, type MoveEvent } from './movement';
+import { EUROPE_BOUND, advanceGoto, boundForEurope, executeMove, isShipUnit, laneFor, planMove, turnMoves, routeFor, type MoveChoices, type MoveErrorCode, type MoveEvent } from './movement';
 import {
   bidPrice, buyGoods, checkBuyGoods, checkPayBackTaxes, checkSellGoods, evaluateMarket, payBackTaxes, sellGoods,
   type MarketErrorCode, type MarketEvent,
@@ -119,6 +119,8 @@ export type Action =
   | { readonly type: 'setOrders'; readonly unitId: UnitId; readonly orders: 'none' | 'sentry' | 'fortify' }
   /** Go To: head for a square over as many turns as it takes. */
   | { readonly type: 'goTo'; readonly unitId: UnitId; readonly x: number; readonly y: number }
+  /** Go To Europe: a ship makes for the nearest Sea Lane and sets sail from it. */
+  | { readonly type: 'goToEurope'; readonly unitId: UnitId }
   /** B on open land: found a colony where the unit stands. The name defaults to the next on the nation's list. */
   | { readonly type: 'foundColony'; readonly unitId: UnitId; readonly name?: string }
   /** B inside one of your colonies: the unit moves in and takes up work. */
@@ -521,6 +523,14 @@ export function validateAction(state: GameState, action: Action): Validation {
       if (!routeFor(state, unit, action.x, action.y)) return fail('noPath', 'no route to that square');
       return OK;
     }
+    case 'goToEurope': {
+      const unit = ownUnitOnMap(state, action.unitId);
+      if (isValidation(unit)) return unit;
+      if (!isShipUnit(unit)) return fail('badOrders', 'only a ship can sail for Europe');
+      const open = checkEuropeOpen(state, unit.owner);
+      if (!open.ok) return fail(open.code, open.message);
+      return laneFor(state, unit) ? OK : fail('noPath', 'no Sea Lane can be reached from here');
+    }
     case 'skipUnit':
     case 'disbandUnit': {
       const unit = ownUnitOnMap(state, action.unitId);
@@ -664,11 +674,22 @@ function unitPhase(state: GameState, playerId: PlayerId, events: GameEvent[]): G
   events.push(...trade);
   for (const u of Object.values(next.units)) {
     if (u.owner !== playerId || u.orders !== 'goto' || u.voyage) continue;
-    const advanced = advanceGoto(next, u.id);
+    const advanced = carryOn(next, u.id);
     next = advanced.state;
     events.push(...advanced.events);
   }
   return next;
+}
+
+/** Carry a Go To order on. A ship bound for Europe that lies on the Sea Lane with moves in hand sets sail. */
+function carryOn(state: GameState, unitId: UnitId): { state: GameState; events: GameEvent[] } {
+  const advanced = advanceGoto(state, unitId);
+  const ship = advanced.state.units[unitId];
+  if (!ship || !boundForEurope(ship) || ship.movesLeft <= 0 || tileAt(advanced.state.map, ship.x, ship.y)?.base !== 'seaLane') return advanced;
+  // Europe may have closed to us since the order was given
+  if (!checkEuropeOpen(advanced.state, ship.owner).ok) return { state: replaceUnit(advanced.state, { ...ship, orders: 'none', destination: null }), events: advanced.events };
+  const sailed: VoyageEvent[] = [];
+  return { state: sailForEurope(advanced.state, unitId, sailed), events: [...advanced.events, ...sailed] };
 }
 
 /** Has the game just ended for this player? Checked as their turn begins. */
@@ -733,7 +754,7 @@ function rumorsFor(result: ActionResult): ActionResult {
   return events.length === 0 ? result : { state: next, events: [...result.events, ...events] };
 }
 
-const CONTACT_ACTIONS: ReadonlySet<Action['type']> = new Set(['moveUnit', 'goTo', 'foundColony', 'endTurn']);
+const CONTACT_ACTIONS: ReadonlySet<Action['type']> = new Set(['moveUnit', 'goTo', 'goToEurope', 'foundColony', 'endTurn']);
 
 function applyCore(state: GameState, action: Action): ActionResult {
   const check = validateAction(state, action);
@@ -994,6 +1015,12 @@ function applyCore(state: GameState, action: Action): ActionResult {
       const unit = state.units[action.unitId] as Unit;
       const ordered = replaceUnit(state, { ...unit, orders: 'goto', destination: [action.x, action.y], workTurns: 0, route: null });
       const advanced = advanceGoto(ordered, unit.id);
+      return { state: advanced.state, events: [{ type: 'ordersChanged', unitId: unit.id, orders: 'goto' }, ...advanced.events] };
+    }
+    case 'goToEurope': {
+      const unit = state.units[action.unitId] as Unit;
+      const ordered = replaceUnit(state, { ...unit, orders: 'goto', destination: EUROPE_BOUND, workTurns: 0, route: null });
+      const advanced = carryOn(ordered, unit.id);
       return { state: advanced.state, events: [{ type: 'ordersChanged', unitId: unit.id, orders: 'goto' }, ...advanced.events] };
     }
     case 'skipUnit': {

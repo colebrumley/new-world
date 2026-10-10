@@ -62,6 +62,9 @@ test('Go To picks a destination with the cursor and sails there over turns', asy
   await start(page);
   const [x, y] = (await field(page, 'location').textContent())!.match(/\d+/g)!.map(Number) as [number, number];
   await page.keyboard.press('g');
+  // a ship is offered Europe first; the map is the last choice
+  await expect(page.getByRole('dialog').getByRole('button')).toHaveText(['Europe', 'Pick a square on the map']);
+  await page.getByRole('dialog').getByRole('button', { name: 'Pick a square on the map' }).click();
   await expect(page.locator('canvas.map')).toHaveAttribute('data-mode', 'goto');
   await expect(field(page, 'status')).toContainText('Go to where?');
   for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowLeft');
@@ -77,6 +80,13 @@ test('Go To picks a destination with the cursor and sails there over turns', asy
   await page.keyboard.press('g');
   await page.keyboard.press('Escape');
   await expect(page.locator('canvas.map')).toHaveAttribute('data-mode', 'move');
+});
+
+test('Go To offers a ship Europe, and she sails from the Sea Lane she lies on', async ({ page }) => {
+  await start(page);
+  await page.keyboard.press('g');
+  await page.getByRole('dialog').getByRole('button', { name: 'Europe' }).click();
+  await expect(field(page, 'unit')).toHaveText('No active unit'); // the ship and all aboard are away
 });
 
 test('Shift-D asks before disbanding; unavailable commands say so', async ({ page }) => {
