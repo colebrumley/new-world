@@ -262,6 +262,7 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-801 | relation states | none / war / treaty, plus grudge, piracy, intent, truce, last talk | — | high | resolves [VERIFY alliance effects]: there is no alliance state, only paying a power to fight a third |
 | R-801 | audience flow | piracy, sieges, tribute, verdict, peace offer, treaty menu | — | high (flow), medium (weights) | strength uses whole-map totals; three minor steps omitted |
 | R-801 | prices | tribute in 50s up to 20,000; withdrawal 25 x (level + 2) per point, min 100; alliance 500-10,000 | — | high | |
+| R-801 | tribute the treasury only just covers | asked when gold >= the demand | ours | n/a | a demand cut to fit a treasury that is a multiple of 50 equals it; with a strict test it was never put and a treaty was broken unasked |
 | R-801 | truce | 2 x (6 - level) turns, halved with Franklin | — | high | decrement per turn assumed |
 | R-801 | privateers and grudges | piracy flag; (level + 1)/101 grudge or intent | — | high | |
 | R-801 | AI with AI | talk every third turn; war test as in RULES | — | high | no per-region condition |

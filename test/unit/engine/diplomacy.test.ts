@@ -156,6 +156,26 @@ describe('an audience', () => {
     expect(dealing(defied.state, 'a', 'b').grudge).toBe(true); // they broke the treaty
   });
 
+  it('asks for tribute the treasury can only just pay: a demand cut to fit a round treasury is still put', () => {
+    // the hard line again, but with 600 gold the demand is cut to exactly what we hold
+    for (const gold of [600, 601]) {
+      let s = army(lands({ gold }), 'b', 8, 12, 4);
+      s = army(s, 'a', 2, 11, 4);
+      s = withDealing(setStance(s, 'a', 'b', 'peace'), 'b', 'a', { lastTalk: 10 });
+      expect(sizeUp(s, 'a', 'b', createRng(1))).toMatchObject({ demand: 600, hostile: true });
+      const r = applyAction({ ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, audiencesDue: ['b'] } : p)) }, { type: 'holdAudience', with: 'b' });
+      expect(question(r)?.stage).toBe('sieges');
+      const refused = say(r.state, 'no');
+      expect(question(refused)).toMatchObject({ stage: 'tribute', gold: 600, hostile: true });
+      expect(refused.events.some((e) => e.type === 'warDeclared' || e.type === 'audienceEnded')).toBe(false);
+      expect(code(refused.state, { type: 'audienceReply', reply: 'yes' })).toBe('ok');
+      const paid = say(refused.state, 'yes');
+      expect(me(paid.state).gold).toBe(gold - 600);
+      expect(me(paid.state).stance['b']).toBe('peace');
+      expect(paid.events.some((e) => e.type === 'warDeclared')).toBe(false);
+    }
+  });
+
   it('sizes the other power up by strength, pressure, grudges and the times', () => {
     const view = (s: GameState): ReturnType<typeof sizeUp> => sizeUp(s, 'a', 'b', createRng(1));
     const even = view(lands());
