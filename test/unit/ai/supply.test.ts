@@ -90,6 +90,16 @@ describe('where a ship takes her cargo', () => {
   });
 });
 
+describe('a warship with supplies aboard', () => {
+  it('unloads in her own port before she takes up a station there', () => {
+    // a foreign frigate three squares off makes the port a station, and our frigate is on it already
+    let s = col(base('france'), 'home', 4, 1, FULL);
+    s = withUnit(s, { id: 'ship', type: 'frigate', profession: null, x: 3, y: 4, cargo: { muskets: 100 } });
+    s = withUnit(s, { id: 'foe', owner: 'b', type: 'frigate', profession: null, x: 1, y: 2 });
+    expect(policy(s)).toEqual({ type: 'unloadCargo', unitId: 'ship', good: 'muskets', amount: 100 });
+  });
+});
+
 describe('on the docks', () => {
   const inEurope = (s: GameState, id: string): GameState => ({ ...s, units: { ...s.units, [id]: { ...u(s, id), x: OFF_MAP, y: OFF_MAP, voyage: { phase: 'inEurope', turnsLeft: 0, origin: [0, 4] } } } });
   const docked = (turn: number, gold: number, goods: Colony['goods'] = { horses: 50, tools: 20 }): GameState => {

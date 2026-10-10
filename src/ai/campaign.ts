@@ -372,9 +372,9 @@ export function scaledOdds(state: GameState, unit: Unit, dx: number, dy: number)
   return odds * (colony ? AI_CAMPAIGN.colonyTimes : village ? AI_CAMPAIGN.settlementTimes : 1);
 }
 
-/** Summed attack values of the units on a square. */
+/** Summed attack values of the land units on a square (a ship in port or offshore takes no part in an assault). */
 const attackAt = (state: GameState, x: number, y: number, owner: PlayerId | null): number =>
-  unitsAt(state, x, y).reduce((n, u) => n + (u.aboard === null && (owner === null || u.owner === owner) ? UNIT_TYPES[u.type].attack : 0), 0);
+  unitsAt(state, x, y).reduce((n, u) => n + (isLand(u) && u.aboard === null && (owner === null || u.owner === owner) ? UNIT_TYPES[u.type].attack : 0), 0);
 
 /** Soldiers and dragoons storm a colony only when the attackers massed around it out-total its garrison. */
 export function assaultReady(state: GameState, player: Player, colony: { readonly x: number; readonly y: number }): boolean {

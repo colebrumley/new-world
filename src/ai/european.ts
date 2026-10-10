@@ -24,7 +24,7 @@ import { isInlandLake } from '../engine/movement';
 import { tribalAlarm } from '../engine/alarm';
 import { colonyAt, type Colony, type GameState, type Job, type Player, type Unit } from '../engine/state';
 import { isWater, type Tile } from '../engine/tile';
-import { garrisons, invasionFor, isFull, isQuiet, isTroop, landAttackChoice, landingStep, landOrders } from './campaign';
+import { defendersShort, garrisons, invasionFor, isFull, isQuiet, isTroop, landAttackChoice, landingStep, landOrders } from './campaign';
 import { missionaryAction, ordain, villageVisit, type Chances } from './missions';
 import { isWarship, privateersCarry, warshipAction } from './navy';
 import { buildAction, jobAction, jobPlan } from './colony';
@@ -317,15 +317,8 @@ function europeAction(state: GameState, player: Player, done: Set<string>): Acti
 }
 
 function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly Colony[], done: Set<string>): Action | null {
-  // warships fight and keep their stations; only when free of that do they do a transport's work
-  const duty = isWarship(ship) ? warshipAction(state, ship, player) : undefined;
-  if (duty !== undefined) return duty;
-  if (ship.repair > 0 || ship.orders === 'goto') return null;
   const port = inOwnPort(state, ship);
-  // pioneers waiting on the quay to go with her count as her passengers already
-  const waitingPioneers = port ? Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && u.type === 'pioneer') : [];
-  const riders = [...Object.values(state.units).filter((u) => u.aboard === ship.id), ...waitingPioneers];
-  // in one of our ports everything in the hold goes ashore, once each call
+  // in one of our ports everything in the hold goes ashore, once each call: a warship's too, before she takes up her station
   if (port && !done.has(`#unloaded:${ship.id}`)) {
     for (const good of GOOD_IDS) {
       const unload: Action = { type: 'unloadCargo', unitId: ship.id, good, amount: ship.cargo[good] ?? 0 };
@@ -333,6 +326,13 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
     }
     done.add(`#unloaded:${ship.id}`);
   }
+  // warships fight and keep their stations; only when free of that do they do a transport's work
+  const duty = isWarship(ship) ? warshipAction(state, ship, player) : undefined;
+  if (duty !== undefined) return duty;
+  if (ship.repair > 0 || ship.orders === 'goto') return null;
+  // pioneers waiting on the quay to go with her count as her passengers already
+  const waitingPioneers = port ? Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && u.type === 'pioneer') : [];
+  const riders = [...Object.values(state.units).filter((u) => u.aboard === ship.id), ...waitingPioneers];
   // then she loads what the colony has to send, a hold at a time, keeping room for those waiting to board
   if (port && !done.has(`#laden:${ship.id}`) && mayLoad(state, player, ship)) {
     const boarding = Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && !isShip(u)).length;
@@ -341,6 +341,8 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
     if (load && ok(state, load)) return load;
     done.add(`#laden:${ship.id}`);
   }
+  // off an invasion beach she lies to while her troops go over the side, however many have gone already
+  if (riders.some((r) => landingStep(state, r, ship, player) !== null)) return null;
   // a full ship with soldiers aboard (or waiting on the quay to board as she sails) may make a landing beside a rival colony
   const quay = colonyAt(state, ship.x, ship.y)?.owner === player.id ? Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && isTroop(u)) : [];
   if (mine.length >= AI_PLAN.coloniesBeforeGarrison && (riders.some(isTroop) || quay.length > 0) && isFull(state, ship, quay.length)) {
@@ -349,8 +351,14 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
       const go: Action = { type: 'goTo', unitId: ship.id, x: landing.x, y: landing.y };
       if (ok(state, go)) return go;
     }
-    // off the beach: she lies to while the troops go over the side
-    if (landing && riders.some((r) => landingStep(state, r, ship, player) !== null)) return null;
+  }
+  // guns and other troops who will not settle, with no landing to make, are carried to the port shortest of defenders (the nearest of those)
+  const settling = riders.some(isSettler) || riders.some((u) => u.type === 'missionary');
+  if (!settling && riders.some(isTroop)) {
+    if (port) return null; // they go down the gangway themselves
+    const posts = mine.filter((c) => ok(state, { type: 'goTo', unitId: ship.id, x: c.x, y: c.y }))
+      .sort((a, b) => defendersShort(state, b) - defendersShort(state, a) || far(a.x, a.y, ship.x, ship.y) - far(b.x, b.y, ship.x, ship.y));
+    return posts[0] ? { type: 'goTo', unitId: ship.id, x: posts[0].x, y: posts[0].y } : null;
   }
   const preaching = !riders.some(isSettler) && riders.some((u) => u.type === 'missionary') && mine.length > 0;
   // (pioneers still on the quay go only if there is somewhere to take them)
@@ -527,7 +535,7 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
     // ours: it rides to the nearest friendly village on its land that none of ours has spoken with, and otherwise home
     const land = landmassAt(state.map, unit.x, unit.y);
     const calls = Object.values(state.settlements)
-      .filter((v) => landmassAt(state.map, v.x, v.y) === land && !v.scouted.includes(player.id) && tribalAlarm(state, v.tribe, player.id) < AI_MISSIONS.visitAlarmBelow)
+      .filter((v) => landmassAt(state.map, v.x, v.y) === land && v.scouted.length === 0 && tribalAlarm(state, v.tribe, player.id) < AI_MISSIONS.visitAlarmBelow)
       .sort((a, b) => far(a.x, a.y, unit.x, unit.y) - far(b.x, b.y, unit.x, unit.y));
     for (const v of calls) {
       for (const [dx, dy] of DIRS) {

@@ -112,6 +112,39 @@ describe('sending one colonist out armed', () => {
   });
 });
 
+describe('sending out, where the engine has rules of its own', () => {
+  const steps = (start: GameState): { state: GameState; taken: string[] } => {
+    let s = start;
+    const done = new Set<string>();
+    const taken: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      const action = musterAction(s, home(s), done, rng());
+      if (!action) break;
+      taken.push(action.type + ('role' in action ? `:${action.role}` : ''));
+      s = applyAction(s, action).state;
+      expect(checkInvariants(s)).toEqual([]);
+    }
+    return { state: s, taken };
+  };
+
+  it('a walled colony of three keeps its three: nobody gives up his trade for a post he cannot take', () => {
+    const experts = [man('farmer', 'expertFarmer'), man('fisher', 'expertFisherman'), man('smith', 'masterBlacksmith')];
+    const walled = withColony(base(), { id: 'home', x: 5, y: 4, colonists: experts, goods: { muskets: 60 }, buildings: ['townHall', 'stockade'], construction: { kind: 'building', id: 'docks' } });
+    const { state, taken } = steps(walled);
+    expect(taken).toEqual([]);
+    expect(home(state).colonists.map((c) => c.profession)).toEqual(['expertFarmer', 'expertFisherman', 'masterBlacksmith']);
+  });
+
+  it('under siege a man comes out a soldier already, and a dragoon still takes his horse', () => {
+    // four free colonists, muskets and horses for a dragoon, and an enemy soldier at the gate
+    const besieged = soldier(town(people(4), { muskets: 50, horses: 52 }), 'foe', 6, 4, { owner: 'b' });
+    const { state, taken } = steps({ ...besieged, players: besieged.players.map((p) => (p.id === 'a' ? { ...p, stance: { b: 'war' } } : p)) });
+    expect(taken).toEqual(['leaveColony', 'equip:dragoon']);
+    expect(Object.values(state.units).find((x) => x.owner === 'a')).toMatchObject({ type: 'dragoon' });
+    expect(home(state).goods).toMatchObject({ horses: 2 });
+  });
+});
+
 describe('taking units back in', () => {
   const id = (u: Unit | null): string | undefined => u?.id;
 

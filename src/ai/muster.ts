@@ -141,17 +141,18 @@ export function musterAction(state: GameState, colony: Colony, done: Set<string>
     const inside = colony.colonists.find((c) => c.id === pending.colonist.id);
     const outside = state.units[pending.colonist.id];
     if (inside) {
-      const unlearn: Action = { type: 'clearSpecialty', colonyId: colony.id, colonistId: inside.id };
-      if (pending.unlearn && skilled(inside.profession) && ok(state, unlearn)) return unlearn;
+      // (he gives up his trade only if he can then go: a walled colony keeps three)
       const leave: Action = { type: 'leaveColony', colonyId: colony.id, colonistId: inside.id };
-      if (ok(state, leave)) return leave;
-    } else if (outside && outside.type === 'colonist') {
+      const unlearn: Action = { type: 'clearSpecialty', colonyId: colony.id, colonistId: inside.id };
+      if (ok(state, leave)) return pending.unlearn && skilled(inside.profession) && ok(state, unlearn) ? unlearn : leave;
+    } else if (outside && outside.type !== pending.role) {
+      // (under siege he came out a soldier already: a dragoon still takes his horse)
       const arm: Action = { type: 'equip', unitId: outside.id, role: pending.role };
       if (ok(state, arm)) return arm;
-      // the stores fell short after all: back to work
+      // the stores fell short after all: back to work, unless he is under arms as it is
       const back: Action = { type: 'joinColony', unitId: outside.id };
       sending.delete(colony.id);
-      return ok(state, back) ? back : null;
+      return outside.type === 'colonist' && ok(state, back) ? back : null;
     }
     sending.delete(colony.id);
     return null;

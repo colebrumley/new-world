@@ -116,14 +116,14 @@ export function villageEntry(state: GameState, unit: Unit, settlement: Settlemen
 
 /**
  * A colonist or scout passing a settlement steps in when the people are friendly: a free
- * colonist or servant where nobody has yet been taught, a scout where none of ours has spoken
- * with the chief.
+ * colonist or servant where nobody has yet been taught, a scout where nobody's scout has yet
+ * spoken with the chief (a chief has nothing for a second caller).
  */
 export function villageVisit(state: GameState, unit: Unit): Action | null {
   if (unit.movesLeft <= 0 || unit.aboard !== null || (unit.type !== 'colonist' && unit.type !== 'scout')) return null;
   for (const s of Object.values(state.settlements)) {
     if (far(s.x, s.y, unit.x, unit.y) !== 1 || tribalAlarm(state, s.tribe, unit.owner) >= AI_MISSIONS.visitAlarmBelow) continue;
-    const due = unit.type === 'scout' ? !s.scouted.includes(unit.owner) : !s.taught && settlementAlarm(s, unit.owner) < AI_MISSIONS.visitSettlementAlarmBelow;
+    const due = unit.type === 'scout' ? s.scouted.length === 0 : !s.taught && settlementAlarm(s, unit.owner) < AI_MISSIONS.visitSettlementAlarmBelow;
     const entry = due ? villageEntry(state, unit, s) : null;
     if (entry && ok(state, entry)) return entry;
   }

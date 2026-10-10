@@ -4,6 +4,7 @@ import {
   landingStep, landmassSize, landOrders, landRequests, mayAttack, scaledOdds, worthTaking, type LandRequest,
 } from '../../../src/ai/campaign';
 
+import { playTurn } from '../../../src/ai/european';
 import { applyAction } from '../../../src/engine/actions';
 import { analyseAttack } from '../../../src/engine/analysis';
 import { AI_CAMPAIGN } from '../../../src/engine/data/ai';
@@ -307,6 +308,20 @@ describe('when a landing is planned', () => {
     expect([beach.x + second.dx, beach.y + second.dy]).not.toEqual([u(landed, 'r1').x, u(landed, 'r1').y]);
   });
 
+  it('the ship lies off the beach until the last of them is ashore, though she is no longer full once the first has gone', () => {
+    let s = col(overseas({ b: 'war' }), 'second', 2, 7);
+    s = troop(troop(s, 'g1', 2, 4, 'artillery', 'a', { orders: 'fortified' }), 'g3', 2, 7, 'artillery', 'a', { orders: 'fortified' });
+    const beach = invadeRequests(s, me(s))[0]!;
+    // the ship's turn comes between her two passengers'
+    s = withUnit(s, { id: 'ship', type: 'caravel', profession: null, x: beach.x, y: beach.y });
+    s = withUnit(withUnit(s, { id: 'r1', type: 'soldier', x: beach.x, y: beach.y, aboard: 'ship' }), { id: 'z', type: 'soldier', x: beach.x, y: beach.y, aboard: 'ship' });
+    const turn = playTurn(s);
+    expect(checkInvariants(turn.state)).toEqual([]);
+    expect(turn.actions.filter((a) => a.type === 'moveUnit').map((a) => ('unitId' in a ? a.unitId : ''))).toEqual(['r1', 'z']);
+    expect(u(turn.state, 'ship')).toMatchObject({ x: beach.x, y: beach.y });
+    for (const id of ['r1', 'z']) expect(landmassAt(turn.state.map, u(turn.state, id).x, u(turn.state, id).y)).toBe(beach.land);
+  });
+
   it('passengers count toward a ship being full; a ship that is not full, or carries no soldier, makes no landing', () => {
     let s = overseas({ b: 'war' });
     s = withUnit(s, { id: 'ship', type: 'caravel', profession: null, x: 12, y: 2 });
@@ -440,6 +455,11 @@ describe('fighting on land', () => {
     // a second man alongside makes four against two
     const two = troop(soldier, 'mate', 5, 5);
     expect(assaultReady(two, me(two), { x: 6, y: 4 })).toBe(true);
+    // ships take no part: one of theirs in port adds nothing to the garrison, one of ours offshore nothing to the assault
+    const docked = withUnit(lone, { id: 'frigate', owner: 'b', type: 'frigate', profession: null, x: 6, y: 4 });
+    expect(assaultReady(docked, me(docked), { x: 6, y: 4 })).toBe(true);
+    const escorted = withUnit(soldier, { id: 'frigate', type: 'frigate', profession: null, x: 6, y: 5 });
+    expect(assaultReady(escorted, me(escorted), { x: 6, y: 4 })).toBe(false);
     // an undefended colony needs no massing
     const open = troop(col(base({ b: 'war' }), 'theirs', 6, 4, 'b', 2), 'mine', 5, 4);
     expect(assaultReady(open, me(open), { x: 6, y: 4 })).toBe(true);

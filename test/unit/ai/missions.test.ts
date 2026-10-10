@@ -255,6 +255,9 @@ describe('what its other units do on entering', () => {
     const scout = beside('scout');
     expect(villageVisit(scout, u(scout))).toEqual(enter('speakWithChief'));
     const seen = withUnit(land({ villages: [village('v', 8, 4, { scouted: ['a'] })] }), { id: 'm', type: 'scout', x: 7, y: 4 });
+    // a chief who has spoken with anybody's scout has nothing for a second caller, so none is paid
+    const theirs = withUnit(land({ villages: [village('v', 8, 4, { scouted: ['b'] })] }), { id: 'm', type: 'scout', x: 7, y: 4 });
+    expect(villageVisit(theirs, u(theirs))).toBeNull();
     expect(villageVisit(seen, u(seen))).toBeNull();
     // two squares off is not passing
     const off = withUnit(land(), { id: 'm', x: 6, y: 4 });

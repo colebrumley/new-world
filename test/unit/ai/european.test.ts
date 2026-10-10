@@ -135,6 +135,16 @@ describe('what it does next', () => {
     expect(applyAction(onLane, sail).state.units['ship']?.voyage).toMatchObject({ phase: 'toEurope' });
   });
 
+  it('a ship with only a gun aboard carries it to a colony instead of turning for home', () => {
+    let s = withColony(base(), { id: 'col', x: 6, y: 3, name: 'C', colonists: people(3), construction: { kind: 'building', id: 'stockade' } });
+    s = patch(withUnit(s, { id: 'ship', type: 'caravel', profession: null, x: 3, y: 5 }), { entry: [2, 3] });
+    s = withUnit(s, { id: 'gun', type: 'artillery', profession: null, x: 3, y: 5, aboard: 'ship' });
+    expect(policy(s)).toEqual({ type: 'goTo', unitId: 'ship', x: 6, y: 3 });
+    // in port the gun goes down the gangway itself and the ship waits for it
+    const inPort = { ...s, units: { ...s.units, ship: { ...s.units['ship']!, x: 6, y: 3 }, gun: { ...s.units['gun']!, x: 6, y: 3 } } };
+    expect(policy(inPort)).toMatchObject({ type: 'moveUnit', unitId: 'gun' });
+  });
+
   it('ends the turn when there is nothing to do, and for nobody', () => {
     expect(policy(base())).toEqual({ type: 'endTurn' });
     expect(policy({ ...base(), over: { reason: 'retired', turn: 0, player: 'a' } })).toEqual({ type: 'endTurn' });
