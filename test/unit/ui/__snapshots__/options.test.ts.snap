@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`options > are the eight game options, the ten colony report options and the three sound options 1`] = `
+exports[`options > are the nine game options, the ten colony report options and the three sound options 1`] = `
 {
   "autosave": true,
   "backgroundMusic": false,
@@ -21,6 +21,7 @@ exports[`options > are the eight game options, the ten colony report options and
   "showForeignMoves": true,
   "showIndianMoves": true,
   "soundEffects": true,
+  "terrainTooltips": true,
   "tutorialHints": true,
   "waterShimmer": true,
 }
