@@ -10,6 +10,7 @@ export const GAME_OPTIONS = [
   { key: 'combatAnalysis', label: 'Combat analysis', hint: 'Show the odds and ask before an attack.', default: true },
   { key: 'waterShimmer', label: 'Water shimmer', hint: 'Animate the sea.', default: true },
   { key: 'tutorialHints', label: 'Tutorial hints', hint: 'Advice in the log at the moments a newcomer needs it.', default: true },
+  { key: 'terrainTooltips', label: 'Terrain tooltips', hint: 'Describe the square under the pointer: its terrain, features and yields.', default: true },
 ] as const;
 
 export const COLONY_OPTIONS = [
