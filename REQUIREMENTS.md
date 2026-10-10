@@ -1346,7 +1346,7 @@ they are started.
   the still stamp under `prefers-reduced-motion`. The save notice is amber rather than red, since
   it reports successes too. Pictures are in `docs/theme/` (report, pedia, saves, options, combat).
 
-- [~] **R-1016 Portraits**
+- [x] **R-1016 Portraits**
   Depends on R-1010 (theme tokens) and R-1015 (parchment reports with a seal and a portrait slot
   at the head of each). Engraved-style head-and-shoulders portraits from the sprite pipeline
   (`scripts/bake-art.py`, sources in `art/portraits/`; our own pictures, constraint C1): 64 x 64
@@ -1370,7 +1370,6 @@ they are started.
   - The structural snapshots in `test/e2e/__snapshots__/reports.spec.ts` are unchanged in content.
   **Verify:** `npm test -- test/unit/ui`; `npm run test:e2e -- reports`; `npm run check`; a
   contact sheet of all portraits in the pull request.
-
 
 ---
 

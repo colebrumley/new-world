@@ -1102,6 +1102,7 @@ body:has(#app > .title-screen) > .frontispiece { display: block; }
 .dialog button.pictured { display: flex; align-items: center; gap: 10px; }
 /* the adviser beside the seal at the head of a report, and a founding father at the head of his line */
 .report-portrait .portrait { display: block; }
+.report-section tr.pictured > * { vertical-align: middle; }
 .report-section tr.pictured > th { white-space: nowrap; }
 .report-section tr.pictured .portrait { vertical-align: middle; margin: 2px 10px 2px 0; }
 /* a founding father's page in the encyclopedia */
