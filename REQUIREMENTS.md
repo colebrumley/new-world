@@ -1180,6 +1180,7 @@ they are started.
   ship's log in the sidebar is sealed in that colour. The full-window screens (Europe, colony,
   reports, encyclopedia) and the save and options dialogs are on the tokens too, plainly; their
   own items lay them out. The sidebar is still 232px and fits a 640px window without a scroll.
+  The title, map, a dialog and the sidebar as first themed are in `docs/theme/`.
 
 ---
 
