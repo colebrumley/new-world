@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { KEYMAP, mapCommandFor, renderKeysDoc } from '../../../src/ui/keymap';
 
 const DOC = join(import.meta.dirname, '../../../docs/KEYS.md');
-const key = (k: string, extra: Partial<{ code: string; shiftKey: boolean; altKey: boolean }> = {}) =>
-  mapCommandFor({ key: k, code: extra.code ?? '', shiftKey: extra.shiftKey ?? false, altKey: extra.altKey ?? false });
+const key = (k: string, extra: Partial<{ code: string; shiftKey: boolean; altKey: boolean; ctrlKey: boolean; metaKey: boolean }> = {}) =>
+  mapCommandFor({ key: k, code: extra.code ?? '', shiftKey: extra.shiftKey ?? false, altKey: extra.altKey ?? false, ctrlKey: extra.ctrlKey ?? false, metaKey: extra.metaKey ?? false });
 
 describe('keyboard map', () => {
   it('docs/KEYS.md is exactly what the table generates', () => {
@@ -55,5 +55,18 @@ describe('keyboard map', () => {
     reachable.add(key('R', { shiftKey: true }) ?? '');
     reachable.add(key('g', { altKey: true, code: 'KeyG' }) ?? '');
     for (const b of KEYMAP) if (b.command) expect(reachable, b.keys).toContain(b.command);
+  });
+
+  it("gives the browser's zoom keys to the map, and leaves its other shortcuts alone", () => {
+    for (const held of [{ ctrlKey: true }, { metaKey: true }]) {
+      expect(key('=', held)).toBe('zoomIn');
+      expect(key('+', { ...held, shiftKey: true })).toBe('zoomIn');
+      expect(key('-', held)).toBe('zoomOut');
+      expect(key('0', held)).toBeNull();
+      expect(key('r', held)).toBeNull();
+      expect(key('z', held)).toBeNull();
+    }
+    expect(key('=')).toBeNull();
+    expect(key('-')).toBeNull();
   });
 });

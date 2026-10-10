@@ -994,6 +994,10 @@ Legend:
   and sets `touch-action: pan-x pan-y`; over the map the wheel still zooms the map.
   A page magnified all the same (browsers restore it with the page, and keep some gestures to
   themselves) shows a notice naming the key that undoes it, Ctrl/Cmd+0 (`src/ui/magnified.ts`).
+  Over the map a pinch zooms the map about the fingers: Ctrl+wheel with a shorter step
+  (`PINCH_STEP`), Safari's gesture events and two fingers on a touch screen (`pinchTravel`; the
+  canvas sets `touch-action: none`). The browser's zoom keys, Ctrl/Cmd with plus or minus, zoom the
+  map while it has the keyboard; with Ctrl or Cmd held no other key is a map command.
   Later: the pointer's shape says what a click will do (`mapCursor`): an arrow the way the active
   unit would step, a hand on a colony that would open or a unit that would be picked. A colony or
   unit of ours beside the active unit is stepped onto by a click on the part of its square nearest

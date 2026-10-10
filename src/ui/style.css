@@ -80,6 +80,8 @@ canvas.map {
   height: 100%;
   outline: none;
   cursor: crosshair;
+  /* two fingers on the map zoom it, and that is ours to do */
+  touch-action: none;
 }
 
 .sidebar {
