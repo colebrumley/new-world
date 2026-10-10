@@ -15,12 +15,18 @@ folder, terrain in a few flat colours per picture), and written
 out as data: src/ui/unit-art.ts, place-art.ts, feature-art.ts and floor-art.ts, which pixel-art.ts
 draws from. In a place, whatever is painted cyan is given the owner's colour when it is drawn. A
 floor is shifted so that its commonest colour is the terrain's colour on the minimap.
+
+art/title holds the painting that hangs behind the title screen (frontispiece.png, 8:5, generated
+like the others and drawn in the map palette's colours so that none is lost). It is shrunk to 320 x 200 in the 32 colours of PALETTE in
+src/ui/pixel-art.ts and no others, and written out as src/ui/title-art.ts, which frontispiece.ts draws.
 """
 import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+import re
 
 import numpy as np
 from PIL import Image
@@ -170,6 +176,66 @@ def write(path: str, title: str, prefix: str, size_name: str, size: int, colours
     print(f'{path}: {len(figures)} pictures, {len(colours)} colours')
 
 
+def painting(source: str, width: int, height: int) -> tuple[list[str], list[str]]:
+    """The picture at `width` x `height` in the map palette alone: the colours it uses, and its rows, each a run of
+    letters, a letter followed by how many times it repeats when that is more than once."""
+    palette = re.findall(r"^  '(#[0-9a-f]{6})', // \d+ ", (ROOT / 'src/ui/pixel-art.ts').read_text(), re.M)
+    if len(palette) != 32:
+        raise SystemExit(f'expected the 32 colours of PALETTE in src/ui/pixel-art.ts, found {len(palette)}')
+    forge = Path(os.environ['PIXELFORGE']).expanduser()
+    with tempfile.TemporaryDirectory() as tmp:
+        hexes = Path(tmp, 'map.hex')
+        hexes.write_text('\n'.join(c[1:] for c in palette) + '\n')
+        flags = ['--preset', 'background', '--method', 'box', '--out-width', str(width), '--out-height', str(height), '--palette-name', str(hexes),
+                 '--outline', 'none', '--dither', 'none', '--no-tileset']
+        subprocess.run([sys.executable, '-m', 'pixelforge', 'convert', str(ROOT / source), '-o', tmp, *flags], cwd=forge, check=True, stdout=subprocess.DEVNULL)
+        art = np.array(Image.open(Path(tmp, Path(source).name)).convert('RGB')).astype(int)
+    if art.shape[:2] != (height, width):
+        raise SystemExit(f'{source}: baked to {art.shape[1]} x {art.shape[0]}, not {width} x {height}')
+    colours: list[str] = []
+    rows = []
+    for line in art:
+        row, last, run = '', '', 0
+        for r, g, b in line:
+            colour = f'#{r:02x}{g:02x}{b:02x}'
+            if colour not in palette:
+                raise SystemExit(f'{source}: {colour} is not a colour of the map palette')
+            if colour not in colours:
+                colours.append(colour)
+            letter = CODES[colours.index(colour)]
+            if letter == last:
+                run += 1
+                continue
+            row += last + (str(run) if run > 1 else '')
+            last, run = letter, 1
+        rows.append(row + last + (str(run) if run > 1 else ''))
+    return colours, rows
+
+
+def write_painting(path: str, width: int, height: int, colours: list[str], rows: list[str]) -> None:
+    lines = [
+        '// The painting behind the title screen, made by scripts/bake-art.py from our own picture (constraint C1). Do not edit by hand.',
+        '',
+        '/** The colours the painting is drawn in: every one is a colour of the map palette. */',
+        'export const TITLE_COLORS = [' + ', '.join(f"'{c}'" for c in colours) + '] as const;',
+        '',
+        '/** How many art pixels wide and high the painting is. */',
+        f'export const TITLE_WIDTH = {width};',
+        f'export const TITLE_HEIGHT = {height};',
+        '',
+        '/** The letter each of TITLE_COLORS goes by, in order. */',
+        f"export const TITLE_CODES = '{CODES}';",
+        '',
+        '/** The painting, a row at a time: letters from TITLE_CODES, each followed by how many times it repeats when more than once. */',
+        'export const TITLE_ART: readonly string[] = [',
+        *[f"  '{row}'," for row in rows],
+        '];',
+        '',
+    ]
+    (ROOT / path).write_text('\n'.join(lines))
+    print(f'{path}: {width} x {height}, {len(colours)} colours')
+
+
 def main() -> None:
     colours, figures = bake('art/units', 30, 32)
     write('src/ui/unit-art.ts', 'Unit figures for the map', 'UNIT', 'FIGURE_SIZE', 30, colours, figures,
@@ -184,6 +250,8 @@ def main() -> None:
     colours = level(colours, figures)
     write('src/ui/floor-art.ts', 'Ground textures for the map', 'FLOOR', 'FLOOR_SIZE', 32, colours, figures,
           'One texture per open terrain, filling the square: rows of letters from FLOOR_CODES.')
+    colours, rows = painting('art/title/frontispiece.png', 320, 200)
+    write_painting('src/ui/title-art.ts', 320, 200, colours, rows)
 
 
 main()

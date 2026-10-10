@@ -24,7 +24,9 @@ def shrink(path: Path) -> tuple[int, int] | None:
     if picture.mode == 'P':
         return None
     before = path.stat().st_size
-    cut = picture.convert('RGB').filter(ImageFilter.MedianFilter(5)).quantize(64, dither=Image.Dither.NONE)
+    # (an octree, not the default median cut, which gives a small patch of strong colour, a red pennant in a
+    # wide picture, away to the browns around it)
+    cut = picture.convert('RGB').filter(ImageFilter.MedianFilter(5)).quantize(64, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
     palette = np.array(cut.getpalette()[:192]).reshape(-1, 3).astype(int)
     pixels = np.array(cut)
     counts = np.bincount(pixels.ravel(), minlength=64)

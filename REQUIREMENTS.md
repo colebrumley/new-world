@@ -1182,7 +1182,7 @@ they are started.
   own items lay them out. The sidebar is still 232px and fits a 640px window without a scroll.
   The title, map, a dialog and the sidebar as first themed are in `docs/theme/`.
 
-- [~] **R-1012 Title frontispiece**
+- [x] **R-1012 Title frontispiece**
   The title screen as a book's engraved frontispiece. "New World" is set large in the Fell face
   in small caps with a rule beneath; the menu (`src/ui/title.ts`) is a list inside a cartouche on
   parchment, with the difficulty control and its note on the same tokens; behind it all hangs a
@@ -1201,6 +1201,17 @@ they are started.
   - The Hall of Fame and Customize screens reached from the title keep the same frame.
   **Verify:** `BUDGET=1 npm run test:e2e -- budget`; `npm run test:e2e -- shell`; `npm run check`;
   a screenshot in the pull request.
+  *Built:* the title and menu sit on a `.cartouche` (parchment with scooped corners and an ink rule,
+  `src/ui/title.ts`; Customize uses the same sheet), styled in the section at the end of
+  `src/ui/style.css`. The painting was generated, redrawn in the map palette's colours, and baked by
+  a `painting()` step in `scripts/bake-art.py` into `src/ui/title-art.ts` (26 of the 32 colours,
+  rows of letters with run lengths). `src/app/shell.ts` hangs an empty `canvas.frontispiece` beside
+  the game's element and asks for `src/ui/frontispiece.ts` a frame and a task after the title is
+  up; `paintingScale` leaves at least 8 px of wood on every side, so the picture is three times its
+  size at 1024x640 and at 1280x800. A report opened from the title (the Hall of Fame) is a sheet in
+  the same frame, and the menu steps aside for it. `scripts/shrink-art.py` now cuts colours with an
+  octree, which keeps a small patch of strong colour that the median cut lost. The entry script is
+  2.6 KB gzipped and the painting's chunk 6.7 KB. Pictures are in `docs/theme/`.
 
 ---
 
