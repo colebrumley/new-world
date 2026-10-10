@@ -334,6 +334,111 @@ test('at 1024x640 the sidebar keeps what the game says in sight', async ({ page 
   await expect(last).toBeInViewport({ ratio: 1 });
 });
 
+test("a pinch and the browser's zoom keys zoom the map", async ({ page }) => {
+  await page.goto('/?reveal');
+  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  const canvas = page.locator('canvas.map');
+  await expect(canvas).toHaveAttribute('data-view', /tileSize/);
+  const zoom = async (): Promise<number> => (await viewOf(canvas)).zoom;
+  expect(await zoom()).toBe(3);
+  // a trackpad's pinch: a stream of wheel events with Ctrl held, a few pixels each
+  const pinch = (deltaY: number, times: number): Promise<void> =>
+    canvas.evaluate((node, [by, count]) => {
+      for (let i = 0; i < count!; i++) node.dispatchEvent(new WheelEvent('wheel', { deltaY: by, ctrlKey: true, clientX: 300, clientY: 300, bubbles: true, cancelable: true }));
+    }, [deltaY, times]);
+  await pinch(6, 10);
+  await expect.poll(zoom).toBe(2);
+  await page.waitForTimeout(200);
+  await pinch(-6, 10);
+  await expect.poll(zoom).toBe(3);
+  // the same few pixels without Ctrl are a wheel barely turned
+  await page.waitForTimeout(200);
+  await canvas.evaluate((node) => node.dispatchEvent(new WheelEvent('wheel', { deltaY: 60, clientX: 300, clientY: 300, bubbles: true, cancelable: true })));
+  await page.waitForTimeout(100);
+  expect(await zoom()).toBe(3);
+
+  // two fingers on a touch screen, closing to half their spread and opening again
+  const touch = (spans: number[]): Promise<void> =>
+    canvas.evaluate((node, list) => {
+      const box = node.getBoundingClientRect();
+      const fire = (type: string, span: number): void => {
+        const touches = [-1, 1].map((side, identifier) => new Touch({ identifier, target: node, clientX: box.left + 300 + (side * span) / 2, clientY: box.top + 300 }));
+        node.dispatchEvent(new TouchEvent(type, { touches, targetTouches: touches, changedTouches: touches, bubbles: true, cancelable: true }));
+      };
+      fire('touchstart', list[0]!);
+      for (const span of list.slice(1)) fire('touchmove', span);
+      node.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true }));
+    }, spans);
+  await page.waitForTimeout(200);
+  await touch([200, 160, 120, 100]);
+  await expect.poll(zoom).toBe(2);
+  await page.waitForTimeout(200);
+  await touch([100, 140, 180, 200]);
+  await expect.poll(zoom).toBe(3);
+  expect(await canvas.evaluate((node) => getComputedStyle(node).touchAction)).toBe('none');
+
+  // Safari's own pinch events, which give the scale since the fingers came down
+  const gesture = (scales: number[]): Promise<void> =>
+    canvas.evaluate((node, list) => {
+      const fire = (type: string, scale: number): boolean =>
+        node.dispatchEvent(Object.assign(new MouseEvent(type, { clientX: 300, clientY: 300, bubbles: true, cancelable: true }), { scale }));
+      fire('gesturestart', 1);
+      for (const scale of list) fire('gesturechange', scale);
+      fire('gestureend', list[list.length - 1]!);
+    }, scales);
+  await page.waitForTimeout(200);
+  await gesture([0.9, 0.7, 0.5]);
+  await expect.poll(zoom).toBe(2);
+  await page.waitForTimeout(200);
+  await gesture([1.2, 1.6, 2]);
+  await expect.poll(zoom).toBe(3);
+  // on a touch screen Safari sends both kinds at once: a slight spread of the fingers, told both ways, zooms nothing
+  await page.waitForTimeout(200);
+  await canvas.evaluate((node) => {
+    const box = node.getBoundingClientRect();
+    const touches = (span: number): Touch[] => [-1, 1].map((side, identifier) => new Touch({ identifier, target: node, clientX: box.left + 300 + (side * span) / 2, clientY: box.top + 300 }));
+    const touch = (type: string, list: Touch[]): boolean => node.dispatchEvent(new TouchEvent(type, { touches: list, targetTouches: list, changedTouches: list, bubbles: true, cancelable: true }));
+    const gesture = (type: string, scale: number): boolean => node.dispatchEvent(Object.assign(new MouseEvent(type, { clientX: 300, clientY: 300, bubbles: true, cancelable: true }), { scale }));
+    touch('touchstart', touches(200).slice(0, 1));
+    gesture('gesturestart', 1);
+    touch('touchstart', touches(200));
+    gesture('gesturechange', 1.01);
+    touch('touchmove', touches(202));
+    gesture('gesturechange', 1.02);
+    touch('touchmove', touches(204));
+    gesture('gestureend', 1.02);
+    touch('touchend', []);
+  });
+  await page.waitForTimeout(100);
+  expect(await zoom()).toBe(3);
+
+  // Ctrl with plus and minus, which would zoom the page
+  await canvas.focus();
+  await page.keyboard.press('Control+Minus');
+  await expect.poll(zoom).toBe(2);
+  await page.keyboard.press('Control+Equal');
+  await expect.poll(zoom).toBe(3);
+  await page.keyboard.press('Meta+Minus');
+  await expect.poll(zoom).toBe(2);
+  await page.keyboard.press('Meta+Shift+Equal');
+  await expect.poll(zoom).toBe(3);
+  expect(await page.evaluate(() => window.devicePixelRatio)).toBe(1);
+
+  // with Ctrl or Cmd held a direction key is the browser's: the unit stays, and the key is not taken
+  const here = await spot(page);
+  const taken = (init: { key: string; code: string; ctrlKey?: boolean; metaKey?: boolean }): Promise<boolean> =>
+    canvas.evaluate((node, keys) => !node.dispatchEvent(new KeyboardEvent('keydown', { ...keys, bubbles: true, cancelable: true })), init);
+  for (const held of [{ ctrlKey: true }, { metaKey: true }]) {
+    expect(await taken({ key: 'ArrowLeft', code: 'ArrowLeft', ...held })).toBe(false);
+    expect(await taken({ key: '4', code: 'Numpad4', ...held })).toBe(false);
+    expect(await taken({ key: 'Home', code: 'Home', ...held })).toBe(false);
+  }
+  await page.waitForTimeout(100);
+  expect(await spot(page)).toEqual(here);
+  expect(await taken({ key: 'ArrowLeft', code: 'ArrowLeft' })).toBe(true);
+  await expect(field(page, 'location')).toHaveText(`(${here.x - 1}, ${here.y})`);
+});
+
 test('a trackpad pinch never magnifies the page, on the map or over the colony screen', async ({ page }) => {
   await foundJamestown(page);
   // a pinch reaches the page as a wheel event with Ctrl held; left alone, the browser zooms the page

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Unit } from '../../../src/engine/state';
-import { STEP_RIM, WHEEL_STEP, mapClick, mapCursor, mapDrag, unitsToPick, wheelStep } from '../../../src/ui/pointer';
+import { PINCH_STEP, STEP_RIM, WHEEL_STEP, mapClick, mapCursor, mapDrag, pinchTravel, unitsToPick, wheelStep } from '../../../src/ui/pointer';
 import { withColony, withUnit, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~~', '~.....~', '~.....~', '~.....~', '~~~~~~~'];
@@ -132,5 +132,34 @@ describe('the wheel', () => {
     }
     expect(steps).toEqual([0, 0, 0, 1, 0, 0, 0, 1, 0, 0]);
     expect(wheelStep(-60, 30)).toEqual({ kept: 30, step: 0 });
+  });
+});
+
+describe('a pinch', () => {
+  it('needs less travel than the wheel for a step', () => {
+    expect(PINCH_STEP).toBeLessThan(WHEEL_STEP);
+    expect(wheelStep(0, -PINCH_STEP)).toEqual({ kept: -PINCH_STEP, step: 0 });
+    expect(wheelStep(0, -PINCH_STEP, PINCH_STEP)).toEqual({ kept: 0, step: 1 });
+    expect(wheelStep(0, PINCH_STEP, PINCH_STEP)).toEqual({ kept: 0, step: -1 });
+    // the few pixels a trackpad reports per event add up
+    let kept = 0;
+    const steps: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      const turned = wheelStep(kept, -10, PINCH_STEP);
+      kept = turned.kept;
+      steps.push(turned.step);
+    }
+    expect(steps).toEqual([0, 0, 0, 0, 1, 0]);
+  });
+
+  it('zooms in as the fingers spread and out as they close, by the same travel', () => {
+    expect(pinchTravel(1)).toBeCloseTo(0);
+    expect(pinchTravel(2)).toBeCloseTo(-69.31, 1);
+    expect(pinchTravel(0.5)).toBeCloseTo(69.31, 1);
+    expect(wheelStep(0, pinchTravel(2), PINCH_STEP).step).toBe(1);
+    expect(wheelStep(0, pinchTravel(0.5), PINCH_STEP).step).toBe(-1);
+    expect(wheelStep(0, pinchTravel(1.2), PINCH_STEP).step).toBe(0);
+    expect(pinchTravel(0)).toBe(0);
+    expect(pinchTravel(Infinity)).toBe(0);
   });
 });

@@ -41,7 +41,7 @@ import { minimapLayout, minimapToTile, renderMinimap } from '../ui/minimap';
 import { viewerIndex, renderGround, renderPieces } from '../ui/render';
 import { createSidebar, formatMoves, sidebarModel, unitLabel } from '../ui/sidebar';
 import { MENU_CHOICES, REPORT_CHOICES, createCommandBar, type BarChoice } from '../ui/command-bar';
-import { WHEEL_LINE, mapClick, mapCursor, mapDrag, wheelStep, type PointerMode } from '../ui/pointer';
+import { PINCH_STEP, WHEEL_LINE, WHEEL_STEP, mapClick, mapCursor, mapDrag, pinchTravel, wheelStep, type PointerMode } from '../ui/pointer';
 import { editRoute } from '../ui/trade-routes';
 import { createTileCache } from '../ui/tiles';
 import { needsOrders, nextUnit } from '../ui/unit-queue';
@@ -105,7 +105,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
   applyOptions(options);
   // A pinch on a trackpad (a wheel event with Ctrl held) would magnify the page itself, and the game
   // fills the window with nothing to scroll back to: the edges of every screen would be cut off.
-  // Over the map the wheel zooms the map; anywhere else in the game a pinch does nothing.
+  // Over the map the wheel and the pinch zoom the map; anywhere else in the game a pinch does nothing.
   screen.addEventListener('wheel', (event) => {
     if (event.ctrlKey) event.preventDefault();
   }, { passive: false });
@@ -1035,7 +1035,7 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     switch (command) {
       case 'zoomIn':
       case 'zoomOut':
-        setView(zoomBy(view, session.state.map, key === 'z' ? 1 : -1));
+        setView(zoomBy(view, session.state.map, command === 'zoomIn' ? 1 : -1));
         return;
       case 'center':
         if (unit && unit.x >= 0) setView(centerOn(view, session.state.map, unit.x, unit.y));
@@ -1233,7 +1233,8 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
     }
     if (view.showHidden) setView({ ...view, showHidden: false });
 
-    const step = DIRECTIONS[event.code] ?? DIRECTIONS[event.key];
+    // with Ctrl or Cmd held a direction key is the browser's, as every key but the zoom keys is
+    const step = event.ctrlKey || event.metaKey ? undefined : (DIRECTIONS[event.code] ?? DIRECTIONS[event.key]);
     if (step) {
       event.preventDefault();
       if (mode === 'move') {
@@ -1393,15 +1394,58 @@ export function startGame(root: HTMLElement, initial: GameSession): void {
         setView(centerOn(view, session.state.map, tile.x, tile.y));
     }
   });
-  canvas.addEventListener('wheel', (event) => {
-    event.preventDefault();
-    const turned = wheelStep(wheelKept, event.deltaMode === 1 ? event.deltaY * WHEEL_LINE : event.deltaY);
+  /** Wheel travel, from the wheel or a pinch, zooms the map about a canvas pixel once it adds up to `full`. */
+  const zoomWheel = (travel: number, full: number, p: { x: number; y: number }, time: number): void => {
+    const turned = wheelStep(wheelKept, travel, full);
     wheelKept = turned.kept;
-    if (turned.step === 0 || event.timeStamp - wheelAt < WHEEL_PAUSE_MS) return;
-    wheelAt = event.timeStamp;
-    const p = local(event, canvas);
+    if (turned.step === 0 || time - wheelAt < WHEEL_PAUSE_MS) return;
+    wheelAt = time;
     setView(zoomAt(view, session.state.map, turned.step, p.x, p.y));
     retarget();
+  };
+  canvas.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    // a trackpad's pinch, and the browser's own Ctrl+wheel zoom, come as a wheel event with Ctrl held
+    zoomWheel(event.deltaMode === 1 ? event.deltaY * WHEEL_LINE : event.deltaY, event.ctrlKey ? PINCH_STEP : WHEEL_STEP, local(event, canvas), event.timeStamp);
+  }, { passive: false });
+  /** A pinch zooms by how far apart its fingers are now over how far they were when last heard of. */
+  const pinchBy = (was: number, now: number, p: { x: number; y: number }, time: number): void => {
+    if (was > 0 && now > 0) zoomWheel(pinchTravel(now / was), PINCH_STEP, p, time);
+  };
+  /** Fingers are on the map. Safari on a touch screen tells of their pinch twice over, in touches and in gestures: the touches are heard, the gestures not. */
+  let touching = false;
+  // Safari tells of a trackpad's pinch in events of its own, with the scale since the fingers came down
+  let gestureScale = 0;
+  canvas.addEventListener('gesturestart', () => {
+    gestureScale = 1;
+  });
+  canvas.addEventListener('gesturechange', (event) => {
+    if (touching) return;
+    const gesture = event as MouseEvent & { scale?: number };
+    const scale = gesture.scale ?? 1;
+    pinchBy(gestureScale, scale, local(gesture, canvas), event.timeStamp);
+    gestureScale = scale;
+  });
+  // two fingers on a touch screen, by the pixels between them
+  let touchSpan = 0;
+  const fingers = (event: TouchEvent): { span: number; at: { x: number; y: number } } | null => {
+    const [a, b] = [event.touches[0], event.touches[1]];
+    if (event.touches.length !== 2 || !a || !b) return null;
+    const box = canvas.getBoundingClientRect();
+    return { span: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), at: { x: (a.clientX + b.clientX) / 2 - box.left, y: (a.clientY + b.clientY) / 2 - box.top } };
+  };
+  // a finger put down or lifted starts the measure again
+  const touched = (event: TouchEvent): void => {
+    touching = event.touches.length > 0;
+    touchSpan = fingers(event)?.span ?? 0;
+  };
+  for (const type of ['touchstart', 'touchend', 'touchcancel'] as const) canvas.addEventListener(type, touched, { passive: true });
+  canvas.addEventListener('touchmove', (event) => {
+    const held = fingers(event);
+    if (!held) return;
+    event.preventDefault();
+    pinchBy(touchSpan, held.span, held.at, event.timeStamp);
+    touchSpan = held.span;
   }, { passive: false });
 
   // --- the command bar: every map command as a button ---

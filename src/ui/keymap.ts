@@ -66,7 +66,8 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'map', keys: 'Click beside the active unit', action: 'Move it one square; the pointer is an arrow showing which way' },
   { context: 'map', keys: 'Click the near edge of a colony or unit beside the active unit', action: 'Move onto that square (the near corner, for a diagonal) where the pointer is an arrow; the rest of the square opens the colony or picks the unit' },
   { context: 'map', keys: 'Drag from the active unit', action: 'Send it to the square where the button is let go: one step if adjacent, Go To if farther' },
-  { context: 'map', keys: 'Wheel', action: 'Zoom in / zoom out about the pointer' },
+  { context: 'map', keys: 'Wheel / pinch', action: 'Zoom in / zoom out about the pointer (a pinch on a trackpad or a touch screen zooms the map, not the page)' },
+  { context: 'map', keys: 'Ctrl/Cmd + Plus / Minus', action: 'Zoom in / zoom out: the browser\'s zoom keys zoom the map while it has the keyboard' },
   { context: 'map', keys: 'Sidebar buttons', action: 'Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel' },
   { context: 'map', keys: 'Enter (view mode, on your colony)', action: 'Open the colony' },
   { context: 'map', keys: 'Click on the New World view', action: 'Centre the view there' },
@@ -121,7 +122,13 @@ export function renderKeysDoc(): string {
 }
 
 /** Map a key event to a map command. */
-export function mapCommandFor(event: { key: string; code: string; shiftKey: boolean; altKey: boolean }): MapCommand | null {
+export function mapCommandFor(event: { key: string; code: string; shiftKey: boolean; altKey: boolean; ctrlKey?: boolean; metaKey?: boolean }): MapCommand | null {
+  // with Ctrl or Cmd held only the browser's zoom keys are ours; the rest stay the browser's
+  if (event.ctrlKey || event.metaKey) {
+    if (event.key === '+' || event.key === '=') return 'zoomIn';
+    if (event.key === '-' || event.key === '_') return 'zoomOut';
+    return null;
+  }
   if (event.altKey) return /^Key[A-Z]$/.test(event.code) ? 'menu' : null;
   if (/^F([1-9]|10)$/.test(event.key)) return 'report';
   const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
