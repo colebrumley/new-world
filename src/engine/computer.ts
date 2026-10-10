@@ -365,6 +365,18 @@ export function defendersFor(state: GameState, colony: Colony): number {
 }
 
 /**
+ * Is this ship of a computer power kept in port by a blockade? A caravel or merchantman lying
+ * in one of its power's colonies with a foreign frigate near, until she has lain there ten
+ * turns less her holds. She neither loads, nor leaves, nor carries on with a standing order.
+ */
+export function heldByBlockade(state: GameState, ship: Unit): boolean {
+  if (!(AI_FREIGHT.blockadeHolds as readonly string[]).includes(ship.type) || ship.voyage !== null) return false;
+  if (state.players.find((p) => p.id === ship.owner)?.kind !== 'ai' || colonyAt(state, ship.x, ship.y)?.owner !== ship.owner) return false;
+  const waited = ship.blockaded ?? 0;
+  return waited > 0 && AI_FREIGHT.blockadeWait - UNIT_TYPES[ship.type].holds > waited;
+}
+
+/**
  * The native people a colony's power decides to fight, if any: the people of the settlement
  * nearest the colony on its land, when no rival European is on that land, the power has units
  * in the field there, the people are not too strong for it, and they are already restless.

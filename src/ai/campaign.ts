@@ -307,13 +307,13 @@ export function isFull(state: GameState, ship: Unit, boarding = 0): boolean {
   return holdsUsed(state, ship) + boarding >= UNIT_TYPES[ship.type].holds;
 }
 
-/** The landing a full ship at (x, y) takes, as a warship takes its station: any, with troops aboard; with pioneers only, one made to settle. */
-export function invasionFor(state: GameState, player: Player, x: number, y: number, troops = true): InvadeRequest | null {
+/** The landing a full ship at (x, y) takes, as a warship takes its station: one to fight with troops aboard, one to settle with somebody aboard who can found a colony. */
+export function invasionFor(state: GameState, player: Player, x: number, y: number, troops = true, founders = true): InvadeRequest | null {
   const base = baseLoad(state, player);
   let best: InvadeRequest | null = null;
   let least = 9999;
   for (const r of invadeRequests(state, player)) {
-    if (!troops && !r.settle) continue;
+    if (r.settle ? !founders : !troops) continue;
     const score = Math.trunc((base * far(r.x, r.y, x, y)) / (r.priority + 1));
     if (score < least && (3 * r.priority) >> 1 >= Math.trunc(score / base)) {
       least = score;

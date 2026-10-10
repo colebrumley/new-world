@@ -444,6 +444,7 @@ export const AI_FREIGHT = {
   /** A ship smaller than a galleon, in a port of its power with a foreign frigate within `blockadeRange`, lies there until she has waited `blockadeWait` less her holds turns. */
   blockadeRange: 5,
   blockadeWait: 10,
+  blockadeHolds: ['caravel', 'merchantman'],
   /** A ship with nothing to fetch, not the Europe ship, sails for Europe one turn in this many. */
   homeEvery: 32,
 } as const;

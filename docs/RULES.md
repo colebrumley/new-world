@@ -1496,9 +1496,10 @@ Numbers are `AI_CAMPAIGN` and `AI_NATIVE_WAR` in `src/engine/data/ai.ts`.
   landing beside a rival's colony there whose owner has fewer than 8 colonists on that land
   (priority 2, with the same additions as an invasion), and beside any native settlement on
   such land that no other landing is planned for (priority 2). The beach is chosen as for an
-  invasion. A full ship carrying a pioneer answers it as a troop ship answers an invasion (a
-  ship with troops answers either kind); off the beach the troops and the settlers aboard
-  step ashore, and found a colony by the ordinary search.
+  invasion. A full ship carrying a pioneer answers it as a troop ship answers an invasion; a
+  ship with troops answers either kind, but one to settle only with somebody aboard who can
+  found a colony (guns alone are carried to a colony instead). Off the beach the troops and
+  the settlers aboard step ashore, and found a colony by the ordinary search.
 
 ### Computer powers: founding and joining
 
@@ -1812,7 +1813,8 @@ Numbers are `AI_FREIGHT` and `AI_RESERVE` in `src/engine/data/ai.ts`.
 - **Blockade.** A caravel or merchantman lying in a port of her power with a foreign frigate
   or man-of-war within 5 squares counts the turns she has lain so; she neither loads nor
   leaves until that count reaches 10 less her holds (8 turns for a caravel, 6 for a
-  merchantman). The count starts again when no such ship is near.
+  merchantman); a standing Go To order waits with her. The count starts again when no such
+  ship is near.
 - Not built: adding the turns since a ship last called to a port's value.
 
 ### Foreign Affairs report (R-803)

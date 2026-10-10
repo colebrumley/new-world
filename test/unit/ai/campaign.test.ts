@@ -11,7 +11,7 @@ import { AI_CAMPAIGN } from '../../../src/engine/data/ai';
 import { settlementPopulation } from '../../../src/engine/data/tribes';
 import { checkInvariants } from '../../../src/engine/invariants';
 import { landmassAt } from '../../../src/engine/regions';
-import type { Colonist, Colony, Dealing, GameState, Player, Settlement, Unit } from '../../../src/engine/state';
+import { colonyAt, type Colonist, type Colony, type Dealing, type GameState, type Player, type Settlement, type Unit } from '../../../src/engine/state';
 import { isWater } from '../../../src/engine/tile';
 import { policy } from '../../helpers/policy';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
@@ -246,6 +246,24 @@ describe('when a landing is planned', () => {
     let off = withUnit(camp, { id: 'ship', type: 'caravel', profession: null, x: beach.x, y: beach.y });
     off = withUnit(off, { id: 'r1', x: beach.x, y: beach.y, aboard: 'ship' });
     expect(landingStep(off, u(off, 'r1'), u(off, 'ship'), me(off))).toMatchObject({ type: 'moveUnit', unitId: 'r1' });
+  });
+
+  it('a landing to settle is not for guns alone: a ship with only artillery takes them to a colony; with somebody aboard who can found she takes the landing', () => {
+    // (a second colony of ours on the east shore, which a ship can reach)
+    const camp = withVillage(col(col(base({}, 160), 'home', 2, 4), 'port', 10, 4), village(15, 4), 0);
+    const beach = invadeRequests(camp, me(camp))[0]!;
+    const laden = (second: Unit['type'], x: number): GameState => {
+      let s = withUnit(camp, { id: 'ship', type: 'caravel', profession: null, x, y: 2 });
+      s = withUnit(s, { id: 'r1', type: 'artillery', profession: null, x, y: 2, aboard: 'ship' });
+      return withUnit(s, { id: 'r2', type: second, profession: second === 'artillery' ? null : 'freeColonist', x, y: 2, aboard: 'ship' });
+    };
+    // nobody aboard can found: no landing; the guns are carried to one of our colonies
+    expect(invasionFor(camp, me(camp), 12, 2, true, false)).toBeNull();
+    const guns = policy(laden('artillery', 12)) as { type: string; unitId: string; x: number; y: number };
+    expect(guns).toMatchObject({ type: 'goTo', unitId: 'ship' });
+    expect(colonyAt(camp, guns.x, guns.y)?.owner).toBe('a');
+    // with somebody aboard who can found, the same ship takes the landing
+    expect(invasionFor(camp, me(camp), 12, 2, true, true)).toEqual(beach);
   });
 
   it('beside a colony of a power not at firm peace that has more colonies than us on the landmass and eight colonists there', () => {
