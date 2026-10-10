@@ -33,10 +33,11 @@ describe('the deploy workflow', () => {
   });
 
   it('runs only when the build or the checks could change', () => {
-    // the quoted entries of the `paths:` list under one trigger of `on:`
+    // the quoted entries of the `paths:` list (not `paths-ignore:`) under one trigger of `on:`
     const paths = (trigger: string): string[] => {
       const block = source.match(new RegExp(`^  ${trigger}:\\n((?:    .*\\n)+)`, 'm'))?.[1] ?? '';
-      return [...block.matchAll(/^ {6}- '(.+)'$/gm)].map((m) => m[1]!);
+      const list = block.match(/^ {4}paths:\n((?: {6}- '.+'\n)+)/m)?.[1] ?? '';
+      return [...list.matchAll(/^ {6}- '(.+)'$/gm)].map((m) => m[1]!);
     };
     // what the published build is made from: a push to main runs (and deploys) only for these
     const build = ['src/**', 'public/**', 'index.html', 'vite.config.ts', 'tsconfig.json', 'package.json', 'package-lock.json', PATH];
