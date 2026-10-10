@@ -1273,6 +1273,38 @@ they are started.
   **Verify:** `npm run test:e2e -- colony`; `npm test -- test/unit/ui`; `npm run check`;
   screenshots of a one-colonist and a large colony in the pull request.
 
+- [x] **R-1014 Europe harbour**
+  Depends on R-1010 (theme tokens and the Fell face) and reuses the goods icons and `drawGood`
+  from R-1013 (`src/ui/goods-art.ts`). Parchment panels over a dark wood frame: the Europe screen
+  (`src/ui/europe-screen.ts`, `europe-model.ts`, the `.europe-*` rules in `src/ui/style.css`)
+  becomes a harbour. The "at sea" and "in port" lanes are a quay drawn in ink on parchment with
+  the ship sprites of `src/ui/unit-art.ts` standing along it, ships bound for the New World facing
+  west and arriving ones east; the docks show waiting colonists as unit sprites; the market is a
+  row of stalls, one per good, each with its icon and bid/ask on a hanging tag, and a ship's cargo
+  is crates on the quay; Recruit, Purchase and Train are three doors with signs; the header shows
+  the capital's name, the Crown's crest, treasury and tax in the Fell face; the monitor line is a
+  harbour-master's note in amber ink. The backdrop is procedural ink (no picture).
+  - Every action reachable before (select ship, sail, buy, sell, recruit, purchase, train, close,
+    keyboard shortcuts R/P/T/Esc) is reachable at the same role and name, so
+    `test/e2e/europe.spec.ts` and `trade.spec.ts` pass unchanged.
+  - Ships, colonists and goods are drawn from the existing palette art; prices update in place on
+    the tags.
+  - The whole screen sits on the R-1010 tokens; focus rings are visible on parchment.
+  - The JS budget (`scripts/check-size.mjs`) still passes.
+  **Verify:** `npm run test:e2e -- europe` and `trade`; `npm run check`; screenshots with a ship
+  in port and with a ship at sea in the pull request.
+  *Built:* the screen is a grid with west on the left: the open water and its two lanes, then the
+  quay with the ships alongside, under them the docks and the wall of the offices, the stalls, and
+  the note at the foot. Water, stone, boards, awnings, tags, crates and doors are CSS gradients on
+  the tokens (`--waves` and `--stone` are set on `.europe-screen`); there is no backdrop picture and
+  no new art. Ships and people are `figureArt`, goods `goodArt` and the crest `flagArt('crown')` on
+  canvases hidden from screen readers, so every button keeps its name. The ship art has the bow to
+  the left, so a ship heading east (coming in, or alongside) is mirrored. `europe-screen.ts` now
+  makes the header, regions, stalls and doors once and writes changes into them: a price is
+  rewritten on the tag of the same stall. `EuropeView` gives the unit type of each ship, passenger
+  and person on the docks. `test/e2e/harbour.spec.ts` covers the pictures, the facing, the kept
+  stalls and the focus ring. Pictures are in `docs/europe/`.
+
 - [x] **R-1015 Reports, encyclopedia, saves and options as parchment pages**
   Depends on R-1010 (theme tokens and the Fell face in `src/ui/style.css`). Parchment panels over
   a dark wood frame, ink text in the Fell face. The report screen (`src/ui/report.ts` and

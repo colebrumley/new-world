@@ -387,33 +387,164 @@ canvas.minimap {
   gap: 12px;
 }
 
-/* --- Europe screen ----------------------------------------------------------------------- */
+/* --- Europe screen (R-1014): a harbour drawn in ink ------------------------------------------
+   West is on the left: the open water with the ships out on it, then the quay with those alongside.
+   Under them the docks and the three doors of the offices, the market's stalls, and at the foot the
+   harbour-master's note. Ships, people and goods are the palette art on canvases; all else is ink. */
 .europe-screen {
+  /* water: a faint wash and rows of little crests, as a chart-maker draws the sea */
+  --water: color-mix(in srgb, var(--ink-active) 9%, transparent);
+  --crest: color-mix(in srgb, var(--ink-active) 34%, transparent);
+  --waves:
+    radial-gradient(circle at 12px 100%, transparent 6px, var(--crest) 6px 7px, transparent 7.5px) 0 0 / 56px 26px,
+    radial-gradient(circle at 26px 100%, transparent 6px, var(--crest) 6px 7px, transparent 7.5px) 0 0 / 56px 26px,
+    radial-gradient(circle at 12px 100%, transparent 6px, var(--crest) 6px 7px, transparent 7.5px) 28px 13px / 56px 26px,
+    radial-gradient(circle at 26px 100%, transparent 6px, var(--crest) 6px 7px, transparent 7.5px) 28px 13px / 56px 26px,
+    linear-gradient(var(--water), var(--water));
+  /* stone: courses of blocks, the joints of one course over the middle of the blocks below */
+  --stone:
+    linear-gradient(var(--ink-rule-faint) 1px, transparent 1px) 0 0 / 100% 12px,
+    linear-gradient(90deg, var(--ink-rule-faint) 1px, transparent 1px) 0 0 / 32px 24px,
+    linear-gradient(90deg, transparent 16px, var(--ink-rule-faint) 16px 17px, transparent 17px) 0 12px / 32px 24px,
+    linear-gradient(var(--ink-wash), var(--ink-wash)),
+    linear-gradient(var(--parchment), var(--parchment));
   position: absolute;
   inset: 0;
   z-index: 8;
   box-sizing: border-box;
-  padding: 5px;
-  display: flex;
-  flex-direction: column;
+  padding: 6px 10px 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 3fr) minmax(0, 4fr);
+  grid-template-rows: auto minmax(min-content, 1fr) auto auto auto;
+  grid-template-areas:
+    'header header header'
+    'sea    harbor harbor'
+    'docks  docks  office'
+    'market market market'
+    'note   note   note';
   gap: 8px;
   font-size: 0.85rem;
   outline: none;
   overflow: auto;
 }
-.europe-header { display: flex; align-items: baseline; gap: 18px; }
-.europe-header h2 { margin: 0; font-size: 1.4rem; }
-.europe-close { margin-left: auto; }
-.europe-screen [data-region] { border: var(--rule); background: var(--wash-light); padding: 6px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.europe-screen h3 { margin: 0 0 2px; flex-basis: 100%; font-size: 0.8rem; color: var(--ink-faded); }
+.europe-screen canvas { image-rendering: pixelated; flex: none; }
 .europe-screen p { margin: 0; }
-.lanes { display: flex; gap: 24px; flex-wrap: wrap; }
-.lane { display: flex; gap: 6px; align-items: center; }
-.europe-ship { display: flex; gap: 4px; align-items: center; border: var(--rule-faint); padding: 3px; }
-.europe-ship-active { border-color: var(--ink-active); }
-.europe-button, .europe-close { padding: 2px 8px; }
-.europe-monitor { min-height: 1.3em; color: var(--ink-amber); }
+.europe-screen h3 { margin: 0; flex: none; font-size: 0.95rem; line-height: 1.1; color: var(--ink-faded); }
+.europe-screen :where([data-region]) { position: relative; min-width: 0; box-sizing: border-box; border: var(--rule); padding: 5px 8px 6px; }
+.europe-screen .empty { color: var(--ink-faded); font-style: italic; }
+
+/* the head of the sheet: the Crown's crest, the capital, and the ledger's two figures */
+.europe-header { grid-area: header; display: flex; align-items: center; gap: 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink-rule); }
+.europe-crest { flex: none; display: flex; overflow: hidden; padding: 2px; background: var(--plate-brass); border: var(--edge-brass); border-radius: 3px 3px 50% 50% / 3px 3px 38% 38%; box-shadow: var(--lift); }
+.europe-crest canvas { margin: -4px 0; }
+.europe-header h2 { margin: 0; font-size: 1.7rem; line-height: 1.1; }
+.europe-gold, .europe-tax { font-family: var(--font-display); letter-spacing: var(--tracking-display); font-size: 1.05rem; padding-left: 12px; border-left: var(--rule); }
+.europe-close { margin-left: auto; background: var(--plate-brass); padding: 4px 16px; }
+.europe-button { padding: 2px 8px; }
+
+/* a token here is its picture first, named on a slip of parchment */
+.europe-screen .token { align-items: center; text-align: center; cursor: pointer; color: var(--ink); }
+.europe-screen :is(.token-carrier, .token-unit) { padding: 0 2px 2px; background: none; border-color: transparent; box-shadow: none; }
+.europe-screen :is(.token-carrier, .token-unit) .token-label { padding: 0 5px; background: var(--parchment-light); border: var(--rule-faint); border-radius: 2px; font-size: 0.78rem; }
+.europe-screen :is(.token-carrier, .token-unit):hover:not(:disabled) { background: none; }
+.europe-screen :is(.token-carrier, .token-unit):hover:not(:disabled) .token-label { background: var(--parchment-shade); border-color: var(--ink-rule); }
+/* the ships are drawn with the bow to the left, heading west: one heading east is turned about */
+.europe-screen .heads-east { transform: scaleX(-1); }
+
+/* out on the water */
+.europe-sea { grid-area: sea; display: flex; flex-direction: column; gap: 4px; background: var(--waves); border-right-style: dashed; }
+.europe-sea h3, .europe-harbor h3 { align-self: flex-start; padding: 0 6px; background: var(--parchment-light); border: var(--rule-faint); border-radius: 2px; }
+.lanes { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.lane { flex: 1; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: flex-end; align-content: flex-start; min-height: 84px; }
+.lane + .lane { border-top: var(--rule-dashed); padding-top: 4px; }
+.lane .row-title { flex: 1 0 100%; font-style: italic; color: var(--ink); }
+.lane .empty { align-self: flex-start; }
+.lane-out { justify-content: flex-start; }
+.lane-in { justify-content: flex-end; }
+.lane-in .row-title { text-align: right; }
+.lane-berth { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.lane-ship { padding: 0 5px; background: var(--parchment-light); border: var(--rule-faint); border-radius: 2px; font-size: 0.78rem; white-space: nowrap; }
+.lane-berth .europe-button { font-size: 0.74rem; padding: 0 6px; }
+
+/* alongside: the water a ship lies in, the quay's edge, and the stones her cargo is set down on */
+.europe-harbor { grid-area: harbor; display: flex; flex-wrap: wrap; align-content: stretch; gap: 4px 8px; padding: 5px 0 0; border-left: none; background: var(--waves); }
+.europe-harbor h3 { flex: 0 0 auto; align-self: flex-start; margin: 0 8px; }
+.europe-harbor::before { content: ''; flex: 1 0 100%; order: 1; height: 0; }
+.europe-harbor > .empty { order: 2; flex: 1 0 100%; align-self: stretch; box-sizing: border-box; margin-top: 64px; padding: 8px; background: var(--stone); border-top: 3px double var(--ink-rule); }
+.europe-ship { order: 2; flex: 1 1 200px; display: flex; flex-direction: column; min-width: 0; }
+.ship-water { display: flex; justify-content: center; padding: 0 6px; }
+.ship-quay { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-end; align-content: flex-start; min-height: 58px; padding: 5px 6px 2px; background: var(--stone); border-top: 3px double var(--ink-rule); }
+.ship-orders { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px 6px 6px; background: var(--stone); }
+.europe-ship-active .token-carrier .token-label { border-color: var(--ink-active); color: var(--ink-active); box-shadow: 0 0 0 1px var(--ink-active); }
+.europe-ship-active .ship-quay { border-top-color: var(--ink-active); }
+/* a crate: boards with a lid, the good's mark on its side and the count chalked under it */
+.europe-screen .token-cargo {
+  padding: 3px 5px 1px; font-size: 0.7rem; border: 1px solid var(--wood); border-radius: 1px;
+  background: repeating-linear-gradient(180deg, transparent 0 10px, color-mix(in srgb, var(--wood) 30%, transparent) 10px 11px), var(--parchment-shade);
+  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--wood) 26%, transparent), 1px 1px 0 var(--shadow);
+}
+.europe-screen .token-cargo:hover:not(:disabled) { background-color: var(--brass-light); }
+.europe-screen .token-cargo .token-label { color: var(--ink-faded); }
+.europe-screen .token-cargo .token-sub { font-size: 0.9rem; color: var(--ink); }
+
+/* the docks: boards, and whoever waits on them */
+.europe-docks {
+  grid-area: docks; display: flex; flex-wrap: wrap; gap: 2px 6px; align-items: flex-end; align-content: flex-start;
+  background: repeating-linear-gradient(90deg, transparent 0 46px, var(--ink-rule-faint) 46px 47px) bottom / 100% 26px no-repeat, linear-gradient(var(--ink-wash), var(--ink-wash)) bottom / 100% 26px no-repeat;
+}
+.europe-docks h3 { flex: 1 0 100%; }
+.europe-docks .token-unit { max-width: 104px; }
+.europe-docks .token-label { white-space: normal; }
+
+/* the offices: three doors in a wall, a signboard hung over each */
+.europe-office { grid-area: office; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: flex-end; justify-content: space-around; background: var(--stone); }
+.europe-office h3 { flex: 1 0 100%; }
+.europe-door { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 2px 4px 0; background: none; border-color: transparent; box-shadow: none; }
+.europe-door:hover:not(:disabled), .europe-door:active:not(:disabled) { background: none; box-shadow: none; }
+.door-sign { position: relative; padding: 1px 8px; background: var(--plate); border: var(--edge-brass); border-radius: 2px; box-shadow: var(--edge-brass-inner), var(--lift); font-family: var(--font-display); letter-spacing: var(--tracking-display); white-space: nowrap; }
+.door-sign::before, .door-sign::after { content: ''; position: absolute; top: -5px; width: 1px; height: 5px; background: var(--ink-rule); }
+.door-sign::before { left: 7px; }
+.door-sign::after { right: 7px; }
+.door-leaf {
+  width: 46px; height: 54px; box-sizing: border-box; border: 2px solid var(--wood-dark); border-bottom-width: 3px; border-radius: 23px 23px 0 0 / 18px 18px 0 0;
+  background: radial-gradient(circle at 78% 60%, var(--brass-light) 0 2px, var(--brass-dark) 2px 3px, transparent 3.5px), repeating-linear-gradient(90deg, transparent 0 9px, var(--wood-dark) 9px 10px), var(--wood-light);
+  box-shadow: 0 0 0 3px var(--parchment-shade), 0 0 0 4px var(--ink-rule);
+}
+.europe-door:hover:not(:disabled) .door-sign { background: var(--parchment-light); }
+.europe-door:hover:not(:disabled) .door-leaf { background-color: var(--wood); border-right-width: 5px; }
+
+/* the market: a stall to a good under a striped awning, its price on a tag hung from the counter */
+.europe-market { grid-area: market; display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 6px 4px; border-style: none; padding: 0; }
+.europe-market h3 { grid-column: 1 / -1; padding-bottom: 2px; border-bottom: var(--rule); }
+.europe-screen .token-good {
+  position: relative; gap: 1px; padding: 12px 1px 4px; font-size: 0.68rem; line-height: 1.05;
+  background: var(--wash-light); border: none; border-radius: 0; box-shadow: inset 1px 0 0 var(--ink-rule), inset -1px 0 0 var(--ink-rule), inset 0 -3px 0 var(--wood-light);
+}
+.europe-screen .token-good::before {
+  content: ''; position: absolute; left: -2px; right: -2px; top: 0; height: 9px; border: 1px solid var(--ink-rule); border-radius: 3px 3px 0 0;
+  background: repeating-linear-gradient(90deg, var(--wax) 0 6px, var(--parchment-light) 6px 12px);
+}
+.europe-screen .token-good:hover:not(:disabled) { background: var(--parchment-light); }
+.europe-screen .token-good .token-label { color: var(--ink-faded); white-space: nowrap; }
+.europe-screen .token-good .token-sub {
+  position: relative; overflow: visible; margin-top: 5px; padding: 0 4px; font-size: 0.82rem; color: var(--ink);
+  background: var(--parchment-light); border: var(--rule); border-radius: 1px 1px 3px 3px; box-shadow: 1px 1px 0 var(--shadow); transform: rotate(-2deg);
+}
+.europe-screen .token-good:nth-child(odd) .token-sub { transform: rotate(1.5deg); }
+.europe-screen .token-good .token-sub::before { content: ''; position: absolute; left: 50%; top: -6px; width: 1px; height: 5px; background: var(--ink-rule); }
+.europe-screen .token-over .token-sub { color: var(--ink-bad); border-color: var(--ink-bad); }
+
+/* the harbour-master's note */
+.europe-monitor { grid-area: note; min-height: 1.3em; padding: 2px 4px 0; border-top: var(--rule-dashed); color: var(--ink-amber); font-style: italic; }
+.europe-monitor:not(:empty)::before { content: 'The harbour-master notes: '; font-family: var(--font-display); font-style: normal; letter-spacing: var(--tracking-display); }
 .empty { color: var(--ink-faded); }
+
+@media (max-width: 760px) {
+  .europe-screen { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'header' 'sea' 'harbor' 'docks' 'office' 'market' 'note'; }
+  .europe-harbor { border-left: var(--rule); }
+  .europe-market { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .europe-gold, .europe-tax { font-size: 0.9rem; padding-left: 8px; }
+}
 
 /* --- combat ------------------------------------------------------------------------------ */
 /* The analysis is a sheet of reckoning (R-1015): the two sides in columns with an ink rule between

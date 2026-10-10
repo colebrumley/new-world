@@ -83,8 +83,8 @@ pixel/tile conversion). `tiles.ts` paints each distinct tile look procedurally a
 pixel size. `render.ts` draws the visible tiles, the chart over what is unexplored, and the pieces; `minimap.ts` draws the New World
 view; `sidebar.ts` builds the information sidebar from a pure `sidebarModel`. `keymap.ts` is the keyboard table (it also generates `docs/KEYS.md`), `pointer.ts` says what a click, a drag from the active unit, a turn of the wheel or a pinch means on the map (pure), `command-bar.ts` is the sidebar's row of buttons, one per map command, each running what its key runs, `magnified.ts` is the notice shown while the page itself is magnified (a pinch), `unit-queue.ts` decides
 which unit asks for orders next, `dialog.ts` is the pop-up question, `europe-model.ts` turns the
-player's side of Europe into plain data and `europe-screen.ts` draws it (sea lanes, harbour, docks,
-market, offices). `colony-model.ts` turns a colony into the plain data its screen shows and
+player's side of Europe into plain data and `europe-screen.ts` draws it as a harbour (ships on the water and at the quay, the docks, the
+market's stalls, the doors of the offices), its parts made once and changes written into them. `colony-model.ts` turns a colony into the plain data its screen shows and
 `colony-screen.ts` draws that as DOM with drag-and-drop and the colony keys. `report.ts` shows an adviser's report built as plain data by a
 function in `reports/` (so far the Continental Congress). `title.ts` and
 `customize.ts` are the opening screens. Panels and dialogs are plain DOM.
