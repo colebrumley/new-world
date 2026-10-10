@@ -214,6 +214,14 @@ describe('the terms a computer power has in Europe', () => {
     expect(validateAction(alone, { type: 'equipInEurope', unitId: 'w', role: 'dragoon' }).ok).toBe(false);
   });
 
+  it('the gun it buys while an armed man waits on the docks costs (10 - level) x 100, from turn 40', () => {
+    const armed = (turn: number): GameState => inEurope(withUnit({ ...with_(base('france'), { gold: 5000 }), turn }, { id: 'g', type: 'soldier', x: 0, y: 0 }), 'g');
+    // conquistador is the third level: (10 - 2) x 100
+    expect(purchasePrice(armed(40), 'a', 'artillery')).toBe(800);
+    expect(purchasePrice(armed(39), 'a', 'artillery')).not.toBe(800);
+    expect(purchasePrice({ ...with_(base('france'), { gold: 5000 }), turn: 40 }, 'a', 'artillery')).not.toBe(800);
+  });
+
   it('a gun built in one of its colonies earns it one in Europe at no cost', () => {
     const s = with_(base('france'), { gold: 0, gunCredit: 1 });
     expect(purchasePrice(s, 'a', 'artillery')).toBe(0);

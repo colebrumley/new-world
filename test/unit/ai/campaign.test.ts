@@ -11,7 +11,7 @@ import { AI_CAMPAIGN } from '../../../src/engine/data/ai';
 import { settlementPopulation } from '../../../src/engine/data/tribes';
 import { checkInvariants } from '../../../src/engine/invariants';
 import { landmassAt } from '../../../src/engine/regions';
-import type { Colonist, Colony, Dealing, GameState, Player, Settlement, Unit } from '../../../src/engine/state';
+import { colonyAt, type Colonist, type Colony, type Dealing, type GameState, type Player, type Settlement, type Unit } from '../../../src/engine/state';
 import { isWater } from '../../../src/engine/tile';
 import { policy } from '../../helpers/policy';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
@@ -225,6 +225,46 @@ describe('when a landing is planned', () => {
   const overseas = (stance: Stance = {}, turn = 160, pops: readonly [number, number] = [7, 1], owner = 'b'): GameState =>
     col(col(col(base(stance, turn), 'home', 2, 4), 'theirs', 14, 4, owner, pops[0]), 'other', 16, 7, owner, pops[1]);
   const why = (s: GameState): string | null => invasionRefusal(s, me(s), s.colonies['theirs'] as Colony);
+
+  it('a landing to settle: beside a rival with under eight colonists on land where we have no colony, or beside a native settlement on such land', () => {
+    // seven colonists on the island, too few to invade: settlers are landed beside the colony instead, priority 2
+    const few = overseas({}, 160, [6, 1]);
+    const asked = invadeRequests(few, me(few));
+    expect(asked.length).toBeGreaterThan(0);
+    expect(asked.every((r) => r.settle === true)).toBe(true);
+    // (2, less 1 on this crowded island)
+    expect(asked.find((r) => r.colonyId === 'theirs')).toMatchObject({ priority: 1, beside: [14, 4] });
+    // with a colony of ours on that land there is nothing to settle beside
+    const there = col(few, 'ours', 17, 1);
+    expect(invadeRequests(there, me(there))).toEqual([]);
+    // a native settlement alone on an island we have not settled draws one too
+    const camp = withVillage(col(base({}, 160), 'home', 2, 4), village(15, 4), 0);
+    expect(invadeRequests(camp, me(camp))).toMatchObject([{ settle: true, priority: 2, colonyId: '', beside: [15, 4] }]);
+    // a full ship of pioneers takes it, though a landing to fight would need troops; and off the beach settlers go ashore
+    const beach = invadeRequests(camp, me(camp))[0]!;
+    expect(invasionFor(camp, me(camp), 12, 2, false)).toEqual(beach);
+    let off = withUnit(camp, { id: 'ship', type: 'caravel', profession: null, x: beach.x, y: beach.y });
+    off = withUnit(off, { id: 'r1', x: beach.x, y: beach.y, aboard: 'ship' });
+    expect(landingStep(off, u(off, 'r1'), u(off, 'ship'), me(off))).toMatchObject({ type: 'moveUnit', unitId: 'r1' });
+  });
+
+  it('a landing to settle is not for guns alone: a ship with only artillery takes them to a colony; with somebody aboard who can found she takes the landing', () => {
+    // (a second colony of ours on the east shore, which a ship can reach)
+    const camp = withVillage(col(col(base({}, 160), 'home', 2, 4), 'port', 10, 4), village(15, 4), 0);
+    const beach = invadeRequests(camp, me(camp))[0]!;
+    const laden = (second: Unit['type'], x: number): GameState => {
+      let s = withUnit(camp, { id: 'ship', type: 'caravel', profession: null, x, y: 2 });
+      s = withUnit(s, { id: 'r1', type: 'artillery', profession: null, x, y: 2, aboard: 'ship' });
+      return withUnit(s, { id: 'r2', type: second, profession: second === 'artillery' ? null : 'freeColonist', x, y: 2, aboard: 'ship' });
+    };
+    // nobody aboard can found: no landing; the guns are carried to one of our colonies
+    expect(invasionFor(camp, me(camp), 12, 2, true, false)).toBeNull();
+    const guns = policy(laden('artillery', 12)) as { type: string; unitId: string; x: number; y: number };
+    expect(guns).toMatchObject({ type: 'goTo', unitId: 'ship' });
+    expect(colonyAt(camp, guns.x, guns.y)?.owner).toBe('a');
+    // with somebody aboard who can found, the same ship takes the landing
+    expect(invasionFor(camp, me(camp), 12, 2, true, true)).toEqual(beach);
+  });
 
   it('beside a colony of a power not at firm peace that has more colonies than us on the landmass and eight colonists there', () => {
     expect(why(overseas())).toBeNull();

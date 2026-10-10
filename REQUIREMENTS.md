@@ -923,8 +923,7 @@ Legend:
   unit attacks at scaled odds under 12, and the R-802 sim still passes.
   *Built:* `src/ai/campaign.ts` (docs/RULES.md "Computer powers: campaigns"). The R-802 rules for war, reprisal (by temperament) and unprovoked conquest are gone.
   Defenders wanted per colony is the count in docs/RULES.md "Computer powers: arming and taking
-  in colonists". Not built: the cost weighting of the odds, the "settle beside a rival" landings and
-  the early exemption of unseen human colonies. Later additions: founding and joining
+  in colonists". Later additions: founding and joining
   (`src/ai/settle.ts`), a colony arming its own people (`src/ai/muster.ts`), upkeep of a colony
   (`src/engine/computer.ts`), supplies by ship (`src/ai/supply.ts`) and the docks in Europe.
 

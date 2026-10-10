@@ -1492,8 +1492,14 @@ Numbers are `AI_CAMPAIGN` and `AI_NATIVE_WAR` in `src/engine/data/ai.ts`.
   troops. Troops board only when enough of them are spare to fill the transport and an invasion
   is within its reach, so that the ship sails at once.
 - A ship makes no landing until the power has two colonies.
-- Not built: "settle beside a rival" landings (a transport request where the planner has
-  no colony on a thinly peopled landmass).
+- **Landings to settle.** Where the planner has no colony on a landmass, it also plans a
+  landing beside a rival's colony there whose owner has fewer than 8 colonists on that land
+  (priority 2, with the same additions as an invasion), and beside any native settlement on
+  such land that no other landing is planned for (priority 2). The beach is chosen as for an
+  invasion. A full ship carrying a pioneer answers it as a troop ship answers an invasion; a
+  ship with troops answers either kind, but one to settle only with somebody aboard who can
+  found a colony (guns alone are carried to a colony instead). Off the beach the troops and
+  the settlers aboard step ashore, and found a colony by the ordinary search.
 
 ### Computer powers: founding and joining
 
@@ -1558,6 +1564,8 @@ Numbers are `AI_SETTLE`, `AI_MUSTER`, `AI_SITE`, `AI_SCOUT` and `AI_PIONEER` in
   land with no unit or colony of the power's within 2 squares, + 2 for each land square around
   it the power has not seen and - 2 for each square around it with a unit on it. It speaks
   with a chief only where nobody's scout has yet spoken with him (see "missions").
+  A scout also likes to keep the way it last went: a step that turns from it by t eighths of a
+  circle (4 at most) scores 2 x t x t less.
 - **Pioneers in the field.** A pioneer away from the power's colonies who is not to found
   one goes home on quiet land. Otherwise he lays a road where he stands, unless the nearest
   native settlement is within its people's land (1 square, 2 for the third level of
@@ -1765,7 +1773,8 @@ fleet test of "the treasury and the fleet".
   piece in Europe at no cost: while it is owed one, the price of artillery is 0, and a gun so
   had does not raise the price of the next.
 - A lot of goods is bought only when the power can pay its price.
-- Not built: an artillery price of (10 - level) x 100.
+- The gun bought while an armed man waits (step 4) costs (10 - level) x 100, whatever the
+  price of artillery otherwise.
 
 ### Computer powers: freight
 
@@ -1801,8 +1810,12 @@ Numbers are `AI_FREIGHT` and `AI_RESERVE` in `src/engine/data/ai.ts`.
   has an armory or makes tools or muskets. The export flags are not consulted, and a warship
   near by stops nothing.
 - A ship's "one turn in 32" goes by her id.
-- Not built: adding the turns since a ship last called to a port's value; the wait of small
-  ships in a blockaded port.
+- **Blockade.** A caravel or merchantman lying in a port of her power with a foreign frigate
+  or man-of-war within 5 squares counts the turns she has lain so; she neither loads nor
+  leaves until that count reaches 10 less her holds (8 turns for a caravel, 6 for a
+  merchantman); a standing Go To order waits with her. The count starts again when no such
+  ship is near.
+- Not built: adding the turns since a ship last called to a port's value.
 
 ### Foreign Affairs report (R-803)
 

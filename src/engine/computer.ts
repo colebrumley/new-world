@@ -6,7 +6,7 @@ import { addGoods } from './cargo';
 import { NEIGHBORS, coloniesOf } from './colony';
 import type { CustomHouseEvent } from './custom-house';
 import { settlementAlarm, tribalAlarm } from './alarm';
-import { AI_MUSTER, AI_NATIVE_WAR, AI_RESERVE, AI_UPKEEP } from './data/ai';
+import { AI_FREIGHT, AI_MUSTER, AI_NATIVE_WAR, AI_RESERVE, AI_UPKEEP } from './data/ai';
 import { chainLevel } from './data/buildings';
 import { TRADE_IDS, TRADES } from './data/production';
 import { PROFESSION_IDS, PROFESSIONS, UNSKILLED, type ProfessionId } from './data/professions';
@@ -300,7 +300,16 @@ export function computerColonies(state: GameState, playerId: PlayerId, events: (
     while (reserve.muskets + 1 < Math.trunc(reserve.horses / AI_RESERVE.lot)) reserve = { muskets: reserve.muskets + 1, horses: reserve.horses - AI_RESERVE.lot };
     while (Math.trunc(reserve.horses / AI_RESERVE.lot) + 1 < reserve.muskets) reserve = { muskets: reserve.muskets - 1, horses: reserve.horses + AI_RESERVE.lot };
   }
-  return { ...state, colonies, map: tiles === state.map.tiles ? state.map : { ...state.map, tiles }, players: state.players.map((p) => (p.id === playerId ? { ...p, gold, taxRate, ...(tribeWars.length > 0 ? { tribeWars } : {}), ...(reserve.muskets > 0 || reserve.horses > 0 || p.reserve ? { reserve } : {}) } : p)) };
+  // each of its ships lying in one of its ports with a foreign frigate near counts another turn of waiting
+  let units = state.units;
+  for (const u of Object.values(state.units)) {
+    if (u.owner !== playerId || UNIT_TYPES[u.type].domain !== 'sea' || u.voyage !== null) continue;
+    const port = colonyAt(state, u.x, u.y);
+    const beset = port !== null && port.owner === playerId && Object.values(state.units).some((f) => f.owner !== playerId && (f.type === 'frigate' || f.type === 'manOWar') && f.voyage === null && reach(f.x, f.y, u.x, u.y) <= AI_FREIGHT.blockadeRange);
+    const turns = beset ? (u.blockaded ?? 0) + 1 : 0;
+    if (turns !== (u.blockaded ?? 0)) units = { ...units, [u.id]: { ...u, blockaded: turns } };
+  }
+  return { ...state, units, colonies, map: tiles === state.map.tiles ? state.map : { ...state.map, tiles }, players: state.players.map((p) => (p.id === playerId ? { ...p, gold, taxRate, ...(tribeWars.length > 0 ? { tribeWars } : {}), ...(reserve.muskets > 0 || reserve.horses > 0 || p.reserve ? { reserve } : {}) } : p)) };
 }
 
 // --- defenders ------------------------------------------------------------------------------------
@@ -353,6 +362,18 @@ export function defendersFor(state: GameState, colony: Colony): number {
   if (state.crownPlayer !== null) wanted += 1;
   if (threat.adjacent && people > 1) wanted = Math.max(wanted, 1);
   return Math.max(0, wanted);
+}
+
+/**
+ * Is this ship of a computer power kept in port by a blockade? A caravel or merchantman lying
+ * in one of its power's colonies with a foreign frigate near, until she has lain there ten
+ * turns less her holds. She neither loads, nor leaves, nor carries on with a standing order.
+ */
+export function heldByBlockade(state: GameState, ship: Unit): boolean {
+  if (!(AI_FREIGHT.blockadeHolds as readonly string[]).includes(ship.type) || ship.voyage !== null) return false;
+  if (state.players.find((p) => p.id === ship.owner)?.kind !== 'ai' || colonyAt(state, ship.x, ship.y)?.owner !== ship.owner) return false;
+  const waited = ship.blockaded ?? 0;
+  return waited > 0 && AI_FREIGHT.blockadeWait - UNIT_TYPES[ship.type].holds > waited;
 }
 
 /**

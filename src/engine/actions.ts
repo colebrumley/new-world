@@ -40,6 +40,7 @@ import { SPECIALISTS, type ProfessionId } from './data/professions';
 import { UNIT_TYPES, type UnitTypeId } from './data/units';
 import { GOOD_IDS, type GoodId } from './data/goods';
 import { assignJob, checkAssign, type JobErrorCode } from './jobs';
+import { heldByBlockade } from './computer';
 import { EUROPE_BOUND, advanceGoto, boundForEurope, executeMove, isShipUnit, laneFor, planMove, turnMoves, routeFor, type MoveChoices, type MoveErrorCode, type MoveEvent } from './movement';
 import {
   bidPrice, buyGoods, checkBuyGoods, checkPayBackTaxes, checkSellGoods, evaluateMarket, payBackTaxes, sellGoods,
@@ -682,6 +683,8 @@ function unitPhase(state: GameState, playerId: PlayerId, events: GameEvent[]): G
   events.push(...trade);
   for (const u of Object.values(next.units)) {
     if (u.owner !== playerId || u.orders !== 'goto' || u.voyage) continue;
+    // (a computer power's small ship waiting out a blockade in port does not sail on)
+    if (heldByBlockade(next, u)) continue;
     const advanced = carryOn(next, u.id);
     next = advanced.state;
     events.push(...advanced.events);

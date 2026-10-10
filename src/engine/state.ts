@@ -249,6 +249,10 @@ export interface Unit {
   /** Gold a treasure train carries (0 for everything else). */
   readonly treasure: number;
   readonly voyage: Voyage | null;
+  /** A computer power's scout: the way it last stepped, 0 north round to 7 north-west. */
+  readonly heading?: number;
+  /** A computer power's ship: turns she has lain in one of its ports with a foreign frigate near. */
+  readonly blockaded?: number;
 }
 
 export interface Voyage {

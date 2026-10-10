@@ -127,4 +127,30 @@ describe('where an empty ship goes', () => {
     expect(bound(pair, true)).toBe(true);
     expect(bound(pair, false)).toBe(false);
   });
+
+  it('a small ship in a port beset by a foreign frigate lies there until she has waited ten turns less her holds', () => {
+    // furs in the warehouse that she would otherwise load
+    const beset = (waited: number): GameState => {
+      const s = ship(col(base(), 'home', 4, { furs: 100 }), 3, 4);
+      return { ...s, units: { ...s.units, ship: { ...u(s, 'ship'), blockaded: waited } } };
+    };
+    // a caravel has two holds: she waits while eight is more than the turns she has lain there
+    expect(policy(beset(7))).toEqual({ type: 'endTurn' });
+    expect(policy(beset(8))).toMatchObject({ type: 'loadCargo', good: 'furs' });
+    expect(policy(beset(0))).toMatchObject({ type: 'loadCargo', good: 'furs' });
+  });
+
+  it('a standing Go To order does not take a small ship out of a beset port either', () => {
+    // a caravel under orders for a square up the coast, stopped in her own port with a foreign frigate three squares off, on the human's turn
+    let s = ship(col(base(), 'home', 4), 3, 4);
+    s = { ...s, current: 1, units: { ...s.units, ship: { ...u(s, 'ship'), orders: 'goto', destination: [2, 1] } } };
+    s = withUnit(s, { id: 'foe', owner: 'b', type: 'frigate', profession: null, x: 1, y: 2 });
+    // b ends its turn: a's turn begins, the wait is counted, and she stays where she is
+    const begun = applyAction(s, { type: 'endTurn' }).state;
+    expect(begun.current).toBe(0);
+    expect(u(begun, 'ship')).toMatchObject({ x: 3, y: 4, blockaded: 1, orders: 'goto' });
+    // without the frigate she sails on at once
+    const free = applyAction({ ...s, units: { ship: u(s, 'ship') } }, { type: 'endTurn' }).state;
+    expect([u(free, 'ship').x, u(free, 'ship').y]).not.toEqual([3, 4]);
+  });
 });

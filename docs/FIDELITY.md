@@ -353,3 +353,7 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-802 | a pioneer's roads in the field | a road where he stands, not on a calm people's land (1 / 1 / 2 / 3 squares by level, alarm under 75) nor within 3 squares of a rival's colony when that is nearest; home on quiet land (`AI_PIONEER`) | — | high for the tests, medium for when he goes home | |
 | R-205 | Go To menu for ships | Europe listed first when the ship's waters reach a Sea Lane; refused during the War of Independence | — | high | entry reads "Europe" |
 | R-205 | Go To Europe order | nearest reachable Sea Lane square, then sail with moves in hand | ours | low | |
+| R-807 | landings to settle | beside a rival with under 8 colonists, or a native settlement, on land where the power has no colony; priority 2; answered by a full ship with a pioneer or troops | — | high for the requests, medium for what happens ashore | |
+| R-802 | a small ship's wait in a blockaded port | 10 less her holds turns, with a foreign frigate within 5 | — | high | when the count starts again is our own choice: when no frigate is near |
+| R-802 | the gun bought on the docks while an armed man waits | (10 - level) x 100, from turn 40 | — | high | |
+| R-802 | a scout keeps its heading | a step turning t eighths from its last scores 2 x t x t less | — | high | |

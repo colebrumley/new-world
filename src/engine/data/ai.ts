@@ -127,6 +127,8 @@ export const AI_CAMPAIGN = {
   invadeColonistsFrom: 8,
   /** Priority: this, more against the human and at war, less on a landmass with more than one European colony to `crowdedPer` squares, doubled before turn `doubledBefore`. */
   invadePriority: 3,
+  /** A landing to settle (beside a rival with fewer than that many colonists on land where the power has no colony, or beside a native settlement on such land) starts from this. */
+  settlePriority: 2,
   invadeHumanBonus: 1,
   /** ...and one more for each of these sizes his landmass reaches, where every European colony on it is his. */
   invadeAloneFrom: [16, 64],
@@ -415,6 +417,9 @@ export const AI_RESERVE = {
   /** The second artillery: for a power whose largest ship in port has this many holds, from this turn. */
   artilleryHolds: 6,
   artilleryFromTurn: 40,
+  /** That gun costs (this - level) x `artilleryPriceTimes`. */
+  artilleryPriceBase: 10,
+  artilleryPriceTimes: 100,
 } as const;
 
 // What a computer power's ships load in its colonies and where empty ones go;
@@ -436,6 +441,10 @@ export const AI_FREIGHT = {
   /** A frigate carries goods only while the fleet's holds, less this many for each frigate and one for each privateer, are under the second number. */
   frigateHolds: 3,
   transportsEnough: 4,
+  /** A ship smaller than a galleon, in a port of its power with a foreign frigate within `blockadeRange`, lies there until she has waited `blockadeWait` less her holds turns. */
+  blockadeRange: 5,
+  blockadeWait: 10,
+  blockadeHolds: ['caravel', 'merchantman'],
   /** A ship with nothing to fetch, not the Europe ship, sails for Europe one turn in this many. */
   homeEvery: 32,
 } as const;
@@ -524,6 +533,8 @@ export const AI_SCOUT = {
   ahead: 4,
   emptyAhead: 8,
   unseen: 2,
+  /** Turning from the way it last went costs this times the square of the turn (in eighths of a circle, four at most). */
+  turning: 2,
 } as const;
 
 export const AI_PIONEER = {

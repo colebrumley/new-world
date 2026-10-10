@@ -10,6 +10,7 @@
 // Its wagon trains, missionaries, warships and campaigns are in the modules beside this one.
 import { applyAction, validateAction, type Action, type GameEvent } from '../engine/actions';
 import { holdsFree } from '../engine/cargo';
+import { heldByBlockade } from '../engine/computer';
 import { landmassAt } from '../engine/regions';
 import { coloniesOf, checkColonySite } from '../engine/colony';
 import { AI_DOCKS, AI_FLEET, AI_MUSTER, AI_PIONEER, AI_PLAN, AI_RESERVE, AI_SCOUT, AI_SETTLE, AI_SUPPLY } from '../engine/data/ai';
@@ -367,6 +368,8 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
   // pioneers waiting on the quay to go with her count as her passengers already
   const waitingPioneers = port ? Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && u.type === 'pioneer') : [];
   const riders = [...Object.values(state.units).filter((u) => u.aboard === ship.id), ...waitingPioneers];
+  // a small ship in a port beset by a foreign frigate lies there a while before she ventures out
+  if (heldByBlockade(state, ship)) return null;
   // then she loads what the colony has to send, a hold at a time, keeping room for those waiting to board
   if (port && !done.has(`#laden:${ship.id}`) && mayLoad(state, player, ship)) {
     const boarding = Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && !isShip(u)).length;
@@ -379,8 +382,13 @@ function shipAction(state: GameState, ship: Unit, player: Player, mine: readonly
   if (riders.some((r) => landingStep(state, r, ship, player) !== null)) return null;
   // a full ship with soldiers aboard (or waiting on the quay to board as she sails) may make a landing beside a rival colony
   const quay = colonyAt(state, ship.x, ship.y)?.owner === player.id ? Object.values(state.units).filter((u) => u.owner === player.id && u.x === ship.x && u.y === ship.y && u.aboard === null && u.orders === 'sentry' && isTroop(u)) : [];
-  if (mine.length >= AI_PLAN.coloniesBeforeGarrison && (riders.some(isTroop) || quay.length > 0) && isFull(state, ship, quay.length)) {
-    const landing = invasionFor(state, player, ship.x, ship.y);
+  // (with pioneers and no troops she makes only a landing to settle; a warship makes neither kind for settlers)
+  const armed = riders.some(isTroop) || quay.length > 0;
+  const pioneering = !isWarship(ship) && riders.some((r) => r.type === 'pioneer' && r.aboard === ship.id);
+  if (mine.length >= AI_PLAN.coloniesBeforeGarrison && (armed || pioneering) && isFull(state, ship, quay.length)) {
+    // (a landing to settle is for a party with somebody in it who can found a colony: guns alone would be left on the beach)
+    const founders = [...riders, ...quay].some((r) => UNIT_TYPES[r.type].colonistRole && r.type !== 'missionary');
+    const landing = invasionFor(state, player, ship.x, ship.y, armed, founders);
     if (landing && (landing.x !== ship.x || landing.y !== ship.y)) {
       const go: Action = { type: 'goTo', unitId: ship.id, x: landing.x, y: landing.y };
       if (ok(state, go)) return go;
@@ -553,7 +561,7 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
       // with nothing to do in a quiet region, troops enough to fill a transport in port go aboard for a landing elsewhere
       const spare = Object.values(state.units).filter((u) => u.owner === player.id && u.x === unit.x && u.y === unit.y && u.aboard === null && isTroop(u) && !garrisons(state, player).has(u.id));
       const transport = Object.values(state.units).find((u) => u.owner === player.id && u.x === unit.x && u.y === unit.y && isShip(u) && u.repair === 0 && UNIT_TYPES[u.type].holds > 0 && u.type !== 'privateer' && holdsFree(state, u) > 0 && holdsFree(state, u) <= spare.length);
-      const board = !request && transport !== undefined && isQuiet(state, player, landmassAt(state.map, unit.x, unit.y)) && invasionFor(state, player, unit.x, unit.y) !== null;
+      const board = !request && transport !== undefined && isQuiet(state, player, landmassAt(state.map, unit.x, unit.y)) && invasionFor(state, player, unit.x, unit.y, true, UNIT_TYPES[unit.type].colonistRole) !== null;
       if (board !== (unit.orders === 'sentry')) return { type: 'setOrders', unitId: unit.id, orders: board ? 'sentry' : 'none' };
       return null;
     }
@@ -600,6 +608,11 @@ function landAction(state: GameState, unit: Unit, player: Player, mine: readonly
         if (!q) continue;
         if (!isWater(q) && !isExploredBy(q, seat)) score += AI_SCOUT.unseen;
         if (Object.values(state.units).some((u) => u.voyage === null && u.x === px + ex && u.y === py + ey)) score -= AI_SCOUT.unseen;
+      }
+      // it likes to keep the way it was going
+      if (unit.heading !== undefined && unit.heading >= 0) {
+        const turn = Math.abs(unit.heading - d);
+        score -= AI_SCOUT.turning * Math.min(turn, 8 - turn) ** 2;
       }
       if (score > top) {
         top = score;
