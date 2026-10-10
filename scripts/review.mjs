@@ -13,7 +13,8 @@ import { join, resolve } from 'node:path';
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim();
 const top = git('rev-parse', '--show-toplevel');
 const common = resolve(git('rev-parse', '--git-common-dir'));
-const base = process.argv[process.argv.indexOf('--base') + 1] ?? 'origin/main';
+const baseAt = process.argv.indexOf('--base');
+const base = baseAt > 0 ? (process.argv[baseAt + 1] ?? 'origin/main') : 'origin/main';
 const branch = git('branch', '--show-current') || 'detached';
 const head = git('rev-parse', '--short', 'HEAD');
 
