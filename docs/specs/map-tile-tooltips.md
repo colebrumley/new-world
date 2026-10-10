@@ -1,6 +1,6 @@
 # Map tile tooltips: spec for R-1018 to R-1020
 
-Written by `/plan` on 2026-10-10. Status: approved.
+Written by `/plan` on 2026-10-10. Status: built.
 
 **The request, in the owner's words:** "I want to add tooltip popups about map tiles when you hover
 over them. Some of the special features are hard to discern what they are." A resource is a
