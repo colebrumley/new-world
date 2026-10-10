@@ -6,6 +6,7 @@ import { MOVEMENT } from './data/movement';
 import { SIGHT } from './data/sight';
 import { UNIT_TYPES } from './data/units';
 import { revealAround, sightRadius } from './explore';
+import type { NavalEvent } from './naval';
 import { findPath, type Path } from './path';
 import { createRng } from './rng';
 import {
@@ -370,11 +371,18 @@ export function laneFor(state: GameState, ship: Unit): readonly [number, number]
 }
 
 /**
+ * Applied after every step a ship sails under standing orders, as it is after a manual step:
+ * the zone of patrol and the forts it passes may hold it up (naval.ts). It is passed in so that
+ * movement need not depend on the naval rules.
+ */
+export type SailWatch = (state: GameState, shipId: UnitId, events: NavalEvent[]) => GameState;
+
+/**
  * Move a unit with a Go To order as far along its route as this turn allows. A ship bound for
  * Europe is brought to the Sea Lane and left there under orders; setting sail is the caller's.
  */
-export function advanceGoto(state: GameState, unitId: UnitId): { state: GameState; events: MoveEvent[] } {
-  const events: MoveEvent[] = [];
+export function advanceGoto(state: GameState, unitId: UnitId, watch: SailWatch): { state: GameState; events: (MoveEvent | NavalEvent)[] } {
+  const events: (MoveEvent | NavalEvent)[] = [];
   let next = state;
   for (let guard = 0; guard < 64; guard++) {
     const unit = next.units[unitId];
@@ -407,6 +415,15 @@ export function advanceGoto(state: GameState, unitId: UnitId): { state: GameStat
     next = outcome.state;
     events.push(...outcome.events);
     if (!outcome.moved) break;
+    if (check.plan.kind === 'sail') next = sailWatched(next, unitId, watch, events);
   }
   return { state: next, events };
+}
+
+/** A ship that has sailed a step may be held up by what it passes; its loss shows in the next step's plan. */
+export function sailWatched(state: GameState, shipId: UnitId, watch: SailWatch, events: { push(...items: NavalEvent[]): number }): GameState {
+  const held: NavalEvent[] = [];
+  const next = watch(state, shipId, held);
+  events.push(...held);
+  return next;
 }
