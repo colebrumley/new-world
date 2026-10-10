@@ -200,6 +200,7 @@ test('End turn ends the turn while a Go To square is being picked, and Go to rea
 
   // Cancel gives the targeting up and orders nothing
   await command(page, 'goTo').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Pick a square on the map' }).click();
   await expect(canvas).toHaveAttribute('data-mode', 'goto');
   await expect(command(page, 'goTo')).toHaveText('Cancel');
   await page.mouse.move(box.x + far.x, box.y + far.y);
@@ -211,6 +212,7 @@ test('End turn ends the turn while a Go To square is being picked, and Go to rea
 
   // End turn with a destination under the pointer: the turn ends and the ship has not been sent anywhere
   await command(page, 'goTo').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Pick a square on the map' }).click();
   await page.mouse.move(box.x + far.x, box.y + far.y);
   await expect(field(page, 'location')).toHaveText(`(${start.x - 3}, ${start.y + 1})`);
   await command(page, 'endTurn').click();
@@ -249,6 +251,7 @@ test('the destination marker stays under the pointer while the view scrolls bene
   };
 
   await command(page, 'goTo').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Pick a square on the map' }).click();
   await expect(canvas).toHaveAttribute('data-mode', 'goto');
   // rest at the left edge: the view scrolls west, and the cursor goes with the pointer
   const before = await viewOf(canvas);
