@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { field, foundJamestown, settled } from './helpers';
+import { field, foundJamestown, settled, startNewGame } from './helpers';
 
 interface ViewData {
   zoom: number;
@@ -32,7 +32,7 @@ test('a colony is founded and the turn ended with the mouse alone', async ({ pag
   // any key press fails the test: this game is played without the keyboard
   await page.addInitScript(() => window.addEventListener('keydown', (event) => { document.documentElement.dataset['keyUsed'] = event.key; }, true));
   await page.goto('/?seed=7');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   const canvas = page.locator('canvas.map');
   await expect(field(page, 'unit')).toHaveText('Caravel');
   await expect(field(page, 'location')).toHaveText('(35, 21)');
@@ -121,7 +121,7 @@ test('a colony is founded and the turn ended with the mouse alone', async ({ pag
 
 test('dragging from the active unit sends it there; dragging from elsewhere pans', async ({ page }) => {
   await page.goto('/?seed=7');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   const canvas = page.locator('canvas.map');
   await expect(field(page, 'unit')).toHaveText('Caravel');
   const box = (await canvas.boundingBox())!;
@@ -161,7 +161,7 @@ test('dragging from the active unit sends it there; dragging from elsewhere pans
 
 test('the wheel zooms about the pointer, and the Go To cursor follows it', async ({ page }) => {
   await page.goto('/?reveal');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   const canvas = page.locator('canvas.map');
   await expect(canvas).toHaveAttribute('data-view', /tileSize/);
   expect((await viewOf(canvas)).zoom).toBe(3);
@@ -191,7 +191,7 @@ test('the wheel zooms about the pointer, and the Go To cursor follows it', async
 
 test('End turn ends the turn while a Go To square is being picked, and Go to reads Cancel meanwhile', async ({ page }) => {
   await page.goto('/?seed=7');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   const canvas = page.locator('canvas.map');
   await expect(field(page, 'unit')).toHaveText('Caravel');
   const start = await spot(page);
@@ -225,7 +225,7 @@ test('End turn ends the turn while a Go To square is being picked, and Go to rea
 
 test('in view mode a click on the active unit gives it back the orders', async ({ page }) => {
   await page.goto('/?seed=7');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   const canvas = page.locator('canvas.map');
   await expect(field(page, 'unit')).toHaveText('Caravel');
   const start = await spot(page);
@@ -240,7 +240,7 @@ test('in view mode a click on the active unit gives it back the orders', async (
 
 test('the destination marker stays under the pointer while the view scrolls beneath it', async ({ page }) => {
   await page.goto('/?reveal');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   const canvas = page.locator('canvas.map');
   await expect(canvas).toHaveAttribute('data-view', /tileSize/);
   const box = (await canvas.boundingBox())!;
@@ -274,7 +274,7 @@ test('the destination marker stays under the pointer while the view scrolls bene
 
 test('a drag orders the unit it began on, and is dropped if another has become the active one', async ({ page }) => {
   await page.goto('/?seed=7');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   const canvas = page.locator('canvas.map');
   await expect(field(page, 'unit')).toHaveText('Caravel');
   const dialog = page.getByRole('dialog');
@@ -323,7 +323,7 @@ test('a drag orders the unit it began on, and is dropped if another has become t
 test('at 1024x640 the sidebar keeps what the game says in sight', async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 640 });
   await page.goto('/?seed=7');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   await expect(field(page, 'unit')).toHaveText('Caravel');
   await command(page, 'road').click();
   const status = field(page, 'status');
@@ -339,7 +339,7 @@ test('at 1024x640 the sidebar keeps what the game says in sight', async ({ page 
 
 test("a pinch and the browser's zoom keys zoom the map", async ({ page }) => {
   await page.goto('/?reveal');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   const canvas = page.locator('canvas.map');
   await expect(canvas).toHaveAttribute('data-view', /tileSize/);
   const zoom = async (): Promise<number> => (await viewOf(canvas)).zoom;

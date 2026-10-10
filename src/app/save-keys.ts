@@ -4,6 +4,9 @@ export const AUTOSAVE_KEY = 'new-world:autosave';
 export const SLOT_COUNT = 10;
 export const DECADE_SLOT = 8;
 export const LAST_TURN_SLOT = 9;
+/** The power last chosen for a new game, and the name last given under each power (a JSON object by nation). */
+export const LAST_POWER_KEY = 'new-world:last-power';
+export const LAST_NAME_KEY = 'new-world:last-name';
 
 /** The key of a slot; the last slot is the autosave of the game in play. */
 export const slotKey = (index: number): string => (index === LAST_TURN_SLOT ? AUTOSAVE_KEY : `new-world:slot:${index}`);

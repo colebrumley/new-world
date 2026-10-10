@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
-import { field } from './helpers';
+import { field, startNewGame } from './helpers';
 
 async function start(page: Page): Promise<void> {
   await page.goto('/?seed=11');
-  await page.getByRole('menuitem', { name: 'Start a Game in New World' }).click();
+  await startNewGame(page);
   await expect(field(page, 'unit')).toHaveText('Caravel');
 }
 
@@ -58,7 +58,7 @@ test('tutorial hints go to the log, once, and stop when switched off', async ({ 
   await page.keyboard.press('Escape');
   await page.reload();
   await page.goto('/?seed=12');
-  await page.getByRole('menuitem', { name: 'Start a Game in New World' }).click();
+  await startNewGame(page);
   await expect(field(page, 'unit')).toHaveText('Caravel');
   await expect(log.locator('li')).toHaveCount(0);
 });
@@ -178,7 +178,7 @@ test('the level is chosen on the title screen and the game starts at it', async 
   await expect(page.locator('.title-difficulty-note')).toContainText('Conquistador: 0 gold');
   await level.selectOption('discoverer');
   await expect(page.locator('.title-difficulty-note')).toContainText('Discoverer: 1000 gold');
-  await page.getByRole('menuitem', { name: 'Start a Game in New World' }).click();
+  await startNewGame(page);
   await expect(field(page, 'unit')).toHaveText('Caravel');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('new-world:autosave')!).state as { difficulty: string; players: { gold: number; ref: { regulars: number } }[] });
   expect(saved.difficulty).toBe('discoverer');

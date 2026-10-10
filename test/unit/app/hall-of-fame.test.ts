@@ -5,9 +5,9 @@ import { scoreReport } from '../../../src/ui/reports/score';
 import { withColony, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~', '~....~', '~....~', '~~~~~~'];
-const game = (gold = 0): GameState => {
+const game = (gold = 0, name = 'Player'): GameState => {
   const s = withColony(world({ rows: ROWS, seed: 9, players: [{ id: 'a', fathers: ['adamSmith', 'peterMinuit'] }] }), { id: 'col', x: 2, y: 1, name: 'C', sol: { n: 60, d: 200 } });
-  return { ...s, turn: 508, players: s.players.map((p) => ({ ...p, gold })), over: { reason: 'retired', turn: 508, player: 'a' } };
+  return { ...s, turn: 508, players: s.players.map((p) => ({ ...p, gold, name })), over: { reason: 'retired', turn: 508, player: 'a' } };
 };
 const entry = (change: Partial<HallEntry>): HallEntry => ({ game: 'g', leader: 'L', nation: 'england', declared: false, won: false, date: 'Spring 1800', difficulty: 'conquistador', score: 100, rating: 3, rank: 2, ...change });
 
@@ -18,6 +18,11 @@ describe('a Hall of Fame entry', () => {
       game: '9:508:retired', leader: 'Walter Raleigh', nation: 'england', declared: false, won: false, date: 'Spring 1800', difficulty: 'conquistador', score: 192, rating: 5, rank: 4,
     });
     expect(entryFor(game(), 'nobody')).toBeNull();
+  });
+
+  it("records the human's own name; a player named only Player (an older save) is entered as the leader", () => {
+    expect(entryFor(game(0, 'Cortes'), 'a')?.leader).toBe('Cortes');
+    expect(entryFor(game(0, 'Player'), 'a')?.leader).toBe('Walter Raleigh');
   });
 });
 

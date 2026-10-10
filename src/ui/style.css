@@ -1076,6 +1076,56 @@ body:has(#app > .title-screen) > .frontispiece { display: block; }
 }
 .customize-buttons button { padding: 0.35rem 1.4rem; }
 
+/* Choose a European Power (R-1017): the same frame, a sheet wide enough for four rows of cards. */
+.power .cartouche { width: min(34rem, 100%); gap: 0.5rem; }
+.power .cartouche h1 { font-size: 2.1rem; }
+.power-list { align-self: stretch; display: flex; flex-direction: column; }
+/* a row is a radio button set as a card: the flag, the name over the leader and port, the strength; ink rules between */
+.power-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 0.8rem;
+  align-items: center;
+  margin: 0;
+  padding: 0.3rem 0.5rem 0.3rem 2.1rem;
+  background: none;
+  border: 0;
+  border-top: var(--rule);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+.power-row:last-child { border-bottom: var(--rule); }
+.power-row:hover { background: var(--ink-wash); }
+.power-row:focus-visible { outline-offset: -2px; }
+/* the one chosen: a thicker rule above, and a wax seal in its colour at the left edge (--nation, from data-nation) */
+.power-row[aria-checked='true'] { border-top: 2px solid var(--ink); }
+.power-row[aria-checked='true']::before {
+  content: '';
+  position: absolute;
+  left: 0.45rem;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, color-mix(in srgb, var(--nation) 55%, var(--parchment-light)), var(--nation) 50%, color-mix(in srgb, var(--nation) 62%, var(--ink)));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--nation) 72%, var(--ink)), 0 1px 2px var(--shadow);
+}
+.power-flag { grid-row: 1 / 3; display: block; image-rendering: pixelated; }
+.power-name { font-family: var(--font-display); font-size: 1.2rem; font-weight: bold; letter-spacing: 0.02em; color: var(--nation); }
+.power-leader { grid-column: 2; grid-row: 1; justify-self: end; color: var(--ink-faded); font-size: 0.92rem; }
+.power-row > .power-name { grid-column: 2; grid-row: 1; justify-self: start; }
+.power-strength { grid-column: 2; grid-row: 2; font-size: 0.95rem; }
+.power-account { align-self: stretch; margin: 0; padding: 0 0.3rem; min-height: 3.6em; font-size: 0.95rem; line-height: 1.25; }
+.power-lands { align-self: stretch; margin: 0; padding: 0 0.3rem; font-size: 0.95rem; }
+.power-name-field { display: flex; align-items: center; gap: 0.5rem; }
+.power-name-field input { width: 14rem; font: inherit; padding: 0.15rem 0.4rem; }
+
 /* A report opened from the title (the Hall of Fame): a parchment sheet in the same frame, in place of the menu. */
 .title-screen:has(~ .report-screen) > .cartouche { visibility: hidden; }
 .title-screen ~ .report-screen {
@@ -1099,6 +1149,8 @@ body:has(#app > .title-screen) > .frontispiece { display: block; }
 .portrait { flex: none; box-sizing: content-box; image-rendering: pixelated; border: 1px solid var(--ink); box-shadow: 0 1px 2px var(--shadow); }
 /* whoever is asking stands over the question; a choice that has a face shows it before its words */
 .dialog > .portrait { align-self: center; margin-bottom: 4px; }
+/* the heading of an audience or a proclamation: two lines set in small capitals over the words */
+.dialog-heading { margin: 0 0 4px; font-size: 1.05rem; line-height: 1.3; text-align: center; letter-spacing: 0.03em; }
 .dialog button.pictured { display: flex; align-items: center; gap: 10px; }
 /* the adviser beside the seal at the head of a report, and a founding father at the head of his line */
 .report-portrait .portrait { display: block; }

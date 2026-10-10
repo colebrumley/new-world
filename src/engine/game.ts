@@ -1,6 +1,6 @@
 import { STARTING_GOLD } from './data/europe';
 import { MAPGEN, type WorldOptions } from './data/mapgen';
-import { NATION_IDS, STARTING_FORCE, type NationId } from './data/nations';
+import { NATION_IDS, NATIONS, STARTING_FORCE, type NationId } from './data/nations';
 import type { ProfessionId } from './data/professions';
 import { UNIT_TYPES, type UnitTypeId } from './data/units';
 import { NATIVES, TRIBE_IDS, TRIBES, type TribeId } from './data/tribes';
@@ -34,6 +34,40 @@ export interface NewGameOptions {
 }
 
 const DEFAULT_PLAYERS: NewGameOptions['players'] = [{ id: 'p0', name: 'Player', kind: 'human' }];
+
+/**
+ * The seats of a standard game: the human first as `p0` under `name`, then one computer power for
+ * each other nation in the usual order, named for its nation and seated under its nation's id.
+ */
+export function standardPowers(human: NationId, name: string): NonNullable<NewGameOptions['players']> {
+  return [
+    { id: 'p0', name, kind: 'human', nation: human },
+    ...NATION_IDS.filter((nation) => nation !== human).map((nation) => ({ id: nation, name: NATIONS[nation].name, kind: 'ai' as const, nation })),
+  ];
+}
+
+/**
+ * What a power lands with in a full game (STARTING_FORCE): its ship, and the soldier and pioneer
+ * aboard. Spain's soldier is always a veteran, as is a human's on the easiest levels; the French
+ * pioneer is a hardy one.
+ */
+export function landingParty(nation: NationId, kind: Player['kind'], difficulty: Difficulty = DEFAULT_DIFFICULTY): { ship: UnitTypeId; soldier: ProfessionId; pioneer: ProfessionId } {
+  const veteran = (STARTING_FORCE.veteranSoldier as readonly NationId[]).includes(nation)
+    || (kind === 'human' && DIFFICULTIES.indexOf(difficulty) < STARTING_FORCE.humanVeteranBelowLevel);
+  return {
+    ship: STARTING_FORCE.ship[nation],
+    soldier: veteran ? 'veteranSoldier' : 'freeColonist',
+    pioneer: (STARTING_FORCE.hardyPioneer as readonly NationId[]).includes(nation) ? 'hardyPioneer' : 'freeColonist',
+  };
+}
+
+/**
+ * The name a player is shown under: a human's own name, or the leader of a computer power. A human
+ * named only "Player" (every game begun before the power could be chosen) is shown as the leader too.
+ */
+export function leaderName(player: Pick<Player, 'name' | 'kind' | 'nation'>): string {
+  return player.kind === 'human' && player.name !== 'Player' ? player.name : NATIONS[player.nation].leader;
+}
 
 // Placeholder world until the Phase 1 generator lands: a land block ringed by ocean, with one
 // unit per player placed on a random land tile.
@@ -105,11 +139,10 @@ export function createGame(options: NewGameOptions): GameState {
     players.forEach((p, index) => {
       const [x, y] = america ? america[p.nation] : (random[index] as [number, number]);
       players[index] = { ...p, entry: [x, y] };
-      const ship = add(p.id, STARTING_FORCE.ship[p.nation], null, x, y, null);
-      const veteran = (STARTING_FORCE.veteranSoldier as readonly NationId[]).includes(p.nation)
-        || (p.kind === 'human' && DIFFICULTIES.indexOf(options.difficulty ?? DEFAULT_DIFFICULTY) < STARTING_FORCE.humanVeteranBelowLevel);
-      add(p.id, 'soldier', veteran ? 'veteranSoldier' : 'freeColonist', x, y, ship.id);
-      add(p.id, 'pioneer', (STARTING_FORCE.hardyPioneer as readonly NationId[]).includes(p.nation) ? 'hardyPioneer' : 'freeColonist', x, y, ship.id);
+      const party = landingParty(p.nation, p.kind, options.difficulty ?? DEFAULT_DIFFICULTY);
+      const ship = add(p.id, party.ship, null, x, y, null);
+      add(p.id, 'soldier', party.soldier, x, y, ship.id);
+      add(p.id, 'pioneer', party.pioneer, x, y, ship.id);
       map = revealAround(map, index, x, y, sightRadius(ship.type, false)).map;
     });
   } else {

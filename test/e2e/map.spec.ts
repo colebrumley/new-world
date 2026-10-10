@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { startNewGame } from './helpers';
 
 interface ViewData {
   zoom: number;
@@ -14,7 +15,7 @@ const center = (v: ViewData): { x: number; y: number } => ({ x: v.originX + v.wi
 
 async function startAmerica(page: Page): Promise<Locator> {
   await page.goto('/?reveal');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   const canvas = page.locator('canvas.map');
   await expect(canvas).toHaveAttribute('data-view', /tileSize/);
   return canvas;
@@ -64,7 +65,7 @@ test('clicking the New World view recentres the map and shows the viewport box',
 
 test('the New World view shows the unexplored map as vellum, and what is beyond the map as the page', async ({ page }) => {
   await page.goto('/?seed=11&still');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   await expect(page.locator('canvas.map')).toHaveAttribute('data-view', /tileSize/);
   const mini = page.locator('canvas.minimap');
   const seen = await mini.evaluate((el) => {

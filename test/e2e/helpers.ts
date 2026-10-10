@@ -2,6 +2,36 @@ import { expect, type Locator, type Page } from '@playwright/test';
 
 export const field = (page: Page, name: string): Locator => page.locator(`[data-field="${name}"]`);
 
+export type StartChoice = 'newWorld' | 'america' | 'customize';
+const START_LABELS: Readonly<Record<StartChoice, string>> = { newWorld: 'Start a Game in New World', america: 'Start a Game in America', customize: 'Customize New World' };
+export type NationId = 'england' | 'france' | 'spain' | 'netherlands';
+
+/**
+ * From the "Choose a European Power" screen: pick the power and name asked for (England and the
+ * leader's name as it stands otherwise), Set Sail, dismiss the audience with the Crown, and wait
+ * for the map.
+ */
+export async function setSail(page: Page, { nation, name }: { nation?: NationId; name?: string } = {}): Promise<void> {
+  const screen = page.locator('.power');
+  await expect(screen.getByRole('radiogroup')).toBeVisible();
+  if (nation) await screen.locator(`.power-row[data-nation="${nation}"]`).click();
+  if (name !== undefined) await screen.getByLabel('Your name').fill(name);
+  await screen.getByRole('button', { name: 'Set Sail' }).click();
+  const audience = page.getByRole('dialog').filter({ hasText: 'An audience with' });
+  await audience.getByRole('button', { name: 'So be it' }).click();
+  await expect(page.locator('canvas.map')).toHaveAttribute('data-frames', /\d+/);
+}
+
+/**
+ * Start a new game from the title screen: click the choice (Customize's Start with its defaults,
+ * for `customize`), pass the power screen and the audience, and wait for the map.
+ */
+export async function startNewGame(page: Page, choice: StartChoice = 'newWorld', options: { nation?: NationId; name?: string } = {}): Promise<void> {
+  await page.getByRole('menuitem', { name: START_LABELS[choice] }).click();
+  if (choice === 'customize') await page.getByRole('button', { name: 'Start' }).click();
+  await setSail(page, options);
+}
+
 /** The sidebar is redrawn on the next animation frame; wait for two so that what we read is current. */
 export const settled = (page: Page): Promise<void> =>
   page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
@@ -13,7 +43,7 @@ export const settled = (page: Page): Promise<void> =>
  */
 export async function foundJamestown(page: Page): Promise<{ colony: string; ship: string }> {
   await page.goto('/?seed=7');
-  await page.getByRole('menuitem', { name: 'Start a Game in America' }).click();
+  await startNewGame(page, 'america');
   await expect(field(page, 'unit')).toHaveText('Caravel');
   await expect(field(page, 'location')).toHaveText('(35, 21)');
 

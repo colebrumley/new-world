@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { startNewGame } from './helpers';
 
 // The Europe screen as a harbour (R-1014): what is drawn, and that a price changes on its tag
 // without the stall being made again. The actions themselves are in europe.spec.ts.
@@ -7,7 +8,7 @@ const europe = (page: Page) => page.getByRole('dialog', { name: 'Europe' });
 
 async function sailForEurope(page: Page): Promise<void> {
   await page.goto('/?seed=11&difficulty=discoverer');
-  await page.getByRole('menuitem', { name: 'Start a Game in New World' }).click();
+  await startNewGame(page);
   await expect(page.locator('[data-field="unit"]')).toHaveText('Caravel');
   await page.keyboard.press('ArrowRight');
   await page.getByRole('button', { name: 'Yes, make for Europe' }).click();

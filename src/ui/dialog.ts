@@ -10,6 +10,8 @@ export interface DialogOptions {
   readonly escape?: number;
   /** A picture set beside the question: whoever is asking. */
   readonly picture?: HTMLElement;
+  /** Lines set as a heading over the question, for an audience or a proclamation. */
+  readonly heading?: readonly string[];
   /** A picture for each choice, set before its words; null for a choice without one. */
   readonly choicePictures?: readonly (HTMLElement | null)[];
 }
@@ -29,6 +31,15 @@ export function ask(host: HTMLElement, options: DialogOptions): Promise<number> 
     if (options.picture) {
       box.classList.add('dialog-pictured');
       box.append(options.picture);
+    }
+    if (options.heading && options.heading.length > 0) {
+      const heading = document.createElement('h2');
+      heading.className = 'dialog-heading';
+      options.heading.forEach((line, i) => {
+        if (i > 0) heading.append(document.createElement('br'));
+        heading.append(line);
+      });
+      box.append(heading);
     }
     box.append(text);
 

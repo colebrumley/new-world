@@ -1,6 +1,6 @@
 // The keyboard map (Appendix K). One table drives the key handlers and docs/KEYS.md.
 
-export type KeyContext = 'map' | 'colony' | 'europe' | 'dialog';
+export type KeyContext = 'title' | 'map' | 'colony' | 'europe' | 'dialog';
 
 export type MapCommand =
   | 'move' | 'activate' | 'wait' | 'skip' | 'fortify' | 'sentry' | 'buildColony' | 'plow' | 'road' | 'goTo'
@@ -19,6 +19,10 @@ export interface KeyBinding {
 }
 
 export const KEYMAP: readonly KeyBinding[] = [
+  { context: 'title', keys: 'Up / Down, 1-4', action: 'Choose a European Power: move between the four powers' },
+  { context: 'title', keys: 'Tab', action: 'On to the name field, Set Sail and Back' },
+  { context: 'title', keys: 'Enter', action: 'Set Sail: start the game as the chosen power' },
+  { context: 'title', keys: 'Esc', action: 'Back to the title screen, or to Customize with its settings as they were' },
   { context: 'map', keys: 'Arrows, numpad 1-9, Home/End/PgUp/PgDn', action: 'Move the active unit one square (view mode: pan the view)', command: 'move' },
   { context: 'map', keys: 'A', action: 'Activate: clear the orders of the unit under the cursor or the active unit', command: 'activate' },
   { context: 'map', keys: 'W', action: 'Wait: go on to the next unit and come back to this one later', command: 'wait' },
@@ -102,7 +106,7 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'europe', keys: 'Esc or E', action: 'Leave Europe' },
 ];
 
-const TITLES: Readonly<Record<KeyContext, string>> = { map: 'Map', dialog: 'Pop-up questions', colony: 'Colony screen', europe: 'Europe screen' };
+const TITLES: Readonly<Record<KeyContext, string>> = { title: 'Choosing a power', map: 'Map', dialog: 'Pop-up questions', colony: 'Colony screen', europe: 'Europe screen' };
 
 /** The text of docs/KEYS.md. */
 export function renderKeysDoc(): string {
@@ -112,7 +116,7 @@ export function renderKeysDoc(): string {
     'Generated from `src/ui/keymap.ts` (the table the key handlers use). Do not edit by hand:',
     'run `UPDATE_FIXTURES=1 npm test` after changing the table.',
   ];
-  for (const context of ['map', 'dialog', 'colony', 'europe'] as const) {
+  for (const context of ['title', 'map', 'dialog', 'colony', 'europe'] as const) {
     lines.push('', `## ${TITLES[context]}`, '', '| Key | Action | Status |', '|---|---|---|');
     for (const b of KEYMAP.filter((k) => k.context === context)) {
       lines.push(`| ${b.keys} | ${b.action} | ${b.arrivesWith ? `arrives with ${b.arrivesWith}` : 'works'} |`);

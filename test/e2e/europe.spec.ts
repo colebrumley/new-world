@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
+import { startNewGame } from './helpers';
 
 async function start(page: Page, query: string): Promise<void> {
   await page.goto(`/?${query}`);
-  await page.getByRole('menuitem', { name: 'Start a Game in New World' }).click();
+  await startNewGame(page);
   await expect(page.locator('[data-field="unit"]')).toHaveText('Caravel');
 }
 

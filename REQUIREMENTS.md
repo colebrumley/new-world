@@ -1371,7 +1371,7 @@ are written up as they are started.
   **Verify:** `npm test -- test/unit/ui`; `npm run test:e2e -- reports`; `npm run check`; a
   contact sheet of all portraits in the pull request.
 
-- [ ] **R-1017 Choosing a power** (`docs/NATION_SELECTION.md`)
+- [x] **R-1017 Choosing a power** (`docs/NATION_SELECTION.md`)
   Depends on R-1012 (title frame) and R-1016 (the King's portrait). A new game no longer seats
   the player as England under the name "Player". After any of the three ways of starting a new
   game (New World, America, Customize's Start) a title-framed screen "Choose a European Power"
