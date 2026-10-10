@@ -14,6 +14,10 @@
     "size": "node scripts/check-size.mjs",
     "board": "node scripts/board.mjs",
     "sweep": "node scripts/sweep-test-procs.mjs --kill",
+    "review": "node scripts/review.mjs",
+    "tidy": "node scripts/tidy.mjs",
+    "retro": "node scripts/retro.mjs",
+    "guard": "node scripts/guard.mjs --check",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run size"
   },
   "devDependencies": {
