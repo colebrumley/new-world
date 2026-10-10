@@ -67,10 +67,19 @@ however small.
    move on.
 7. **Mark `[x]`** in REQUIREMENTS.md and commit everything: `R-xxx: <title>` with a 2–5 line body
    listing what was built and which tests cover it.
-8. **Hand over.** Push the branch and open a pull request against `main`. Post a note with its
-   address and anything it changes that others build on. Release the claim once it is merged, or
-   at once if you are giving the item up. After the merge, remove the worktree
-   (`git worktree remove`) from the main checkout's side; never remove one you did not make.
+8. **Hand over.** Push the branch and open a pull request against `main`, and turn Auto-fix on
+   for it so failing checks and review comments are picked up without being asked. Post a note
+   with its address and anything it changes that others build on. Release the claim once it is
+   merged, or at once if you are giving the item up. After the merge, clean up from the main
+   checkout's side: remove the worktree, delete the branch locally and on the remote, and prune.
+   Never remove a worktree or branch you did not make, or one with uncommitted or unpushed work.
+
+   ```bash
+   git worktree remove .claude/worktrees/r-xxx-short-name
+   git branch -D r-xxx-short-name                # -D: a squash merge leaves it "unmerged" locally
+   git push origin --delete r-xxx-short-name     # skip if the merge already deleted it
+   git worktree prune && git fetch --prune
+   ```
 9. **Report** in one short paragraph: what was done, test counts, anything flagged. Then start
    the next iteration, in a new worktree, if the session budget allows.
 
