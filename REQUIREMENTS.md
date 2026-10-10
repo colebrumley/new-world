@@ -1273,6 +1273,29 @@ they are started.
   **Verify:** `npm run test:e2e -- colony`; `npm test -- test/unit/ui`; `npm run check`;
   screenshots of a one-colonist and a large colony in the pull request.
 
+- [~] **R-1015 Reports, encyclopedia, saves and options as parchment pages**
+  Depends on R-1010 (theme tokens and the Fell face in `src/ui/style.css`). Parchment panels over
+  a dark wood frame, ink text in the Fell face. The report screen (`src/ui/report.ts` and
+  `src/ui/reports/*`, the `.report-*` rules), the encyclopedia (`src/ui/pedia-screen.ts`,
+  `.pedia-*`), the save dialog (`src/ui/save-dialog.ts`), the options dialog
+  (`src/ui/options-dialog.ts`), the combat analysis panel and the customize screen
+  (`src/ui/customize.ts`) each become a parchment page: tables ruled in ink with headers in small
+  caps, a drop cap on the first paragraph of each report, a wax seal at the head of each report in
+  the colour of its adviser (one of four seal glyphs drawn procedurally in `src/ui/pixel-art.ts`;
+  R-1016 adds portraits beside them, so a slot is left), the encyclopedia's index as a book's
+  contents with the current page marked by a ribbon, the save table as a ledger, the options as a
+  checklist with ink tick marks, the combat flash as a stamped notice.
+  - All of the above restyled on the R-1010 tokens, with no colour literal left in their
+    stylesheet rules.
+  - Every role, name and data-field attribute the e2e specs use is unchanged, so
+    `test/e2e/reports.spec.ts` (and its structural snapshot), `saves.spec.ts`, `options.spec.ts`,
+    `combat.spec.ts` and the encyclopedia coverage pass unchanged.
+  - Keyboard navigation and focus rings remain visible on parchment; `prefers-reduced-motion`
+    still disables the combat flash animation.
+  - The in-game text stays our own prose (`test/unit/no-copied-text.test.ts`).
+  **Verify:** `npm run test:e2e -- reports`, `saves`, `options`, `combat`; `npm run check`;
+  screenshots of one report, the encyclopedia and the save dialog in the pull request.
+
 ---
 
 ## Appendix A — Terrain
