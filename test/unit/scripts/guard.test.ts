@@ -54,6 +54,8 @@ describe('the guard hook', () => {
     expect(guard(worktree, `cd ${main} && git commit -m x`, words).decision).toBe('deny');
     expect(guard(worktree, `git -C ${main} reset --hard`, words).decision).toBe('deny');
     expect(guard(main, `git -C "${worktree}" commit -m x`, words).decision).toBe('allow');
+    expect(guard(worktree, `git -C ${worktree} status && git -C ${main} reset --hard`, words).decision).toBe('deny');
+    expect(guard(worktree, `cd ${main} && git status; cd ${worktree} && git commit -m x`, words).decision).toBe('allow');
     expect(guard(main, `cd ${worktree} && git commit -m x`, words).decision).toBe('allow');
     for (const command of ['git status', 'git log --oneline', 'git worktree add .claude/worktrees/z -b z origin/main', 'git branch -D z', 'git push origin --delete z', 'git worktree prune', 'npm run board', 'npm run tidy']) {
       expect(guard(main, command, words).decision, command).toBe('allow');
@@ -108,6 +110,23 @@ describe('the guard hook', () => {
     expect(guard(worktree, 'git push -u origin wt', words).reason).toContain('commits not on origin/main');
     sh(worktree, 'reset', '-q', '--hard', 'HEAD~2');
     expect(guard(worktree, 'git push -u origin wt', words).decision).toBe('allow');
+    // a line of code starting with ++ is still an added line
+    writeFileSync(join(worktree, 'code.js'), '++zorblax;\n');
+    sh(worktree, 'add', 'code.js');
+    sh(worktree, 'commit', '-q', '-m', 'code');
+    expect(guard(worktree, 'git push -u origin wt', words).reason).toContain('+++zorblax');
+    sh(worktree, 'reset', '-q', '--hard', 'HEAD~1');
+    // pushing another branch checks that branch, not HEAD
+    sh(worktree, 'branch', 'other');
+    writeFileSync(join(worktree, 'o.md'), 'zorblax\n');
+    sh(worktree, 'add', 'o.md');
+    sh(worktree, 'commit', '-q', '-m', 'on other');
+    sh(worktree, 'branch', '-f', 'other', 'HEAD');
+    sh(worktree, 'reset', '-q', '--hard', 'HEAD~1');
+    expect(guard(worktree, 'git push -u origin wt', words).decision).toBe('allow');
+    expect(guard(worktree, 'git push origin other', words).decision).toBe('deny');
+    expect(guard(worktree, 'git push origin other:wt', words).decision).toBe('deny');
+    expect(guard(worktree, 'git push --all origin', words).decision).toBe('deny');
   });
 
   it('only warns when there is no word list', () => {

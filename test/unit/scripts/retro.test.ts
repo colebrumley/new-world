@@ -40,7 +40,8 @@ describe('retro', () => {
     expect(everything).not.toContain('hidden');
     expect(everything).not.toContain('/loop');
     expect(everything).not.toContain('being continued');
-    expect(everything).toMatch(/\[hand-off prompt, \d+ chars\] Repo: New World\./);
+    expect(everything).toContain('[hand-off prompt] Repo: New World.');
+    expect(everything).toContain('x'.repeat(1300)); // printed whole: nothing the owner typed is cut
     expect(everything).toMatch(/\n\s+2\s+merge\n/);
     expect(everything).toMatch(/\n\s+1\s+open a PR\n/);
     expect(everything).toMatch(/\n\s+1\s+hand-off preamble\n/);

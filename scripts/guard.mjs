@@ -38,12 +38,32 @@ const GOES_PUBLIC = /\bgit\s+(?:-C\s+\S+\s+)?(?:commit|push|tag|notes)\b|\bgh\s+
 const unquote = (m) => m?.[2] ?? m?.[3] ?? m?.[4];
 const at = (cwd, target) => (isAbsolute(target) ? target : resolve(cwd, target.replace(/^~/, process.env['HOME'] ?? '~')));
 
-/** Where the command will act: the hook's cwd, where a leading `cd` takes it, or git's `-C`. */
-function effectiveDir(command, cwd) {
-  const cd = /^\s*cd\s+("([^"]+)"|'([^']+)'|(\S+))\s*(?:&&|;)/.exec(command);
-  const after = unquote(cd) ? at(cwd, unquote(cd)) : cwd;
-  const dashC = /\bgit\s+-C\s+("([^"]+)"|'([^']+)'|(\S+))/.exec(command);
-  return unquote(dashC) ? at(after, unquote(dashC)) : after;
+/**
+ * The simple commands the shell will run one after another, each with the directory it acts in:
+ * a `cd` moves every later one, git's `-C` moves only its own.
+ */
+function steps(command, cwd) {
+  const out = [];
+  let current = cwd;
+  for (const step of command.split(/\s*(?:&&|\|\||;|\||\n)\s*/).filter(Boolean)) {
+    const cd = /^cd\s+("([^"]+)"|'([^']+)'|(\S+))\s*$/.exec(step);
+    if (cd) {
+      current = at(current, unquote(cd));
+      continue;
+    }
+    const dashC = /\bgit\s+-C\s+("([^"]+)"|'([^']+)'|(\S+))/.exec(step);
+    out.push({ step, dir: unquote(dashC) ? at(current, unquote(dashC)) : current });
+  }
+  return out;
+}
+
+/** What a `git push` publishes: the source side of each refspec, every branch for --all, else HEAD. */
+function pushedRefs(step) {
+  const words = step.replace(/^.*\bgit\s+(?:-C\s+(?:"[^"]+"|'[^']+'|\S+)\s+)?push\b/, '').trim().split(/\s+/).filter(Boolean);
+  if (words.some((w) => w === '--all' || w === '--branches' || w === '--mirror')) return ['--branches'];
+  const positional = words.filter((w) => !w.startsWith('-'));
+  const refs = positional.slice(1).map((spec) => spec.replace(/^\+/, '').split(':')[0]).filter(Boolean);
+  return refs.length > 0 ? refs : ['HEAD'];
 }
 
 /** Files the command reads a message or body from: commit -F, gh --body-file and the like. */
@@ -72,9 +92,9 @@ function patterns(cwd) {
  * on origin/main, message and patch alike (history is public too, so a line added and removed again
  * on the branch still counts).
  */
-function publicText(command, dir, { againstBase }) {
+function publicText(command, dir, refs) {
   const sources = [];
-  const added = (label, diff) => sources.push({ label, lines: diff.split('\n').filter((line) => line.startsWith('+') && !line.startsWith('+++')) });
+  const added = (label, diff) => sources.push({ label, lines: diff.split('\n').filter((line) => line.startsWith('+') && !/^\+\+\+ /.test(line)) });
   if (command) sources.push({ label: 'command', lines: command.split('\n') });
   for (const file of messageFiles(command, dir)) {
     try {
@@ -94,9 +114,12 @@ function publicText(command, dir, { againstBase }) {
       // unreadable: nothing to scan
     }
   }
-  if (againstBase && git(dir, 'rev-parse', '--verify', '--quiet', 'origin/main')) {
-    sources.push({ label: 'commit messages not on origin/main', lines: git(dir, 'log', 'origin/main..HEAD', '--format=%B').split('\n') });
-    added('commits not on origin/main', git(dir, 'log', '-p', '--format=', 'origin/main..HEAD'));
+  if (refs.length > 0 && git(dir, 'rev-parse', '--verify', '--quiet', 'origin/main')) {
+    for (const ref of refs) {
+      const range = ref === '--branches' ? ['--branches', '--not', 'origin/main'] : [`origin/main..${ref}`];
+      sources.push({ label: `commit messages not on origin/main (${ref})`, lines: git(dir, 'log', '--format=%B', ...range).split('\n') });
+      added(`commits not on origin/main (${ref})`, git(dir, 'log', '-p', '--diff-merges=first-parent', '--format=', ...range));
+    }
   }
   return sources;
 }
@@ -133,7 +156,7 @@ if (process.argv.includes('--check')) {
     console.error(`guard: no word list at ${file}; nothing checked`);
     process.exit(2);
   }
-  const hits = matches(publicText('', dir, { againstBase: true }), list);
+  const hits = matches(publicText('', dir, ['HEAD']), list);
   for (const hit of hits) console.log(hit);
   console.log(hits.length === 0 ? 'guard: nothing on this branch matches the word list' : `guard: ${hits.length} line(s) match the word list; reword them before they go public`);
   process.exit(hits.length === 0 ? 0 : 1);
@@ -149,11 +172,10 @@ try {
   const command = String(input?.tool_input?.command ?? '');
   const cwd = String(input?.cwd ?? process.cwd());
   if (!command) process.exit(0);
-  const dir = effectiveDir(command, cwd);
-  const top = toplevel(dir);
-  if (!top) process.exit(0);
-
-  if (CHANGES_TREE.test(command) && top === dirname(commonDir(dir))) {
+  const plan = steps(command, cwd);
+  const changing = plan.find(({ step, dir }) => CHANGES_TREE.test(step) && toplevel(dir) && toplevel(dir) === dirname(commonDir(dir)));
+  if (changing) {
+    const top = toplevel(changing.dir);
     deny(
       `${top} is the main checkout. Code changes, branch switches, stashes and test suites happen in a worktree of your own under .claude/worktrees/ (CLAUDE.md, rule 1). ` +
         `If this session already has one, run the command from there; otherwise make one: git fetch origin && git worktree add .claude/worktrees/<name> -b <name> origin/main. ` +
@@ -161,10 +183,15 @@ try {
     );
   }
 
-  if (GOES_PUBLIC.test(command)) {
-    const { file, list } = patterns(dir);
+  const publishing = plan.filter(({ step, dir }) => GOES_PUBLIC.test(step) && toplevel(dir));
+  if (publishing.length > 0) {
+    const { file, list } = patterns(publishing[0].dir);
     if (!list) warn(`guard: no word list at ${file}, so the public-repo word check did not run (see CLAUDE.md).`);
-    const hits = matches(publicText(command, dir, { againstBase: /\bgit\s+(?:-C\s+\S+\s+)?push\b|\bgh\s/.test(command) }), list);
+    const hits = [];
+    for (const { step, dir } of publishing) {
+      const refs = /\bpush\b/.test(step) ? pushedRefs(step) : /\bgh\s/.test(step) ? ['HEAD'] : [];
+      hits.push(...matches(publicText(hits.length === 0 ? command : '', dir, refs), list));
+    }
     if (hits.length > 0) {
       deny(`This would make text public that matches the private word list (CLAUDE.md, public-repo rule). Reword these, then try again:\n${hits.join('\n')}`);
     }

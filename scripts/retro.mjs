@@ -82,8 +82,7 @@ const tally = new Map(INTENTS.map(([name]) => [name, 0]));
 for (const session of sessions) {
   console.log(`\n## ${session.where} / ${session.id}  (${session.messages.length} messages from ${session.messages[0].at.slice(0, 16)})`);
   for (const { at, text } of session.messages) {
-    const short = text.length > 1200 ? `[hand-off prompt, ${text.length} chars] ${text.split('\n')[0].slice(0, 200)}` : text;
-    console.log(`\n[${at.slice(11, 16)}] ${short}`);
+    console.log(`\n[${at.slice(11, 16)}]${/^Repo: /.test(text) ? ' [hand-off prompt]' : ''} ${text}`);
     for (const [name, re] of INTENTS) if (re.test(text)) tally.set(name, tally.get(name) + 1);
   }
 }

@@ -6,7 +6,7 @@
 //   npm run tidy                  do it
 //   npm run tidy -- --dry-run     only say what would go
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, rmdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 const dry = process.argv.includes('--dry-run');
@@ -67,6 +67,10 @@ for (const block of git(main, 'worktree', 'list', '--porcelain').split('\n\n')) 
   if (path) worktrees.push({ path, branch });
 }
 
+/** A claim on the board names the worktree doing the work: that worktree stays, whatever its state. */
+const claims = join(common, 'board', 'claims');
+const claimed = new Set(existsSync(claims) ? readdirSync(claims).filter((n) => n.endsWith('.json')).map((n) => JSON.parse(readFileSync(join(claims, n), 'utf8')).worktree) : []);
+
 const gone = [];
 for (const { path, branch } of worktrees) {
   if (path === main || path === here || !`${path}/`.startsWith(home)) continue;
@@ -75,6 +79,10 @@ for (const { path, branch } of worktrees) {
     continue;
   }
   if (!isMerged(branch)) continue;
+  if (claimed.has(path)) {
+    console.log(`keep ${path}: ${branch} is merged but the board still has a claim from it`);
+    continue;
+  }
   // last commit, checkout or reset in the worktree: its ref log (git status would refresh the index)
   const gitdir = git(path, 'rev-parse', '--git-dir');
   const log = gitdir && join(resolve(path, gitdir), 'logs', 'HEAD');
@@ -88,8 +96,8 @@ for (const { path, branch } of worktrees) {
     continue;
   }
   say(`remove worktree ${path} (${branch}, merged)`);
-  if (!dry) execOk(main, 'worktree', 'remove', path);
-  gone.push(path);
+  if (dry || execOk(main, 'worktree', 'remove', path)) gone.push(path);
+  else console.log(`keep ${path}: git would not remove it (locked, or in use)`);
 }
 if (!dry) execOk(main, 'worktree', 'prune');
 
@@ -102,17 +110,33 @@ for (const branch of git(main, 'for-each-ref', '--format=%(refname:short)', 'ref
 for (const ref of git(main, 'for-each-ref', '--format=%(refname)', 'refs/remotes/origin/').split('\n').filter(Boolean)) {
   const branch = ref.replace(/^refs\/remotes\/origin\//, '');
   if (branch === 'main' || branch === 'HEAD' || checkedOut.has(branch) || !isMerged(branch, `origin/${branch}`)) continue;
+  // delete only the tip that was inspected: a push from elsewhere meanwhile keeps the branch
+  const tip = git(main, 'rev-parse', ref);
   say(`delete origin/${branch} (merged)`);
-  if (!dry) execOk(main, 'push', '--quiet', 'origin', '--delete', branch);
+  if (!dry) execOk(main, 'push', '--quiet', `--force-with-lease=refs/heads/${branch}:${tip}`, 'origin', `:refs/heads/${branch}`);
 }
 
-const claims = join(common, 'board', 'claims');
+// claims whose worktree is gone, removed under the board's own per-item lock (scripts/board.mjs)
 if (existsSync(claims)) {
   for (const name of readdirSync(claims).filter((n) => n.endsWith('.json'))) {
-    const claim = JSON.parse(readFileSync(join(claims, name), 'utf8'));
+    const file = join(claims, name);
+    const lock = file.replace(/\.json$/, '.lock');
+    let claim = JSON.parse(readFileSync(file, 'utf8'));
     if (existsSync(claim.worktree)) continue;
     say(`release the board claim ${claim.id}: its worktree is gone`);
-    if (!dry) rmSync(join(claims, name), { force: true });
+    if (dry) continue;
+    try {
+      mkdirSync(lock);
+    } catch {
+      console.log(`  left ${claim.id}: the board is busy with it`);
+      continue;
+    }
+    try {
+      claim = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null;
+      if (claim && !existsSync(claim.worktree)) rmSync(file, { force: true });
+    } finally {
+      rmdirSync(lock);
+    }
   }
 }
 console.log(dry ? 'tidy: dry run, nothing changed' : 'tidy: done');

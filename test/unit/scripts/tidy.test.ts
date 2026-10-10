@@ -41,21 +41,27 @@ function repo() {
 
 describe('tidy', () => {
   it('removes merged, clean, idle worktrees with their branches, and keeps the rest', () => {
-    const { main, branch, merge } = repo();
+    const { root, main, branch, merge } = repo();
     const done = branch('done');
     const dirty = branch('dirty');
     const open = branch('open');
+    const claimedWt = branch('claimed');
+    const locked = branch('locked');
     merge('done');
     merge('dirty');
+    merge('claimed');
+    merge('locked');
+    git(main, 'worktree', 'lock', locked);
     writeFileSync(join(dirty, 'extra.txt'), 'uncommitted\n');
     // a ref log last written a day ago counts as idle
     const past = new Date(Date.now() - 24 * 3600 * 1000);
-    for (const name of ['done', 'dirty']) execFileSync('touch', ['-t', `${past.getFullYear()}${String(past.getMonth() + 1).padStart(2, '0')}${String(past.getDate()).padStart(2, '0')}0000`, join(main, '.git', 'worktrees', name, 'logs', 'HEAD')]);
+    for (const name of ['done', 'dirty', 'claimed', 'locked']) execFileSync('touch', ['-t', `${past.getFullYear()}${String(past.getMonth() + 1).padStart(2, '0')}${String(past.getDate()).padStart(2, '0')}0000`, join(main, '.git', 'worktrees', name, 'logs', 'HEAD')]);
 
     const claims = join(main, '.git', 'board', 'claims');
     mkdirSync(claims, { recursive: true });
-    writeFileSync(join(claims, 'R-1.json'), JSON.stringify({ id: 'R-1', worktree: done }));
+    writeFileSync(join(claims, 'R-1.json'), JSON.stringify({ id: 'R-1', worktree: join(root, 'a-worktree-that-is-gone') }));
     writeFileSync(join(claims, 'R-2.json'), JSON.stringify({ id: 'R-2', worktree: open }));
+    writeFileSync(join(claims, 'R-3.json'), JSON.stringify({ id: 'R-3', worktree: claimedWt }));
 
     const dry = tidy(main, '--dry-run');
     expect(dry).toContain(`would remove worktree ${done}`);
@@ -74,6 +80,11 @@ describe('tidy', () => {
     expect(git(main, 'ls-remote', '--heads', 'origin', 'open')).toContain('open');
     expect(existsSync(join(claims, 'R-1.json'))).toBe(false);
     expect(existsSync(join(claims, 'R-2.json'))).toBe(true);
+    expect(out).toContain(`keep ${claimedWt}: claimed is merged but the board still has a claim`);
+    expect(existsSync(claimedWt)).toBe(true);
+    expect(out).toContain(`keep ${locked}: git would not remove it`);
+    expect(existsSync(locked)).toBe(true);
+    expect(git(main, 'ls-remote', '--heads', 'origin', 'locked')).toContain('locked');
   });
 
   it('trusts a merged pull request only at the commit it merged, and only under .claude/worktrees', () => {
