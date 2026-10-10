@@ -2,11 +2,15 @@
 // pixels" in a fixed palette of 32 colours, then blown up by whole numbers, so every zoom level
 // shows the same crisp grid. All of it is made here from code: nothing is taken from
 // anyone else's graphics (constraint C1), and nothing here needs a canvas, so it can be tested as data.
+import type { AbstractGoodId, GoodId } from '../engine/data/goods';
+import type { NationId } from '../engine/data/nations';
 import type { ResourceId } from '../engine/data/resources';
 import type { TerrainId } from '../engine/data/terrain';
 import type { UnitTypeId } from '../engine/data/units';
+import { BUILDING_ART, BUILDING_CODES, BUILDING_COLORS, BUILDING_SIZE } from './building-art';
 import { FEATURE_ART, FEATURE_CODES, FEATURE_COLORS, FEATURE_SIZE } from './feature-art';
 import { FLOOR_ART, FLOOR_CODES, FLOOR_COLORS, FLOOR_SIZE } from './floor-art';
+import { GOODS_ART, GOODS_CODES, GOODS_COLORS, GOODS_SIZE } from './goods-art';
 import { PLACE_ART, PLACE_CODES, PLACE_COLORS, PLACE_SIZE } from './place-art';
 import { FIGURE_SIZE, UNIT_ART, UNIT_CODES, UNIT_COLORS } from './unit-art';
 
@@ -453,8 +457,15 @@ export function pieceArt(look: PieceLook): Sprite {
 /** Art pixels to the square for a piece drawn with a detailed figure: twice the map's grid. */
 export const DETAIL = 32;
 
-/** Every colour art can be in: the map palette, then the colours of the detailed figures, places, ground and features. */
-export const ART_COLORS: readonly string[] = [...PALETTE, ...UNIT_COLORS, ...PLACE_COLORS, ...FLOOR_COLORS, ...FEATURE_COLORS];
+/**
+ * Every colour art can be in: the map palette, then the colours of the detailed figures, places, ground and
+ * features, then those of the colony screen's buildings and the goods icons. A sprite's cell is one of these
+ * plus one in a byte, so there can be no more than 255.
+ */
+export const ART_COLORS: readonly string[] = [...PALETTE, ...UNIT_COLORS, ...PLACE_COLORS, ...FLOOR_COLORS, ...FEATURE_COLORS, ...BUILDING_COLORS, ...GOODS_COLORS];
+const MAP_COLORS = PALETTE.length + UNIT_COLORS.length + PLACE_COLORS.length + FLOOR_COLORS.length + FEATURE_COLORS.length;
+const BUILDING_KEY: Readonly<Record<string, number>> = Object.fromEntries(BUILDING_COLORS.map((_, i) => [BUILDING_CODES[i] as string, MAP_COLORS + i]));
+const GOODS_KEY: Readonly<Record<string, number>> = Object.fromEntries(GOODS_COLORS.map((_, i) => [GOODS_CODES[i] as string, MAP_COLORS + BUILDING_COLORS.length + i]));
 const FLOOR_KEY: Readonly<Record<string, number>> = Object.fromEntries(FLOOR_COLORS.map((_, i) => [FLOOR_CODES[i] as string, PALETTE.length + UNIT_COLORS.length + PLACE_COLORS.length + i]));
 const FEATURE_KEY: Readonly<Record<string, number>> = Object.fromEntries(
   FEATURE_COLORS.map((_, i) => [FEATURE_CODES[i] as string, PALETTE.length + UNIT_COLORS.length + PLACE_COLORS.length + FLOOR_COLORS.length + i]),
@@ -625,6 +636,106 @@ export function settlementArt(color: InkId, tech: number, capital: boolean, mood
   if (mood !== null) {
     box(s, 12, 0, 4, 7, INK.ink);
     stamp(s, 13, 1, ['mm', 'mm', 'mm', '..', 'mm'], { m: mood });
+  }
+  return s;
+}
+
+// --- the colony screen (R-1013): buildings, goods and flags ---------------------------------------
+
+/** A unit's detailed figure alone, with no base under it, on its own grid of FIGURE_SIZE; null for a kind that has none. */
+export function figureArt(type: string): Sprite | null {
+  const rows = Object.hasOwn(UNIT_ART, type) ? UNIT_ART[type] : undefined;
+  if (!rows) return null;
+  const s = blank(FIGURE_SIZE);
+  stamp(s, 0, 0, rows, DETAIL_KEY);
+  return s;
+}
+
+/** A building that is drawn as another: the two further Town Halls of the table are never built and look like the first. */
+const BUILDING_ALIAS: Readonly<Record<string, string>> = { townHall2: 'townHall', townHall3: 'townHall' };
+
+/** A colony building's picture on the 32-pixel grid, roofed in the owner's colour; null if there is none by that name. */
+export function buildingArt(id: string, color: InkId): Sprite | null {
+  const name = BUILDING_ALIAS[id] ?? id;
+  const rows = Object.hasOwn(BUILDING_ART, name) ? BUILDING_ART[name] : undefined;
+  if (!rows) return null;
+  const s = blank(BUILDING_SIZE);
+  stamp(s, 0, 0, rows, { ...BUILDING_KEY, '*': color });
+  return s;
+}
+
+/** Everything that has a goods icon: the sixteen goods, and hammers, crosses and bells. */
+export type IconGood = GoodId | AbstractGoodId;
+
+/** A good's icon on the 16-pixel grid; null for anything that has none (fish is counted as food and has no icon of its own). */
+export function goodArt(good: string): Sprite | null {
+  const rows = Object.hasOwn(GOODS_ART, good) ? GOODS_ART[good] : undefined;
+  if (!rows) return null;
+  const s = blank(GOODS_SIZE);
+  stamp(s, 0, 0, rows, GOODS_KEY);
+  return s;
+}
+
+/** The part of a canvas context that art is drawn with: anything that can fill a rectangle in a colour. */
+export interface Brush {
+  fillStyle: string | CanvasGradient | CanvasPattern;
+  fillRect(x: number, y: number, w: number, h: number): void;
+}
+
+/** Draw a sprite at (x, y), `size` pixels square, every art pixel a crisp block (`size` a whole multiple of the sprite's grid keeps them even). */
+export function drawSprite(ctx: Brush, sprite: Sprite, x: number, y: number, size: number = sprite.size): void {
+  const edge = (i: number): number => Math.round((i * size) / sprite.size);
+  for (let row = 0; row < sprite.size; row++) {
+    for (let col = 0; col < sprite.size; col++) {
+      const cell = at(sprite, col, row);
+      if (cell === 0) continue;
+      ctx.fillStyle = ART_COLORS[cell - 1] as string;
+      ctx.fillRect(x + edge(col), y + edge(row), edge(col + 1) - edge(col), edge(row + 1) - edge(row));
+    }
+  }
+}
+
+/** Draw a good's icon at (x, y), `size` pixels square (16 to the art pixel, 32 doubled, and so on). Returns whether the good has an icon. */
+export function drawGood(ctx: Brush, good: string, x: number, y: number, size: number = GOODS_SIZE): boolean {
+  const art = goodArt(good);
+  if (art) drawSprite(ctx, art, x, y, size);
+  return art !== null;
+}
+
+/** Whose flag: one of the four powers, or the Crown they all answer to. */
+export type FlagId = NationId | 'crown';
+export const FLAG_IDS = ['england', 'france', 'spain', 'netherlands', 'crown'] as const satisfies readonly FlagId[];
+
+const LILY = ['.y.', 'yyy', '.y.'];
+const CROWN = ['y..yy..y', 'yy.yy.yy', 'yyyyyyyy', 'yryyyyry', 'yyyyyyyy'];
+
+/**
+ * A flag on the 16-pixel grid, fourteen by ten inside an ink edge: a red cross on white for England, gold
+ * lilies on blue for France, a red saltire on white for Spain, orange, white and blue bars for the
+ * Netherlands, and a gold crown on purple for the Crown.
+ */
+export function flagArt(id: FlagId): Sprite {
+  const s = blank();
+  box(s, 0, 2, 16, 12, INK.ink);
+  const field = (ink: number): void => box(s, 1, 3, 14, 10, ink);
+  if (id === 'england') {
+    field(INK.white);
+    box(s, 7, 3, 2, 10, INK.red);
+    box(s, 1, 7, 14, 2, INK.red);
+  } else if (id === 'france') {
+    field(INK.blue);
+    for (const [x, y] of [[3, 4], [10, 4], [6, 9]] as const) stamp(s, x, y, LILY, { y: INK.yellow });
+  } else if (id === 'spain') {
+    field(INK.white);
+    line(s, 2, 3, 13, 12, INK.red, 2);
+    line(s, 13, 3, 2, 12, INK.red, 2);
+  } else if (id === 'netherlands') {
+    box(s, 1, 3, 14, 3, INK.orange);
+    box(s, 1, 6, 14, 4, INK.white);
+    box(s, 1, 10, 14, 3, INK.blue);
+  } else {
+    field(INK.purple);
+    stamp(s, 4, 5, CROWN, { y: INK.yellow, r: INK.red });
   }
   return s;
 }

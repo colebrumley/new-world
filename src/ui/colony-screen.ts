@@ -2,6 +2,9 @@
 // multi-function panel, all drawn from colonyView(). People, units and goods are moved by
 // dragging, by clicking them and then where they should go, or with the keyboard; clicking
 // someone already selected opens the jobs menu.
+// It is drawn as a town plan (R-1013): every building is its picture with the people who work in
+// it standing on it, goods are their icons with a count, and the head of the sheet carries the
+// owner's flag and a bell gauge for the Sons of Liberty.
 import { squareStatus } from '../engine/jobs';
 import { landPrice } from '../engine/land';
 import type { Action } from '../engine/actions';
@@ -10,7 +13,9 @@ import type { GoodId } from '../engine/data/goods';
 import type { GameState, Job } from '../engine/state';
 import { colonyView, jobChoices, type ColonyView, type PersonView } from './colony-model';
 import { ask, askText } from './dialog';
-import { lookOf, paintTile } from './tiles';
+import { buildingArt, figureArt, flagArt, goodArt, type Sprite } from './pixel-art';
+import { inkOf } from './render';
+import { lookOf, paintTile, spriteCanvas } from './tiles';
 
 export interface ColonyScreenHost {
   /** The current game state (it changes as actions are applied). */
@@ -26,12 +31,27 @@ type Tab = 'production' | 'units' | 'construction';
 const TABS: readonly Tab[] = ['production', 'units', 'construction'];
 const TAB_TITLES: Readonly<Record<Tab, string>> = { production: 'Production', units: 'Units', construction: 'Construction' };
 const TILE = 64;
+/** How many screen pixels an art pixel of a building, of a goods icon and of the flag is drawn at. */
+const BUILDING_SCALE = 3;
+const GOOD_SCALE = 2;
+const FLAG_SCALE = 3;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = ''): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
   if (className) node.className = className;
   if (text) node.textContent = text;
   return node;
+}
+
+/** Art as a canvas `scale` times its grid, to be shown with crisp pixels; null art gives null. */
+function picture(art: Sprite | null, className: string, scale = 1): HTMLCanvasElement | null {
+  if (!art) return null;
+  const canvas = spriteCanvas(art);
+  canvas.className = className;
+  canvas.style.width = `${art.size * scale}px`;
+  canvas.style.height = `${art.size * scale}px`;
+  canvas.setAttribute('aria-hidden', 'true');
+  return canvas;
 }
 
 export function openColonyScreen(parent: HTMLElement, colonyId: string, host: ColonyScreenHost): { element: HTMLElement; refresh(): void } {
@@ -242,17 +262,25 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
 
   // --- drawing ----------------------------------------------------------------------------
 
-  function token(kind: string, id: string, label: string, sub: string, extra = ''): HTMLButtonElement {
+  /** A thing that can be picked up: its picture (a figure or a goods icon) if it has one, its name, and a line under it. */
+  function token(kind: string, id: string, label: string, sub: string, extra = '', art: HTMLCanvasElement | null = null): HTMLButtonElement {
     const b = el('button', `token token-${kind}`);
     b.type = 'button';
     b.dataset['drag'] = extra ? `${kind}:${id}:${extra}` : `${kind}:${id}`;
     b.dataset['key'] = `${kind}:${id}${extra ? `:${extra}` : ''}`;
+    b.title = sub ? `${label}: ${sub}` : label;
+    if (art) b.append(art);
     b.append(el('span', 'token-label', label));
     if (sub) b.append(el('span', 'token-sub', sub));
     return b;
   }
 
-  const personToken = (kind: 'colonist' | 'unit', p: PersonView): HTMLButtonElement => token(kind, p.id, p.label, p.doing);
+  /** The figure a person or a unit here is drawn as: a colonist at work in the colony is a colonist, a unit is its own kind. */
+  const figure = (kind: 'colonist' | 'unit' | 'carrier', id: string): HTMLCanvasElement | null =>
+    picture(figureArt(kind === 'colonist' ? 'colonist' : (host.state().units[id]?.type ?? '')), 'token-art token-figure');
+  const goodIcon = (good: string): HTMLCanvasElement | null => picture(goodArt(good), 'token-art good-art', GOOD_SCALE);
+
+  const personToken = (kind: 'colonist' | 'unit', p: PersonView): HTMLButtonElement => token(kind, p.id, p.label, p.doing, '', figure(kind, p.id));
 
   function region(name: string, title: string): HTMLElement {
     const box = el('div', `colony-${name}`);
@@ -287,13 +315,26 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     root.dataset['tab'] = tab;
     root.classList.toggle('hide-numbers', !showNumbers);
 
+    const ink = inkOf(host.state(), view.owner);
+    root.dataset['nation'] = view.nation ?? '';
     const header = el('header', 'colony-header');
-    header.append(
-      el('h2', '', view.name),
-      el('span', 'colony-pop', `Population ${view.population}`),
-      el('span', 'colony-sol', `Sons of Liberty ${view.solPercent}%`),
-      el('span', 'colony-tory', `Tories ${view.toryPercent}%`),
-    );
+    const flag = picture(flagArt(view.nation ?? 'crown'), 'colony-flag', FLAG_SCALE);
+    if (flag) header.append(flag);
+    // the bell gauge: how much of the colony stands with the Sons of Liberty, the rest of the bar being the Tories'
+    const gauge = el('div', 'liberty-gauge');
+    gauge.setAttribute('role', 'meter');
+    gauge.setAttribute('aria-label', 'Sons of Liberty');
+    gauge.setAttribute('aria-valuemin', '0');
+    gauge.setAttribute('aria-valuemax', '100');
+    gauge.setAttribute('aria-valuenow', String(view.solPercent));
+    const bar = el('div', 'liberty-bar');
+    const fill = el('div', 'liberty-fill');
+    fill.style.width = `${Math.max(0, Math.min(100, view.solPercent))}%`;
+    bar.append(fill);
+    const bell = picture(goodArt('bells'), 'liberty-bell', GOOD_SCALE);
+    if (bell) gauge.append(bell);
+    gauge.append(el('span', 'colony-sol', `Sons of Liberty ${view.solPercent}%`), bar, el('span', 'colony-tory', `Tories ${view.toryPercent}%`));
+    header.append(el('h2', '', view.name), el('span', 'colony-pop', `Population ${view.population}`), gauge);
     const done = el('button', 'colony-close', 'Exit (Esc)');
     done.type = 'button';
     done.addEventListener('click', () => host.close());
@@ -303,11 +344,16 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       const box = el('div', 'building');
       box.dataset['building'] = b.id;
       if (b.trade) box.dataset['drop'] = `trade:${b.trade}`;
-      box.append(el('span', 'building-name', b.name));
+      box.title = b.name;
+      // the picture of the chain's present link, and on it the people who work there and the places still free
+      const plot = el('div', 'building-plot');
+      const art = picture(buildingArt(b.id, ink), 'building-art', BUILDING_SCALE);
+      if (art) plot.append(art);
       const slots = el('div', 'building-slots');
       for (const w of b.workers) slots.append(personToken('colonist', w));
       for (let free = b.workers.length; free < b.capacity; free++) slots.append(el('span', 'slot-free'));
-      box.append(slots);
+      plot.append(slots);
+      box.append(plot, el('span', 'building-name', b.name));
       settlement.append(box);
     }
 
@@ -346,9 +392,9 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       const box = el('div', `carrier${c.id === carrierId ? ' carrier-active' : ''}`);
       box.dataset['drop'] = `carrier:${c.id}`;
       box.dataset['carrier'] = c.id;
-      const pick = token('carrier', c.id, c.label, `${c.used}/${c.holds} holds`);
+      const pick = token('carrier', c.id, c.label, `${c.used}/${c.holds} holds`, '', figure('carrier', c.id));
       box.append(pick);
-      for (const lot of c.cargo) box.append(token('cargo', c.id, lot.name, String(lot.amount), lot.good));
+      for (const lot of c.cargo) box.append(token('cargo', c.id, lot.name, String(lot.amount), lot.good, goodIcon(lot.good)));
       for (const p of c.passengers) box.append(personToken('unit', p));
       transport.append(box);
     }
@@ -363,7 +409,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       warehouse.append(customs);
     }
     for (const g of view.warehouse) {
-      const t = token('good', g.good, g.name, g.exported ? `${g.amount} export` : String(g.amount));
+      const t = token('good', g.good, g.name, g.exported ? `${g.amount} export` : String(g.amount), '', goodIcon(g.good));
       if (g.amount === 0) t.classList.add('token-empty');
       if (g.good !== 'food' && g.amount > view.capacity) t.classList.add('token-over');
       warehouse.append(t);
@@ -386,7 +432,10 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       for (const line of view.production) {
         const row = el('tr');
         row.dataset['good'] = line.good;
-        row.append(el('th', '', line.name), el('td', '', `+${line.made}`), el('td', '', line.used ? `-${line.used}` : ''), el('td', '', `${line.net >= 0 ? '+' : ''}${line.net}`));
+        const name = el('th', '', line.name);
+        const icon = picture(goodArt(line.good), 'good-art');
+        if (icon) name.prepend(icon);
+        row.append(name, el('td', '', `+${line.made}`), el('td', '', line.used ? `-${line.used}` : ''), el('td', '', `${line.net >= 0 ? '+' : ''}${line.net}`));
         table.append(row);
       }
       multi.append(table);

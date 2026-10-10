@@ -5,6 +5,7 @@ import { holdsFree, holdsUsed } from '../engine/cargo';
 import { availableItems, buyQuote, itemCost, itemName } from '../engine/construction';
 import { BUILDING_CHAINS, BUILDINGS, chainLevel, type BuildingChain, type BuildingId } from '../engine/data/buildings';
 import { GOOD_IDS, GOOD_NAMES, type GoodId } from '../engine/data/goods';
+import type { NationId } from '../engine/data/nations';
 import { TRADE_IDS, TRADES, type TradeId } from '../engine/data/production';
 import { RAW_GOODS, type RawGood } from '../engine/data/terrain';
 import { UNIT_TYPES } from '../engine/data/units';
@@ -62,6 +63,9 @@ export interface ProductionLine {
 export interface ColonyView {
   readonly id: string;
   readonly name: string;
+  /** The player the colony belongs to, and the power they play, whose flag it flies. */
+  readonly owner: string;
+  readonly nation: NationId | null;
   readonly population: number;
   readonly solPercent: number;
   readonly toryPercent: number;
@@ -166,6 +170,8 @@ export function colonyView(state: GameState, colonyId: string): ColonyView | nul
   return {
     id: colony.id,
     name: colony.name,
+    owner: colony.owner,
+    nation: state.players.find((p) => p.id === colony.owner)?.nation ?? null,
     population: colony.colonists.length,
     solPercent: sol,
     toryPercent: 100 - sol,

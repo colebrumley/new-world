@@ -32,6 +32,15 @@ describe('colonyView', () => {
     expect(colonyView(town(), 'nope')).toBeNull();
   });
 
+  it('says whose colony it is, and which power they play, for the flag at its head', () => {
+    const state = town();
+    const owner = state.colonies['col']!.owner;
+    expect(v.owner).toBe(owner);
+    expect(v.nation).toBe(state.players.find((p) => p.id === owner)!.nation);
+    const orphan = { ...state, players: state.players.filter((p) => p.id !== owner) };
+    expect(colonyView(orphan, 'col')!.nation).toBeNull();
+  });
+
   it('shows the top building of each chain with the people working in it', () => {
     expect(v.buildings.map((b) => b.name)).toEqual([
       'Docks', 'Town Hall', "Weaver's Shop", "Tobacconist's House", "Rum Distiller's House", "Fur Trader's House", "Carpenter's Shop", "Blacksmith's House",

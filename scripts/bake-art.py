@@ -1,20 +1,24 @@
-"""Bake the detailed map art from source pictures (visual experiment for R-1006).
+"""Bake the detailed art from source pictures (R-1006 for the map, R-1013 for the colony screen).
 
     git clone https://github.com/colebrumley/pixelforge && (cd pixelforge && uv sync)
-    PIXELFORGE=pixelforge pixelforge/.venv/bin/python scripts/bake-art.py
+    PIXELFORGE=pixelforge pixelforge/.venv/bin/python scripts/bake-art.py [folder ...]
 
 The pictures are shrunk by pixelforge (https://github.com/colebrumley/pixelforge); PIXELFORGE is the
-path to a checkout of it, and the script is run with that checkout's Python.
+path to a checkout of it, and the script is run with that checkout's Python. With folder names
+(units, places, features, floors, buildings, goods) only those are baked.
 
 art/units holds one square picture per unit type (colonist.png, soldier.png, ...), art/places one
 per look of a colony or native settlement, and art/features one per forest, hills and mountains,
 each a single subject on a flat magenta ground. art/floors holds one ground texture per open
-terrain, filling its square. The pictures must be our own (constraint C1). Every one is cut from
-its ground (a floor is not), shrunk by pixelforge (units and places in one shared palette per
-folder, terrain in a few flat colours per picture), and written
-out as data: src/ui/unit-art.ts, place-art.ts, feature-art.ts and floor-art.ts, which pixel-art.ts
-draws from. In a place, whatever is painted cyan is given the owner's colour when it is drawn. A
-floor is shifted so that its commonest colour is the terrain's colour on the minimap.
+terrain, filling its square. art/buildings holds one picture per colony building and art/goods one
+icon per good (and for hammers, crosses and bells); those two folders are drawn from plain shapes
+by scripts/draw-colony-art.py. The pictures must be our own (constraint C1). Every one is cut from
+its ground (a floor is not), shrunk by pixelforge (units, places, buildings and goods in one shared
+palette per folder, terrain in a few flat colours per picture), and written
+out as data: src/ui/unit-art.ts, place-art.ts, feature-art.ts, floor-art.ts, building-art.ts and
+goods-art.ts, which pixel-art.ts draws from. In a place or a building, whatever is painted cyan is
+given the owner's colour when it is drawn. A floor is shifted so that its commonest colour is the
+terrain's colour on the minimap.
 """
 import os
 import subprocess
@@ -171,19 +175,34 @@ def write(path: str, title: str, prefix: str, size_name: str, size: int, colours
 
 
 def main() -> None:
-    colours, figures = bake('art/units', 30, 32)
-    write('src/ui/unit-art.ts', 'Unit figures for the map', 'UNIT', 'FIGURE_SIZE', 30, colours, figures,
-          'One figure per unit type: rows of letters from UNIT_CODES; a full stop is see-through.')
-    colours, figures = bake('art/places', 32, 24, owner_key=True)
-    write('src/ui/place-art.ts', 'Colonies and native settlements for the map', 'PLACE', 'PLACE_SIZE', 32, colours, figures,
-          "One picture per look of a place: rows of letters from PLACE_CODES; '*' is the owner's colour and a full stop is see-through.")
-    colours, figures = bake('art/features', 32, 5, prepare=stand, shared=False)
-    write('src/ui/feature-art.ts', 'Forests, hills and mountains for the map', 'FEATURE', 'FEATURE_SIZE', 32, colours, figures,
-          'One picture per terrain that has something standing on its ground: rows of letters from FEATURE_CODES; a full stop is see-through.')
-    colours, figures = bake('art/floors', 32, 3, prepare=floor, shared=False)
-    colours = level(colours, figures)
-    write('src/ui/floor-art.ts', 'Ground textures for the map', 'FLOOR', 'FLOOR_SIZE', 32, colours, figures,
-          'One texture per open terrain, filling the square: rows of letters from FLOOR_CODES.')
+    """Bake every folder, or only those named on the command line (units, places, features, floors, buildings, goods)."""
+    only = set(sys.argv[1:])
+    wanted = lambda folder: not only or folder in only  # noqa: E731
+    if wanted('units'):
+        colours, figures = bake('art/units', 30, 32)
+        write('src/ui/unit-art.ts', 'Unit figures for the map', 'UNIT', 'FIGURE_SIZE', 30, colours, figures,
+              'One figure per unit type: rows of letters from UNIT_CODES; a full stop is see-through.')
+    if wanted('places'):
+        colours, figures = bake('art/places', 32, 24, owner_key=True)
+        write('src/ui/place-art.ts', 'Colonies and native settlements for the map', 'PLACE', 'PLACE_SIZE', 32, colours, figures,
+              "One picture per look of a place: rows of letters from PLACE_CODES; '*' is the owner's colour and a full stop is see-through.")
+    if wanted('features'):
+        colours, figures = bake('art/features', 32, 5, prepare=stand, shared=False)
+        write('src/ui/feature-art.ts', 'Forests, hills and mountains for the map', 'FEATURE', 'FEATURE_SIZE', 32, colours, figures,
+              'One picture per terrain that has something standing on its ground: rows of letters from FEATURE_CODES; a full stop is see-through.')
+    if wanted('floors'):
+        colours, figures = bake('art/floors', 32, 3, prepare=floor, shared=False)
+        colours = level(colours, figures)
+        write('src/ui/floor-art.ts', 'Ground textures for the map', 'FLOOR', 'FLOOR_SIZE', 32, colours, figures,
+              'One texture per open terrain, filling the square: rows of letters from FLOOR_CODES.')
+    if wanted('buildings'):
+        colours, figures = bake('art/buildings', 32, 24, owner_key=True)
+        write('src/ui/building-art.ts', 'Colony buildings for the colony screen', 'BUILDING', 'BUILDING_SIZE', 32, colours, figures,
+              "One picture per building: rows of letters from BUILDING_CODES; '*' is the owner's colour and a full stop is see-through.")
+    if wanted('goods'):
+        colours, figures = bake('art/goods', 16, 24)
+        write('src/ui/goods-art.ts', 'Goods icons for the colony and Europe screens', 'GOODS', 'GOODS_SIZE', 16, colours, figures,
+              'One icon per good, and for hammers, crosses and bells: rows of letters from GOODS_CODES; a full stop is see-through.')
 
 
 main()
