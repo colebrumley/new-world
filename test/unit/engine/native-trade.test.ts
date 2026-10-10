@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyAction, listValidActions, validateAction, type Action, type GameEvent } from '../../../src/engine/actions';
+import { applyAction, InvalidActionError, listValidActions, validateAction, type Action, type GameEvent } from '../../../src/engine/actions';
 import { tribalAlarm } from '../../../src/engine/alarm';
 import { EUROPE_PRICED, MADE_GOODS, NATIVE_TRADE, RAW_PRICED } from '../../../src/engine/data/native-trade';
 import type { GoodId } from '../../../src/engine/data/goods';
@@ -10,7 +10,7 @@ import { settlementEconomy } from '../../../src/engine/native-economy';
 import { fadeTradeMemory, quoteSale, wares, type NativeTradeEvent } from '../../../src/engine/native-trade';
 import { createRng } from '../../../src/engine/rng';
 import type { GameState, Goods, Parley, Settlement, TribeState } from '../../../src/engine/state';
-import { setTile, withUnit, world } from '../../helpers/world';
+import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
 type Level = (typeof DIFFICULTIES)[number];
 type Result = { state: GameState; events: readonly GameEvent[] };
@@ -196,6 +196,29 @@ describe('answering their price', () => {
 
   it('talks lapse at the end of the turn', () => {
     expect(applyAction(talks(), { type: 'endTurn' }).state.parley).toBeNull();
+  });
+
+  it('a cargo unloaded or dumped during the talks can no longer be sold, haggled over or given, only walked away from', () => {
+    const s = talks();
+    const inColony = withColony(s, { id: 'c', x: 5, y: 6 });
+    const emptied = [
+      applyAction(inColony, { type: 'unloadCargo', unitId: 'w', good: 'cloth', amount: 100 }).state,
+      applyAction(s, { type: 'dumpCargo', unitId: 'w', good: 'cloth', amount: 1 }).state,
+    ];
+    for (const gone of emptied) {
+      expect(gone.parley).not.toBeNull();
+      for (const reply of ['accept', 'haggle', 'gift'] as const) {
+        expect(code(gone, { type: 'parley', reply })).toBe('noCargo');
+        expect(() => say(gone, reply)).toThrow(InvalidActionError);
+        expect(() => say(gone, reply)).not.toThrow(RangeError);
+      }
+      expect(listValidActions(gone).filter((a) => a.type === 'parley')).toEqual([{ type: 'parley', reply: 'leave' }]);
+      const left = say(gone, 'leave');
+      expect(left.state.parley).toBeNull();
+      expect(left.state.players[0]?.gold).toBe(0);
+      expect(checkInvariants(left.state)).toEqual([]);
+    }
+    expect(emptied[0]?.colonies['c']?.goods.cloth).toBe(100);
   });
 });
 

@@ -160,7 +160,11 @@ export function checkParley(state: GameState, playerId: PlayerId, reply: ParleyR
   const parley = state.parley;
   if (!parley || parley.player !== playerId || !state.units[parley.unitId] || !state.settlements[parley.settlementId]) return no('noParley', 'no trade is being discussed');
   if (reply === 'leave') return { ok: true };
-  if (parley.stage === 'selling') return reply === 'gift' && parley.haggled ? no('badReply', 'it is too late to make a gift of it') : { ok: true };
+  if (parley.stage === 'selling') {
+    // the talks outlast the cargo if it is unloaded, dumped or moved to another carrier meanwhile
+    if (amountOf((state.units[parley.unitId] as Unit).cargo, parley.good) < parley.amount) return no('noCargo', 'the cargo they were offered is no longer aboard');
+    return reply === 'gift' && parley.haggled ? no('badReply', 'it is too late to make a gift of it') : { ok: true };
+  }
   if (reply === 'gift') return no('badReply', 'that is not an answer to their offer');
   const offer = parley.offers.find((o) => o.good === good);
   if (!offer) return no('badReply', 'they are not offering that');
