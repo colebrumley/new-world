@@ -9,7 +9,7 @@ import { revealAround, sightRadius } from './explore';
 import { findPath, type Path } from './path';
 import { createRng } from './rng';
 import {
-  cargoOf, colonyAt, hasFather, MOVE_THIRDS, playerIndexOf, tileAt, type GameMap, type GameState, type PlayerId, type Unit, type UnitId,
+  cargoOf, colonyAt, hasFather, MOVE_THIRDS, OFF_MAP, playerIndexOf, tileAt, type GameMap, type GameState, type PlayerId, type Unit, type UnitId,
 } from './state';
 import { isWater, terrainDef, type Tile } from './tile';
 
@@ -330,17 +330,59 @@ export function routeFor(state: GameState, unit: Unit, gx: number, gy: number): 
   );
 }
 
-/** Move a unit with a Go To order as far along its route as this turn allows. */
+/** The destination of a ship ordered to Europe: no square of the map, she makes for the nearest Sea Lane. */
+export const EUROPE_BOUND: readonly [number, number] = [OFF_MAP, OFF_MAP];
+
+export function boundForEurope(unit: Unit): boolean {
+  return unit.orders === 'goto' && unit.destination?.[0] === OFF_MAP && unit.destination[1] === OFF_MAP;
+}
+
+/** The nearest Sea Lane square a ship can sail to (her own, if she lies on one), or null if her waters reach none. */
+export function laneFor(state: GameState, ship: Unit): readonly [number, number] | null {
+  const { map } = state;
+  const open = (x: number, y: number): boolean => {
+    const tile = tileAt(map, x, y);
+    if (!tile || isBorder(map, x, y)) return false;
+    if (isWater(tile)) return !isInlandLake(map, x, y);
+    return colonyAt(state, x, y)?.owner === ship.owner;
+  };
+  const seen = new Set<number>([ship.y * map.width + ship.x]);
+  const queue: (readonly [number, number])[] = [[ship.x, ship.y]];
+  for (let i = 0; i < queue.length; i++) {
+    const [x, y] = queue[i] as readonly [number, number];
+    if (tileAt(map, x, y)?.base === 'seaLane' && !isBorder(map, x, y)) return [x, y];
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const key = (y + dy) * map.width + x + dx;
+        if (seen.has(key) || !open(x + dx, y + dy)) continue;
+        seen.add(key);
+        queue.push([x + dx, y + dy]);
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Move a unit with a Go To order as far along its route as this turn allows. A ship bound for
+ * Europe is brought to the Sea Lane and left there under orders; setting sail is the caller's.
+ */
 export function advanceGoto(state: GameState, unitId: UnitId): { state: GameState; events: MoveEvent[] } {
   const events: MoveEvent[] = [];
   let next = state;
   for (let guard = 0; guard < 64; guard++) {
     const unit = next.units[unitId];
     if (!unit || unit.orders !== 'goto' || !unit.destination) break;
-    const [gx, gy] = unit.destination;
     const clear = (): GameState => withUnits(next, [{ ...unit, orders: 'none', destination: null }]);
-    if (unit.x === gx && unit.y === gy) {
+    const europe = boundForEurope(unit);
+    const goal = europe ? laneFor(next, unit) : unit.destination;
+    if (!goal) {
       next = clear();
+      break;
+    }
+    const [gx, gy] = goal;
+    if (unit.x === gx && unit.y === gy) {
+      if (!europe) next = clear();
       break;
     }
     if (unit.movesLeft <= 0) break;

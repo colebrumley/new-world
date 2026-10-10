@@ -302,3 +302,5 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-902 | Hall of Fame order | rating, then score; ten kept | size is ours | medium | |
 | R-1009 | how often a brave calls at a colony | 12% of the turns it stands beside one | own design | n/a | Calling every turn gave about 27 gifts a turn |
 | R-1009 | computer powers: statesmen, build order, garrison, reprisal, first-colony haste | `AI_PLAN` | own design | n/a | added after the balance run to bring it toward Appendix L |
+| R-205 | Go To menu for ships | Europe listed first when the ship's waters reach a Sea Lane; refused during the War of Independence | — | high | entry reads "Europe" |
+| R-205 | Go To Europe order | nearest reachable Sea Lane square, then sail with moves in hand | ours | low | |

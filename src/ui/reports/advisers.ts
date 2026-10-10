@@ -13,6 +13,7 @@ import { colonyProduction } from '../../engine/economy';
 import { crossesNeeded } from '../../engine/immigration';
 import { solPercent } from '../../engine/liberty';
 import { askPrice, bidPrice, isBoycotted } from '../../engine/market';
+import { boundForEurope } from '../../engine/movement';
 import { colonyAt, type Colony, type GameState, type PlayerId, type Unit } from '../../engine/state';
 import { isExploredBy } from '../../engine/tile';
 import type { Report } from '../report';
@@ -170,6 +171,7 @@ export function navalReport(state: GameState, playerId: PlayerId): Report {
     if (u.repair > 0) return `under repair, ${u.repair} turns`;
     if (u.route) return `trade route ${state.tradeRoutes[u.route.routeId]?.name ?? ''}`.trim();
     if (!u.destination) return '-';
+    if (boundForEurope(u)) return 'Europe';
     const port = colonyAt(state, u.destination[0], u.destination[1]);
     return port ? port.name : `(${u.destination[0]}, ${u.destination[1]})`;
   };

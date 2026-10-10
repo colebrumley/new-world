@@ -28,7 +28,7 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'map', keys: 'B', action: 'Build a colony, or join the colony on this square', command: 'buildColony' },
   { context: 'map', keys: 'P', action: 'Pioneer: clear forest or plow', command: 'plow' },
   { context: 'map', keys: 'R', action: 'Pioneer: build a road', command: 'road' },
-  { context: 'map', keys: 'G', action: 'Go to: choose a colony from the list, or pick a square with the arrows or the mouse and Enter', command: 'goTo' },
+  { context: 'map', keys: 'G', action: 'Go to: choose a colony from the list (a ship that can reach the Sea Lane is offered Europe first), or pick a square with the arrows or the mouse and Enter', command: 'goTo' },
   { context: 'map', keys: 'L', action: 'Load the most valuable cargo in this colony', command: 'load' },
   { context: 'map', keys: 'U', action: 'Unload cargo into this colony', command: 'unload' },
   { context: 'map', keys: 'O', action: 'Dump cargo overboard', command: 'dump' },

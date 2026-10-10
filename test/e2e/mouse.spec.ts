@@ -180,6 +180,7 @@ test('the wheel zooms about the pointer, and the Go To cursor follows it', async
   // Go To from the bar, then a click on the square: no list of colonies yet, so the map is the choice
   const from = await spot(page);
   await command(page, 'goTo').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Pick a square on the map' }).click();
   await expect(canvas).toHaveAttribute('data-mode', 'goto');
   const target = await pixel(canvas, from.x - 2, from.y + 1);
   await page.mouse.move(box.x + target.x, box.y + target.y);
