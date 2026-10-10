@@ -1,5 +1,5 @@
 // What a map square is, in words: the pure model behind the map's hover slip and the sidebar's
-// list of ground features. Nothing here touches the DOM.
+// list of ground features, and where the slip goes beside the pointer. Nothing here touches the DOM.
 import { GOOD_NAMES } from '../engine/data/goods';
 import { RESOURCE_BONUS, RESOURCES, type ResourceBonus, type ResourceId } from '../engine/data/resources';
 import { defensePercent, RAW_GOODS, TERRAIN, type RawGood } from '../engine/data/terrain';
@@ -17,6 +17,30 @@ export interface TileTip {
   readonly yields: string;
   /** "Move 1 · Defence none" / "Move 2 · Defence +50%". */
   readonly ground: string;
+}
+
+/** How long the pointer rests on a square before the map's slip appears, in milliseconds. */
+export const TOOLTIP_DELAY_MS = 400;
+/** How far the slip stands from the pointer, in pixels, across and down. */
+export const TOOLTIP_GAP = 14;
+
+/**
+ * The slip's top-left corner in canvas pixels: right of and below the pointer, to its left where it
+ * would run over the right edge, above it where it would run over the bottom, and kept on the canvas.
+ */
+export function placeTooltip(
+  pointer: { readonly x: number; readonly y: number },
+  slip: { readonly width: number; readonly height: number },
+  canvas: { readonly width: number; readonly height: number },
+): { x: number; y: number } {
+  let x = pointer.x + TOOLTIP_GAP;
+  if (x + slip.width > canvas.width) x = pointer.x - TOOLTIP_GAP - slip.width;
+  let y = pointer.y + TOOLTIP_GAP;
+  if (y + slip.height > canvas.height) y = pointer.y - TOOLTIP_GAP - slip.height;
+  return {
+    x: Math.max(0, Math.min(x, canvas.width - slip.width)),
+    y: Math.max(0, Math.min(y, canvas.height - slip.height)),
+  };
 }
 
 /** Fish is a raw good but not a cargo, so it has no entry among the goods' names. */

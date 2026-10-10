@@ -47,6 +47,7 @@ import { MENU_CHOICES, REPORT_CHOICES, createCommandBar, type BarChoice } from '
 import { PINCH_STEP, WHEEL_LINE, WHEEL_STEP, mapClick, mapCursor, mapDrag, pinchTravel, wheelStep, type PointerMode } from '../ui/pointer';
 import { editRoute } from '../ui/trade-routes';
 import { createTileCache } from '../ui/tiles';
+import { placeTooltip, tileTip, TOOLTIP_DELAY_MS } from '../ui/tile-tooltip';
 import { needsOrders, nextUnit } from '../ui/unit-queue';
 import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, viewCenter, zoomAt, zoomBy, type View } from '../ui/view';
 import { readHintsSeen, readOptions, writeAutosave, writeHintsSeen, writeOptions } from './storage';
@@ -129,6 +130,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     stopped = true;
     window.removeEventListener('resize', onResize);
     magnified.stop();
+    hideTip();
+    overMap.disconnect();
     startGame(root, other);
   };
   /** Save/Load Game: the ten slots, and a file in or out. Stays open after a save so the player sees it took. */
@@ -167,7 +170,12 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   canvas.className = 'map';
   canvas.tabIndex = 0;
   const sidebar = createSidebar();
-  screen.append(canvas, sidebar.element, magnified.element);
+  // the slip that says what the square under a resting pointer is
+  const tooltip = document.createElement('div');
+  tooltip.className = 'map-tooltip';
+  tooltip.setAttribute('role', 'tooltip');
+  tooltip.hidden = true;
+  screen.append(canvas, sidebar.element, magnified.element, tooltip);
   root.replaceChildren(screen);
 
   const ctx = canvas.getContext('2d');
@@ -225,6 +233,58 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   let wheelKept = 0;
   let wheelAt = 0;
   let lastTime = 0;
+  /** The wait before the slip appears, while the pointer rests; 0 when none is running. */
+  let tipTimer = 0;
+  /** The square the slip describes while it is up. */
+  let tipAt: { x: number; y: number } | null = null;
+  /** Take the slip away and give up the wait: the next movement of the pointer starts it again. Never redraws the map. */
+  const hideTip = (): void => {
+    if (tipTimer) window.clearTimeout(tipTimer);
+    tipTimer = 0;
+    if (!tipAt) return;
+    tipAt = null;
+    tooltip.hidden = true;
+  };
+  /** Describe the square under the pointer on the slip, or take the slip away where there is nothing to say. Only the slip changes, and only when the square does. */
+  const showTip = (): void => {
+    tipTimer = 0;
+    const tile = pointer && !drag ? screenToTile(view, session.state.map, pointer.x, pointer.y) : null;
+    if (tile && tipAt && tile.x === tipAt.x && tile.y === tipAt.y) return;
+    // never with the option off, on a device that cannot hover, or under a question, a report or another screen
+    const allowed = !stopped && options.terrainTooltips && window.matchMedia('(hover: hover)').matches && !screen.querySelector('[role="dialog"]');
+    const tip = tile && allowed ? tileTip(session.state, tile.x, tile.y, revealAll) : null;
+    if (!pointer || !tile || !tip) {
+      hideTip();
+      return;
+    }
+    const line = (text: string, className = ''): HTMLElement[] => {
+      if (!text) return [];
+      const p = document.createElement('p');
+      if (className) p.className = className;
+      p.textContent = text;
+      return [p];
+    };
+    tooltip.replaceChildren(...line(tip.title, 'map-tooltip-title'), ...tip.features.flatMap((feature) => line(feature)), ...line(tip.yields, 'map-tooltip-yields'), ...line(tip.ground, 'map-tooltip-ground'));
+    tipAt = tile;
+    tooltip.hidden = false;
+    const at = placeTooltip(pointer, { width: tooltip.offsetWidth, height: tooltip.offsetHeight }, { width: canvas.clientWidth, height: canvas.clientHeight });
+    tooltip.style.left = `${canvas.offsetLeft + at.x}px`;
+    tooltip.style.top = `${canvas.offsetTop + at.y}px`;
+  };
+  /** The pointer moved over the map with no button down: the slip follows it from square to square at once, or the wait begins again. */
+  const hoverTip = (): void => {
+    if (tipAt) {
+      showTip();
+      return;
+    }
+    if (tipTimer) window.clearTimeout(tipTimer);
+    tipTimer = window.setTimeout(showTip, TOOLTIP_DELAY_MS);
+  };
+  // a question, a report, the colony screen, Europe or the encyclopedia laid over the map takes the slip away
+  const overMap = new MutationObserver(() => {
+    if (screen.querySelector('[role="dialog"]')) hideTip();
+  });
+  overMap.observe(screen, { childList: true });
 
   const me = (): string => session.state.players[viewerIndex(session.state)]?.id ?? '';
   const activeUnit = (): Unit | null => (activeId ? (session.state.units[activeId] ?? null) : null);
@@ -239,6 +299,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     view = next;
     dirty = true;
     canvas.dataset['view'] = JSON.stringify(view);
+    hideTip(); // the squares have moved under the pointer
   };
 
   const resize = (): void => {
@@ -253,6 +314,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     miniCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     view = resizeView(view, session.state.map, width, height);
     dirty = true;
+    hideTip();
   };
 
   const say = (text: string): void => {
@@ -1234,6 +1296,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     const command = mapCommandFor(event);
     // H shows the terrain under forests and pieces until the next key press.
     if (command === 'hiddenTerrain') {
+      hideTip();
       setView({ ...view, showHidden: true });
       event.preventDefault();
       return;
@@ -1244,6 +1307,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     const step = event.ctrlKey || event.metaKey ? undefined : (DIRECTIONS[event.code] ?? DIRECTIONS[event.key]);
     if (step) {
       event.preventDefault();
+      hideTip(); // the view or the active unit may move under a resting pointer
       if (mode === 'move') {
         const unit = activeUnit();
         if (unit) void tryMove(unit.id, step[0], step[1]);
@@ -1261,6 +1325,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     }
     if (!command) return;
     event.preventDefault();
+    hideTip();
     void runCommand(command, command === 'menu' ? event.code.replace('Key', '').toLowerCase() : key);
   });
 
@@ -1334,6 +1399,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   };
 
   canvas.addEventListener('mousedown', (event) => {
+    hideTip();
     if (event.button !== 0) return;
     const p = local(event, canvas);
     const tile = screenToTile(view, session.state.map, p.x, p.y);
@@ -1348,6 +1414,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     if (!drag) {
       retarget();
       showPointer();
+      hoverTip();
       return;
     }
     const dx = p.x - drag.x;
@@ -1412,11 +1479,13 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   };
   canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
+    hideTip();
     // a trackpad's pinch, and the browser's own Ctrl+wheel zoom, come as a wheel event with Ctrl held
     zoomWheel(event.deltaMode === 1 ? event.deltaY * WHEEL_LINE : event.deltaY, event.ctrlKey ? PINCH_STEP : WHEEL_STEP, local(event, canvas), event.timeStamp);
   }, { passive: false });
   /** A pinch zooms by how far apart its fingers are now over how far they were when last heard of. */
   const pinchBy = (was: number, now: number, p: { x: number; y: number }, time: number): void => {
+    hideTip();
     if (was > 0 && now > 0) zoomWheel(pinchTravel(now / was), PINCH_STEP, p, time);
   };
   /** Fingers are on the map. Safari on a touch screen tells of their pinch twice over, in touches and in gestures: the touches are heard, the gestures not. */
@@ -1424,6 +1493,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   // Safari tells of a trackpad's pinch in events of its own, with the scale since the fingers came down
   let gestureScale = 0;
   canvas.addEventListener('gesturestart', () => {
+    hideTip();
     gestureScale = 1;
   });
   canvas.addEventListener('gesturechange', (event) => {
@@ -1443,11 +1513,13 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   };
   // a finger put down or lifted starts the measure again
   const touched = (event: TouchEvent): void => {
+    hideTip();
     touching = event.touches.length > 0;
     touchSpan = fingers(event)?.span ?? 0;
   };
   for (const type of ['touchstart', 'touchend', 'touchcancel'] as const) canvas.addEventListener(type, touched, { passive: true });
   canvas.addEventListener('touchmove', (event) => {
+    hideTip();
     const held = fingers(event);
     if (!held) return;
     event.preventDefault();
@@ -1509,6 +1581,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     void showPedia(screen, target).then(() => (colonyScreen ? undefined : canvas.focus()));
   });
   canvas.addEventListener('mouseleave', () => {
+    hideTip();
     pointer = null;
     drag = null;
     if (aimAt) dirty = true;

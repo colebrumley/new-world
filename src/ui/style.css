@@ -615,6 +615,16 @@ canvas.minimap {
   font-size: 0.8rem;
 }
 .event-log:empty { display: none; }
+/* a smaller slip beside the pointer, saying what the square under it is: over the log, under every dialog and screen */
+.map-tooltip {
+  position: absolute; z-index: 4; box-sizing: border-box; width: max-content; max-width: 17rem; margin: 0; padding: 3px 8px 4px;
+  background: var(--sheet); border: var(--rule); box-shadow: var(--lift);
+  font-size: 0.8rem; line-height: 1.3; pointer-events: none;
+}
+.map-tooltip[hidden] { display: none; }
+.map-tooltip p { margin: 0; }
+.map-tooltip-title { font-family: var(--font-display); font-size: 0.95rem; letter-spacing: var(--tracking-display); }
+.map-tooltip-ground { color: var(--ink-faded); }
 
 /* --- adviser reports --------------------------------------------------------------------- */
 /* A report is a page of parchment (R-1015): the adviser's seal and the title at its head over a
