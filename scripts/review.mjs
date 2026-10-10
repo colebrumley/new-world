@@ -75,7 +75,8 @@ function rabbitActivity(pr, since) {
     asks: comments.filter((c) => !BOT.test(c.login) && c.body.includes(ASK)).length,
     verdict: verdicts.at(-1)?.state,
     reviewed: reviews.some((r) => BOT.test(r.login) && after(r.at)),
-    limited: fromBot.find((c) => /rate limit/i.test(c.body)),
+    // Its notice, not any mention: its summary of a change about rate limits uses the words too.
+    limited: fromBot.find((c) => /rate limit exceeded/i.test(c.body)),
     finished: status !== undefined && status.state !== 'pending',
     sign: fromBot.length > 0 || status !== undefined,
   };
