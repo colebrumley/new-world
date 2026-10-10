@@ -1,108 +1,118 @@
-# CLAUDE.md — autonomous build loop
+# CLAUDE.md — how work gets done here
 
-This repo is New World, a browser strategy game of founding colonies and leading them to independence. The backlog is
-[REQUIREMENTS.md](REQUIREMENTS.md). Work through it hands-off using the protocol below.
+New World is a browser strategy game of founding colonies and leading them to independence. The
+backlog in [REQUIREMENTS.md](REQUIREMENTS.md) (Phases 0 to 11) is built. Work now arrives as a bug
+report, a problem or a feature, is planned into a spec under `docs/specs/`, and is built by workers
+in parallel, each in its own worktree with its own pull request. One person owns the repository;
+pull requests track the work, they do not gate it.
 
 ## Two rules before anything else
 
-Many sessions work on this repo at the same time. Both rules are mandatory, for every change,
-however small.
+Many sessions work on this repo at the same time. Both rules are mandatory for every change.
 
-1. **All code changes happen in a git worktree of your own.** Never edit, commit, switch branches,
-   stash or run test suites in the main checkout or in a worktree another session made. If your
-   working directory is not under `.claude/worktrees/`, make one before you touch a file:
+1. **All code changes happen in a git worktree of your own.** If your working directory is under
+   `.claude/worktrees/`, that is yours: the app made it, with a `claude/<name>` branch. If it is
+   the main checkout, make one before you touch a file; a hook refuses commits, branch switches,
+   stashes and test suites there.
 
    ```bash
    git fetch origin
-   git worktree add .claude/worktrees/r-xxx-short-name -b r-xxx-short-name origin/main
-   cd .claude/worktrees/r-xxx-short-name
-   npm run board -- claim R-xxx "what, briefly"   # before the install: it may be refused
-   npm ci
+   git worktree add .claude/worktrees/<short-name> -b <short-name> origin/main
+   cd .claude/worktrees/<short-name> && npm ci
    ```
 
-   One worktree, one branch, one requirement. Read-only questions about the code may be answered
-   from wherever you are. If you find uncommitted changes in the main checkout, they are someone
-   else's: leave them exactly as they are.
-2. **The board is how sessions tell each other things.** It is shared by every worktree and is
-   never committed (`scripts/board.mjs`). Read it before you pick work, claim what you take, and
-   write to it whenever another session would want to know.
+   Never edit, commit or run suites in a worktree another session made. Uncommitted changes in the
+   main checkout are someone else's: leave them exactly as they are. Bring `origin/main` into your
+   branch before the review step; in the app, `sync_with_base_branch` does it.
+2. **The board is how sessions tell each other things** (`scripts/board.mjs`, shared by every
+   worktree, never committed, printed when a session starts).
 
    ```bash
-   npm run board                              # who is doing what, and the latest notes
-   npm run board -- claim R-xxx "what, briefly"   # from your worktree; fails if another holds it
+   npm run board                                   # who is doing what, and the latest notes
+   npm run board -- claim R-xxxx "what, briefly"   # from your worktree; fails if another holds it
    npm run board -- note "what the others need to know"
-   npm run board -- release R-xxx             # merged, blocked or abandoned
+   npm run board -- release R-xxxx                 # merged, blocked or given up
    ```
 
-   Write a note when you: change something others build on (a type in `state.ts`, an action, a
-   save version, a helper in `test/`, a config file), find a test that is broken on `main`, are
-   about to edit a file outside your requirement's area, open or merge a pull request, or give
-   up on an item. Say what and where in one line. Read the notes again before your final
-   `npm run check`; if one concerns files you touched, bring `origin/main` into your branch first.
+   Claim an item before building it. Write a note when you change something others build on (a
+   type in `state.ts`, an action, a save version, a helper in `test/`, a config file, a theme
+   token), find a test broken on `main`, edit files outside your item's area, open or merge a pull
+   request, or give up. One line, saying what and where.
 
-## One iteration
+## The public-repo rule
 
-1. **Pick.** Run `npm run board`, then open REQUIREMENTS.md as it is on `origin/main`. Choose
-   the first `[ ]` or `[~]` requirement in the lowest phase that still has open items and that no
-   other worktree has claimed. Skip `[!]` items unless their stated blocker is now resolved.
-   Do exactly one requirement per iteration (R-1009 may spawn sub-items; treat each as one).
-2. **Claim it, then mark `[~]`.** Make your worktree for the item and claim it from there
-   (rule 1). If the claim is refused, someone else holds the item: remove the worktree and branch
-   you just made and pick again. Then mark the item `[~]` and commit that one-line change:
-   `R-xxx: start`.
-3. **Read before writing.** Read the requirement, its appendix rows, `docs/FIDELITY.md`, and the
-   files you will touch. Do not re-read the whole backlog. If the rule tables in `src/engine/data/*`
-   and the appendix disagree, fix the appendix in the same commit.
-4. **Implement** the smallest change that satisfies every acceptance bullet. Put rule numbers in
-   `src/engine/data/*`, never inline. Write the tests named in the **Verify** line first or
-   alongside; they are the definition of done.
-5. **Verify.** While you work, run only the tests for what you are touching:
-   `npm test -- test/unit/engine/colony/food.test.ts`, or `npm run test:e2e -- colony` for one
-   spec. Before the commit, run `npm run check` (lint, typecheck, unit tests, build) once. Run
-   `npm run test:e2e` only if the Verify line names e2e or you changed `src/ui` or `src/app`, and
-   `SIM=1 npm test` only if it names sim tests. All previously passing tests must still pass. Fix
-   regressions before anything else.
-6. **Record fidelity.** For every `[VERIFY]` value you implemented, add a row to
-   `docs/FIDELITY.md` (value used, source, confidence). If unresolved, use the backlog value and
-   move on.
-7. **Mark `[x]`** in REQUIREMENTS.md and commit everything: `R-xxx: <title>` with a 2–5 line body
-   listing what was built and which tests cover it.
-8. **Hand over.** Push the branch and open a pull request against `main`, and turn Auto-fix on
-   for it so failing checks and review comments are picked up without being asked. Post a note
-   with its address and anything it changes that others build on. Release the claim once it is
-   merged, or at once if you are giving the item up. After the merge, clean up from the main
-   checkout's side: remove the worktree, delete the branch locally and on the remote, and prune.
-   Never remove a worktree or branch you did not make, or one with uncommitted or unpushed work.
+This repository is public. Never name another game, its makers or its files, and never say or imply
+that a rule or a look was taken from, checked against or derived from one, in code, comments, docs,
+commit messages, pull requests or board notes. Describe a rule as what this game does; describe a
+gap as simplified or left out. Open-source projects may be cited the way `docs/RULES.md` shows. A
+hook refuses commits, pushes and pull-request commands whose new text matches a private word list
+kept at `<git dir>/private/banned-words.txt`, never tracked; `npm run guard` runs the same check by
+hand. If the list is missing, the hook says so: ask the owner for it.
 
-   ```bash
-   git worktree remove .claude/worktrees/r-xxx-short-name
-   git branch -D r-xxx-short-name                # -D: a squash merge leaves it "unmerged" locally
-   git push origin --delete r-xxx-short-name     # skip if the merge already deleted it
-   git worktree prune && git fetch --prune
-   ```
-9. **Report** in one short paragraph: what was done, test counts, anything flagged. Then start
-   the next iteration, in a new worktree, if the session budget allows.
+Rule questions, in order: the private notes under `ref/` in the main checkout (untracked, read-only
+for you); then the open-source projects `docs/RULES.md` cites, if they agree; then the owner. Never
+invent a rule where those are silent without saying so in the pull request. In reports, say which
+rules came from where. New art is generated with Codex and baked with pixelforge (see
+`scripts/bake-art.py`); never draw a source picture with a script, and never put anything in a Codex
+prompt that is not already public in this repository.
+
+## The flow
+
+| Step | Who | Model | Does |
+|---|---|---|---|
+| Intake and plan | `/plan` | the planning model, high effort | reads the code and rules, asks the owner the forks that matter (at most three), writes `docs/specs/<slug>.md` and one backlog line per item, merges the spec |
+| Dispatch | `/build` | same session | one worker per ready item: size S as a subagent at **Opus 5.5, medium effort**, size M or L as a task chip the owner runs at the same model |
+| Build | the worker | Opus 5.5, medium | the Worker protocol below, ending in a merged pull request or an open one with findings |
+| Close | `/build` | same session | `npm run tidy`, report |
+| Review the process | `/retro` | any | every ten or so merged pull requests: what the owner still had to type, and what to change so they need not |
+
+`/bughunt` finds bugs with reproductions and feeds them to `/plan` and `/build`. Run it on Opus.
+
+## Worker protocol
+
+One item, one worktree, one pull request. The item is a section of a spec under `docs/specs/`
+(or, for older work, an entry in REQUIREMENTS.md). Its acceptance bullets and its Verify line are
+the definition of done.
+
+1. **Place.** Confirm you are in a worktree (rule 1). `npm ci` if `node_modules` is missing.
+   `npm run board -- claim R-xxxx "what"`; if refused, stop and say who has it.
+2. **Read.** The whole spec once, then only your item; the files it names; the rules it touches in
+   `docs/RULES.md` and `docs/FIDELITY.md`. Do not read the whole backlog.
+3. **Build** the smallest change that satisfies every acceptance bullet. Rule numbers go in
+   `src/engine/data/*`, never inline. Write the Verify tests first or alongside. Keep
+   `docs/RULES.md`, `docs/FIDELITY.md` and `docs/ARCHITECTURE.md` true for what you changed.
+4. **Verify.** While working, run only the tests for what you touch. Before the review, bring
+   `origin/main` in, then run `npm run check` once. Run `npm run test:e2e` only if the Verify line
+   names it or you changed `src/ui` or `src/app`; `SIM=1 npm test` only if it names sim tests.
+   Every previously passing test must still pass; fix regressions before anything else.
+5. **Commit and review.** Tick your item's line in REQUIREMENTS.md (only that line). Commit as
+   `R-xxxx: <imperative title>` with a 2 to 5 line body: what was built, which tests cover it,
+   which rules came from where. Then `npm run review`: an adversarial review of the branch's commits
+   against `origin/main` by Codex. Fix every P1 and P2 finding you can confirm, re-run the tests for
+   what you touched, commit as `R-xxxx: fix <what>`, and run the review once more. A finding you
+   disagree with gets one sentence of why in the pull request. Do not run the review a third time.
+6. **Land.** Push. Open the pull request against `main` with a short body: what changed, the
+   tests, the review's verdict, and a screenshot if the Verify line asks for one.
+   - Review CLEAN and `npm run check` green: `gh pr merge --squash --delete-branch`, note the board
+     (address, and anything others build on), release the claim, `npm run tidy`.
+   - Otherwise: leave the pull request open with the unresolved findings under **Open findings**
+     in its body, note the board, release the claim, and stop. The owner decides.
+7. **Report** in one short paragraph: what was built, test counts, the pull request, merged or not,
+   and anything the spec did not foresee.
 
 ## Blocking rules
 
-- Three failed attempts at the same acceptance bullet → mark the item `[!] <one-line reason>`,
-  commit, post the reason as a note, release the claim, and move on. Never leave a `[~]` item without a commit describing its state.
-- If a requirement contradicts a constraint in REQUIREMENTS.md §0, the constraint wins; note the
-  conflict under the item and implement the constraint-compatible subset.
-- Never add a runtime dependency unless the requirement names it. Dev dependencies are fine if
-  they serve a Verify line.
-- Never include or fetch anyone else's game assets or text (constraint C1). If a test needs art, draw it procedurally.
-- **Art for the game is generated with Codex, then run through pixelforge.** Do not draw a source picture
-  with a script. Ask Codex for it (`codex exec --skip-git-repo-check -s workspace-write -C <scratch dir>
-  -i <reference.png> "Use your image generation tool to make ... and save it here as name.png"`), giving
-  it pictures already in `art/` as style references, the subject as our own (never another game's or an
-  artist's look), flat colours with bold dark outlines, and, where the result must be in the map palette,
-  the hex colours of `PALETTE` to draw in. Put the PNG in its folder under `art/`, run
-  `scripts/shrink-art.py` on it, then `scripts/bake-art.py` (both with pixelforge's Python; see their
-  docstrings), and look at the baked result before committing. The prompt is sent to an outside service:
-  put nothing in it that is not already public in this repository.
-- Do not ask the user questions. Make the choice a careful engineer would make, write it in the
-  commit body, and continue.
+- Three failed attempts at one acceptance bullet: stop, leave the pull request open with what
+  failed under **Open findings**, note the board, release the claim. Never leave a claimed item
+  without a commit describing its state.
+- A requirement that contradicts a constraint in REQUIREMENTS.md §0 loses: implement the
+  constraint-compatible subset and say so in the pull request.
+- Never add a runtime dependency unless the spec names it. Dev dependencies are fine if they serve a
+  Verify line.
+- Never include or fetch anyone else's game assets or text (constraint C1).
+- Do not ask the owner questions while building. Make the choice a careful engineer would make,
+  write it in the commit body, and continue. The one exception is a rule the sources disagree on:
+  build the open-source reading, say so under **Decisions** in the pull request, and leave it open.
 
 ## Sharing the machine
 
@@ -113,8 +123,8 @@ The full suites are the main cost of many sessions on one machine. Keep them rar
   `uptime` before chasing it, and do not raise timeouts or write a second Playwright config.
 - Each Playwright run builds and serves its own copy on its own port; never start a preview
   server for tests by hand. The time budgets in `test/e2e/budget.spec.ts` run in CI, or with `BUDGET=1`.
-- The balance simulation (`SIM=1 npm test -- balance`) takes minutes of every core. Run it for
-  R-1009 only.
+- The balance simulation (`SIM=1 npm test -- balance`) takes minutes of every core. Run it only when
+  a spec names it.
 - If a test command is killed or times out, run `npm run sweep` so its workers and browsers do
   not go on running.
 
@@ -124,22 +134,21 @@ The full suites are the main cost of many sessions on one machine. Keep them rar
 - Engine functions are pure: `(state, ...args) => newState | result`. Side effects only in `src/ui` and `src/app`.
 - Every rule table is a `const ... as const satisfies Record<...>` with a snapshot test.
 - Test files mirror source paths: `src/engine/colony/food.ts` → `test/unit/engine/colony/food.test.ts`.
-- Commit messages: `R-xxx: imperative summary`. One requirement per commit except for trivial
-  follow-up fixes (`R-xxx: fix <what>`).
+- Commit messages: `R-xxxx: imperative summary`; `Fix: <what>` for a bug outside any item;
+  `Workflow: <what>` for changes to this process. One item per commit except trivial follow-ups.
 - Keep `docs/ARCHITECTURE.md` current when you add a top-level module; one paragraph per module.
 
 ## Commands
 
 ```bash
-npm run check          # lint + typecheck + unit tests + build (must pass before every commit)
+npm run check          # lint + typecheck + unit tests + build + size (must pass before every commit)
 npm run test:e2e       # playwright, chromium
+npm run review         # adversarial review of this branch against origin/main (Codex), before the PR
+npm run guard          # the public-repo word check, by hand
 npm run board          # claims and notes shared by every worktree
+npm run tidy           # remove merged worktrees and branches, release their claims
+npm run retro          # what the owner typed by hand since the last retro (for /retro)
 npm run sweep          # end test workers, browsers and servers left by a killed run
 SIM=1 npm test         # slow headless simulations
 npm run dev            # local dev server
 ```
-
-## Status snapshot
-
-Phases are ordered 0 → 10. Do not start Phase N+1 while Phase N has `[ ]` items, except that
-Phase 10's R-1006 (visual pass) and R-1009 (balance) are deferred until everything else is `[x]` or `[!]`.

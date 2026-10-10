@@ -1373,6 +1373,15 @@ they are started.
 
 ---
 
+## Phase 12 — Planned work
+
+Phases 0 to 11 are built. Work now arrives as a bug report, a problem or a feature, is planned by
+`/plan` into a spec under `docs/specs/`, and is built by workers from that spec (the process is in
+[CLAUDE.md](CLAUDE.md)). Each work item gets one line here, written by the planner; the worker that
+builds it ticks the line in its own pull request and nobody else edits it. The spec holds the detail.
+
+---
+
 ## Appendix A — Terrain
 
 Columns: Move cost, Defense (×25%), Improve (turns to clear/plow/road, derived), Value (AI site
