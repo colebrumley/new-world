@@ -20,6 +20,7 @@ import { centerOutput, fieldOutput } from './jobs';
 import { colonyBells, solProductionTerm, updateLiberty, type LibertyEvent } from './liberty';
 import { warehouseCapacity } from './pioneer';
 import { createRng, type Rng } from './rng';
+import { shipsLeavePort, type ShipEvent } from './ships';
 import { hasFather, type Colonist, type Colony, type GameState, type Goods, type Unit } from './state';
 
 export type AnyGood = GoodId | AbstractGoodId;
@@ -187,6 +188,7 @@ export type EconomyEvent =
   | ConstructionEvent
   | LibertyEvent
   | EducationEvent
+  | ShipEvent
   | { readonly type: 'colonyProduced'; readonly colonyId: string; readonly delta: Goods; readonly hammers: number }
   | { readonly type: 'ranOutOf'; readonly colonyId: string; readonly good: GoodId }
   /** The store will not last long at this rate. */
@@ -281,6 +283,8 @@ export function colonyTurn(state: GameState, colonyId: string, events: EconomyEv
         sol = withoutOne(sol);
         if (colonists.length === 0) {
           events.push({ type: 'colonyVanished', colonyId, name: colony.name, lost: goods });
+          // ships in port cannot stay on what is now bare land: they leave damaged, as from a colony that has fallen
+          next = shipsLeavePort(next, colony, events);
           const { [colonyId]: _gone, ...rest } = next.colonies;
           const tiles = [...next.map.tiles];
           const i = colony.y * next.map.width + colony.x;

@@ -85,6 +85,19 @@ export function damageShip(state: GameState, shipId: string, events: ShipSink, l
   return { ...state, units };
 }
 
+/**
+ * The colony is about to be lost to its owner (taken, abandoned, starved out): the owner's ships
+ * in port slip their cables, damaged, since without the colony they would be standing on land.
+ */
+export function shipsLeavePort(state: GameState, colony: Colony, events: ShipSink): GameState {
+  let next = state;
+  for (const u of Object.values(state.units)) {
+    if (u.x !== colony.x || u.y !== colony.y || u.owner !== colony.owner || u.voyage !== null || u.aboard !== null) continue;
+    if (isShip(u)) next = damageShip(next, u.id, events, colony.id);
+  }
+  return next;
+}
+
 /** A turn's work on every damaged ship of a power. A ship under repair cannot move or sail. */
 export function repairShips(state: GameState, playerId: string, events: ShipSink): GameState {
   let next = state;

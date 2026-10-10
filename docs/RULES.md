@@ -190,6 +190,9 @@ and the native-land dialog belong to R-510.
 - With La Salle, a colony that has three or more colonists after someone joins gets a Stockade.
 - The player may not take a colony with a Stockade (or better) from three colonists downward,
   and removing the last colonist of any colony is abandoning it.
+- Abandoning a colony with the owner's ships in port: each ship leaves damaged, as from a
+  colony that has fallen (hold and passengers lost; to the nearest other colony with a Drydock,
+  else to Europe, else sunk). The same holds when a colony starves out (R-304).
 **Notes:** founding is immediate, so there is no refusal for a colony being built next door.
 The first build item (Warehouse, or Docks in a port colony) is set by R-303.
 
@@ -252,6 +255,7 @@ until the market exists (R-400) a fixed opening price is used.
 - If the food made plus the food stored does not cover what is eaten: when there was food in
   store at the start of the turn the store just empties and a notice is given; when there was
   none, one colonist picked at random dies, and if he was the last the colony is removed.
+  Ships of the owner in the port of a colony removed this way leave damaged (see R-300).
 - Warning: with no shortfall but more eaten than made, when the store is less than 4 times the
   deficit.
 - Discoverer and Explorer: no starvation deaths before 1520; afterwards a death that is due
