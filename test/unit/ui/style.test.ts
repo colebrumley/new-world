@@ -96,6 +96,32 @@ describe('the stylesheet below the tokens', () => {
   });
 });
 
+describe('the pages (R-1015)', () => {
+  /** The declarations of every rule whose selector mentions one of the reports, the encyclopedia, the save, options and combat panels. */
+  const pages = [...rules.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((m) => /\.(report|pedia|save|options|combat)-/.test(m[1]!)).map((m) => ({ selector: m[1]!.trim(), body: m[2]! }));
+
+  it('are there to be checked', () => {
+    expect(pages.length).toBeGreaterThan(60);
+  });
+
+  it('nothing that takes the keys has its focus ring taken away', () => {
+    // the screen itself is focused only to receive keys; everything else keeps the ring of :focus-visible
+    expect(pages.filter((rule) => /outline:\s*(none|0)\b/.test(rule.body)).map((rule) => rule.selector)).toEqual(['.report-screen']);
+    expect(rules).toContain(':focus-visible { outline: var(--focus-ring); outline-offset: 1px; }');
+    expect(rules).toContain('.report-section tr.zoom:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }');
+  });
+
+  it('the stamp of a fight is not animated for those who ask for less motion', () => {
+    expect(rules).toContain('@media (prefers-reduced-motion: reduce) { .combat-flash { animation: none; } }');
+    expect(rules).toMatch(/\.combat-flash \{[^}]*animation: combat-flash /);
+  });
+
+  it('the marks of the checklist are drawn in ink, not by the browser', () => {
+    expect(rules).toMatch(/\.options-dialog input\[type='checkbox'\], \.customize input\[type='radio'\] \{\s*appearance: none;/);
+    expect(rules).toMatch(/input\[type='checkbox'\]:checked::after \{[^}]*background: var\(--ink\);/);
+  });
+});
+
 describe('the textures', () => {
   it('are noise made by the browser: an inline SVG with feTurbulence each', () => {
     for (const name of ['--grain-parchment', '--grain-wood']) {

@@ -1,10 +1,13 @@
-// The Europe screen (R-402): ships at sea and in port, the docks, the market with bid and ask,
-// a line for the last transaction, and Recruit / Purchase / Train.
+// The Europe screen (R-402), drawn as a harbour (R-1014): ships out on the water and alongside the
+// quay, those waiting on the docks, the market as a row of stalls with bid and ask on a tag, the
+// harbour-master's note of the last transaction, and three doors: Recruit, Purchase and Train.
 import type { Action, GameEvent } from '../engine/actions';
 import type { GoodId } from '../engine/data/goods';
 import type { GameState } from '../engine/state';
 import { ask, askText } from './dialog';
-import { dockOptions, europeView } from './europe-model';
+import { dockOptions, europeView, type EuropeVoyage } from './europe-model';
+import { figureArt, flagArt, goodArt, type Sprite } from './pixel-art';
+import { spriteCanvas } from './tiles';
 
 export interface EuropeScreenHost {
   readonly state: () => GameState;
@@ -20,6 +23,33 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text 
   if (className) node.className = className;
   if (text) node.textContent = text;
   return node;
+}
+
+/** How many screen pixels an art pixel is drawn at: of a ship out at sea and of one alongside (nearer, so larger), of a person, of a goods icon and of the Crown's crest. */
+const SHIP_SCALE = 2;
+const BERTH_SCALE = 3;
+const FIGURE_SCALE = 2;
+const GOOD_SCALE = 2;
+const CREST_SCALE = 2;
+
+/** The palette art by kind and name, made once each: a unit's figure, a good's icon, a flag. */
+const drawn = new Map<string, Sprite | null>();
+function artOf(kind: 'figure' | 'good' | 'flag', name: string): Sprite | null {
+  const key = `${kind}:${name}`;
+  if (!drawn.has(key)) drawn.set(key, kind === 'figure' ? figureArt(name) : kind === 'good' ? goodArt(name) : flagArt('crown'));
+  return drawn.get(key) ?? null;
+}
+
+/** That art as a canvas `scale` times its grid, shown with crisp pixels and passed over by a screen reader; null if there is none by that name. */
+function picture(kind: 'figure' | 'good' | 'flag', name: string, className: string, scale = 1): HTMLCanvasElement | null {
+  const art = artOf(kind, name);
+  if (!art) return null;
+  const canvas = spriteCanvas(art);
+  if (className) canvas.className = className;
+  canvas.style.width = `${art.size * scale}px`;
+  canvas.style.height = `${art.size * scale}px`;
+  canvas.setAttribute('aria-hidden', 'true');
+  return canvas;
 }
 
 export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): { element: HTMLElement; refresh(): void } {
@@ -128,6 +158,18 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
     return b;
   }
 
+  /** A token that is its picture first: the picture, its name, and (after a space, so the two read as two words) a line under it. */
+  function token(className: string, key: string, art: HTMLCanvasElement | null, label: string, sub: string, onClick: () => void): HTMLButtonElement {
+    const b = button('', key, onClick, `token ${className}`);
+    if (art) b.append(art);
+    b.append(el('span', 'token-label', label));
+    if (sub) {
+      b.append(' ', el('span', 'token-sub', sub));
+      b.setAttribute('aria-label', `${label} ${sub}`); // its name whether or not the option to hide cargo names hides the label
+    }
+    return b;
+  }
+
   function group(name: string, title: string): HTMLElement {
     const box = el('div', `europe-${name}`);
     box.dataset['region'] = name;
@@ -136,6 +178,44 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
     box.append(el('h3', '', title));
     return box;
   }
+  /** Put new contents in a region, under its heading. */
+  const fill = (box: HTMLElement, ...nodes: Node[]): void => box.replaceChildren(box.firstElementChild as Element, ...nodes);
+
+  // The parts that stay: the header's fields, the regions, the stalls and the doors are made once, and a
+  // change is written into them, so a price changes on its tag and the stall it hangs from is the same one.
+  const header = el('header', 'europe-header');
+  const crest = el('span', 'europe-crest');
+  const crown = picture('flag', 'crown', '', CREST_SCALE);
+  if (crown) crest.append(crown);
+  const port = el('h2');
+  const gold = el('span', 'europe-gold');
+  const tax = el('span', 'europe-tax');
+  header.append(crest, port, gold, tax, button('Leave (Esc)', 'leave', () => host.close(), 'europe-close'));
+
+  const sea = group('sea', 'At sea');
+  const harbor = group('harbor', 'In port');
+  const docks = group('docks', 'On the docks');
+  const market = group('market', 'Market (bid / ask)');
+  const stalls = new Map<GoodId, { stall: HTMLButtonElement; tag: HTMLElement }>();
+  const office = group('office', 'Offices');
+  const door = (label: string, key: string, onClick: () => void): HTMLButtonElement => {
+    const b = button('', key, onClick, 'europe-button europe-door');
+    const leaf = el('span', 'door-leaf');
+    leaf.setAttribute('aria-hidden', 'true');
+    b.append(el('span', 'door-sign', label), leaf);
+    return b;
+  };
+  office.append(door('Recruit (R)', 'recruit', () => void recruit()), door('Purchase (P)', 'purchase', () => void purchase()), door('Train (T)', 'train', () => void train()));
+
+  const line = el('p', 'europe-monitor');
+  line.dataset['field'] = 'europe-monitor';
+  line.setAttribute('aria-live', 'polite');
+  root.append(header, sea, harbor, docks, market, office, line);
+
+  /** Write text into a part only when it has changed, so nothing that is the same is touched. */
+  const write = (node: HTMLElement, text: string): void => {
+    if (node.textContent !== text) node.textContent = text;
+  };
 
   function render(): void {
     const view = europeView(host.state(), host.player());
@@ -144,84 +224,95 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
       return;
     }
     if (shipId === null || !view.inPort.some((s) => s.id === shipId)) shipId = view.inPort[0]?.id ?? null;
-    root.replaceChildren();
 
-    const header = el('header', 'europe-header');
-    header.append(el('h2', '', view.port), el('span', 'europe-gold', `Treasury ${view.gold} gold`), el('span', 'europe-tax', `Tax ${view.taxRate}%`));
-    header.append(button('Leave (Esc)', 'leave', () => host.close(), 'europe-close'));
+    write(port, view.port);
+    write(gold, `Treasury ${view.gold} gold`);
+    write(tax, `Tax ${view.taxRate}%`);
 
-    const sea = group('sea', 'At sea');
+    // Out on the water: those coming in head east for the quay, those bound for the New World west.
     const lanes = el('div', 'lanes');
-    const lane = (title: string, ships: typeof view.expected, name: string): HTMLElement => {
+    const lane = (title: string, ships: readonly EuropeVoyage[], name: 'in' | 'out'): HTMLElement => {
       const box = el('div', `lane lane-${name}`);
       box.append(el('span', 'row-title', title));
       for (const s of ships) {
-        box.append(el('span', 'lane-ship', `${s.label}, ${s.turns} ${s.turns === 1 ? 'turn' : 'turns'}`));
-        box.append(button('Turn back', `turn:${s.id}`, () => {
+        const berth = el('span', 'lane-berth');
+        const art = picture('figure', s.type, `ship-art heads-${name === 'out' ? 'west' : 'east'}`, SHIP_SCALE);
+        if (art) berth.append(art);
+        berth.append(el('span', 'lane-ship', `${s.label}, ${s.turns} ${s.turns === 1 ? 'turn' : 'turns'}`));
+        berth.append(button('Turn back', `turn:${s.id}`, () => {
           attempt({ type: 'reverseVoyage', unitId: s.id });
           render();
         }));
+        box.append(berth);
       }
       if (ships.length === 0) box.append(el('span', 'empty', 'none'));
       return box;
     };
     lanes.append(lane('Expected soon:', view.expected, 'in'), lane('Bound for the New World:', view.outbound, 'out'));
-    sea.append(lanes);
+    fill(sea, lanes);
 
-    const harbor = group('harbor', 'In port');
+    // Alongside: each ship lies at the quay, her cargo set down on it as crates, her passengers by them.
+    const berths: HTMLElement[] = [];
     for (const ship of view.inPort) {
       const box = el('div', `europe-ship${ship.id === shipId ? ' europe-ship-active' : ''}`);
       box.dataset['ship'] = ship.id;
-      box.append(button(`${ship.label} (${ship.used}/${ship.holds} holds)`, `ship:${ship.id}`, () => {
+      const water = el('div', 'ship-water');
+      water.append(token('token-carrier', `ship:${ship.id}`, picture('figure', ship.type, 'ship-art heads-east', BERTH_SCALE), `${ship.label} (${ship.used}/${ship.holds} holds)`, '', () => {
         shipId = ship.id;
         focusKey = `ship:${ship.id}`;
         render();
-      }, 'token token-carrier'));
+      }));
+      const quay = el('div', 'ship-quay');
       for (const lot of ship.cargo) {
-        box.append(button(`${lot.name} ${lot.amount}`, `cargo:${ship.id}:${lot.good}`, () => {
+        quay.append(token('token-cargo', `cargo:${ship.id}:${lot.good}`, picture('good', lot.good, 'good-art', GOOD_SCALE), lot.name, String(lot.amount), () => {
           shipId = ship.id;
           void sell(lot.good, false);
-        }, 'token token-cargo'));
+        }));
       }
       for (const rider of ship.passengers) {
-        box.append(button(rider.label, `rider:${rider.id}`, () => {
+        quay.append(token('token-unit', `rider:${rider.id}`, picture('figure', rider.type, 'figure-art', FIGURE_SCALE), rider.label, '', () => {
           attempt({ type: 'landInEurope', unitId: rider.id });
           render();
-        }, 'token token-unit'));
+        }));
       }
-      box.append(
+      const orders = el('div', 'ship-orders');
+      orders.append(
         button('Set sail', `sail:${ship.id}`, () => {
           attempt({ type: 'sailFromEurope', unitId: ship.id });
           render();
         }),
         button('Sell all cargo', `unload:${ship.id}`, () => void unloadAll(ship.id)),
       );
-      harbor.append(box);
+      box.append(water, quay, orders);
+      berths.push(box);
     }
-    if (view.inPort.length === 0) harbor.append(el('p', 'empty', 'No ship is in port.'));
+    if (berths.length === 0) berths.push(el('p', 'empty', 'No ship is in port.'));
+    fill(harbor, ...berths);
 
-    const docks = group('docks', 'On the docks');
-    for (const unit of view.docks) {
-      docks.append(button(`${unit.label}${unit.boarding ? '' : ' (staying)'}`, `dock:${unit.id}`, () => void dockMenu(unit.id), 'token token-unit'));
-    }
-    if (view.docks.length === 0) docks.append(el('p', 'empty', 'Nobody is waiting.'));
+    const waiting: HTMLElement[] = view.docks.map((unit) =>
+      token('token-unit', `dock:${unit.id}`, picture('figure', unit.type, 'figure-art', FIGURE_SCALE), `${unit.label}${unit.boarding ? '' : ' (staying)'}`, '', () => void dockMenu(unit.id)));
+    if (waiting.length === 0) waiting.push(el('p', 'empty', 'Nobody is waiting.'));
+    fill(docks, ...waiting);
 
-    const market = group('market', 'Market (bid / ask)');
+    // The market: a stall to a good, set up the first time and kept; after that only the tags are rewritten.
     for (const p of view.prices) {
-      const b = button('', `good:${p.good}`, () => void buy(p.good, false), `token token-good${p.boycotted ? ' token-over' : ''}`);
-      b.dataset['good'] = p.good;
-      b.append(el('span', 'token-label', p.name), el('span', 'token-sub', p.boycotted ? 'boycott' : `${p.bid}/${p.ask}`));
-      market.append(b);
+      let made = stalls.get(p.good);
+      if (!made) {
+        const stall = button('', `good:${p.good}`, () => void buy(p.good, false), 'token token-good');
+        stall.dataset['good'] = p.good;
+        const art = picture('good', p.good, 'good-art', GOOD_SCALE);
+        if (art) stall.append(art);
+        const tag = el('span', 'token-sub');
+        stall.append(el('span', 'token-label', p.name), tag);
+        made = { stall, tag };
+        stalls.set(p.good, made);
+        market.append(stall);
+      }
+      made.stall.classList.toggle('token-over', p.boycotted);
+      write(made.tag, p.boycotted ? 'boycott' : `${p.bid}/${p.ask}`);
     }
 
-    const office = group('office', 'Offices');
-    office.append(button('Recruit (R)', 'recruit', () => void recruit()), button('Purchase (P)', 'purchase', () => void purchase()), button('Train (T)', 'train', () => void train()));
-
-    const line = el('p', 'europe-monitor', monitor);
-    line.dataset['field'] = 'europe-monitor';
-    line.setAttribute('aria-live', 'polite');
-
-    root.append(header, sea, harbor, docks, market, office, line);
+    write(line, monitor);
     const again = focusKey ? root.querySelector<HTMLElement>(`[data-key="${focusKey}"]`) : null;
     (again ?? root.querySelector<HTMLElement>('.token-good') ?? root).focus();
   }

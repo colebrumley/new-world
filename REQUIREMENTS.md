@@ -1273,6 +1273,79 @@ they are started.
   **Verify:** `npm run test:e2e -- colony`; `npm test -- test/unit/ui`; `npm run check`;
   screenshots of a one-colonist and a large colony in the pull request.
 
+- [x] **R-1014 Europe harbour**
+  Depends on R-1010 (theme tokens and the Fell face) and reuses the goods icons and `drawGood`
+  from R-1013 (`src/ui/goods-art.ts`). Parchment panels over a dark wood frame: the Europe screen
+  (`src/ui/europe-screen.ts`, `europe-model.ts`, the `.europe-*` rules in `src/ui/style.css`)
+  becomes a harbour. The "at sea" and "in port" lanes are a quay drawn in ink on parchment with
+  the ship sprites of `src/ui/unit-art.ts` standing along it, ships bound for the New World facing
+  west and arriving ones east; the docks show waiting colonists as unit sprites; the market is a
+  row of stalls, one per good, each with its icon and bid/ask on a hanging tag, and a ship's cargo
+  is crates on the quay; Recruit, Purchase and Train are three doors with signs; the header shows
+  the capital's name, the Crown's crest, treasury and tax in the Fell face; the monitor line is a
+  harbour-master's note in amber ink. The backdrop is procedural ink (no picture).
+  - Every action reachable before (select ship, sail, buy, sell, recruit, purchase, train, close,
+    keyboard shortcuts R/P/T/Esc) is reachable at the same role and name, so
+    `test/e2e/europe.spec.ts` and `trade.spec.ts` pass unchanged.
+  - Ships, colonists and goods are drawn from the existing palette art; prices update in place on
+    the tags.
+  - The whole screen sits on the R-1010 tokens; focus rings are visible on parchment.
+  - The JS budget (`scripts/check-size.mjs`) still passes.
+  **Verify:** `npm run test:e2e -- europe` and `trade`; `npm run check`; screenshots with a ship
+  in port and with a ship at sea in the pull request.
+  *Built:* the screen is a grid with west on the left: the open water and its two lanes, then the
+  quay with the ships alongside, under them the docks and the wall of the offices, the stalls, and
+  the note at the foot. Water, stone, boards, awnings, tags, crates and doors are CSS gradients on
+  the tokens (`--waves` and `--stone` are set on `.europe-screen`); there is no backdrop picture and
+  no new art. Ships and people are `figureArt`, goods `goodArt` and the crest `flagArt('crown')` on
+  canvases hidden from screen readers, so every button keeps its name. The ship art has the bow to
+  the left, so a ship heading east (coming in, or alongside) is mirrored. `europe-screen.ts` now
+  makes the header, regions, stalls and doors once and writes changes into them: a price is
+  rewritten on the tag of the same stall. `EuropeView` gives the unit type of each ship, passenger
+  and person on the docks. `test/e2e/harbour.spec.ts` covers the pictures, the facing, the kept
+  stalls and the focus ring. Pictures are in `docs/europe/`.
+
+- [x] **R-1015 Reports, encyclopedia, saves and options as parchment pages**
+  Depends on R-1010 (theme tokens and the Fell face in `src/ui/style.css`). Parchment panels over
+  a dark wood frame, ink text in the Fell face. The report screen (`src/ui/report.ts` and
+  `src/ui/reports/*`, the `.report-*` rules), the encyclopedia (`src/ui/pedia-screen.ts`,
+  `.pedia-*`), the save dialog (`src/ui/save-dialog.ts`), the options dialog
+  (`src/ui/options-dialog.ts`), the combat analysis panel and the customize screen
+  (`src/ui/customize.ts`) each become a parchment page: tables ruled in ink with headers in small
+  caps, a drop cap on the first paragraph of each report, a wax seal at the head of each report in
+  the colour of its adviser (one of four seal glyphs drawn procedurally in `src/ui/pixel-art.ts`;
+  R-1016 adds portraits beside them, so a slot is left), the encyclopedia's index as a book's
+  contents with the current page marked by a ribbon, the save table as a ledger, the options as a
+  checklist with ink tick marks, the combat flash as a stamped notice.
+  - All of the above restyled on the R-1010 tokens, with no colour literal left in their
+    stylesheet rules.
+  - Every role, name and data-field attribute the e2e specs use is unchanged, so
+    `test/e2e/reports.spec.ts` (and its structural snapshot), `saves.spec.ts`, `options.spec.ts`,
+    `combat.spec.ts` and the encyclopedia coverage pass unchanged.
+  - Keyboard navigation and focus rings remain visible on parchment; `prefers-reduced-motion`
+    still disables the combat flash animation.
+  - The in-game text stays our own prose (`test/unit/no-copied-text.test.ts`).
+  **Verify:** `npm run test:e2e -- reports`, `saves`, `options`, `combat`; `npm run check`;
+  screenshots of one report, the encyclopedia and the save dialog in the pull request.
+  *Built:* a report opens with a head (`src/ui/report.ts`): its adviser's seal, the title, and an
+  empty `.report-portrait` slot for R-1016, over a double rule; under it the adviser's opening
+  sentence or two, our own words, with a drop capital. `sealArt` in `pixel-art.ts` draws the seal on
+  the 16-pixel grid: a round of wax with a glint, and a quill (affairs of state), a cross (the
+  church), an anchor (the sea and its trade) or an ear of wheat (the land) pressed into it, the
+  mark in ink on a pale wax. `src/ui/reports/heads.ts` gives each of the ten reports and the Hall
+  of Fame its mark, its wax and its opening; no two share a seal. A section whose first row names
+  the columns is marked `columns: true`, and that row is set in small capitals over a full rule;
+  the cells themselves are as they were, so the e2e snapshots are untouched. Everything else is
+  the stylesheet: sections head a rule and their lines are ruled faintly across the page; the
+  encyclopedia is an open book, its index led out with dots and the current entry marked by a
+  ribbon in sealing-wax red; the save table is a ledger with its columns ruled off in red; the
+  options are a checklist with a box and a tick drawn in ink (Customize has ink rings to match);
+  the combat analysis sets the two sides in columns with the sum under a line, and the result is
+  a slip of parchment stamped askew in green or red. Rows that go to the map and entries of the
+  index show the ink focus ring; `test/unit/ui/style.test.ts` holds these pages to that and to
+  the still stamp under `prefers-reduced-motion`. The save notice is amber rather than red, since
+  it reports successes too. Pictures are in `docs/theme/` (report, pedia, saves, options, combat).
+
 - [~] **R-1016 Portraits**
   Depends on R-1010 (theme tokens) and R-1015 (parchment reports with a seal and a portrait slot
   at the head of each). Engraved-style head-and-shoulders portraits from the sprite pipeline
@@ -1297,6 +1370,7 @@ they are started.
   - The structural snapshots in `test/e2e/__snapshots__/reports.spec.ts` are unchanged in content.
   **Verify:** `npm test -- test/unit/ui`; `npm run test:e2e -- reports`; `npm run check`; a
   contact sheet of all portraits in the pull request.
+
 
 ---
 

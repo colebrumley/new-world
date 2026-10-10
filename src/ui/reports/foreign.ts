@@ -46,12 +46,14 @@ export function foreignAffairsReport(state: GameState, playerId: PlayerId): Repo
   const sections: Report['sections'][number][] = [
     {
       heading: 'War and peace',
+      columns: true,
       rows: [['', ...powers.map((p) => NATIONS[p.nation].abbreviation)], ...powers.map((p) => [name(p), ...powers.map((q) => relation(p, q))])],
     },
   ];
   if (player.fathers.includes('janDeWitt')) {
     sections.push({
       heading: 'The powers compared',
+      columns: true,
       rows: [
         ['', 'Colonies', 'Population', 'Average colony', 'Military', 'Naval', 'Merchant marine'],
         ...powers.map((p) => {

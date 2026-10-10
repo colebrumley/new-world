@@ -387,53 +387,202 @@ canvas.minimap {
   gap: 12px;
 }
 
-/* --- Europe screen ----------------------------------------------------------------------- */
+/* --- Europe screen (R-1014): a harbour drawn in ink ------------------------------------------
+   West is on the left: the open water with the ships out on it, then the quay with those alongside.
+   Under them the docks and the three doors of the offices, the market's stalls, and at the foot the
+   harbour-master's note. Ships, people and goods are the palette art on canvases; all else is ink. */
 .europe-screen {
+  /* water: a faint wash and rows of little crests, as a chart-maker draws the sea */
+  --water: color-mix(in srgb, var(--ink-active) 9%, transparent);
+  --crest: color-mix(in srgb, var(--ink-active) 34%, transparent);
+  --waves:
+    radial-gradient(circle at 12px 100%, transparent 6px, var(--crest) 6px 7px, transparent 7.5px) 0 0 / 56px 26px,
+    radial-gradient(circle at 26px 100%, transparent 6px, var(--crest) 6px 7px, transparent 7.5px) 0 0 / 56px 26px,
+    radial-gradient(circle at 12px 100%, transparent 6px, var(--crest) 6px 7px, transparent 7.5px) 28px 13px / 56px 26px,
+    radial-gradient(circle at 26px 100%, transparent 6px, var(--crest) 6px 7px, transparent 7.5px) 28px 13px / 56px 26px,
+    linear-gradient(var(--water), var(--water));
+  /* stone: courses of blocks, the joints of one course over the middle of the blocks below */
+  --stone:
+    linear-gradient(var(--ink-rule-faint) 1px, transparent 1px) 0 0 / 100% 12px,
+    linear-gradient(90deg, var(--ink-rule-faint) 1px, transparent 1px) 0 0 / 32px 24px,
+    linear-gradient(90deg, transparent 16px, var(--ink-rule-faint) 16px 17px, transparent 17px) 0 12px / 32px 24px,
+    linear-gradient(var(--ink-wash), var(--ink-wash)),
+    linear-gradient(var(--parchment), var(--parchment));
   position: absolute;
   inset: 0;
   z-index: 8;
   box-sizing: border-box;
-  padding: 5px;
-  display: flex;
-  flex-direction: column;
+  padding: 6px 10px 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 3fr) minmax(0, 4fr);
+  grid-template-rows: auto minmax(min-content, 1fr) auto auto auto;
+  grid-template-areas:
+    'header header header'
+    'sea    harbor harbor'
+    'docks  docks  office'
+    'market market market'
+    'note   note   note';
   gap: 8px;
   font-size: 0.85rem;
   outline: none;
   overflow: auto;
 }
-.europe-header { display: flex; align-items: baseline; gap: 18px; }
-.europe-header h2 { margin: 0; font-size: 1.4rem; }
-.europe-close { margin-left: auto; }
-.europe-screen [data-region] { border: var(--rule); background: var(--wash-light); padding: 6px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.europe-screen h3 { margin: 0 0 2px; flex-basis: 100%; font-size: 0.8rem; color: var(--ink-faded); }
+.europe-screen canvas { image-rendering: pixelated; flex: none; }
 .europe-screen p { margin: 0; }
-.lanes { display: flex; gap: 24px; flex-wrap: wrap; }
-.lane { display: flex; gap: 6px; align-items: center; }
-.europe-ship { display: flex; gap: 4px; align-items: center; border: var(--rule-faint); padding: 3px; }
-.europe-ship-active { border-color: var(--ink-active); }
-.europe-button, .europe-close { padding: 2px 8px; }
-.europe-monitor { min-height: 1.3em; color: var(--ink-amber); }
+.europe-screen h3 { margin: 0; flex: none; font-size: 0.95rem; line-height: 1.1; color: var(--ink-faded); }
+.europe-screen :where([data-region]) { position: relative; min-width: 0; box-sizing: border-box; border: var(--rule); padding: 5px 8px 6px; }
+.europe-screen .empty { color: var(--ink-faded); font-style: italic; }
+
+/* the head of the sheet: the Crown's crest, the capital, and the ledger's two figures */
+.europe-header { grid-area: header; display: flex; align-items: center; gap: 12px; padding-bottom: 4px; border-bottom: 3px double var(--ink-rule); }
+.europe-crest { flex: none; display: flex; overflow: hidden; padding: 2px; background: var(--plate-brass); border: var(--edge-brass); border-radius: 3px 3px 50% 50% / 3px 3px 38% 38%; box-shadow: var(--lift); }
+.europe-crest canvas { margin: -4px 0; }
+.europe-header h2 { margin: 0; font-size: 1.7rem; line-height: 1.1; }
+.europe-gold, .europe-tax { font-family: var(--font-display); letter-spacing: var(--tracking-display); font-size: 1.05rem; padding-left: 12px; border-left: var(--rule); }
+.europe-close { margin-left: auto; background: var(--plate-brass); padding: 4px 16px; }
+.europe-button { padding: 2px 8px; }
+
+/* a token here is its picture first, named on a slip of parchment */
+.europe-screen .token { align-items: center; text-align: center; cursor: pointer; color: var(--ink); }
+.europe-screen :is(.token-carrier, .token-unit) { padding: 0 2px 2px; background: none; border-color: transparent; box-shadow: none; }
+.europe-screen :is(.token-carrier, .token-unit) .token-label { padding: 0 5px; background: var(--parchment-light); border: var(--rule-faint); border-radius: 2px; font-size: 0.78rem; }
+.europe-screen :is(.token-carrier, .token-unit):hover:not(:disabled) { background: none; }
+.europe-screen :is(.token-carrier, .token-unit):hover:not(:disabled) .token-label { background: var(--parchment-shade); border-color: var(--ink-rule); }
+/* the ships are drawn with the bow to the left, heading west: one heading east is turned about */
+.europe-screen .heads-east { transform: scaleX(-1); }
+
+/* out on the water */
+.europe-sea { grid-area: sea; display: flex; flex-direction: column; gap: 4px; background: var(--waves); border-right-style: dashed; }
+.europe-sea h3, .europe-harbor h3 { align-self: flex-start; padding: 0 6px; background: var(--parchment-light); border: var(--rule-faint); border-radius: 2px; }
+.lanes { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.lane { flex: 1; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: flex-end; align-content: flex-start; min-height: 84px; }
+.lane + .lane { border-top: var(--rule-dashed); padding-top: 4px; }
+.lane .row-title { flex: 1 0 100%; font-style: italic; color: var(--ink); }
+.lane .empty { align-self: flex-start; }
+.lane-out { justify-content: flex-start; }
+.lane-in { justify-content: flex-end; }
+.lane-in .row-title { text-align: right; }
+.lane-berth { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.lane-ship { padding: 0 5px; background: var(--parchment-light); border: var(--rule-faint); border-radius: 2px; font-size: 0.78rem; white-space: nowrap; }
+.lane-berth .europe-button { font-size: 0.74rem; padding: 0 6px; }
+
+/* alongside: the water a ship lies in, the quay's edge, and the stones her cargo is set down on */
+.europe-harbor { grid-area: harbor; display: flex; flex-wrap: wrap; align-content: stretch; gap: 4px 8px; padding: 5px 0 0; border-left: none; background: var(--waves); }
+.europe-harbor h3 { flex: 0 0 auto; align-self: flex-start; margin: 0 8px; }
+.europe-harbor::before { content: ''; flex: 1 0 100%; order: 1; height: 0; }
+.europe-harbor > .empty { order: 2; flex: 1 0 100%; align-self: stretch; box-sizing: border-box; margin-top: 64px; padding: 8px; background: var(--stone); border-top: 3px double var(--ink-rule); }
+.europe-ship { order: 2; flex: 1 1 200px; display: flex; flex-direction: column; min-width: 0; }
+.ship-water { display: flex; justify-content: center; padding: 0 6px; }
+.ship-quay { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-end; align-content: flex-start; min-height: 58px; padding: 5px 6px 2px; background: var(--stone); border-top: 3px double var(--ink-rule); }
+.ship-orders { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px 6px 6px; background: var(--stone); }
+.europe-ship-active .token-carrier .token-label { border-color: var(--ink-active); color: var(--ink-active); box-shadow: 0 0 0 1px var(--ink-active); }
+.europe-ship-active .ship-quay { border-top-color: var(--ink-active); }
+/* a crate: boards with a lid, the good's mark on its side and the count chalked under it */
+.europe-screen .token-cargo {
+  padding: 3px 5px 1px; font-size: 0.7rem; border: 1px solid var(--wood); border-radius: 1px;
+  background: repeating-linear-gradient(180deg, transparent 0 10px, color-mix(in srgb, var(--wood) 30%, transparent) 10px 11px), var(--parchment-shade);
+  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--wood) 26%, transparent), 1px 1px 0 var(--shadow);
+}
+.europe-screen .token-cargo:hover:not(:disabled) { background-color: var(--brass-light); }
+.europe-screen .token-cargo .token-label { color: var(--ink-faded); }
+.europe-screen .token-cargo .token-sub { font-size: 0.9rem; color: var(--ink); }
+
+/* the docks: boards, and whoever waits on them */
+.europe-docks {
+  grid-area: docks; display: flex; flex-wrap: wrap; gap: 2px 6px; align-items: flex-end; align-content: flex-start;
+  background: repeating-linear-gradient(90deg, transparent 0 46px, var(--ink-rule-faint) 46px 47px) bottom / 100% 26px no-repeat, linear-gradient(var(--ink-wash), var(--ink-wash)) bottom / 100% 26px no-repeat;
+}
+.europe-docks h3 { flex: 1 0 100%; }
+.europe-docks .token-unit { max-width: 104px; }
+.europe-docks .token-label { white-space: normal; }
+
+/* the offices: three doors in a wall, a signboard hung over each */
+.europe-office { grid-area: office; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: flex-end; justify-content: space-around; background: var(--stone); }
+.europe-office h3 { flex: 1 0 100%; }
+.europe-door { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 2px 4px 0; background: none; border-color: transparent; box-shadow: none; }
+.europe-door:hover:not(:disabled), .europe-door:active:not(:disabled) { background: none; box-shadow: none; }
+.door-sign { position: relative; padding: 1px 8px; background: var(--plate); border: var(--edge-brass); border-radius: 2px; box-shadow: var(--edge-brass-inner), var(--lift); font-family: var(--font-display); letter-spacing: var(--tracking-display); white-space: nowrap; }
+.door-sign::before, .door-sign::after { content: ''; position: absolute; top: -5px; width: 1px; height: 5px; background: var(--ink-rule); }
+.door-sign::before { left: 7px; }
+.door-sign::after { right: 7px; }
+.door-leaf {
+  width: 46px; height: 54px; box-sizing: border-box; border: 2px solid var(--wood-dark); border-bottom-width: 3px; border-radius: 23px 23px 0 0 / 18px 18px 0 0;
+  background: radial-gradient(circle at 78% 60%, var(--brass-light) 0 2px, var(--brass-dark) 2px 3px, transparent 3.5px), repeating-linear-gradient(90deg, transparent 0 9px, var(--wood-dark) 9px 10px), var(--wood-light);
+  box-shadow: 0 0 0 3px var(--parchment-shade), 0 0 0 4px var(--ink-rule);
+}
+.europe-door:hover:not(:disabled) .door-sign { background: var(--parchment-light); }
+.europe-door:hover:not(:disabled) .door-leaf { background-color: var(--wood); border-right-width: 5px; }
+
+/* the market: a stall to a good under a striped awning, its price on a tag hung from the counter */
+.europe-market { grid-area: market; display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 6px 4px; border-style: none; padding: 0; }
+.europe-market h3 { grid-column: 1 / -1; padding-bottom: 2px; border-bottom: var(--rule); }
+.europe-screen .token-good {
+  position: relative; gap: 1px; padding: 12px 1px 4px; font-size: 0.68rem; line-height: 1.05;
+  background: var(--wash-light); border: none; border-radius: 0; box-shadow: inset 1px 0 0 var(--ink-rule), inset -1px 0 0 var(--ink-rule), inset 0 -3px 0 var(--wood-light);
+}
+.europe-screen .token-good::before {
+  content: ''; position: absolute; left: -2px; right: -2px; top: 0; height: 9px; border: 1px solid var(--ink-rule); border-radius: 3px 3px 0 0;
+  background: repeating-linear-gradient(90deg, var(--wax) 0 6px, var(--parchment-light) 6px 12px);
+}
+.europe-screen .token-good:hover:not(:disabled) { background: var(--parchment-light); }
+.europe-screen .token-good .token-label { color: var(--ink-faded); white-space: nowrap; }
+.europe-screen .token-good .token-sub {
+  position: relative; overflow: visible; margin-top: 5px; padding: 0 4px; font-size: 0.82rem; color: var(--ink);
+  background: var(--parchment-light); border: var(--rule); border-radius: 1px 1px 3px 3px; box-shadow: 1px 1px 0 var(--shadow); transform: rotate(-2deg);
+}
+.europe-screen .token-good:nth-child(odd) .token-sub { transform: rotate(1.5deg); }
+.europe-screen .token-good .token-sub::before { content: ''; position: absolute; left: 50%; top: -6px; width: 1px; height: 5px; background: var(--ink-rule); }
+.europe-screen .token-over .token-sub { color: var(--ink-bad); border-color: var(--ink-bad); }
+
+/* the harbour-master's note */
+.europe-monitor { grid-area: note; min-height: 1.3em; padding: 2px 4px 0; border-top: var(--rule-dashed); color: var(--ink-amber); font-style: italic; }
+.europe-monitor:not(:empty)::before { content: 'The harbour-master notes: '; font-family: var(--font-display); font-style: normal; letter-spacing: var(--tracking-display); }
 .empty { color: var(--ink-faded); }
 
+@media (max-width: 760px) {
+  .europe-screen { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'header' 'sea' 'harbor' 'docks' 'office' 'market' 'note'; }
+  .europe-harbor { border-left: var(--rule); }
+  .europe-market { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .europe-gold, .europe-tax { font-size: 0.9rem; padding-left: 8px; }
+}
+
 /* --- combat ------------------------------------------------------------------------------ */
-.combat-analysis { min-width: 22rem; }
-.combat-analysis h2 { margin: 0 0 6px; font-size: 1.1rem; }
-.combat-sides { display: flex; gap: 18px; }
-.combat-side { flex: 1; }
-.combat-side h3 { margin: 0; font-size: 0.8rem; color: var(--ink-faded); }
-.combat-side ul { margin: 2px 0; padding-left: 1.1em; font-size: 0.85rem; }
-.combat-unit, .combat-total, .combat-odds, .combat-note { margin: 2px 0; }
-.combat-total { font-weight: bold; }
-.combat-note { color: var(--ink-amber); }
+/* The analysis is a sheet of reckoning (R-1015): the two sides in columns with an ink rule between
+   them, what tells for each listed above a line, and the sum under it. */
+.save-dialog h2, .options-dialog h2, .combat-analysis h2 {
+  margin: 0 0 6px; padding-bottom: 4px; font-size: 1.3rem; text-align: center; border-bottom: 3px double var(--ink);
+}
+.combat-analysis { min-width: 23rem; }
+.combat-sides { display: flex; }
+.combat-side { flex: 1; display: flex; flex-direction: column; padding: 0 12px 0 2px; }
+.combat-side + .combat-side { padding: 0 2px 0 12px; border-left: var(--rule); }
+.combat-side h3 { margin: 0; font-size: 0.85rem; color: var(--ink-faded); }
+.combat-analysis .combat-unit { margin: 0; font-size: 1.05rem; }
+.combat-side ul { flex: 1; margin: 3px 0; padding: 0; list-style: none; font-size: 0.88rem; }
+.combat-side li { padding: 1px 0; border-top: 1px dotted var(--ink-rule-faint); }
+.combat-analysis .combat-total { margin: 0; padding-top: 2px; border-top: 1px solid var(--ink); font-family: var(--font-display); letter-spacing: var(--tracking-display); }
+.combat-analysis .combat-odds { margin: 8px 0 4px; padding: 3px 0; text-align: center; font-size: 1.05rem; border-top: var(--rule); border-bottom: var(--rule); }
+.combat-analysis .combat-note { margin: 0 0 4px; text-align: center; font-style: italic; color: var(--ink-amber); }
+/* How it went: a slip of parchment thrown down on the chart, stamped a little askew in green ink or in red. */
 .combat-flash {
-  position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); z-index: 9;
-  padding: 8px 22px; font-size: 1.6rem; font-family: var(--font-display); letter-spacing: var(--tracking-display);
-  border: 2px solid var(--ink); box-shadow: var(--lift); pointer-events: none;
+  position: absolute; left: 50%; top: 38%; z-index: 9; pointer-events: none;
+  transform: translate(-50%, -50%) rotate(-4deg);
+  padding: 15px 34px 13px; white-space: nowrap;
+  font-family: var(--font-display); font-size: 1.7rem; line-height: 1; letter-spacing: 0.09em; text-transform: uppercase;
+  background: var(--sheet); border: var(--rule); box-shadow: var(--lift);
+  /* the stamp's own frame, in the ink of the stamp */
+  outline: 3px double currentColor; outline-offset: -9px;
   animation: combat-flash 1.6s ease-out forwards;
 }
-.combat-won { background: var(--ink-good); color: var(--parchment-light); }
-.combat-lost { background: var(--wax); color: var(--parchment-light); }
-@keyframes combat-flash { 0% { opacity: 0; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+.combat-won { color: var(--ink-good); }
+.combat-lost { color: var(--ink-bad); }
+/* the stamp comes down, stays, and is taken away */
+@keyframes combat-flash {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(-4deg) scale(1.45); }
+  12% { opacity: 1; transform: translate(-50%, -50%) rotate(-4deg) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
+}
 @media (prefers-reduced-motion: reduce) { .combat-flash { animation: none; } }
 /* a slip of parchment laid on the chart */
 .event-log {
@@ -444,53 +593,129 @@ canvas.minimap {
 .event-log:empty { display: none; }
 
 /* --- adviser reports --------------------------------------------------------------------- */
+/* A report is a page of parchment (R-1015): the adviser's seal and the title at its head over a
+   double rule, the adviser's opening words with a drop capital, then each section as a table
+   ruled in ink with its headings in small capitals. */
 .report-screen {
-  position: absolute; inset: 0; z-index: 8; box-sizing: border-box; padding: 9px 13px; overflow: auto;
-  display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem; outline: none;
+  position: absolute; inset: 0; z-index: 8; box-sizing: border-box; overflow: auto; outline: none;
+  /* the text keeps to a column down the middle of a wide sheet */
+  padding: 14px max(18px, calc((100% - 60rem) / 2));
+  display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem; line-height: 1.3;
 }
-.report-screen h2 { margin: 0; font-size: 1.4rem; }
-.report-section { border: var(--rule); background: var(--wash-light); padding: 8px 10px; }
-.report-section h3 { margin: 0 0 4px; font-size: 0.85rem; color: var(--ink-faded); }
-.report-section table { border-collapse: collapse; width: 100%; }
-.report-section th { text-align: left; font-weight: normal; color: var(--ink-faded); padding: 1px 12px 1px 0; white-space: nowrap; vertical-align: top; }
-.report-section td { padding: 1px 12px 1px 0; vertical-align: top; }
-.report-close { align-self: flex-start; padding: 3px 10px; }
+.report-screen > * { flex: none; }
+.report-screen h2 { margin: 0; font-size: 2rem; line-height: 1.05; }
+.report-head { display: flex; align-items: center; gap: 14px; padding-bottom: 8px; border-bottom: 3px double var(--ink); }
+.report-head h2 { flex: 1; min-width: 0; }
+/* the seal (ui/pixel-art.ts sealArt): wax in the adviser's colour, pressed on a little askew */
+.report-seal { flex: none; width: 48px; height: 48px; image-rendering: pixelated; transform: rotate(-8deg); filter: drop-shadow(0 2px 1px var(--shadow)); }
+/* kept for the adviser's portrait (R-1016); it takes no room while it is empty */
+.report-portrait { flex: none; }
+.report-portrait:empty { display: none; }
+/* the adviser's opening words; tall enough to hold its capital when it runs to one line */
+.report-lead { margin: 0; max-width: 40rem; min-height: 2.5em; }
+.report-lead::first-letter, .pedia-page p:first-of-type::first-letter {
+  float: left; padding: 0.05em 0.09em 0 0; font-family: var(--font-display); font-size: 2.95em; line-height: 0.8; color: var(--wax-dark);
+}
+.report-section h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 1px; font-size: 1.05rem; }
+/* the section's name runs out into a rule */
+.report-section h3::after { content: ''; flex: 1; border-top: var(--rule); }
+.report-section table { border-collapse: collapse; width: 100%; border-bottom: var(--rule); }
+/* a faint rule under every line, right across the page however many cells the line has */
+.report-section tr + tr { border-top: var(--rule-faint); }
+.report-section :is(th, td) { text-align: left; font-weight: normal; padding: 2px 14px 2px 3px; vertical-align: top; }
+/* what a line is about, in small capitals and no wider than it need be; a line that is one sentence stays in the text face */
+.report-section th:not([colspan]) { width: 1%; padding-right: 28px; font-family: var(--font-display); letter-spacing: var(--tracking-display); color: var(--ink-faded); white-space: nowrap; }
+/* the line that names the columns: small capitals over a full ink rule */
+.report-section .report-columns { border-bottom: 1px solid var(--ink); }
+.report-section .report-columns + tr { border-top: 0; }
+.report-section .report-columns > * { font-family: var(--font-display); letter-spacing: var(--tracking-display); color: var(--ink); vertical-align: bottom; }
+.report-section .empty { margin: 0; font-style: italic; }
+.report-close { align-self: flex-start; padding: 4px 16px; background: var(--plate-brass); }
+.report-close:hover:not(:disabled) { background: var(--brass-light); }
 
+/* a line about a place goes there: lit under the pointer, ringed under the keys */
 .report-section tr.zoom { cursor: pointer; }
-.report-section tr.zoom:hover, .report-section tr.zoom:focus-visible { background: var(--parchment-shade); color: var(--ink-active); outline: none; }
+.report-section tr.zoom:hover, .report-section tr.zoom:focus-visible { background: var(--parchment-shade); color: var(--ink-active); }
+.report-section tr.zoom:hover th, .report-section tr.zoom:focus-visible th { color: inherit; }
+.report-section tr.zoom:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
 
 /* --- options ------------------------------------------------------------------------------- */
-.options-dialog { display: flex; flex-direction: column; gap: 4px; min-width: 300px; }
-.options-dialog h2 { margin: 0 0 6px; font-size: 1.1rem; }
-.options-dialog .option { cursor: pointer; }
-.options-dialog .options-done { align-self: flex-start; margin-top: 8px; padding: 3px 10px; }
+/* A checklist (R-1015): one option to a line, a dotted rule under each, a box drawn in ink before it
+   and a tick made with the pen when it is wanted. */
+.options-dialog { min-width: 300px; gap: 0; }
+.options-dialog .option { display: flex; align-items: center; gap: 9px; padding: 4px 3px; cursor: pointer; border-bottom: 1px dotted var(--ink-rule); }
+.options-dialog .option:hover, .options-dialog .option:has(:focus-visible) { background: var(--parchment-shade); }
+.options-dialog .options-done { align-self: center; margin-top: 12px; padding: 0.35rem 1.4rem; text-align: center; }
+/* marks made in ink: a box for a thing wanted or not, a ring for one choice among several (Customize) */
+.options-dialog input[type='checkbox'], .customize input[type='radio'] {
+  appearance: none; position: relative; flex: none; box-sizing: border-box; width: 1.05em; height: 1.05em; margin: 0;
+  border: 1.5px solid var(--ink); border-radius: 2px; background: var(--parchment-light); cursor: pointer;
+}
+/* the tick: a short stroke down and a long one up and out of the box, thick where the pen pressed */
+.options-dialog input[type='checkbox']:checked::after {
+  content: ''; position: absolute; left: 0.02em; bottom: 0.08em; width: 1.35em; height: 1.3em; background: var(--ink);
+  clip-path: polygon(0 56%, 13% 46%, 31% 68%, 88% 0, 100% 6%, 34% 100%);
+}
+.customize input[type='radio'] { border-radius: 50%; vertical-align: -0.14em; }
+.customize input[type='radio']:checked { background: radial-gradient(circle, var(--ink) 40%, var(--parchment-light) 48%); }
 .game[data-building-labels="off"] .building-name { display: none; }
 .game[data-cargo-labels="off"] .square-note, .game[data-cargo-labels="off"] .token-cargo .token-label { display: none; }
 .event-log li.hint { color: var(--ink-amber); font-style: italic; }
 
 /* --- encyclopedia -------------------------------------------------------------------------- */
-.pedia-body { display: flex; gap: 12px; min-height: 0; flex: 1; }
-.pedia-index { flex: 0 0 15rem; overflow-y: auto; border: var(--rule); background: var(--wash-light); padding: 6px 8px; }
-.pedia-group h3 { margin: 8px 0 2px; font-size: 0.85rem; color: var(--ink-faded); }
-.pedia-group button { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 0; box-shadow: none; padding: 1px 4px; }
-.pedia-group button:hover, .pedia-group button:focus-visible { background: var(--parchment-shade); outline: none; }
-.pedia-group button[aria-current="true"] { color: var(--ink-active); text-decoration: underline; }
-.pedia-page { flex: 1; overflow-y: auto; border: var(--rule); background: var(--wash-light); padding: 8px 12px; }
-.pedia-page h3 { margin: 0 0 6px; font-size: 1.2rem; }
-.pedia-page table { border-collapse: collapse; margin-bottom: 8px; }
-.pedia-page th { text-align: left; font-weight: normal; color: var(--ink-faded); padding: 1px 14px 1px 0; vertical-align: top; }
-.pedia-page p { margin: 0 0 6px; max-width: 46rem; }
+/* A book lying open (R-1015): the contents on the left-hand page, each entry led out by dots as in
+   a table of contents and the one being read marked by a ribbon; the entry itself on the right. */
+.pedia-screen { padding-left: max(18px, calc((100% - 72rem) / 2)); padding-right: max(18px, calc((100% - 72rem) / 2)); }
+.pedia-screen > h2 { padding-bottom: 6px; text-align: center; border-bottom: 3px double var(--ink); }
+.pedia-screen > .pedia-body { flex: 1; }
+.pedia-body { display: flex; min-height: 0; border: var(--rule); background: var(--wash-light); box-shadow: var(--lift); }
+/* each page darkens toward the fold between them */
+.pedia-index {
+  flex: 0 0 16rem; overflow-y: auto; scrollbar-width: thin; padding: 8px 14px 10px 22px; border-right: var(--rule);
+  background: linear-gradient(270deg, var(--ink-rule-faint), transparent 18px);
+}
+.pedia-group h3 { margin: 12px 0 3px; font-size: 0.95rem; text-align: center; border-bottom: var(--rule); }
+.pedia-group:first-child h3 { margin-top: 0; }
+.pedia-group button {
+  position: relative; display: flex; align-items: baseline; gap: 6px; width: 100%; padding: 1px 2px;
+  text-align: left; background: none; border: 0; border-radius: 0; box-shadow: none;
+}
+/* the leader: dots from the entry's name out to the edge of the column */
+.pedia-group button::after { content: ''; flex: 1; min-width: 1em; border-bottom: 1px dotted var(--ink-rule); }
+.pedia-group button:hover:not(:disabled), .pedia-group button:focus-visible { background: var(--parchment-shade); }
+.pedia-group button:focus-visible { outline-offset: -2px; }
+.pedia-group button[aria-current="true"] { color: var(--ink-active); font-style: italic; }
+/* the ribbon: wax-red silk coming in from the edge of the page, its end cut to a swallowtail */
+.pedia-group button[aria-current="true"]::before {
+  content: ''; position: absolute; left: -22px; top: 50%; width: 19px; height: 0.72em; transform: translateY(-50%);
+  background: linear-gradient(var(--wax-light), var(--wax) 45%, var(--wax-dark));
+  clip-path: polygon(0 0, 100% 0, calc(100% - 5px) 50%, 100% 100%, 0 100%);
+}
+.pedia-page { flex: 1; overflow-y: auto; scrollbar-width: thin; padding: 10px 24px 12px; background: linear-gradient(90deg, var(--ink-rule-faint), transparent 18px); }
+.pedia-page h3 { margin: 0 0 8px; padding-bottom: 4px; font-size: 1.5rem; border-bottom: var(--rule); }
+.pedia-page table { border-collapse: collapse; margin-bottom: 10px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.pedia-page :is(th, td) { text-align: left; font-weight: normal; padding: 2px 18px 2px 3px; vertical-align: top; border-top: var(--rule-faint); }
+.pedia-page tr:first-child > * { border-top: 0; }
+.pedia-page th { font-family: var(--font-display); letter-spacing: var(--tracking-display); color: var(--ink-faded); white-space: nowrap; }
+.pedia-page p { margin: 0 0 7px; max-width: 44rem; line-height: 1.35; }
+.pedia-page p:first-of-type { min-height: 2.5em; }
 
 
 /* --- save and load --------------------------------------------------------------------------- */
-.save-dialog { max-width: 40rem; }
-.save-dialog h2 { margin: 0 0 6px; font-size: 1.1rem; }
-.save-dialog table { border-collapse: collapse; }
-.save-dialog th { text-align: left; font-weight: normal; color: var(--ink-faded); padding: 2px 12px 2px 0; white-space: nowrap; }
-.save-dialog td { padding: 2px 12px 2px 0; }
-.save-dialog td button { margin-right: 4px; }
+/* A ledger (R-1015): a faint line under every entry, the slot's name in the margin, and the columns
+   ruled off down the page in red ink as an account book's are. */
+.save-dialog { max-width: min(48rem, 94vw); }
+.save-dialog table { border-collapse: collapse; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.save-dialog :is(th, td) { text-align: left; font-weight: normal; padding: 3px 10px; border-top: var(--rule-faint); }
+.save-dialog tr:first-child > * { border-top: 0; }
+.save-dialog tr:nth-child(even) { background: var(--ink-wash); }
+.save-dialog th { padding-left: 3px; font-family: var(--font-display); letter-spacing: var(--tracking-display); color: var(--ink-faded); white-space: nowrap; }
+.save-dialog td.slot-summary { width: 100%; border-left: 3px double color-mix(in srgb, var(--wax) 70%, transparent); }
+.save-dialog td:last-child { padding-right: 3px; white-space: nowrap; text-align: right; border-left: 1px solid color-mix(in srgb, var(--wax) 70%, transparent); }
+.save-dialog td button { margin-left: 4px; padding: 1px 10px; font-size: 0.9em; }
 .save-files { display: flex; gap: 6px; margin-top: 6px; }
-.save-notice { min-height: 1.2em; margin: 4px 0 0; color: var(--ink-bad); }
+.save-notice { min-height: 1.2em; margin: 4px 0 0; font-style: italic; color: var(--ink-amber); }
+.save-dialog .save-close { align-self: center; padding: 0.35rem 1.4rem; text-align: center; }
 
 /* Shown while the page itself is magnified; over every screen and dialog. A brass-edged plaque. */
 .magnified-notice {
@@ -864,17 +1089,8 @@ body:has(#app > .title-screen) > .frontispiece { display: block; }
   outline: var(--rule);
   outline-offset: -6px;
   box-shadow: 0 5px 14px var(--wood-dark);
-  font-size: 0.95rem;
 }
-.title-screen ~ .report-screen h2 {
-  font-size: 2rem;
-  text-align: center;
-  padding-bottom: 0.4rem;
-  border-bottom: 3px double var(--ink);
-}
-.title-screen ~ .report-screen .report-section { background: none; border: 0; padding: 0; }
 .title-screen ~ .report-screen .report-section h3 { display: none; } /* the sheet's own heading says it */
-.title-screen ~ .report-screen .report-section tr + tr > * { border-top: 1px dotted var(--ink-rule); }
 .title-screen ~ .report-screen .report-close { align-self: center; padding: 0.35rem 1.4rem; }
 
 /* --- portraits (R-1016) -------------------------------------------------------------------- */

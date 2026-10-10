@@ -1,5 +1,12 @@
 // A full-screen adviser's report: a title and sections of headed lines. Esc, Enter or the button
-// closes it. Each adviser builds its content as plain data (see ui/reports/*).
+// closes it. Each adviser builds its content as plain data (see ui/reports/*). It is laid out as a
+// page of parchment (R-1015): the adviser's wax seal and the title at its head, the adviser's
+// opening words under them, then the sections as ruled tables.
+import { drawSprite, sealArt } from './pixel-art';
+import { reportHead } from './reports/heads';
+
+/** Screen pixels to one art pixel of the seal. */
+const SEAL_SCALE = 3;
 
 import { portraitCanvas, type PortraitId } from './portraits';
 
@@ -7,6 +14,8 @@ export interface ReportSection {
   readonly heading: string;
   /** Each line is a row of cells; a single cell spans the row. */
   readonly rows: readonly (readonly string[])[];
+  /** The first row names the columns of the rest. */
+  readonly columns?: boolean;
   /** Shown when there are no rows. */
   readonly empty?: string;
   /** For each row, the map square it is about (clicking the row goes there), or null. */
@@ -32,9 +41,33 @@ export function showReport(host: HTMLElement, report: Report): Promise<readonly 
     root.setAttribute('aria-modal', 'true');
     root.setAttribute('aria-label', report.title);
     root.tabIndex = -1;
+    // the head of the page: the seal, the title, and a place kept beside them for the adviser's portrait
+    const about = reportHead(report.id);
+    const head = document.createElement('div');
+    head.className = 'report-head';
+    const art = sealArt(about.glyph, about.wax);
+    const seal = document.createElement('canvas');
+    seal.className = 'report-seal';
+    seal.width = art.size * SEAL_SCALE;
+    seal.height = art.size * SEAL_SCALE;
+    seal.dataset['seal'] = about.glyph;
+    seal.setAttribute('aria-hidden', 'true');
+    const ctx = seal.getContext('2d');
+    if (ctx) drawSprite(ctx, art, 0, 0, seal.width);
     const title = document.createElement('h2');
     title.textContent = report.title;
-    root.append(title);
+    const portrait = document.createElement('div');
+    portrait.className = 'report-portrait';
+    portrait.dataset['slot'] = 'portrait';
+    portrait.setAttribute('aria-hidden', 'true');
+    head.append(seal, title, portrait);
+    root.append(head);
+    if (about.lead) {
+      const lead = document.createElement('p');
+      lead.className = 'report-lead';
+      lead.textContent = about.lead;
+      root.append(lead);
+    }
     const finish = (target: readonly [number, number] | null): void => {
       root.remove();
       previous?.focus();
@@ -57,6 +90,7 @@ export function showReport(host: HTMLElement, report: Report): Promise<readonly 
         const table = document.createElement('table');
         section.rows.forEach((cells, rowIndex) => {
           const tr = document.createElement('tr');
+          if (section.columns && rowIndex === 0) tr.className = 'report-columns';
           const target = section.zoom?.[rowIndex] ?? null;
           if (target) {
             tr.className = 'zoom';
