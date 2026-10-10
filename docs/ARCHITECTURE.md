@@ -17,7 +17,9 @@ test. Rule numbers live here and nowhere else.
 `state.ts` is the `GameState` shape (players, map, units, colonies) as plain JSON. `actions.ts` is
 the only way to change it: `validateAction` / `applyAction` over a discriminated `Action` union,
 returning `GameEvent`s. `movement.ts` holds the movement rules (step cost in thirds of a move,
-ships and inland lakes, boarding, landfall, Go To) and `path.ts` the A* search they use.
+ships and inland lakes, boarding, landfall, Go To) and `path.ts` the A* search they use. The Go To
+and trade-route loops take a `SailWatch` that `actions.ts` sets to the naval zone-of-patrol and fort
+rule, so movement need not depend on `naval.ts`.
 `market.ts` is the Europe price model with buying, selling and boycotts; `europe.ts` the docks,
 the Royal University and purchases. `immigration.ts` is the immigrant pool, recruit prices and
 crosses. `settlements.ts` holds native settlements and whose land is whose (placement is

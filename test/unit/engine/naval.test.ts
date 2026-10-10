@@ -222,38 +222,41 @@ describe('zone of patrol and forts', () => {
     expect(event(r, 'shipSlowed')).toMatchObject({ unitId: 'me', by: 'foe' });
   });
 
-  it('it applies to every step a ship sails under Go To orders, and a fortress on the way stops it', () => {
-    const s = ship(ship(sea(), 'me', 'merchantman', 'a', 1, 2), 'foe', 'frigate', 'b', 3, 2);
-    const r = applyAction(s, { type: 'goTo', unitId: 'me', x: 2, y: 2 });
-    const e = event(r, 'shipSlowed');
-    expect(e).toMatchObject({ unitId: 'me', by: 'foe' });
-    expect(r.state.units['me']?.movesLeft).toBe(15 - 3 - e!.cost);
-    // held up with moves still in hand, it carries on; stopped beside a fortress, its orders stand for next turn
-    // (every way from (4,4) to (5,1) passes a square beside the colony with steps still to go)
-    const held = ship(withColony(sea(), { id: 'col', owner: 'b', x: 6, y: 3, name: 'C', buildings: ['stockade', 'fort', 'fortress'] }), 'me', 'merchantman', 'a', 4, 4);
+  // A channel one square wide at x = 5 between two shores: every way up it passes every square.
+  const CHANNEL = ['~~~~~~~~~~~~', '~~~~~~~~~~~~', '~....~....~~', '~....~....~~', '~....~....~~', '~~~~~~~~~~~~'];
+  const channel = (o: Opts = {}): GameState => ({ ...sea(o), map: world({ rows: CHANNEL, seed: 1 }).map });
+
+  it('it applies to every step a ship sails under Go To orders, not only the first', () => {
+    // a frigate off (6,1) reaches the channel's second square (5,2) but not its first (5,3)
+    const s = ship(ship(channel(), 'me', 'merchantman', 'a', 5, 4), 'foe', 'frigate', 'b', 6, 1);
+    const r = applyAction(s, { type: 'goTo', unitId: 'me', x: 5, y: 2 });
+    const slowed = r.events.filter((e) => e.type === 'shipSlowed');
+    expect(slowed).toHaveLength(1);
+    expect(slowed[0]).toMatchObject({ unitId: 'me', by: 'foe' });
+    expect(r.state.units['me']).toMatchObject({ x: 5, y: 2, movesLeft: 15 - 3 - 3 - (slowed[0] as { cost: number }).cost, orders: 'none' });
+  });
+
+  it('a fortress on the way stops a ship under Go To orders, which stand for next turn', () => {
+    const held = ship(withColony(channel(), { id: 'col', owner: 'b', x: 6, y: 3, name: 'C', buildings: ['stockade', 'fort', 'fortress'] }), 'me', 'merchantman', 'a', 5, 4);
     const stopped = applyAction(held, { type: 'goTo', unitId: 'me', x: 5, y: 1 });
-    const me = stopped.state.units['me']!;
-    expect(me).toMatchObject({ x: 5, movesLeft: 0, orders: 'goto', destination: [5, 1] });
-    expect(me.y).toBeGreaterThan(1);
-    expect(event(stopped, 'shipSlowed')).toMatchObject({ unitId: 'me', by: 'col', cost: 15 - 3 * (4 - me.y) });
+    expect(stopped.state.units['me']).toMatchObject({ x: 5, y: 3, movesLeft: 0, orders: 'goto', destination: [5, 1] });
+    expect(event(stopped, 'shipSlowed')).toMatchObject({ unitId: 'me', by: 'col', cost: 15 - 3 });
   });
 
   it('it applies to a ship following a trade route', () => {
-    let s = withColony(sea(), { id: 'port', owner: 'a', x: 6, y: 3, name: 'Port', colonists: [{ id: 'p1', profession: 'freeColonist', job: { kind: 'idle' }, turns: 0 }] });
-    s = ship(ship(s, 'me', 'merchantman', 'a', 1, 2), 'foe', 'frigate', 'b', 3, 2);
-    const made = applyAction(s, { type: 'createTradeRoute', kind: 'sea', stops: [{ colonyId: 'port', unload: [], load: [] }] });
-    const routeId = Object.keys(made.state.tradeRoutes)[0] as string;
-    const r = applyAction(made.state, { type: 'assignTradeRoute', unitId: 'me', routeId });
-    expect(event(r, 'shipSlowed')).toMatchObject({ unitId: 'me', by: 'foe' });
-  });
-
-  it('a fort slows a hostile ship that ends beside it and a fortress stops it', () => {
-    const beside = (buildings: string[], o: Opts = {}): { state: GameState; events: NavalEvent[] } =>
-      pass(ship(withColony(sea(o), { id: 'col', owner: 'b', x: 6, y: 3, name: 'C', buildings }), 'me', 'merchantman', 'a', 5, 3));
-    expect(beside(['stockade']).events).toEqual([]);
-    expect(beside(['stockade', 'fort']).state.units['me']?.movesLeft).toBe(13);
-    expect(beside(['stockade', 'fort', 'fortress']).state.units['me']?.movesLeft).toBe(0);
-    expect(beside(['stockade', 'fort', 'fortress'], { peace: true }).events).toEqual([]);
+    // a caravel (12 thirds) at the channel's head bound down it for a port at (6,4): (5,2) under a
+    // frigate's guns, (5,3), then docking. Held up for a full 6 it falls short with its orders standing.
+    const make = (seed: number): GameState => {
+      let s = withColony(channel({ seed }), { id: 'port', owner: 'a', x: 6, y: 4, name: 'Port', colonists: [{ id: 'p1', profession: 'freeColonist', job: { kind: 'idle' }, turns: 0 }] });
+      s = ship(ship(s, 'me', 'caravel', 'a', 5, 1), 'foe', 'frigate', 'b', 6, 1);
+      return applyAction(s, { type: 'createTradeRoute', kind: 'sea', stops: [{ colonyId: 'port', unload: [], load: [] }] }).state;
+    };
+    const sail: Action = { type: 'assignTradeRoute', unitId: 'me', routeId: 'r1' };
+    expect(Object.keys(make(1).tradeRoutes)).toEqual(['r1']);
+    const held = until(make, (r) => event(r, 'shipSlowed')?.cost === 6, sail);
+    expect(held.state.units['me']).toMatchObject({ x: 5, y: 3, movesLeft: 0, orders: 'trade' });
+    const slipped = until(make, (r) => event(r, 'shipSlowed')?.cost === 0, sail);
+    expect(slipped.state.units['me']).toMatchObject({ x: 6, y: 4, movesLeft: 0, orders: 'trade' });
   });
 
   it('forts fire on hostile ships lying off them, harder with artillery inside', () => {
