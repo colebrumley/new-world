@@ -1,7 +1,7 @@
 // View math for the map canvas: zoom levels, clamping, panning, screen/tile conversion.
 import type { GameMap } from '../engine/state';
 
-/** Tiles shown across and down at each zoom level, farthest first (the original's four sizes). */
+/** Tiles shown across and down at each zoom level, farthest first (four sizes). */
 export const ZOOM_LEVELS = [
   { cols: 120, rows: 96 },
   { cols: 60, rows: 48 },

@@ -1,5 +1,4 @@
-// Dealings between the colonial powers (VICEROY 5000:5b4e, FUN_5000_59c0, FUN_5000_56fc,
-// 3000:cc74; docs/RULES.md "Diplomacy").
+// Dealings between the colonial powers (docs/RULES.md "Diplomacy").
 export const DIPLOMACY = {
   /** A power grants another audience only this many turns after the last, unless asked through a mayor. */
   audienceEvery: 16,

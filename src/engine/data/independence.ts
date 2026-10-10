@@ -1,6 +1,5 @@
 // The Declaration of Independence and the Crown's answer to it (R-900; docs/RULES.md
-// "Declaration of Independence"). Sources: VICEROY FUN_3000_c584, 3000:ba46, FUN_3000_beea,
-// FUN_3000_a9a2, FUN_3000_a62a, FUN_3000_a6c6, FUN_3000_9e82.
+// "Declaration of Independence").
 
 export const INDEPENDENCE = {
   /** National rebel sentiment needed to declare, per cent. */

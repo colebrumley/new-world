@@ -1,4 +1,4 @@
-// A modal question with a short list of answers, in the manner of the original's pop-up menus.
+// A modal question with a short list of answers, in the manner of a pop-up menu.
 // Arrow keys move, Enter picks, Escape picks the option marked as the escape.
 
 export interface DialogOptions {

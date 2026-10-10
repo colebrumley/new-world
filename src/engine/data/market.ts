@@ -1,4 +1,4 @@
-// The Europe market model per good, transcribed from NAMES.TXT @CARGO:
+// The Europe market model per good. Each row:
 //   start 1, start 2 (opening bid range), low, high (limits of drift), burden (extra gap
 //   between ask and bid; 0 means ask is 1 above bid), rise, fall (traffic levels at which the
 //   price moves), attrition (added to traffic each turn), volatility (shift applied to traffic).
@@ -41,7 +41,7 @@ export const MARKET = {
 /** The ask price is this much above the bid, plus the good's burden. */
 export const ASK_OVER_BID = 1;
 
-/** Immigrant classes and their passage cost, from NAMES.TXT @CLASS. */
+/** Immigrant classes and their passage cost. */
 export const IMMIGRANT_CLASSES = {
   pettyCriminals: { name: 'Petty Criminals', cost: 300 },
   indenturedServants: { name: 'Indentured Servants', cost: 400 },

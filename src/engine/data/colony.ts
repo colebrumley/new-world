@@ -1,7 +1,7 @@
 import type { NationId } from './nations';
 
-// Default colony names per nation, in the order the original hands them out (COLONY.TXT).
-// Historical place names; a few repeat within a list, as in the source.
+// Default colony names per nation, in the order they are handed out.
+// Historical place names; a few repeat within a list.
 export const COLONY_NAMES = {
   england: [
     'Jamestown', 'Plymouth', 'Roanoke', 'Barbados', 'Penobscot', 'Boston', 'Baltimore', 'Providence', 'Hartford',
@@ -55,7 +55,7 @@ export const COLONY_LIMITS = {
   freeStockadeFather: 'laSalle',
 } as const;
 
-/** Buildings every new colony starts with (manual p.50). */
+/** Buildings every new colony starts with. */
 export const STARTING_BUILDINGS = [
   'townHall', 'carpentersShop', 'blacksmithsHouse', 'tobacconistsHouse', 'weaversHouse', 'rumDistillersHouse', 'furTradersHouse',
 ] as const;

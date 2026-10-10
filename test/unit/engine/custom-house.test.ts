@@ -98,7 +98,7 @@ describe('sales', () => {
     expect(sell(port({ furs: 120 }, [], { kind: 'human', house: false })).state.players[0]?.gold).toBe(0);
   });
 
-  it('ignores boycotts, as the original does', () => {
+  it('ignores boycotts', () => {
     const { state, events } = sell(port({ furs: 200 }, ['furs'], { boycotts: ['furs'] }));
     expect(events).toHaveLength(1);
     expect(stock(state, 'furs')).toBe(50);

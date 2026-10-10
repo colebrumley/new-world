@@ -1,4 +1,4 @@
-// Founding Fathers, transcribed from NAMES.TXT @FATHERS: category, then the weight with which
+// Founding Fathers: category, then the weight with which
 // each is offered in three eras (1492-1600, 1600-1700, 1700 on). Effects are applied by the
 // rules that consult hasFather(); the one-line summaries here are our own wording.
 

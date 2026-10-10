@@ -1,4 +1,4 @@
-// Trading with a native settlement (VICEROY 4000:7200, FUN_4000_7f7c; docs/RULES.md "Trade with natives").
+// Trading with a native settlement (docs/RULES.md "Trade with natives").
 import type { GoodId } from './goods';
 
 export const NATIVE_TRADE = {

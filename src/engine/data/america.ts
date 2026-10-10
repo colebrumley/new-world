@@ -1,8 +1,7 @@
 // The "America" scenario: our own low-resolution coastline of the Americas, plus the tribe
-// sites and European starting points the original lists for its 56x70 map.
+// sites and European starting points on the 56x70 map.
 // All coordinates here are playable coordinates (0..55, 0..69); add 1 for the bordered grid.
-// The coastline is hand-drawn for this project around those published anchor points. It is not
-// derived from the original map file.
+// The coastline is hand-drawn for this project around those anchor points.
 
 type Span = readonly [number, number];
 
@@ -82,7 +81,7 @@ export type AmericaTribe = (typeof AMERICA_TRIBES)[number];
 
 type Point = readonly [number, number];
 
-/** Settlement sites per tribe, from TRIBE.TXT (one site listed under two tribes is kept once). */
+/** Settlement sites per tribe. */
 export const AMERICA_TRIBE_SITES = {
   iroquois: [[27, 15], [30, 11], [23, 15], [19, 14], [25, 10], [16, 10], [15, 6], [20, 8], [25, 6], [29, 6], [36, 6]],
   cherokee: [[25, 20], [28, 23], [22, 18], [21, 21]],
@@ -109,7 +108,7 @@ export const AMERICA_TRIBE_REGIONS = {
   tupi: [26, 34, 52, 59],
 } as const satisfies Record<AmericaTribe, readonly [number, number, number, number]>;
 
-/** Where each power's first ship appears, from NAMES.TXT @SCENARIO AMER2, in nation order. */
+/** Where each power's first ship appears, in nation order. */
 export const AMERICA_STARTS = {
   england: [34, 20],
   france: [39, 10],

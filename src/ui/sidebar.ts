@@ -19,7 +19,7 @@ export function unitLabel(unit: Unit): string {
   return skill.expertRole === unit.type ? skill.name : type.name;
 }
 
-/** Movement in thirds as the original shows it: "2", "1/3", "1 2/3". */
+/** Movement in thirds: "2", "1/3", "1 2/3". */
 export function formatMoves(thirds: number): string {
   const whole = Math.floor(thirds / MOVE_THIRDS);
   const rest = thirds % MOVE_THIRDS;

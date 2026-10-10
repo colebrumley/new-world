@@ -1,5 +1,5 @@
-// Tutorial hints (R-1001): advice offered once each, at the moments a newcomer needs it. The
-// nineteen moments follow the original's; every sentence is our own.
+// Tutorial hints (R-1001): advice offered once each, at the moments a newcomer needs it.
+// Every sentence is our own.
 import { checkFound, coloniesOf } from '../engine/colony';
 import { GOOD_NAMES, type GoodId } from '../engine/data/goods';
 import { NATIONS } from '../engine/data/nations';

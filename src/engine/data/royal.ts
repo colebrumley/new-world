@@ -1,5 +1,4 @@
 // The Crown's dealings with a colonial power (R-406; docs/RULES.md "Royal events").
-// Sources: VICEROY FUN_3000_3a80, 2000:ce86, 5000:a478, FUN_3000_bd62, 3000:c264, FUN_3000_a238, 2000:d32c, 7000:329b.
 
 export const ROYAL = {
   /** The Royal Expeditionary Force at the start: base + perLevel x difficulty level. */

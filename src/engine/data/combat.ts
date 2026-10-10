@@ -1,5 +1,4 @@
-// Land combat numbers (VICEROY FUN_0000_582a, FUN_0000_593e, FUN_5000_a67e, FUN_5000_a29c;
-// docs/RULES.md "Land combat"). Strengths are whole numbers of eighths of a point.
+// Land combat numbers (docs/RULES.md "Land combat"). Strengths are whole numbers of eighths of a point.
 import type { ProfessionId } from './professions';
 import type { UnitTypeId } from './units';
 

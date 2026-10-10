@@ -1,4 +1,4 @@
-// Cargo types, in NAMES.TXT @CARGO order. The first 16 are tradeable goods that fill holds and
+// Cargo types, in table order. The first 16 are tradeable goods that fill holds and
 // warehouses; hammers, crosses and liberty bells are produced but never carried.
 // The market columns of the table are in data/market.ts.
 import { MARKET } from './market';

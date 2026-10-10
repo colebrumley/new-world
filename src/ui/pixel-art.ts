@@ -1,7 +1,7 @@
 // Pixel art for the map (R-1006). Everything on the map is drawn on a 16 x 16 grid of "art
 // pixels" in a fixed palette of 32 colours, then blown up by whole numbers, so every zoom level
-// shows the same crisp grid. All of it is made here from code: nothing is taken from the
-// original's graphics (constraint C1), and nothing here needs a canvas, so it can be tested as data.
+// shows the same crisp grid. All of it is made here from code: nothing is taken from
+// anyone else's graphics (constraint C1), and nothing here needs a canvas, so it can be tested as data.
 import type { ResourceId } from '../engine/data/resources';
 import type { TerrainId } from '../engine/data/terrain';
 import type { UnitTypeId } from '../engine/data/units';

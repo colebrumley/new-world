@@ -1,5 +1,5 @@
-// Terrain rule table, transcribed from NAMES.TXT @UNFORESTED / @FORESTED / @OTHER.
-// Row format there: name, move cost, defense, improvement, AI value, then nine yields in the
+// Terrain rule table.
+// Row format: name, move cost, defense, improvement, AI value, then nine yields in the
 // order food, sugar, tobacco, cotton, furs, lumber, ore, silver, fish.
 
 export const RAW_GOODS = ['food', 'sugar', 'tobacco', 'cotton', 'furs', 'lumber', 'ore', 'silver', 'fish'] as const;

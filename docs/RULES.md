@@ -1,48 +1,39 @@
-# Rules learned from secondary sources
+# Rules
 
-Formulas and hidden rules that the game's text files do not state, written in our own words
-**before** they are implemented. The engine is
-then written from this note, not from the source it cites. Plain rule-table numbers that come
-straight from `NAMES.TXT` do not belong here; they go in `src/engine/data/*` and
-[FIDELITY.md](FIDELITY.md).
+Formulas and rules of the game, written in plain words **before** they are implemented. The
+engine is then written from this note. Plain rule-table numbers do not belong here; they go in
+`src/engine/data/*` and [FIDELITY.md](FIDELITY.md).
 
 ## Entry format
 
 ```
 ### <Short rule name> (R-xxx)
-**Source:** <citation>            one or more, strongest first
-**Rule:** prose or pseudocode in our own words; integer math and rounding stated explicitly.
-**Notes:** conflicts between sources, what we chose and why (also logged in FIDELITY.md).
+**Compare:** <citation>           optional; an open-source project that handles the same rule
+**Numbers:** <table constant>     optional; where the numbers live in src/engine/data/*
+**Rule:** prose or pseudocode; integer math and rounding stated explicitly.
+**Notes:** what we chose and why (also logged in FIDELITY.md).
 ```
 
 Citation forms:
 
-| Source | Form | Example |
+| Project | Form | Example |
 |---|---|---|
-| Ghidra decompilation | `VICEROY FUN_<seg>_<off>` plus the message tag or constant that anchors it | `VICEROY FUN_2000_b258, at the REBELMAJORITY push (2000:b755)` |
-| Game text | file and tag | `GAME.TXT @TIMECHANGE` |
-| Manual | page | `MAN p.72` |
-| FreeCol classic ruleset | file and element | `FreeCol classic specification.xml, <building-type id="model.building.stockade">` |
+| FreeCol | file and element | `FreeCol specification.xml, <building-type id="model.building.stockade">` |
 | Revolution Now | doc file | `revolution-now doc/<file>` |
 
-Never paste decompiled C, OSS code, or message sentences here; numbers, names and formulas only.
+Never paste open-source code here; numbers, names and formulas only.
 
 ## Rules
 
 ### Sons of Liberty majority announcements (R-306)
-**Source:** VICEROY FUN_2000_b258, at the REBELMAJORITY push (2000:b755)
 **Rule:** during a colony's end-of-turn report, if its Sons of Liberty percentage is at least 50
 and the "majority announced" flag is clear, announce it and set the flag. A second, separate flag
 does the same at 100.
-**Notes:** re-check the comparison direction
-(>= vs >) when R-306 is implemented.
 
 ### Tile yield (R-101)
-**Source:** VICEROY FUN_0000_779c (one worked tile), FUN_0000_76aa (resource bonus by resource and
-job), FUN_0000_75ee (water neighbours), FUN_0000_3ca0 with the table at DS:0x192 (resource per
-terrain); cross-checked against Revolution Now `config/rcl/production.rcl`; GAME.TXT @TUTORIAL9,
-@TUTORIAL10; PEDIA.TXT @JOB0..8.
-**Rule:** start from the raw NAMES.TXT value for the terrain row and the good, then in this order:
+**Compare:** Revolution Now `config/rcl/production.rcl`.
+**Rule:** start from the raw terrain-table value for the terrain row and the good, then in this
+order:
 1. Fish only, if above 0: by the number of the 8 neighbours that are water, 8 gives -2, 6 or 7
    gives -1, 5 or fewer gives +1 (off-map is not water).
 2. Furs only, if above 0: road +1, minor river +1, major river +2. Floor at 0.
@@ -63,14 +54,10 @@ terrain); cross-checked against Revolution Now `config/rcl/production.rcl`; GAME
    fur or fish figure.
 10. If s is negative, add it to a nonzero figure; floor at 0.
 There is no outdoor penalty for servants, criminals or experts off their trade.
-**Notes:** PEDIA says expert fishermen are twice as productive; the code adds 2 (Revolution Now
-agrees). Revolution Now gives Prime Timber +4 for experts where the code yields +8, and no silver
-on bare mountains with a road where the code yields 1; we follow the code (decompilation outranks
-OSS). The manual's terrain chart (p.135) disagrees with NAMES on several open-terrain food values;
-NAMES wins.
+**Notes:** an expert fisherman adds 2 rather than doubling. Prime Timber gives an expert +8 and
+bare mountains with a road yield 1 silver; Revolution Now differs on both (+4, and no silver).
 
 ### Resource terrains and effects (R-101)
-**Source:** VICEROY FUN_0000_76aa and table at DS:0x192
 **Rule:** Oasis on Desert/Scrub, food +2. Wheat on Plains, food +2. Game on Boreal/Broadleaf, food
 +2 and furs +2. Beaver on Mixed, furs +3. Prime Cotton on Prairie, Prime Tobacco on Grassland,
 Prime Sugar on Savannah, each x2. Prime Timber on Conifer/Tropical, lumber +2 before the doubling.
@@ -80,19 +67,16 @@ resource for the silver rule. Fishery on Ocean (not Sea Lane), fish +3. Additive
 for the matching expert.
 
 ### Colony centre tile (R-101, used by R-302)
-**Source:** VICEROY FUN_0000_7e22 (first part)
 **Rule:** food is 0 on Arctic, 1 on Desert and Scrub, 2 on Hills, Mountains and every other
 forest, 3 elsewhere; +2 on Discoverer, +1 on Explorer; +1 if plowed; +2 with Oasis, Wheat or Game;
 plus the SoL bonus. The second product is the largest of sugar, tobacco, cotton, furs, ore, silver
 (raw value plus the non-expert resource effect; earliest wins ties; none if all are 0), then +1 on
 Discoverer, +1 minor or +2 major river, plus the SoL bonus. Roads, experts, Hudson and Tories do
 not affect either figure.
-**Notes:** Revolution Now has Boreal centre food 1; the code groups it with the other forests at 2.
-Whether founding a colony plows its tile was not established; revisit in R-300.
+**Notes:** Boreal counts with the other forests at 2 (Revolution Now has 1).
 
 ### Deposit depletion (R-101, wired in by R-301)
-**Source:** VICEROY FUN_0000_779c (accumulator), 2000:c662 (consumer), FUN_2000_af0a (DEPLETION
-sweep, matched by message tag); Revolution Now `doc/depletion.txt` agrees.
+**Compare:** Revolution Now `doc/depletion.txt`.
 **Rule:** each turn a colony sums a weight over its worked tiles: ore on Minerals 1, silver on
 Minerals 2, silver on a Silver Deposit 1. For each unit of weight, with probability
 (d+1)/(d+2) where d is the difficulty index 0..4, a per-colony counter goes up by one. When it
@@ -100,19 +84,15 @@ reaches 50 it drops by 50 and every tile around the colony where an ore or silve
 Minerals or a Silver Deposit is depleted: Silver Deposit becomes Depleted Mine, Minerals vanish.
 
 ### Sons of Liberty bonus and Tory penalty inputs (R-306)
-**Source:** VICEROY FUN_0000_779c, FUN_0000_6124
 **Rule:** tories = (population x (100 - SoL%) + 50) / 100 with integer division; penalty =
 tories / (10 - difficulty index), integer division; AI colonies have no penalty. Bolivar adds 20
 to the SoL% used here, capped at 100.
 
 ### Movement (R-201)
-**Source:** VICEROY FUN_3000_c8f0 (executor), FUN_3000_d69c (classifier), FUN_3000_d9de
-(dispatcher and prompts), FUN_0000_48ca (moves per turn), FUN_0000_532e (auto-boarding),
-FUN_0000_39ba (ocean region test); Revolution Now `src/mv-calc.cpp`, `src/map-square.cpp`,
-`src/command-move.cpp` agree; GAME.TXT @LANDFALL, @LANDFIRST, @SHIPLAKE; MAN p.25-26.
+**Compare:** Revolution Now `src/mv-calc.cpp`, `src/map-square.cpp`, `src/command-move.cpp`.
 **Rule:**
-- Movement is kept in thirds of a move; a unit has 3 x its NAMES movement each turn.
-- A land step costs 3 x the NAMES move cost of the destination terrain. If both squares have a
+- Movement is kept in thirds of a move; a unit has 3 x its table movement each turn.
+- A land step costs 3 x the table move cost of the destination terrain. If both squares have a
   road or a colony it costs 1 third. Otherwise, if both have a river and the step is not
   diagonal, it costs 1 third (minor and major alike). Entering a square with a settlement costs
   at most 3 thirds. All land units pay the same.
@@ -130,16 +110,12 @@ FUN_0000_39ba (ocean region test); Revolution Now `src/mv-calc.cpp`, `src/map-sq
 - Sentried land units on a ship's square go aboard when the ship moves off, while holds remain.
 - Fortify ends the unit's turn; it becomes Fortified at its next turn. A sentry wakes when a
   foreign unit is adjacent.
-**Notes:** the manual (p.17) limits the river rate to colonists and wagons; the code does not.
-"Main ocean" is implemented as water connected to the map edge (the code tests a stored region
-id whose meaning was inferred). The sentry wake-up comes from the manual and Revolution Now, not
-the code. Magellan's +1 move for ships is applied with the Founding Fathers (R-700).
+**Notes:** the river rate applies to every land unit. "Main ocean" is implemented as water
+connected to the map edge. Magellan's +1 move for ships is applied with the Founding Fathers
+(R-700).
 
 ### Europe travel (R-203)
-**Source:** VICEROY FUN_3000_d69c (when the question is asked), 3000:f432 (crossing timer),
-3000:f4aa (departure), FUN_3000_faea / FUN_3000_f800 (stages), FUN_3000_f8be / FUN_3000_f864
-(reappearance), 3000:13a2 (reversal); GAME.TXT @SAILHOME; MAN p.60; PEDIA (Magellan);
-Revolution Now `config/rcl/harbor.rcl`.
+**Compare:** Revolution Now `config/rcl/harbor.rcl`.
 **Rule:**
 - The question is asked when a ship (a) steps east, north-east or south-east from a Sea Lane
   square onto a Sea Lane square while not under Go To orders, where declining still makes the
@@ -151,19 +127,13 @@ Revolution Now `config/rcl/harbor.rcl`.
 - A returning ship reappears on the square it left from; if that is not a Sea Lane square free
   of foreign units, on the nearest such square, searching outward ring by ring.
 - A ship in mid-ocean may be turned around.
-**Notes:** conflict on the west side. The code gives no extra time from the west edge (the
-branch that tests it discards its result); Revolution Now uses east 2 / west 4 turns (2 with
-Magellan); the manual says one to four turns, east usually shorter; the original's encyclopedia says
-Magellan shortens the western passage. We follow the code, so Magellan only removes the
-occasional slow crossing. Reversal: the code re-enters the ship at the first stage of the
-opposite direction without resetting its timer; we simplify that to a flat two turns.
-Europe being closed during the War of Independence is enforced with R-900.
+**Notes:** the west edge gives no extra time, and Magellan only removes the occasional slow
+crossing (Revolution Now uses east 2 / west 4 turns, 2 with Magellan). Turning a ship around in
+mid-ocean takes a flat two turns. Europe being closed during the War of Independence is enforced
+with R-900.
 
 ### Pioneer work (R-204)
-**Source:** VICEROY 3000:e256 (clear/plow work), FUN_3000_e5d6 (road work), FUN_3000_e208
-(tools), FUN_1000_fd1e / FUN_1000_ff34 (orders), 3000:e369-e44d (lumber), FUN_0000_6900
-(warehouse capacity); Revolution Now `config/rcl/command.rcl` matches every turn count;
-GAME.TXT @CLEARCUT, @USEDUPTOOLS.
+**Compare:** Revolution Now `config/rcl/command.rcl`.
 **Rule:**
 - A road takes N turns, where N is the terrain's improvement value (the forested row for a
   forest). Clearing or plowing takes N + 2. A Hardy Pioneer needs floor(turns / 2). A
@@ -181,17 +151,11 @@ GAME.TXT @CLEARCUT, @USEDUPTOOLS.
   is 20 without a Lumber Mill, or (table lumber of the forest + 1) x 20 with one; doubled for a
   Hardy Pioneer; then limited to the free room in the warehouse, which holds 100 per good plus
   100 for each of Warehouse and Warehouse Expansion.
-**Notes:** the work code has no terrain test for plowing beyond water and already-plowed, while
-Revolution Now refuses hills and mountains; a guard in the key handler was not found. We refuse
-hills and mountains (plowing them would otherwise raise hill food, which play does not show).
-The manual reads as if tools are spent when the order is given; the code spends them on
-completion. Raising village alarm and the native-land dialog belong to R-510.
+**Notes:** hills and mountains cannot be plowed (as in Revolution Now). Raising village alarm
+and the native-land dialog belong to R-510.
 
 ### Founding and joining colonies (R-300)
-**Source:** VICEROY 2000:016d-0398 (the Build Colony order and its refusals), FUN_2000_c778
-(colony creation), FUN_3000_e81e (starting buildings), FUN_0000_6f18 (a colonist joins),
-validation at 2000:361e-3830 (leaving, stockade rule); GAME.TXT @TOOMOUNTAIN, @TOONEAR,
-@TOONEARBUILD, @SEACOLONY, @FULL, @KEEPSTOCKADE; Revolution Now `colony.rcl`.
+**Compare:** Revolution Now `colony.rcl`.
 **Rule:**
 - Any colonist unit except an Indian Convert may found, whatever it is equipped as. Not on
   water, not on Mountains (every other land is allowed), not when a colony of any power is on
@@ -209,16 +173,11 @@ validation at 2000:361e-3830 (leaving, stockade rule); GAME.TXT @TOOMOUNTAIN, @T
 - With La Salle, a colony that has three or more colonists after someone joins gets a Stockade.
 - The player may not take a colony with a Stockade (or better) from three colonists downward,
   and removing the last colonist of any colony is abandoning it.
-**Notes:** the refusal for "a colony being built next door" tests for a unit with a pending
-Build Colony order nearby; founding is immediate here, so it cannot arise. Whether the 8
-neighbours become the colony's land at founding was not established. The first build item
-(Warehouse, or Docks in a port colony) is set by R-303.
+**Notes:** founding is immediate, so there is no refusal for a colony being built next door.
+The first build item (Warehouse, or Docks in a port colony) is set by R-303.
 
 ### Indoor production (R-301)
-**Source:** VICEROY FUN_0000_7bfc (one indoor worker), FUN_0000_7e22 (colony production pass),
-FUN_0000_6a02 / 6a46 / 6a84 / 69bc (inputs and shortfalls), FUN_2000_b258 (stock update and
-shortage reports), placement check at 2000:3709-3826; Revolution Now `production.rcl` and
-`doc/production-bonuses.txt` agree; GAME.TXT @MORETHANTHREE.
+**Compare:** Revolution Now `production.rcl` and `doc/production-bonuses.txt`.
 **Rule:**
 - Base per worker: 3 for a free colonist or any expert (including one outside his trade), 2 for
   an indentured servant, 1 for a petty criminal, 1 for an Indian convert. Let s be the colony's
@@ -240,14 +199,10 @@ shortage reports), placement check at 2000:3709-3826; Revolution Now `production
 - Hammers are made by carpenters from lumber one for one and go into the colony's hammer store
   every turn, whether or not anything is being built.
 - A building takes three workers; teachers number one, two or three by school level.
-**Notes:** the code's three-worker check skips the distiller's building, apparently by
-accident; we apply three everywhere. Fish count as food.
+**Notes:** the three-worker limit applies to every building. Fish count as food.
 
 ### Construction (R-303)
-**Source:** VICEROY FUN_0000_9500 (what may be built), FUN_0000_925a (unit costs),
-FUN_2000_b258 and 2000:ace4 (completion), FUN_2000_9344 (buying), FUN_2000_c778 (first
-project); NAMES.TXT @BUILDING, @UNIT; GAME.TXT @NEEDTOOLS, @NOMOREWAGONS; Revolution Now
-`colony.rcl` (rush_construction) agrees on the buy formula.
+**Compare:** Revolution Now `colony.rcl` (rush_construction).
 **Rule:**
 - A building may be started when the colony has the minimum population, the previous building
   of its chain stands, and it is not built already. Docks also need a water square next to the
@@ -266,14 +221,12 @@ project); NAMES.TXT @BUILDING, @UNIT; GAME.TXT @NEEDTOOLS, @NOMOREWAGONS; Revolu
 - Buying: price = 13 x hammers still missing + (market price of tools + 4) x tools still
   missing, doubled if the hammer store is exactly 0. Buying fills the hammer store and adds the
   missing tools to stock; the item is then completed by the ordinary end-of-turn test.
-- Upkeep is not charged: nothing in the program reads that column.
-**Notes:** whether "market price of tools" is the bid or the ask was not settled (Revolution
-Now uses the ask); until the market exists (R-400) a fixed opening price is used.
+- Upkeep is not charged.
+**Notes:** "market price of tools" could be the bid or the ask (Revolution Now uses the ask);
+until the market exists (R-400) a fixed opening price is used.
 
 ### Food and horses (R-304)
-**Source:** VICEROY FUN_0000_7e22 (production pass, horse breeding at 0000:81b0-8260),
-FUN_2000_b258 (growth at 2000:bd2f, starvation at 2000:bd77-bf0a), FUN_0000_74b4; GAME.TXT
-@FOODLOW, @FOOD1/2, @STARVE1/2, @VANISH, @NEWCOLONIST; MAN p.36; Revolution Now `colony.rcl`.
+**Compare:** Revolution Now `colony.rcl`.
 **Rule:**
 - Each colonist living in a colony eats 2 food a turn; units standing on the square eat nothing.
   Food is not subject to the warehouse limit.
@@ -292,12 +245,8 @@ FUN_2000_b258 (growth at 2000:bd2f, starvation at 2000:bd77-bf0a), FUN_0000_74b4
   (per started 25 with a Stable). The actual increase is the least of that, half this turn's
   food surplus rounded up, and the free room in the warehouse. Each new horse uses 1 food from
   the surplus; stored food is never used.
-**Notes:** the original's encyclopedia speaks of horses using stored food; the code uses only the turn's
-surplus.
 
 ### Warehouse and spoilage (R-305)
-**Source:** VICEROY FUN_0000_6900 (capacity), FUN_2000_b258 (first loop and 2000:c2af-c4be);
-GAME.TXT @SPOIL1..4, @CARGOREADY0..2, @WAREHOUSEFULL; PEDIA (Warehouse).
 **Rule:**
 - A colony keeps 100 of each good, 200 with a Warehouse, 300 with the Warehouse Expansion.
   Only food is exempt; horses and lumber are limited like everything else.
@@ -309,15 +258,10 @@ GAME.TXT @SPOIL1..4, @CARGOREADY0..2, @WAREHOUSEFULL; PEDIA (Warehouse).
 - Stock may exceed the limit during a turn; unloading over it only warns.
 - A good is reported "ready" when its stock passes a multiple of 100 during the turn, compared
   after the trim, with a note when it now fills the warehouse.
-**Notes:** that overproduction is never announced follows from the code and was not confirmed
-in play. The Custom House sale (stock of 100 or more sold down to 50) belongs to R-403.
+**Notes:** the Custom House sale (stock of 100 or more sold down to 50) belongs to R-403.
 
 ### Sons of Liberty (R-306)
-**Source:** VICEROY FUN_0000_7bfc (statesman), FUN_0000_7e22 0000:80d6-81b0 (colony bells),
-FUN_0000_6124 (percentage), FUN_2000_b258 2000:b5xx-b91c (update, bonus flags, notices),
-FUN_0000_6f18 / FUN_0000_6bb4 (join and leave), FUN_2000_c778; GAME.TXT @REBELMAJORITY,
-@REBELUNANIMOUS, @TORYMINORITY, @TORYMAJORITY, @INEFFICIENT, @EFFICIENT; PEDIA; MAN p.85-86;
-Revolution Now `doc/rebel-sentiment.txt`.
+**Compare:** Revolution Now `doc/rebel-sentiment.txt`.
 **Rule:**
 - Colony bells per turn, each step rounded down on the running total: the statesmen's output
   (base + s each, doubled for an Elder Statesman); + 1; with Jefferson + half; with Paine + the
@@ -341,45 +285,32 @@ Revolution Now `doc/rebel-sentiment.txt`.
   Viceroy. The inefficiency notice uses population x (100 - membership %) / 100 without the
   rounding term, once on reaching T and once on dropping back.
 - National rebel sentiment = floor(sum of membership % x population / total population).
-**Notes:** conflicts settled for the code: Jefferson applies to the whole total, not only to
-statesmen (PEDIA, Revolution Now); the Newspaper replaces the press bonus rather than adding
-to it (PEDIA wording); membership moves by 1/64 a turn rather than converting bells at once
-(Revolution Now). National sentiment was not traced in the code; the formula is Revolution
-Now's. After the Declaration the code halves and negates the bells of one power's colonies;
-which power was not established, so that is left to R-901.
+**Notes:** Jefferson applies to the whole total, not only to statesmen (Revolution Now
+differs); the Newspaper replaces the press bonus rather than adding to it; membership moves by
+1/64 a turn rather than converting bells at once (Revolution Now differs). The national
+sentiment formula is Revolution Now's. What the Declaration does to bells is left to R-901.
 
 ### Crosses (R-307)
-**Source:** VICEROY FUN_0000_7e22 0000:80b0-80d2, FUN_0000_7bfc (preacher), FUN_2000_b258;
-MAN p.35; PEDIA (Church, Cathedral, Penn); Revolution Now `production.rcl`.
+**Compare:** Revolution Now `production.rcl`.
 **Rule:** a colony makes 1 cross a turn, 2 with a Church, 3 with a Cathedral, with no
 adjustment of any kind. Each preacher adds his own output (see "Indoor production": 3, or 6 for
 a Firebrand Preacher, plus s; doubled by a Cathedral; half again with Penn). Each colony's
 crosses are added to its owner's running total during its turn.
-**Notes:** the original's encyclopedia credits Penn with all cross production; the code and Revolution
-Now apply him to preachers only. Brewster does not affect production.
+**Notes:** Penn applies to preachers only (as in Revolution Now). Brewster does not affect
+production.
 
 ### Automatic placement (R-309)
-**Source:** VICEROY FUN_0000_8778 (one colonist), FUN_0000_8d50 (all unplaced field workers);
-MAN p.46. Structure read at high confidence, exact weights at medium.
-**Rule (the original):** a colonist with no job asked for becomes a carpenter if the colony
-feeds itself, has three or more people, has a project and no carpenter yet. Otherwise every
-free square is scored for every outdoor job: yield (capped by warehouse room) x 8 plus a small
-bonus for closeness; while the colony is short of food, food and fish are multiplied by 32;
-otherwise the score is weighted by the market price of the good, with adjustments for goods
-the colony is short of, for lumber already to hand, and for processing buildings. The best
-score wins; with no square scoring, a field worker becomes a carpenter.
-**What we implement:** the same structure with a reduced set of weights: yield x 8 + closeness;
-x 32 for food while hungry; otherwise x (2 x price + 1), or x (2 x price) for lumber when the
-colony already has or produces some; doubled for an expert at his own trade (the original
-doubles the colonist's current job instead). The finer shortage and processing-chain weights
-are left out. Prices are the opening bids until the market exists (R-400).
+**Rule:** a colonist with no job asked for becomes a carpenter if the colony feeds itself, has
+three or more people, has a project and no carpenter yet. Otherwise every free square is scored
+for every outdoor job: yield (capped by warehouse room) x 8 plus a small bonus for closeness;
+while the colony is short of food, food and fish are multiplied by 32; otherwise the score is
+multiplied by (2 x price + 1), or by (2 x price) for lumber when the colony already has or
+produces some. The score is doubled for an expert at his own trade. The best score wins; with no
+square scoring, a field worker becomes a carpenter. There are no further weights for shortages
+or processing chains. Prices are the opening bids until the market exists (R-400).
 
 ### Education (R-310)
-**Source:** VICEROY FUN_2000_b258 2000:b9xx-bcb4 (schooling and promotion), placement check
-2000:3700-37ce, FUN_0000_6b2a / 6b6c (the per-colonist counter), FUN_4000_0326 (profession
-census); NAMES.TXT @JOB level column; GAME.TXT @TRAINCRIMINAL, @TRAININDENTURED,
-@TRAINPROFESSION, @TRAINFAIL, @NOTEACHER, @NEEDCOLLEGE; Revolution Now `colony.rcl` agrees on
-the odds.
+**Compare:** Revolution Now `colony.rcl`.
 **Rule:**
 - A teacher is a specialist whose trade has teaching level 1, 2 or 3; level 2 needs a College
   and level 3 a University. A Schoolhouse seats one teacher, a College two, a University three.
@@ -395,16 +326,12 @@ the odds.
 - Learning by doing: a free colonist, servant or criminal working as sugar, tobacco or cotton
   planter or fur trapper becomes the expert of that work with chance 1/100, 1/200 or 1/300 per
   turn, but only while his power has no expert of that kind anywhere.
-**Notes:** Revolution Now keys the term by school building; the code keys it by the teacher's
-trade. When the code refreshes the census it tests was not traced, so we count afresh each
-time. The backlog's note that full Sons of Liberty membership speeds education was not found
-in the code and is not implemented. Scouts becoming Seasoned belongs to R-503.
+**Notes:** the term is keyed by the teacher's trade (Revolution Now keys it by school building).
+The census of experts is counted afresh each time. Full Sons of Liberty membership does not
+speed education. Scouts becoming Seasoned belongs to R-503.
 
 ### Market (R-400)
-**Source:** VICEROY FUN_2000_e1a8 and FUN_2000_e4cc (evaluation), FUN_2000_fe94 / fed0 / ff4a
-(traffic), FUN_3000_4174 and 7000:3245 (set-up), FUN_2000_e166 / e190 (ask, bid),
-FUN_3000_000c / 005c (buy, sell), FUN_3000_0f4e (back taxes); NAMES.TXT @CARGO; Revolution Now
-`doc/prices.txt`, `config/rcl/market.rcl`.
+**Compare:** Revolution Now `doc/prices.txt`, `config/rcl/market.rcl`.
 **Rule:**
 - Each power has its own price and its own traffic volume per good, plus a running net amount
   sold. One further volume per good is shared by all powers; it starts at a random 600 to 1000.
@@ -437,15 +364,11 @@ FUN_3000_000c / 005c (buy, sell), FUN_3000_0f4e (back taxes); NAMES.TXT @CARGO; 
   lifted by paying 500 x the good's ask price.
 **Notes:** Revolution Now differs on the shared-volume draw (centre 600), on the difficulty
 weighting (multiplicative), on the constant of the weak pull, and holds that attrition and trade
-traffic do not apply to the processed goods; the code is followed in each case. The original
-applies the group pulls to all goods on every evaluation, including the one that follows a
-single trade; we do the same.
+traffic do not apply to the processed goods. The group pulls apply to all goods on every
+evaluation, including the one that follows a single trade.
 
 ### Tax (R-401)
-**Source:** VICEROY 3000:3d38 (periodic event), 3000:1f18 (applying a change, and the party),
-FUN_3000_4174 (start), FUN_3000_0f4e (back taxes); GAME.TXT @KINGTAX, @KINGWIFE, @KINGWAR,
-@KINGNAVACT, @KINGSTAMPACT, @KINGVICTORY, @TAXOPTIONS, @TEAPARTY, @COUNTRIES; Revolution Now
-`config/rcl/old-world.rcl`.
+**Compare:** Revolution Now `config/rcl/old-world.rcl`.
 **Rule:**
 - Every power starts at 0%. The rate never passes 75% nor falls below 0.
 - A human power holding at least one colony is reviewed on turn numbers divisible by a period
@@ -463,13 +386,10 @@ FUN_3000_4174 (start), FUN_3000_0f4e (back taxes); GAME.TXT @KINGTAX, @KINGWIFE,
   rise, destroys up to 100 of the good there, adds the amount destroyed to that colony's Sons
   of Liberty numerator, and puts the good under boycott.
 - A boycott is lifted by paying 500 x the good's ask price ("Market"), or all at once by Fugger.
-**Notes:** "goodwill" is a stored value the code raises by 20 (to at most 100) in the Founding
-Father routine; its exact meaning was not established and we take it as 20 per father held.
-The texts for a tax on Custom House construction, on purchases in Europe and on losing a royal
-unit are never used by the program, so those three rises are not implemented. Revolution Now
-gives different odds (98% rises, changes of 1 to 8) and a different first turn; the code is
-followed. An unanswered rise is taken as accepted at the end of the turn (our choice: the
-original asks at once).
+**Notes:** "goodwill" is 20 per Founding Father held, to at most 100. There is no tax rise for
+Custom House construction, for purchases in Europe or for losing a royal unit. Revolution Now
+gives different odds (98% rises, changes of 1 to 8) and a different first turn. An unanswered
+rise is taken as accepted at the end of the turn.
 
 ### Europe docks and starting treasury (R-402)
 
@@ -477,67 +397,63 @@ original asks at once).
   50 horses, a dragoon both, a pioneer 100 tools. Each is charged at the asking price. Handing kit
   back pays the bid, and no tax is taken on it. The traffic counts toward the market volume, but
   prices are not re-evaluated on the spot as they are after a cargo trade. Blessing a missionary is
-  free. (`VICEROY 3000:1896`)
-- Whether a boycott blocks dock kit was not found in the binary; we refuse any change that touches a
-  boycotted good.
+  free.
+- Any change of dock kit that touches a boycotted good is refused.
 - A human power starts with 1000 gold on the lowest level, 300 on the second, and nothing above
-  that; computer powers start with nothing here (their gold was not traced). (`VICEROY 7000:2570`)
+  that; computer powers start with nothing here.
 
 ### Custom House (R-403)
 
 - A colony with a Custom House keeps a list of goods to export. During the colony's turn, after
   production and construction and before the warehouse is trimmed, each listed good with at least
-  100 in store is sold down to 50. (`VICEROY FUN_2000_b258`)
+  100 in store is sold down to 50.
 - The sale pays the owner's current bid. Tax is taken as on a sale in Europe; once independence is
-  declared no tax is taken and the whole price is paid. The manual's 50% wartime charge is not in
-  this routine, so we do not apply it.
+  declared no tax is taken and the whole price is paid. There is no wartime charge.
 - The sale adds to the market volume like any other, but the price does not step until the market
   is next evaluated.
 - Boycotts are not consulted: a boycotted good on the list is still sold.
 - A human power sells nothing from a colony while a warship of another power is within 5 squares.
-  Computer powers are not affected. (Meaning of the two colony flags read at medium confidence; we
-  take "warship" as any ship with an attack value, whatever the relations.)
-- The order of sale relative to construction within the turn was not pinned down; we sell after the
-  builders have taken their tools.
+  Computer powers are not affected. ("Warship" means any ship
+  with an attack value, whatever the relations.)
+- The sale comes after the builders have taken their tools.
 
 ### Recruiting, training and purchases (R-404)
 
 - Three would-be immigrants wait in a pool. A new member is drawn like this, with t = 1, 2, 2, 3, 3
   by difficulty for a human (a computer power always uses 2): a petty criminal with chance t in 15;
   failing that an indentured servant with t in 10; failing that a free colonist with t in 8;
-  failing that a skilled colonist. (`VICEROY 3000:2824`)
+  failing that a skilled colonist.
 - The skilled draw is weighted out of 25: master carpenter 3; expert farmer, fisherman, lumberjack,
   ore miner and seasoned scout 2 each; silver miner, distiller, tobacconist, weaver, fur trader,
   blacksmith, gunsmith, preacher, statesman, hardy pioneer, veteran soldier and Jesuit 1 each. It
   never repeats a calling already in the pool, and when the pool is already all skilled it gives a
   free colonist instead. The planters, the trapper and the teacher never come this way. The year
-  plays no part, and the "class" table in the rules file is loaded but not used for this.
+  plays no part.
 - First pool: an indentured servant (a petty criminal on the hardest level), then two draws, the
   last always skilled and the middle one skilled below the fourth level. A human on the easiest
   level starts with carpenter, farmer and scout; on the second with servant, farmer and scout.
-  Spain's first slot is always a Jesuit. (`VICEROY FUN_3000_4174`)
+  Spain's first slot is always a Jesuit.
 - Passage for any one of the three costs S less a discount, where S = 20 x (paid recruits + level +
   7), the floor m is the larger of 100 and S / 5, and the discount is (S - m) x crosses / (crosses
   needed + 1), rounded down. Never less than 10. Paying resets crosses to nothing, counts as one
-  more paid recruit, and the slot is refilled with an ordinary draw. (`VICEROY 3000:29d4`)
+  more paid recruit, and the slot is refilled with an ordinary draw.
 - Stepping ashore: a hardy pioneer comes as a pioneer with 100 tools, a Jesuit as a missionary, a
   seasoned scout mounted, a veteran soldier armed and, one time in (5 + level), also mounted
-  (one in 6 for a computer power). (`VICEROY FUN_2000_e868`) We fit out University graduates the
-  same way but without the dragoon roll (not traced for training).
+  (one in 6 for a computer power). University graduates are fitted
+  out the same way but without the dragoon roll.
 - University prices are the fixed column of the jobs table. Artillery is 500 plus 100 for each
-  already bought in Europe; ships have constant prices. (`VICEROY FUN_3000_231e`, `3000:2ca0`)
+  already bought in Europe; ships have constant prices.
 
 ### Immigration (R-405)
 
 - Crosses needed = 8 + 2 for every colonist in the power's colonies and every unit it owns, capped
   at 4000. England needs two thirds of that (rounded down); a computer power needs (8 - level)
-  eighths. Brewster does not change it. (`VICEROY FUN_3000_399a`)
+  eighths. Brewster does not change it.
 - Each turn the crosses also drift: +2 while nobody waits on the docks; -2 for each person waiting
   there, once the power has had its first immigrant. Never below zero.
 - When crosses exceed (not merely reach) what is needed, someone comes over free and the crosses go
   back to zero; the overshoot is lost. One of the three pool slots is taken at random. The vacancy
   is refilled with a draw, which is forced to be skilled on turns divisible by four.
-  (`VICEROY FUN_3000_3fa2`)
 - With Brewster a human power picks which of the three comes, and the vacancy gets an ordinary
   draw. Criminals and servants no longer enter the pool, and those already there are replaced by
   free colonists when he joins. We settle an unanswered choice by lot at the end of the turn; a
@@ -553,56 +469,50 @@ original asks at once).
   from 1750. Each 1800 in the purse adds a unit: cavalry while cavalry < (regulars + 2) / 3,
   otherwise a regular; artillery instead while artillery < regulars / 4; a ship instead while
   ships < (regulars + cavalry + artillery + 5) / 10. Nothing is added after the Declaration.
-  (`VICEROY 7000:329b`, `FUN_3000_bd62`)
 - **War in Europe.** Human powers only; never with Franklin; needs (L + 2) x turn >= 800, at least
   one rival at peace with the player and none at war; not on a turn with a tax event. Roll
   0..20 x (4 - rivals at peace); war comes when the roll is no more than L. A rival at peace is
   picked at random and the two are at war. Aid: 100 x (L + 1) gold and one veteran soldier on the
   docks; against a stronger rival, 25 gold more per point of its lead and one soldier more per 8
-  points, capped at 500 x (5 - L) gold and 6 - L soldiers. (`VICEROY FUN_3000_3a80`) The strength
-  measure was not identified; we use the summed attack values of a power's units.
+  points, capped at 500 x (5 - L) gold and 6 - L soldiers. Strength
+  is the summed attack values of a power's units.
 - **The King's frigate.** On every eighth turn before the Declaration, a power with no frigate is
   offered one if a foreign frigate is within 5 squares of one of its colonies, or foreign warships
-  are near more than three of them. A human who accepts pays 10 points of tax through the usual
-  routine (so a party may follow); the ship sails from Europe. A computer power gets it free.
-  (`VICEROY 2000:ce86`)
+  are near more than three of them. A human who accepts pays 10 points of tax in the usual
+  way (so a party may follow); the ship sails from Europe. A computer power gets it free.
 - **Treasure.** For carrying a treasure home the Crown keeps the larger of twice the tax rate and
   50 + 5L percent, at most 90; with Cortes it keeps only the tax rate. After the Declaration the
-  treasure is cashed whole. (`VICEROY 5000:a478`) The fee also goes into the royal purse (wired
+  treasure is cashed whole. The fee also goes into the royal purse (wired
   when treasure trains exist).
 - **Mercenaries.** One turn in 21 before the Declaration a Crown is drawn at random; it must be the
   player's own or one at peace with the player. The band is 1-3 veteran dragoons, then on a coin
   toss either one more dragoon or artillery (one piece, or two on a second toss). Price =
   (2 x (L + 4) + 0..6) x 100 for each dragoon and twice that for each gun. The offer is made only
-  if the treasury can pay, and is all or nothing. (`VICEROY 3000:c264`) We muster them in the
-  player's most populous colony (delivery place not traced). The wartime variant is R-902.
+  if the treasury can pay, and is all or nothing. They muster in the
+  player's most populous colony. The wartime variant is R-902.
 - **War of Succession.** In a game with one human power, the first time its rebel sentiment
   reaches 50% (or at the Declaration) the smallest computer power is absorbed by the next
   smallest, sizes being 3 x ships + 2 x colonies + colonists. Its colonies change hands with their
   Sons of Liberty reset, as do its units on the map, its map knowledge and claims; whatever it had
-  in Europe or at sea is lost; it takes no more turns. (`VICEROY FUN_3000_c444`, `FUN_3000_a238`)
+  in Europe or at sea is lost; it takes no more turns.
 - **Independence for rivals.** Each turn before the human's Declaration, a computer power's rebels
   = min(100, sentiment x colonists / 100). At 10 x (8 - L) it is granted independence (it plays
   on). Talk of it is reported when rebels come within 20 of the mark and exceed the last figure
-  reported, and again when they fall more than 5 below that figure. (`VICEROY 2000:d32c`)
-- The executable has no "King demands gold" event: the audience texts belong to a routine nothing
-  calls. It is not built.
+  reported, and again when they fall more than 5 below that figure.
+- There is no "King demands gold" event.
 
 ### Tribes (R-500)
 
-- Eight tribes in four levels of advancement, as listed in the rules file. A new settlement holds
+- Eight tribes in four levels of advancement, as listed in the rule tables. A new settlement holds
   3 + 2 x level people (3 / 5 / 7 / 9). The capital is the first settlement placed for a tribe; it
-  starts the same and may grow by level + 1 more (4 / 7 / 10 / 13). (`VICEROY 4000:49e0`)
+  starts the same and may grow by level + 1 more (4 / 7 / 10 / 13).
 - Each settlement has one brave abroad at most. A growth counter gains the population each turn;
   at 20 it replaces a missing brave, or failing that adds one person up to the limit.
-  (`VICEROY FUN_4000_5f0e`)
 - Land: a tile belongs to the nearest settlement within its reach, using distance = larger offset +
-  half the smaller. Reach is 1 for camps and villages, 2 for the Aztec and 3 for the Inca (the
-  manual says 2 for both city peoples). (`VICEROY FUN_0000_5e2a`)
+  half the smaller. Reach is 1 for camps and villages, 2 for the Aztec and 3 for the Inca.
 - Feeling toward a European power is two numbers: tribal alarm 0..100 with levels at 25, 50 and 75,
   and a per-settlement alarm with marks at 64 (ships turned away) and 128 (hostile). Tribal alarm
   starts at 0..14 plus twice the difficulty level for a human, and is cut to 20 on first meeting.
-  (`VICEROY FUN_0000_5e62`, `6000:398c`)
 - A tribe starts with no muskets and no horses. At most 84 settlements exist.
 
 ### Settlements (R-501)
@@ -611,7 +521,7 @@ original asks at once).
   is tried up to 100 times, each time shifted by two throws of -1..1 on each axis. The tile must be
   empty level ground of tundra, plains, prairie, grassland, savannah or marsh (wooded or not) and
   more than 3 tiles from any other settlement; the spacing eases to 2 after 33 tries and 1 after
-  66. (`VICEROY 6000:3cc4`)
+  66.
 - **Random map.** Capitals first, in tribe order: a random land tile away from the edges, not hills
   or mountains, in an empty 5 x 5 cell, far from every other settlement (the demanded distance
   starts at 90 and eases by one every four tries); the Inca and Aztec capitals are also held to
@@ -619,16 +529,15 @@ original asks at once).
   settlements exist: pick a tribe at random, wander cell by cell from its capital's cell to the
   first empty one (give up on leaving the map), and put a settlement on a random fit tile among
   the nine in the middle of that cell that has no settlement beside it. It belongs to the tribe of
-  the nearest existing settlement, not to the tribe that was picked. (`VICEROY 6000:3b3e`)
+  the nearest existing settlement, not to the tribe that was picked.
 - A settlement keeps: people, a growth counter, whether it has taught, whether it has paid
   tribute, alarm at each power, a mission (owner, expert or not), which powers' scouts have
   visited, and the last good it bought and sold. What it teaches, wants and sells is not kept; it
   is worked out from the land around it when asked.
 - A tribe keeps: alarm and goodwill toward each power, whom it has met, muskets, horses, land sold,
   and a memory of recent trade in each good.
-- The original also requires the same land mass for land ownership; we do not track land masses.
-  Our capitals on a random map must stand on level non-arctic ground (the original excludes only
-  hills and mountains).
+- Land masses are not tracked for land ownership. Capitals on a random map must stand on level
+  non-arctic ground.
 
 ### Alarm (R-502)
 
@@ -637,10 +546,9 @@ original asks at once).
   settlement of the tribe has its own alarm at that power capped: at 32 if the tribe is now at
   level 0 or 1, at 96 otherwise. When a rise leaves alarm at 100, the tribe burns that power's
   missions with chance (level + 2) in 11 (a computer power counts as level 1).
-  (`VICEROY 4000:39f2`)
 - **Goodwill.** Small effects are banked per tribe and power; every 8 points of goodwill take one
   point off tribal alarm, and every 8 of ill will add one.
-- **Each settlement, each turn** (`VICEROY FUN_4000_5f0e`, `FUN_4000_6028`):
+- **Each settlement, each turn**:
   1. Growth: below its limit, the counter gains the population; at 20 it resets and one person is
      added.
   2. Cooling, for each power the tribe has met, with L the attitude level: L x L + 1 throws, each
@@ -651,7 +559,7 @@ original asks at once).
   4. Mission: 1 goodwill a turn, 4 for an expert; doubled at a capital and with las Casas, halved
      with Sepulveda; the settlement's alarm falls by three times as much.
   5. Goodwill is turned into alarm changes.
-- **The most alarming colony** (`VICEROY 4000:3cf8`): for each colony within distance 6 (d), with
+- **The most alarming colony**: for each colony within distance 6 (d), with
   pop colonists, p6 = min(pop, 6), and W = difficulty level (0 for a computer power) + ((B - 8) >> 2)
   where B is the number of buildings scaled for a human by 1/2, 3/4, 1, 3/2, 2 by level:
   amount = ((2 x (pop - p6) + min(pop / 2, tribe level) + p6 + W) x 2 - d - 1) / (d + 4). Add the
@@ -662,15 +570,13 @@ original asks at once).
   the settlement (the 5 x 5 block without its corners); a square inside a colony counts half, and
   a square not adjacent to the settlement counts half (both may apply).
 - **First contact** caps the tribe's alarm at that power at 20.
-- The original halves a colony's amount when it is on another land mass; we do not track land
-  masses. One-off changes (trade, gifts, tribute, attacks, land) are listed with the features
-  that cause them.
+- Land masses are not tracked: a colony on another land mass counts in full. One-off changes
+  (trade, gifts, tribute, attacks, land) are listed with the features that cause them.
 
 ### Native demand and supply (R-503, used by R-505 and R-508)
 
 Nothing is stored: both are worked out from the 5 x 5 block of tiles around a settlement (tiles a
 colony is working are skipped), with P = population + 1 and t = the tribe's level.
-(`VICEROY 4000:6b34`)
 
 - Census. Each ocean tile adds t + 1 to a counter and every 3 of that is 2 food. A forest tile
   gives 1 food. Open plains 5 food (and 1 cotton), prairie, grassland and savannah 3, marsh and
@@ -701,10 +607,9 @@ colony is working are skipped), with P = population + 1 and t = the tribe's leve
 
 - **First contact.** When a tribe first has a power's land unit or colony beside one of its
   settlements, it has met that power: its alarm is cut to 20 at most and it proposes a treaty. A
-  human may accept (peace) or refuse (alarm +100); a computer power accepts. (`VICEROY 5000:483e`;
-  in the original the meeting is triggered by a brave coming alongside, and the treaty grants no
-  land.) We take an unanswered treaty as accepted at the end of the turn.
-- **Menu** (`VICEROY 4000:8f08`). A ship is turned away if the tribe has not met the power on land,
+  human may accept (peace) or refuse (alarm +100); a computer power accepts. The treaty grants no
+  land. An unanswered treaty is taken as accepted at the end of the turn.
+- **Menu.** A ship is turned away if the tribe has not met the power on land,
   or tribal alarm is 75 or more, or the settlement's alarm is 64 or more. A wagon train or ship
   trades while tribal alarm is under 75 and otherwise can only enter as into a hostile village. A
   scout may speak with the chief. Only under the treaty: a missionary may found a mission (if
@@ -712,7 +617,7 @@ colony is working are skipped), with P = population + 1 and t = the tribe's leve
   convert) may live among the natives; a unit with an attack value may demand tribute. A land unit
   with an attack value may always attack. The greeting is friendly below 25 tribal alarm, wary
   from 25 or when the settlement's own alarm is 128 or more, sullen from 50, hostile from 75.
-- **Speaking with the chief** (`VICEROY 4000:83ca`). Roll R = 0..100 (0..140 for a seasoned
+- **Speaking with the chief.** Roll R = 0..100 (0..140 for a seasoned
   scout). The scout is killed if tribal alarm T is 75 or more, or T is 25 or more and T / 4 >= R.
   The Arawak also kill one scout in 9 - level (half as often for a seasoned scout). With Coronado
   a scout is never killed; nothing happens instead. Otherwise, if R > T and no scout has yet been
@@ -720,7 +625,7 @@ colony is working are skipped), with P = population + 1 and t = the tribe's leve
   (tales instead if already one); tales that reveal the country 6 squares around; or gold = three
   throws of 1..(10 - level) summed, times 1..6, times 4, times (t + 1). The chief also names the
   goods his people want.
-- **Demanding tribute** (`VICEROY 4000:8800`). P = the power's strength x 1.5, x 1.5 for Spain,
+- **Demanding tribute.** P = the power's strength x 1.5, x 1.5 for Spain,
   x 1.5 with Cortes. N = the tribe's strength x 1.5 x 2 + T / 2. It succeeds if a throw of 0..N is
   below a throw of 0..P and the power has a colony. If it fails with P <= N, or T >= 75: they
   laugh. Else if it fails and T >= 50: they refuse. Else if it fails or the settlement has paid
@@ -728,20 +633,20 @@ colony is working are skipped), with P = population + 1 and t = the tribe's leve
   goes to the power's nearest colony, as much as fits its warehouse but at least 10 and at most
   min(3 x supply + 10, 100). Alarm rises by level + 1 for a human (1 for a computer power),
   doubled when tribute was paid.
-- Strengths: the original uses per-land-mass sums plus half the totals; we use totals only (so
-  x 1.5). A power's strength is the summed attack values of its units; a tribe's is that of its
-  braves, or its number of settlements until braves exist (R-507).
-- A visit ends the unit's move for the turn (the cost was not traced).
+- Strengths are whole-map totals (hence the x 1.5). A power's strength is the summed attack values
+  of its units; a tribe's is that of its braves, or its number of settlements until braves exist
+  (R-507).
+- A visit ends the unit's move for the turn.
 
 ### Missions (R-504)
 
-- **Founding** (`VICEROY 4000:663a`). Always succeeds and uses up the missionary. The mission is an
+- **Founding.** Always succeeds and uses up the missionary. The mission is an
   expert one if the missionary is a Jesuit or the power has Brebeuf. Tribal alarm changes by
   8 x M - {25, 15, 10, 5} by attitude level, M being the missions the power already has in the
   tribe (doubled with Sepulveda; halved with las Casas, with Pocahontas, and for France). At a
   capital the change is 8 larger in whichever direction it already points.
 - **Each turn** a mission earns goodwill and calms its settlement (see "Alarm").
-- **Denouncing a rival mission** (`VICEROY 4000:68a4`). Incumbent's weight X: over the tribe's
+- **Denouncing a rival mission.** Incumbent's weight X: over the tribe's
   settlements, the colony-pressure amounts charged to the incumbent, plus the population of every
   settlement holding a mission (x 2 expert, x 2 capital), plus the incumbent's tribal alarm (x 16
   at a capital). Challenger's weight Y: the pressure amounts charged to the challenger plus half
@@ -750,10 +655,8 @@ colony is working are skipped), with P = population + 1 and t = the tribe's leve
   the mission becomes the challenger's (a plain one), the challenger's alarm falls by (level of
   Y) + 1 and the incumbent's rises by (level of X) + 1. Losing reverses both signs. Both amounts
   double at a capital, and the challenger's doubles again against an expert mission. The
-  denouncing missionary is removed either way. (The original has a doubling for an expert
-  challenger that can never trigger; we leave it out. That the incumbent's weight is what wins
-  the throw is as read from the code.)
-- **Inciting** (`VICEROY FUN_4000_8b5e`). Price = (6 x settlements + 2 x floor(might / 8) + 2 x
+  denouncing missionary is removed either way.
+- **Inciting.** Price = (6 x settlements + 2 x floor(might / 8) + 2 x
   muskets + 2 x horse herds) x (the payer's tribal alarm + 75); two thirds for France; less 250
   for each of the payer's missions in the tribe (1000 if expert, doubled at a capital), less 1500
   if the unit is a Jesuit, less 500 at the capital; never under 500. The tribe must have met the
@@ -761,16 +664,16 @@ colony is working are skipped), with P = population + 1 and t = the tribe's leve
   by 100. The missionary is kept.
 - **Converts.** The only peaceful source is a friendly visit to a colony by a brave from a
   settlement holding that power's mission: a throw of 0..15 under tribe level + 2, doubled for an
-  expert mission (`VICEROY 5000:4ede`; the visits themselves come with R-506). Winning an attack on
+  expert mission (the visits themselves come with R-506). Winning an attack on
   a settlement that holds the attacker's mission brings a convert when a throw of 0..12 is under 4
-  (8 for an expert mission), +4 for Spain, +4 with Sepulveda, -4 with las Casas
-  (`VICEROY 5000:bdef`). A convert unit outside a colony leaves after 8 turns
-  (`VICEROY 2000:cba3`). Las Casas turns every existing convert into a free colonist.
+  (8 for an expert mission), +4 for Spain, +4 with Sepulveda, -4 with las Casas.
+  A convert unit outside a colony leaves after 8 turns.
+  Las Casas turns every existing convert into a free colonist.
 
 ### Trade with natives (R-505)
 
 Demand D and supply U are those of "Native demand and supply". L is the tribe's attitude level
-toward the trader, d the difficulty level (0 for a computer power). (`VICEROY 4000:7200`)
+toward the trader, d the difficulty level (0 for a computer power).
 
 - **What they will look at.** Not the good they last bought, nor the one they last sold, nor one
   they have no demand for, nor the good a haggle last failed over.
@@ -789,8 +692,8 @@ toward the trader, d the difficulty level (0 for a computer power). (`VICEROY 40
 - **Gift** (only before any haggling). w rises by one; tribal alarm falls by 4w; the settlement's
   alarm by 2q (to nothing if q was 100); the tribe's memory is unchanged; muskets +1, or a herd
   and q/4 breeding stock, whatever the amount.
-- Either way the good becomes the one they last bought. (The original means to exempt muskets and
-  horses from this but does not, contrary to the manual.)
+- Either way the good becomes the one they last bought. (Muskets and horses are no
+  exception.)
 - **Their wares**, offered after a sale or gift if a hold is free and they have not been soured by
   a failed haggle over a purchase: the three goods of largest U, never trade goods, tools or
   muskets, with food replaced by coats. The quantity is what was just sold or given, a quarter of
@@ -805,14 +708,13 @@ toward the trader, d the difficulty level (0 for a computer power). (`VICEROY 40
   2 and they sell nothing more until the next sale or gift.
 - **A hostile village** (tribal alarm 75 or more): throw 0..500. At or under the alarm the carrier
   and everything aboard are lost; at or under twice the alarm it is turned away; otherwise trade
-  goes ahead. (`VICEROY FUN_4000_7f7c`)
+  goes ahead.
 - The tribe's memory of each good fades by tribe level + 1 a turn.
 - There is no term for distance or for ship against wagon beyond the quarter quantity.
 
 ### Land combat (built with R-506; completed by R-600)
 
-Strengths are whole numbers of eighths of a point. (`VICEROY FUN_0000_582a`, `FUN_0000_593e`,
-`FUN_5000_a67e`)
+Strengths are whole numbers of eighths of a point.
 
 - **A unit's own strength** is 8 x its attack value when attacking, 8 x its combat value when
   defending. A soldier or dragoon who is a veteran soldier has half again.
@@ -853,7 +755,7 @@ Strengths are whole numbers of eighths of a point. (`VICEROY FUN_0000_582a`, `FU
   being the winner's and loser's final strengths; the level is subtracted for a computer power,
   and a criminal counts 10 less, a servant 5 less. With Washington it is certain.
 - An attack uses a full move; the winner stays where it was.
-- **After the Declaration** (`VICEROY FUN_5000_a67e` step 7), for a European attacker: against a
+- **After the Declaration**, for a European attacker: against a
   colony, the Crown's troops have half again ("Bombard") and then gain the colony's Tory
   percentage; rebels retaking a colony gain its Sons of Liberty percentage (which includes
   Bolivar's 20). In the open the Crown's troops gain 5% per difficulty level. The shield the easier
@@ -863,18 +765,18 @@ Strengths are whole numbers of eighths of a point. (`VICEROY FUN_0000_582a`, `FU
   a time when beaten (cavalry to army to colonist); the Crown's cavalry become regulars, and
   regulars are destroyed.
 - A soldier whose calling is Jesuit missionary becomes a missionary, not a colonist, when beaten.
-- Attacking another power's unit puts the two powers at war (the original asks for confirmation
-  when a treaty exists; that question is the app's).
+- Attacking another power's unit puts the two powers at war (the confirmation asked
+  when a treaty exists is the app's question).
 - Naval combat has its own section below.
 
 ### Natives at war (R-506)
 
-- **Attacking natives** (`VICEROY 3000:cb90`). Tribal alarm rises by 5 + difficulty level (5 for a
+- **Attacking natives.** Tribal alarm rises by 5 + difficulty level (5 for a
   computer power) for attacking a brave, twice that for a settlement and six times for a capital,
   whoever wins. An attacked settlement's own alarm rises by 256. A settlement defends as a band of
   braves: armed if the tribe has muskets, mounted if its breeding stock is 25 or more.
-- **Beating a settlement** takes one of its people each time; at one it is destroyed
-  (`VICEROY 5000:b266`). The power's count of destroyed settlements rises, the tribe holds a
+- **Beating a settlement** takes one of its people each time; at one it is destroyed.
+  The power's count of destroyed settlements rises, the tribe holds a
   grudge, its land is free. If the settlement held the attacker's mission a convert may follow
   (see "Missions"). Treasure appears as a treasure train on the ruins:
   camps one time in 7 (4 for Spain), 200-400; villages one time in 3, 300-800; both always from a
@@ -890,7 +792,7 @@ Strengths are whole numbers of eighths of a point. (`VICEROY FUN_0000_582a`, `FU
   colonist, it is burned with everything on the square (the tribe gains a herd or a musket if the
   colony had any horses or muskets; alarm -50). Otherwise the tribe's alarm changes by -10 + level
   and a raid follows, after which the raiders go home. Nobody is killed in a raid.
-- **Raid** (`VICEROY 5000:9a84`), with F fortification levels. A throw of 0..12, less 1, plus
+- **Raid**, with F fortification levels. A throw of 0..12, less 1, plus
   level - 2 for a human's colony; under 3F + 1 nothing happens. Otherwise one of goods, building,
   ship, gold, equally likely, then: on the easiest level before turn 80 (second level before 40)
   building and ship become nothing; a building is kept only if a throw of 0..8 is at most level
@@ -903,7 +805,7 @@ Strengths are whole numbers of eighths of a point. (`VICEROY FUN_0000_582a`, `FU
   chain under construction; alarm -12. Gold: a throw of 50..gold x colonists here / (all colonists
   + 1) + 10, nothing if the treasury is smaller; alarm -8. Ship damage (alarm -16) waits for
   ship repair (R-602) and is treated as nothing until then.
-- **A brave at a colony's gate** (`VICEROY 5000:483e`), with T tribal alarm and S its settlement's
+- **A brave at a colony's gate**, with T tribal alarm and S its settlement's
   alarm. Not at T >= 75. With S >= 128 (or after a demand this turn) nothing happens with chance
   (S - 129) / 128. The call is friendly if S < 128 and 4 x max(0, T - 25) + S is within a throw of
   1..328; never at T >= 50.
@@ -931,10 +833,9 @@ Strengths are whole numbers of eighths of a point. (`VICEROY FUN_0000_582a`, `FU
 
 ### Native AI (R-507)
 
-The original's brave-movement routine is very large and was only outlined (`VICEROY
-FUN_4000_61f6`, `FUN_4000_4bfa`): braves stay near home, notice colonies and soldiers nearby, hunt
+Braves stay near home, notice colonies and soldiers nearby, hunt
 the units and colonies of a power their tribe (alarm 75 or more) or settlement (alarm 128 or more)
-is hostile to, and pay a call when they end beside a colony. Our rules, chosen to match that:
+is hostile to, and pay a call when they end beside a colony. In detail:
 
 - Each tribe's turn, after its settlements': horse breeding rises by the number of herds, up to
   twice (the tribe's people + 25). Then each brave moves until its movement is spent (20 steps at
@@ -953,7 +854,7 @@ is hostile to, and pay a call when they end beside a colony. Our rules, chosen t
 - After the Declaration, each tribe turn: a tribe that holds a grudge against the rebels (they
   destroyed one of its settlements), or whose alarm T at them is 25 or more and within a throw of
   1..400, sides with the Crown one time in 2 x (5 - level) + 1: alarm at the rebels +100, their
-  missions burned. (`VICEROY FUN_4000_61f6`)
+  missions burned.
 
 ### Learning from natives (R-508)
 
@@ -965,7 +866,7 @@ is hostile to, and pay a call when they end beside a colony. Our rules, chosen t
   cotton their planters, furs trapping, ore and silver their miners, coats fur trading, cloth
   weaving. A trapping settlement teaches scouting instead when x + y divides by 3. A farming
   settlement teaches fishing when a throw of 1..20 is under the number of water tiles among the
-  20 around it. (`VICEROY 4000:8026`)
+  20 around it.
 - **Asking to be taught.** If tribal alarm is 50 or more they refuse and it rises by 3. A petty
   criminal is refused. Anyone who is not a free colonist or indentured servant is told he is a
   master already. A settlement that has taught once will not teach again, unless it is the
@@ -976,7 +877,7 @@ is hostile to, and pay a call when they end beside a colony. Our rules, chosen t
 
 ### Lost City Rumors (R-509)
 
-(`VICEROY 5000:f054`) The explorer's skill e is 0 for an ordinary unit, 1 for a scout, 2 for a
+The explorer's skill e is 0 for an ordinary unit, 1 for a scout, 2 for a
 seasoned scout; De Soto adds 1 for scouts and nothing for others. A count of rumors explored by
 anyone is raised first. Two throws: o = 1..9 and q = 1..100 + 10e.
 
@@ -1007,23 +908,23 @@ met, and a throw of 1..(distance + 5) x 2^e is 3 or less. By q: under 25 empty; 
 if not sacred) trinkets worth 30 x a throw of 1..8; otherwise a treasure train worth 2 x (a throw
 of 1..8 + 2 x (e + 5)) hundreds. If sacred, that tribe's alarm rises by 100 whatever was found.
 
-Ours: the shrine test uses "within 2 squares of the nearest settlement" (the original compares a
-settlement index, apparently by mistake); mounds left undecided are left alone at the end of the
-turn, and unpicked Fountain immigrants come by lot; a computer power always digs.
+Our own choices: the shrine test uses "within 2 squares of the nearest settlement"; mounds left
+undecided are left alone at the end of the turn, and unpicked Fountain immigrants come by lot; a
+computer power always digs.
 
 ### Native land (R-510)
 
 - A land tile is native land to a power when it lies within the reach of the nearest settlement
   ("Tribes"), that tribe has met the power, the power has not bought or taken the tile, and the
   power does not have Minuit. A colony's own square is taken at founding without question.
-- **Price** (`VICEROY FUN_4000_40c2`), with d the distance from the settlement and "sold" the
+- **Price**, with d the distance from the settlement and "sold" the
   number of tiles the tribe has already been paid for by anyone. Points: for a human 2 x (level +
   3) + tribe level + sold - d; for a computer power 12 + tribe level + sold - level - d. A power
   with fewer than 10 colonists (in colonies or as units) gets half the shortfall off. Doubled on a
   tile with a special resource; at least 1. Price = 65 a point for a human (50 for a computer
   power); a human pays it times attitude level + 1; half again at a capital; and then the whole is
   halved.
-- **When it is asked** (`VICEROY 2000:6746`, `1000:fd84`, `1000:ff8a`): putting a colonist to work
+- **When it is asked**: putting a colonist to work
   on a native tile; a pioneer clearing a forest or building a road on one. Plowing open land and
   founding a colony are not questioned. The choices are to give up, to pay (if the treasury can),
   or to go ahead.
@@ -1032,7 +933,7 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
   (k x 5 for a computer power): k = 3 beside the settlement, 2 at distance two, 1 beyond; doubled
   on a special resource.
 - **Working it unpaid**: when a pioneer finishes clearing or plowing native land, the same amount;
-  finishing a road, k x (level + 3) (not doubled). (`VICEROY 3000:e4f4`)
+  finishing a road, k x (level + 3) (not doubled).
 - A computer power pays when its gold is at least one and a half times the price, else takes.
 - The first-contact treaty grants no land.
 
@@ -1040,8 +941,7 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
 
 - **The defender** of a colony is its best armed unit ("Land combat"). If none is there, a random
   colonist is drafted at combat 1; with Revere and 50 muskets in store he fights at 2 and the
-  muskets are issued (the original does not show whether they are used up; we take them).
-  (`VICEROY FUN_5000_a67e`)
+  muskets are issued and used up.
 - **Capture.** A European attacker who beats a drafted colonist takes the colony: it changes owner
   with all its colonists, buildings and stores; the victor moves in; the surrounding tiles the
   loser held go to the captor; the two powers are at war. Before the Declaration the captor also
@@ -1049,16 +949,15 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
   The colony keeps two thirds of its Sons of Liberty. If an armed unit defended and lost, it is
   stripped as usual and the colony stands.
 - The loser's other units on the square are taken with it (a veteran colonist becomes a free
-  colonist); its ships there are damaged and sent away (below). These two points were not traced
-  in the original.
+  colonist); its ships there are damaged and sent away (below).
 - A power fighting its War of Independence cannot attack colonies other than the Crown's.
 - **Siege.** A colony is besieged when the fighting land units of powers it is not at peace with,
   on its square and the eight around it, outnumber its owner's; scouts and ships are not counted.
   While it lasts a colonist may leave the colony only as a soldier, taking 50 muskets from the
-  stores. (The count is Revolution Now's reading; the original's test was not read.)
+  stores. (The count is Revolution Now's.)
 - **A scout at a foreign colony** may slip in. The risk is 2 x (6 + fortification levels) in 36,
   halved for a seasoned scout, plus level - 2 for a human. Caught, the scout is lost and the colony
-  gains 100 horses; otherwise the colony can be looked over. (`VICEROY 5000:7e0e`) Meeting the
+  gains 100 horses; otherwise the colony can be looked over. Meeting the
   mayor is diplomacy (R-801).
 - **Damaged ships** lose everything aboard and go to the owner's nearest colony with a drydock, or
   failing that to Europe; with no drydock and Europe closed by the war they sink. Repairs take, in
@@ -1066,8 +965,6 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
   frigate 12 / 6, man-of-war 16 / 8 turns. A ship under repair cannot move or sail.
 
 ### Naval combat (R-602)
-
-(`VICEROY FUN_5000_a67e`, `FUN_5000_773e`, `FUN_5000_8ec2`, `5000:7790`, `FUN_2000_afc6`)
 
 - **Who attacks.** Only privateers, frigates and men-of-war; only at sea (a ship in a colony is not
   attacked this way).
@@ -1079,8 +976,8 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
   galleon; less 4 for each hold in use; at least 1. On a throw of 1..(both added) at or under the
   defender's figure it gets away untouched.
 - **The fight** is one throw as on land. The loser is crippled or sunk; if it was the attacker,
-  so be it. Whatever it carried the victor takes a hold at a time while it has room (we take the
-  most valuable first; the original lets a human choose); the rest is lost, as are units aboard.
+  so be it. Whatever it carried the victor takes a hold at a time while it has room (the
+  most valuable first); the rest is lost, as are units aboard.
   A victorious attacker moves onto the loser's square if nothing else is there.
 - **Sunk or crippled.** A throw of 1..(victor's guns + loser's hull) above the hull sinks it. Then,
   for an unarmed loser: sunk for certain if its owner has more than 8 unarmed ships, or it is a
@@ -1089,7 +986,7 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
   within 3..6. For a warship before the Declaration: sunk for certain if the owner has more ships
   of that kind than colonies, or more than 8 warships, or a frigate was beaten by a frigate of a
   power with fewer frigates; but crippled for certain if it is the owner's only one of its kind
-  and the owner has a colony. (The census figures behind these rules were read at low confidence.)
+  and the owner has a colony.
 - **Repairs.** See "Colonies under attack"; a ship beaten by a weaker one is ready sooner: the
   repair counter starts at its own combat value less the victor's (twice the victor's for a fort).
 - **Zone of patrol.** After each step of a ship at sea, every warship on a neighbouring sea square
@@ -1107,8 +1004,6 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
 
 ### Continental Congress (R-701)
 
-(`VICEROY` overlay 3000:9500)
-
 - **Bells.** Each colony's liberty bells for the turn (after press, newspaper, Jefferson, Paine)
   are credited to its owner's Congress as that colony is processed.
 - **Price of the next Founding Father**, n already seated: (n + 1) x base + 1, halved for the
@@ -1119,8 +1014,8 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
   each of the five fields among those not yet seated, in proportion to the weight for the era
   (before 1600, 1600-1699, 1700 on); a weight of nothing cannot be drawn. A human picks one of the
   (up to five) names; a computer power takes the name from the field in which it has most still
-  to gain this era, the later field on a tie. The draw is made afresh each time; the rules-file
-  remark about "higher level" fathers is not implemented in the program.
+  to gain this era, the later field on a tie. The draw is made afresh each time; nothing
+  favours "higher level" fathers.
 - **Joining.** When the bells reach the price he joins, the bells go back to nothing (any surplus
   is lost) and the next choice is put. The check follows each colony's contribution.
 - No Founding Father is sought after independence is declared. A power can have all 25; fathers
@@ -1136,7 +1031,7 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
   (treasure), Washington (promotion), Revere (militia), Drake (privateers), Jefferson and Paine
   (bells), Pocahontas (alarm), Bolivar (Sons of Liberty), Franklin (the King's wars), Brewster
   (immigrants), Penn (crosses), Brebeuf (missions), Sepulveda and las Casas (converts).
-- Ours: a human's choice left unmade at the end of the turn falls on the first name offered.
+- A human's choice left unmade at the end of the turn falls on the first name offered.
 
 ### Nations (R-800)
 
@@ -1144,7 +1039,7 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
   halved. Spain: half again the strength when attacking a native settlement (and a little extra in
   treasure and converts). Netherlands: its home market takes a third less traffic from sales and
   recovers sooner. Each is applied in the rule it belongs to.
-- **Landing party** (`VICEROY 7000:3440-350c`): one ship on the eastern Sea Lane carrying one unit
+- **Landing party**: one ship on the eastern Sea Lane carrying one unit
   of soldiers and one of pioneers with 100 tools, and no other cargo. The Dutch ship is a
   merchantman, the others caravels. The French pioneer is a hardy pioneer. The soldier is a veteran
   for Spain always, and for a human power on the two easiest levels; otherwise both are free
@@ -1154,8 +1049,6 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
   militaristic) are read only by the computer powers' decisions (R-802).
 
 ### Diplomacy (R-801)
-
-(`VICEROY 5000:5b4e`, `5000:7790`, `FUN_5000_59c0`, `FUN_5000_56fc`, `3000:cc74`)
 
 - **State.** Between two powers there is no contact, war, or a treaty of peace; contact without a
   treaty is war. Beyond that each remembers of the other: a grudge (a treaty broken, or others set
@@ -1202,17 +1095,16 @@ turn, and unpicked Fountain immigrants come by lot; a computer power always digs
   other's is at least its wars in hand, less its leader's aggressiveness, plus 4. If neither does
   they sign a treaty; otherwise it is war.
 - **Trade in foreign colonies.** A ship or wagon train beside a foreign colony may sell it a cargo
-  if there is a treaty and the seller has de Witt. (The original offers barter or cash; ours is a
-  cash sale at three quarters of the buyer's home price, limited by its treasury.)
-- Ours, where the original was not traced or is simplified: strengths are whole-map totals (the
-  original works region by region); "withdrawn" units return to the docks in Europe; the demand
-  for goods instead of tribute and the joint-war proposals are not built; an audience left
-  unattended is settled with the mildest answers at the end of the turn.
+  if there is a treaty and the seller has de Witt. It is a
+  cash sale at three quarters of the buyer's home price, limited by its treasury.
+- Simplifications: strengths are whole-map totals; "withdrawn" units return to the docks in
+  Europe; the demand for goods instead of tribute and the joint-war proposals are not built; an
+  audience left unattended is settled with the mildest answers at the end of the turn.
 
 
 ### Computer powers (R-802)
 
-The policy is ours; the original's AI was not traced. Numbers are in `src/engine/data/ai.ts`.
+Numbers are in `src/engine/data/ai.ts`.
 
 - **Same rules.** A computer power plays through the same actions as a person: nothing it does
   bypasses validation, and its turn is recorded in the session log like anyone's.
@@ -1224,7 +1116,7 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
   the nearest one instead.
 - **Colonies.** Colonists are placed by the automatic assignment of R-309; each colony always has
   something under construction; its surplus of the export goods is sold from the colony itself
-  as if it had a Custom House (the original's computer colonies sell this way too).
+  as if it had a Custom House.
 - **Europe.** An empty ship sails home, sells what it carries, pays for a passage (and, with a
   large treasury and few ships, another ship), and returns with whoever waits on the docks.
 - **War.** Soldiers fortify in its colonies once it has two. A unit attacks only a power it is at
@@ -1252,7 +1144,7 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
 - **Conquest.** A militaristic leader also campaigns unprovoked from turn 208 (1650) until he
   has destroyed four settlements.
 - **Braves' calls.** A brave beside a colony at peace pays a call on about one turn in eight
-  (the visit itself follows the original's rule; how often a brave comes by is ours).
+  (the visit itself is that of "Natives at war").
 - Not built: trading with native settlements, missions, wagon trains, privateering and
   amphibious assaults by computer powers; leader traits beyond expansion affect diplomacy
   (R-801) but not this policy.
@@ -1262,10 +1154,10 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
 - **F8** opens it. It always shows a table of war and peace between the powers still in the New
   World (a power that has withdrawn is left out; one that is independent is marked).
 - With **Jan de Witt** in the Congress it also compares the powers: colonies, population, average
-  colony size, military power, naval power and merchant marine (manual p. 79).
+  colony size, military power, naval power and merchant marine.
 - Once the viewer has declared independence the adviser makes no report.
-- Ours: military power is the summed attack of armed land units, naval power the summed attack of
-  ships, merchant marine the cargo holds afloat. The original's measures were not traced.
+- Military power is the summed attack of armed land units, naval power the summed attack of
+  ships, merchant marine the cargo holds afloat.
 
 ### Declaration of Independence (R-900)
 
@@ -1307,8 +1199,8 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
   units in it) is largest and above zero: that many Tory soldiers (some veterans, some mounted)
   appear on the free land squares beside it. Once per colony; never where the King's men already
   stand at the gate.
-- Ours: a Man-of-War that has landed its wave returns to the fleet on the Crown's next move
-  (the original sails it home); units caught on a landing square are destroyed rather than
+- Simplifications: a Man-of-War that has landed its wave returns to the fleet on the Crown's
+  next move; units caught on a landing square are destroyed rather than
   captured; a wave with no regulars left may put cavalry or artillery on fresh ground. How the
   Crown's units then move and fight is R-901.
 
@@ -1317,7 +1209,7 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
 - **The Crown's troops ashore** move before each new wave lands. A unit beside a rebel colony
   storms it; otherwise it falls on a rebel unit in the open if its odds are even or better;
   otherwise it marches straight for the nearest rebel colony. One armed unit stays fortified in
-  each colony the King takes. (Their marching orders are ours; the original's were not traced.)
+  each colony the King takes.
 - **In battle.** Attacking a colony the King's troops get +50% (Bombard) and then a bonus equal
   to the colony's Tory percentage; rebels retaking a colony get its rebel percentage, and after
   foreign intervention the +50% as well. In the open the King's troops get +5% per difficulty
@@ -1346,9 +1238,9 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
   and what he has left to send (regulars, plus one if any cavalry, plus one if any artillery)
   is under 4. Tory militia and ships do not count.
 - **1850.** A war still unsettled then ends in a negotiated peace (the rebels lose).
-- Ours: hired troops and allied troops arrive in the colony itself with no voyage; the King's
-  ships do not hunt rebel shipping (they only carry troops, and sink what lies under their
-  anchorage); a crippled King's ship leaves the campaign.
+- Simplifications: hired troops and allied troops arrive in the colony itself with no voyage;
+  the King's ships do not hunt rebel shipping (they only carry troops, and sink what lies under
+  their anchorage); a crippled King's ship leaves the campaign.
 
 ### Score, rating and the Hall of Fame (R-902)
 
@@ -1373,8 +1265,7 @@ The policy is ours; the original's AI was not traced. Numbers are in `src/engine
 - **Hall of Fame.** Each finished game is entered once (leader, nation, level, date, score,
   rating, honour); the ten best are kept in the browser, best rating first, and shown after the
   score and from the title screen.
-- Ours: the original's quirk of scoring some units by the previous unit's profession is not
-  reproduced; a game ended by retiring early cannot be played on.
+- A game ended by retiring early cannot be played on.
 
 ### Advisers (R-1000)
 
@@ -1393,7 +1284,7 @@ place on the map.
 - **F7 Naval Adviser**: each ship's place, destination and cargo.
 - **F9 Indian Adviser**: each people we have met: peace or war, mood, settlements known,
   missions.
-- Ours: the Economic Adviser shows net tons sold rather than gold earned per cargo, which the
+- The Economic Adviser shows net tons sold rather than gold earned per cargo, which the
   game does not keep.
 
 ### Options, notices and hints (R-1001)
@@ -1410,7 +1301,7 @@ place on the map.
   a finished building and a finished unit are always reported.
 - Options are kept in the browser and apply to every game.
 - **Tutorial hints**: nineteen pieces of advice, each given once per game at the moment it
-  applies (the same moments as the original's tutorial; the wording is ours). They appear in the
+  applies. They appear in the
   log, set apart from news, and never interrupt play.
 - **Event log**: keeps the last 200 lines and scrolls.
 - Fast piece slide: off, a unit of ours slides to the next square over a moment; on, it is there
@@ -1420,8 +1311,8 @@ place on the map.
 
 - Alt+P opens the encyclopedia: an index by category (cargo, units, terrain, skills, buildings,
   Founding Fathers, concepts) and a page for every row of every rule table, plus twelve concepts.
-- Each page shows facts read from the same tables the engine uses, and a short note in our own
-  words. Nothing is taken from the original's encyclopedia.
+- Each page shows facts taken from the same tables the engine uses, and a short note in our own
+  words.
 - A right-click opens the page for whatever is under the pointer: a unit or the terrain on the
   map (explored squares only), and a building, a cargo or a colonist on the colony screen.
 

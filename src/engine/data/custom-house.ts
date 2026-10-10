@@ -1,4 +1,4 @@
-// Custom House numbers (VICEROY FUN_2000_b258; see docs/RULES.md "Custom House").
+// Custom House numbers (docs/RULES.md "Custom House").
 export const CUSTOM_HOUSE = {
   building: 'customHouse',
   /** A flagged good is exported once this much is in store after the turn's production... */

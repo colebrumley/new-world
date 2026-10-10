@@ -1,5 +1,4 @@
-// Where native settlements are put when a world is made (VICEROY 6000:3b3e-40b2, 6000:3cc4;
-// docs/RULES.md "Settlements").
+// Where native settlements are put when a world is made (docs/RULES.md "Settlements").
 import type { OpenTerrain } from './terrain';
 
 /** Ground a settlement may stand on, wooded or not. Never hills, mountains, desert, swamp or ice. */

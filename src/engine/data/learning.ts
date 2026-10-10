@@ -1,4 +1,4 @@
-// Learning a trade from the natives (VICEROY 4000:8026; docs/RULES.md "Learning from natives").
+// Learning a trade from the natives (docs/RULES.md "Learning from natives").
 import type { GoodId } from './goods';
 import type { ProfessionId } from './professions';
 

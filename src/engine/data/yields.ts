@@ -1,5 +1,5 @@
-// Numbers used by the tile yield rule (docs/RULES.md "Tile yield"). All from the decompilation
-// unless noted; see docs/FIDELITY.md.
+// Numbers used by the tile yield rule (docs/RULES.md "Tile yield").
+// See docs/FIDELITY.md.
 import type { RawGood } from './terrain';
 
 export const DIFFICULTIES = ['discoverer', 'explorer', 'conquistador', 'governor', 'viceroy'] as const;

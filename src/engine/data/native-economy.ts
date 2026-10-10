@@ -1,5 +1,5 @@
-// What a native settlement makes and wants, from the land around it (VICEROY 4000:6b34;
-// docs/RULES.md "Native demand and supply"). Terrain names are our ids for the rules-file terrains.
+// What a native settlement makes and wants, from the land around it
+// (docs/RULES.md "Native demand and supply").
 import type { GoodId } from './goods';
 
 /** Food a settlement gathers from each kind of open ground in its 5 x 5 block. */
