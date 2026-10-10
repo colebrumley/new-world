@@ -187,8 +187,11 @@ export function completeConstruction(state: GameState, colonyId: ColonyId, event
     destination: null, aboard: null, cargo: {}, tools: 0, workTurns: 0, route: null, repair: 0, treasure: 0, voyage: null,
   };
   events.push({ type: 'unitBuilt', colonyId, unitId: id, unitType: item.unit, tools: spent });
+  // a gun built in a computer power's colony earns it one in Europe as well
+  const credited = item.unit === 'artillery' && state.players.find((p) => p.id === colony.owner)?.kind === 'ai';
   return {
     ...state,
+    players: credited ? state.players.map((p) => (p.id === colony.owner ? { ...p, gunCredit: (p.gunCredit ?? 0) + 1 } : p)) : state.players,
     nextId: state.nextId + 1,
     units: { ...state.units, [id]: { ...shell, movesLeft: fullMoves(shell) } },
     colonies: { ...state.colonies, [colonyId]: { ...colony, goods, hammers: 0 } },

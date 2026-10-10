@@ -1,0 +1,76 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`upkeep rule table > matches the snapshot 1`] = `
+{
+  "clearExtra": 2,
+  "goodFarm": 3,
+  "horses": 2,
+  "horsesFromTurn": 40,
+  "horsesGold": 10,
+  "masterFrom": 6,
+  "masterOdds": 17,
+  "nativeCalm": 4,
+  "nativeGold": 2000,
+  "poorFarm": 2,
+  "restEvery": 7,
+  "schoolChains": [
+    {
+      "chain": "armory",
+      "input": "tools",
+      "levels": 1,
+      "master": "masterGunsmith",
+    },
+    {
+      "chain": "blacksmith",
+      "input": "ore",
+      "levels": 2,
+      "master": "masterBlacksmith",
+    },
+    {
+      "chain": "furTrader",
+      "input": "furs",
+      "levels": 2,
+      "master": "masterFurTrader",
+    },
+    {
+      "chain": "distiller",
+      "input": "sugar",
+      "levels": 2,
+      "master": "masterDistiller",
+    },
+    {
+      "chain": "tobacconist",
+      "input": "tobacco",
+      "levels": 2,
+      "master": "masterTobacconist",
+    },
+    {
+      "chain": "weaver",
+      "input": "cotton",
+      "levels": 2,
+      "master": "masterWeaver",
+    },
+  ],
+  "schoolFoodBelow": 10,
+  "schoolPupils": [
+    "expertFarmer",
+    "masterSugarPlanter",
+    "masterTobaccoPlanter",
+    "masterCottonPlanter",
+    "expertFurTrapper",
+    "expertLumberjack",
+  ],
+  "schoolWait": [
+    4,
+    8,
+    16,
+  ],
+  "sisterWithin": 7,
+  "taxMost": 75,
+  "tools": 20,
+  "toolsEvery": 10,
+  "trainTaxMost": 25,
+  "waitExtra": 2,
+  "waitMost": 127,
+}
+`;

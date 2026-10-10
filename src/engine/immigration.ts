@@ -4,7 +4,8 @@
 import { IMMIGRATION, SKILLED_IMMIGRANTS, SPAIN_FIRST_IMMIGRANT, STARTING_POOL, STARTING_POOL_PLAIN_FROM, UNSKILLED_IMMIGRANTS } from './data/immigration';
 import type { NationId } from './data/nations';
 import { PROFESSIONS, type ProfessionId } from './data/professions';
-import { PIONEER_TOOLS, type UnitTypeId } from './data/units';
+import { AI_RESERVE } from './data/ai';
+import { PIONEER_TOOLS, UNIT_TYPES, type UnitTypeId } from './data/units';
 import { DIFFICULTIES, type Difficulty } from './data/yields';
 import { checkEuropeOpen, docksOf, newDockUnit, type EuropeCheck } from './europe';
 import { createRng, type Rng } from './rng';
@@ -84,6 +85,17 @@ export function recruitPrice(state: GameState, playerId: PlayerId): number {
   const player = state.players.find((p) => p.id === playerId);
   if (!player) return 0;
   const n = Math.min(player.recruits, IMMIGRATION.paidRecruitsCap);
+  if (player.kind === 'ai') {
+    // a computer power's fare falls with the level instead of rising, and has no floor; with an
+    // armed man already on its docks it is raising dragoons, at a fare by half the level and,
+    // late in the game, a tenth off for each level
+    const armed = docksOf(state, playerId).some((u) => UNIT_TYPES[u.type].attack > 1);
+    const d = level(state.difficulty);
+    const start = IMMIGRATION.priceStep * (n + IMMIGRATION.priceOffset - (armed ? d >> 1 : d));
+    let fare = start - Math.trunc((start * player.crosses) / (crossesNeeded(state, playerId) + 1));
+    if (armed && state.turn >= AI_RESERVE.discountFrom) fare -= Math.trunc((d * fare) / 10);
+    return Math.max(0, fare);
+  }
   const start = IMMIGRATION.priceStep * (n + level(state.difficulty) + IMMIGRATION.priceOffset);
   const floor = Math.max(IMMIGRATION.priceFloor, Math.trunc(start / IMMIGRATION.priceFloorDivisor));
   const price = start - Math.trunc(((start - floor) * player.crosses) / (crossesNeeded(state, playerId) + 1));
@@ -126,6 +138,12 @@ export function bringImmigrant(state: GameState, playerId: PlayerId, slot: numbe
 }
 
 export function recruit(state: GameState, playerId: PlayerId, slot: number, events: ImmigrationEvent[]): GameState {
+  const player = state.players.find((p) => p.id === playerId);
+  if (player?.kind === 'ai') {
+    // a computer power's crosses run on, and its fares do not rise with each one it pays
+    const after = bringImmigrant(state, playerId, slot, recruitPrice(state, playerId), false, events, true);
+    return { ...after, players: after.players.map((p) => (p.id === playerId ? { ...p, recruits: player.recruits } : p)) };
+  }
   return bringImmigrant(state, playerId, slot, recruitPrice(state, playerId), false, events);
 }
 

@@ -809,15 +809,124 @@ Legend:
   per AI power per turn in Node.
   **Verify:** sim 4 powers x 350 turns on 5 seeds: no exceptions, each AI founds ≥3 colonies by
   turn 100, gold never negative, per-turn AI time within budget.
-  *Built:* `src/ai/european.ts` (policy in docs/RULES.md "Computer powers"). Not built: native
-  trade, missions and wagon trains by computer powers; of the leader traits only expansion steers
-  this policy (the others act through R-801). Its colonies sell surplus directly rather than by ship.
+  *Built:* `src/ai/european.ts` (policy in docs/RULES.md "Computer powers"). Native trade, missions,
+  wagon trains, warships and campaigns came with R-804 to R-807; of the leader traits only expansion
+  steers this policy (the others act through R-801). Its colonies sell what their warehouses
+  cannot hold where it lies, and with a Custom House a set list of goods; ships carry the rest.
+  Colony management (jobs dealt out each turn by scoring every bench against the best square,
+  the building list, lumber sent out) is in docs/RULES.md "Computer powers: the colony". No seat
+  in the Town Hall is kept by rule: a statesman is one of the jobs scored. Sites are rated and
+  reckoned as under "Computer powers: founding and joining". A power grows its first colony
+  before it founds more, so the sim asks that at least 3 of the 4 powers hold a colony by turn
+  100 and that there are 4 colonies between them, not 3 each.
 
 - [x] **R-803 Foreign Affairs report (F8)**
   Before de Witt: war/peace matrix only. After: colonies, population, average colony size,
   military power, naval power, merchant marine per power. Unavailable during the
   revolution.
   **Verify:** e2e snapshot.
+
+- [x] **R-804 Computer powers: wagon trains and native trade**
+  Write the rules up in `docs/RULES.md` "Computer powers" when built. A computer colony builds a wagon train when none serves it, the year is before
+  1600, natives live on its landmass and the nearest tribe's alarm toward the power is below 50;
+  each wagon serves one colony. At its colony an empty wagon loads one cargo, up to 100 of the best good:
+  never lumber, tools or muskets; only goods with 50 or more in stock whose price level in
+  Europe is below 4 (trade goods below 8), scored stock x (limit - price) + 5 x (1 - price) after
+  a random markdown of the price (one step with chance 1 in 4, repeated while the price is 2 or
+  more). Loaded, it goes to the nearest native settlement on its landmass (a capital counts at
+  half distance) and on entering trades one cargo picked at random at the village's first offer,
+  without haggling, then returns to its colony. A loaded wagon with no settlement on its landmass,
+  or an empty one with no colony there, is disbanded. A colony with a wagon wants trade goods
+  while it holds under 100 and their price level is 3 or less. Ships of computer powers never
+  trade with settlements. In the score, stock counts double once it
+  reaches the warehouse capacity (not for food). After the sale the village offers up to three
+  goods as to a human; the wagon buys the one with the highest price level in Europe at the first
+  price asked if the power has the gold, and unloads it at home. A wagon is not built while a
+  foreign unit the colony counts as a threat stands next to it. Numbers in `src/engine/data/ai.ts`.
+  **Verify:** unit tests: build choice (each condition), load choice on fixture colonies, target
+  choice, disbanding; sim: on 5 seeds some computer power sells to a settlement by wagon before
+  1600, and the R-802 sim still passes.
+  *Built:* `src/ai/wagons.ts`, `src/engine/wagons.ts`, `src/engine/regions.ts` (docs/RULES.md
+  "Computer powers: wagon trains"). A wagon's colony and its place in the
+  round are worked out from the state, not stored. A village never refuses a computer power's
+  cargo. Trade goods are not sent to the colony: it asks for them and a ship brings them
+  (docs/RULES.md "Computer powers: supplies by ship"). Only a colony of four or more thinks of
+  a wagon train, and its ships and Custom House carry off most of what a wagon would sell, so
+  the sim asks only that some seed in five sees a wagon sale.
+
+- [x] **R-805 Computer powers: missions**
+  A power with no missionary turns one spare colonist into a
+  missionary on a turn after 50 that is divisible by 7 (from turn 200 on, one time in four; a
+  skilled colonist one time in eight); one missionary per power at a time. The missionary goes to
+  the settlement on its landmass with the highest tribal alarm toward its own power x 8 /
+  (distance + 1), half again for a capital, skipping settlements that already hold its own
+  mission; with nowhere to go it becomes a colonist again. On entering: Establish Mission where
+  there is none, Denounce Heresy where a rival's stands, nothing at its own. Incite Indians
+  against the human player instead, when the tribe has met that player, its alarm toward them is below 75,
+  the power ranks below that player and has 1500 gold (2500 to make the journey to a settlement
+  holding its own mission): always where a mission already stands, four times in five elsewhere.
+  Also on entering a settlement: scouts speak with the chief; soldiers,
+  dragoons and artillery attack; computer powers never demand tribute. Rank is by gold / 100 +
+  2 x colonies + colonists + land military strength. Missionaries are made on the docks in Europe
+  from a waiting colonist, after soldiers, dragoons and pioneers have been fitted out. A free
+  colonist or servant of a computer power who enters a village lives among the natives when the
+  tribe's alarm is below 75.
+  **Verify:** unit tests per rule with forced RNG; sim: on 5 seeds a rival mission exists in some
+  settlement by turn 150 (so Denounce Heresy is reachable in play), and the R-802 sim still passes.
+  *Built:* `src/ai/missions.ts` (docs/RULES.md "Computer powers: missions"). A calm people still gets a mission; a missionary with nowhere to go turns colonist in
+  its nearest colony; colonists step into a friendly settlement they stand beside, and scouts
+  into one whose chief nobody's scout has spoken with. A missionary is made only of a colonist
+  waiting on the docks on the right turn, so the sim asks for a mission by turn 150 on at
+  least 3 of the 5 seeds, not all.
+
+- [x] **R-806 Computer powers: warships and privateers**
+  Each turn a power lists naval stations with a priority:
+  3 at every ship it can see of a power it is at war with, and at every foreign privateer it can
+  see whatever the treaty; 2 to 4 (by the colony's population) on the open-sea square two squares
+  off each port colony of a power it is not at firm peace with (firm peace = at peace with no
+  intent to break it; no contact yet does not count as peace); 5 at its own ports with a foreign
+  armed ship within 5 squares, 8 if that ship is a frigate. Privateers, frigates and men-of-war
+  go to the station with the lowest load x distance / (priority + 1) within range (about 11, 19,
+  34 and 47 squares at priority 2, 3, 4 and 5) and hold there. A ship attacks an adjacent enemy
+  ship at any odds; a peace treaty stops that unless the attacker or the target is a privateer;
+  ships never attack land or colonies; after the Declaration only the human's units are attacked.
+  Nothing sends a privateer after the shipping of a power at firm peace. A privateer carries cargo
+  only while the power's ports are blockaded by a frigate. [VERIFY: "load" is the power's land
+  units / 8 clamped to 3..99, plus 1 for each unit already sent that turn.]
+  **Verify:** unit tests: station list on fixture maps (each rule), station choice and range,
+  the peace exception for privateers; sim: on 5 seeds a computer privateer attacks a ship of a power
+  it is at peace with only when adjacent, and the R-802 sim still passes.
+  *Built:* `src/ai/navy.ts` (docs/RULES.md "Computer powers: warships and privateers").
+  "Load" is as the [VERIFY] above has it (FIDELITY.md). Ships and guns are bought in Europe by a
+  round of buying, with a per-turn subsidy (RULES.md "Computer powers: the
+  treasury and the fleet"). The sim checks that a privateer is only ever sent to a listed station or a home port.
+
+- [x] **R-807 Computer powers: campaigns by land and sea**
+  Replaces the R-802 "War", "Reprisal" and "Conquest" policy
+  where they differ. Targets come from the same priority list as R-806. Attack: any foreign colony
+  on a landmass where the power has a unit or colony, on 3 turns in 4, when the colony's population
+  + units exceeds 6 - turn / 50 (priority 3 at firm peace, 5 otherwise); native settlements whose
+  tribe's alarm is 75 or more (priority 4 or 2). Defend: own port colonies, priority = defender
+  shortfall + 2. Invade: a beach on the open sea within 3 squares of a colony of a European power
+  not at firm peace (never natives), when that power has more colonies than us on the landmass
+  and 8 or more colonists there and the colony passes the same size test; priority 3, +1 against
+  the human, +1 at war, -1 on a crowded landmass, doubled before turn 150. Troops in a quiet
+  region board any transport in port; a full ship carrying a military unit may take an Invade
+  request, sails to the beach and lands its troops on an adjacent free square. On land a unit
+  attacks Europeans only at war and natives only at alarm 75 or more where the power has a colony
+  on that landmass; it needs scaled odds of 12 (8 x attack / (defence + 1), a colony counting
+  x3 and a settlement x2); soldiers and dragoons assault a colony only when the friendly attack
+  strength next to it exceeds the garrison's, and a lone unit waits. Troops never attack from
+  aboard ship. Passengers count toward a ship being full.
+  **Verify:** unit tests: request list per rule on fixture maps, the invade trigger, the odds and
+  the assault test; sim: on 5 seeds some computer power lands troops beside a rival colony, no
+  unit attacks at scaled odds under 12, and the R-802 sim still passes.
+  *Built:* `src/ai/campaign.ts` (docs/RULES.md "Computer powers: campaigns"). The R-802 rules for war, reprisal (by temperament) and unprovoked conquest are gone.
+  Defenders wanted per colony is the count in docs/RULES.md "Computer powers: arming and taking
+  in colonists". Not built: the cost weighting of the odds, the "settle beside a rival" landings and
+  the early exemption of unseen human colonies. Later additions: founding and joining
+  (`src/ai/settle.ts`), a colony arming its own people (`src/ai/muster.ts`), upkeep of a colony
+  (`src/engine/computer.ts`), supplies by ship (`src/ai/supply.ts`) and the docks in Europe.
 
 ---
 

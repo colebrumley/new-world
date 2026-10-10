@@ -1,0 +1,27 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`founding and joining rule table > matches the snapshot 1`] = `
+{
+  "coloniesInAll": 48,
+  "colonist": -2,
+  "convert": -20,
+  "distancePerStep": 5,
+  "dragoon": -3,
+  "emptyBonus": 2,
+  "newLandBonus": 4,
+  "newLandWilling": 2,
+  "peoplePerColony": 4,
+  "pioneer": 2,
+  "portLuck": 8,
+  "portSharedBonus": 20,
+  "portSizeFrom": 17,
+  "portWantsBonus": 25,
+  "sizeLeast": 7,
+  "sizePerBent": 3,
+  "skilled": -2,
+  "soldier": -2,
+  "squaresPerSite": 12,
+  "turnsShift": 4,
+  "wantedWhenFull": 8,
+}
+`;

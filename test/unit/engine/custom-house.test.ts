@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, validateAction, type Action, type GameEvent } from '../../../src/engine/actions';
 import { customHouseSales, isBlockaded, type CustomHouseEvent } from '../../../src/engine/custom-house';
-import { AI_PLAN } from '../../../src/engine/data/ai';
 import { CUSTOM_HOUSE } from '../../../src/engine/data/custom-house';
 import type { GoodId } from '../../../src/engine/data/goods';
 import { checkInvariants } from '../../../src/engine/invariants';
-import { bidPrice } from '../../../src/engine/market';
+import { bidPrice, priceLevel } from '../../../src/engine/market';
 import type { Colony, GameState, Goods } from '../../../src/engine/state';
 import { withColony, withUnit, world } from '../../helpers/world';
 
@@ -88,14 +87,43 @@ describe('sales', () => {
     expect(sell(idle).state).toBe(idle);
   });
 
-  it('a computer power sells its set list of surplus goods with no building and no flags', () => {
-    const ai = port({ furs: 120, food: 300, cloth: 100 }, [], { kind: 'ai', house: false });
+  it('a computer power\'s colony sells what it has no room for, where it lies, at the price level and untaxed; with a Custom House it exports its set list too', () => {
+    const ai = port({ furs: 120, food: 300, cloth: 100, lumber: 130 }, [], { kind: 'ai', house: false });
     const sold = sell(ai);
-    for (const good of AI_PLAN.colonyExports) expect(stock(sold.state, good)).toBeLessThanOrEqual(Math.max(CUSTOM_HOUSE.keep, stock(ai, good) < CUSTOM_HOUSE.sellAt ? stock(ai, good) : 0));
-    expect(stock(sold.state, 'furs')).toBe(CUSTOM_HOUSE.keep);
-    expect(stock(sold.state, 'food')).toBe(300); // never its food
-    expect(gold(sold.state)).toBeGreaterThan(0);
+    // furs and lumber down to the warehouse's hundred; cloth is not over; never its food
+    expect(stock(sold.state, 'furs')).toBe(100);
+    expect(stock(sold.state, 'lumber')).toBe(100);
+    expect(stock(sold.state, 'cloth')).toBe(100);
+    expect(stock(sold.state, 'food')).toBe(300);
+    expect(sold.events).toEqual([
+      { type: 'customHouseSold', colonyId: 'col', player: 'a', good: 'furs', amount: 20, gross: 20 * priceLevel(ai, 'a', 'furs'), tax: 0, net: 20 * priceLevel(ai, 'a', 'furs') },
+      { type: 'customHouseSold', colonyId: 'col', player: 'a', good: 'lumber', amount: 30, gross: 30 * priceLevel(ai, 'a', 'lumber'), tax: 0, net: 30 * priceLevel(ai, 'a', 'lumber') },
+    ]);
+    expect(gold(sold.state)).toBe(20 * priceLevel(ai, 'a', 'furs') + 30 * priceLevel(ai, 'a', 'lumber'));
+    // a human's colony without a Custom House sells nothing
     expect(sell(port({ furs: 120 }, [], { kind: 'human', house: false })).state.players[0]?.gold).toBe(0);
+    // with the building, the list goes down to the usual fifty
+    const housed = sell(port({ furs: 120 }, [], { kind: 'ai' }));
+    expect(stock(housed.state, 'furs')).toBe(CUSTOM_HOUSE.keep);
+    // it sells every good but food, lumber, horses, tools and muskets, whatever flags are set; ore only while it works none of it
+    const all = sell(port({ food: 150, lumber: 100, horses: 100, tools: 100, muskets: 100, sugar: 100, tradeGoods: 100, ore: 100 }, [], { kind: 'ai' }));
+    expect(['food', 'lumber', 'horses', 'tools', 'muskets', 'sugar', 'tradeGoods', 'ore'].map((g) => stock(all.state, g as GoodId))).toEqual([150, 100, 100, 100, 100, 50, 50, 50]);
+    const smithy = port({ ore: 100 }, [], { kind: 'ai' });
+    const armed = { ...smithy, colonies: { col: { ...smithy.colonies['col']!, buildings: [...smithy.colonies['col']!.buildings, 'armory'] } } };
+    expect(stock(sell(armed).state, 'ore')).toBe(100);
+  });
+
+  it('muskets beyond its room go to the power\'s reserve in Europe by the fifty, and horses singly', () => {
+    const { state, events } = sell(port({ muskets: 230, horses: 107 }, [], { kind: 'ai', house: false }));
+    expect(stock(state, 'muskets')).toBe(100);
+    expect(stock(state, 'horses')).toBe(100);
+    expect(state.players[0]?.reserve).toEqual({ muskets: 2, horses: 7 });
+    expect(events.filter((e) => e.type === 'reserveStocked')).toEqual([
+      { type: 'reserveStocked', colonyId: 'col', player: 'a', good: 'horses', amount: 7 },
+      { type: 'reserveStocked', colonyId: 'col', player: 'a', good: 'muskets', amount: 100 },
+    ]);
+    // the odd thirty muskets are sold
+    expect(events.filter((e) => e.type === 'customHouseSold')).toMatchObject([{ good: 'muskets', amount: 30 }]);
   });
 
   it('ignores boycotts', () => {
@@ -136,6 +164,7 @@ describe('blockade', () => {
 
   it('does not trouble a computer power', () => {
     const s = ship(port({ furs: 200 }, ['furs'], { kind: 'ai' }), 'frigate', 'b', 4, 1);
-    expect(sell(s).events).toHaveLength(1);
+    expect(sell(s).events.length).toBeGreaterThan(0);
   });
 });
+

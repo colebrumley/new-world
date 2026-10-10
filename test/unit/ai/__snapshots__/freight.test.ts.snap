@@ -1,0 +1,27 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`freight rule table > matches the snapshot 1`] = `
+{
+  "customHouseKeeps": [
+    "food",
+    "lumber",
+    "horses",
+    "tools",
+    "muskets",
+  ],
+  "frigateHolds": 3,
+  "fullTimes": 2,
+  "homeEvery": 32,
+  "horsesMargin": 25,
+  "madeKept": 100,
+  "neverLoaded": [
+    "lumber",
+    "food",
+    "tradeGoods",
+  ],
+  "pioneerValue": 800,
+  "readyFrom": 75,
+  "transportsEnough": 4,
+  "troopValue": 1500,
+}
+`;

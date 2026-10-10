@@ -37,7 +37,7 @@ turns out to be; `land.ts` is the price of native land and buying or taking it. 
 Founding Father does on joining. `diplomacy.ts` is relations between the powers:
 meeting, audiences (`state.audience`), acts of war, and trade in foreign colonies. `royal.ts` is the Crown: the Expeditionary Force, wars in Europe, the frigate and
 mercenary offers, the War of Succession. `custom-house.ts` is the export list and the sales a
-Custom House makes during the colony turn. `trade-routes.ts` defines and runs trade routes. `education.ts` is schooling, `liberty.ts` the Sons of
+Custom House makes during the colony turn (for a computer power's colony, its overflow and the set list it sells without flags). `regions.ts` numbers the landmasses; `wagons.ts` says which colony each wagon train serves. `computer.ts` is what a computer power's colonies get by themselves each turn (tools and horses bought, the best square of its ground improved, a road laid toward a sister colony, carpenters promoted, colonists schooled or trained; `AI_UPKEEP`), and where a power makes up its mind to fight a native people (`AI_NATIVE_WAR`). It also counts the defenders a colony wants, and keeps the power's reserve of arms in Europe (`AI_RESERVE`), which the dock and market code draw on for computer powers. `fleet.ts` is a computer power's treasury and fleet: what it has afloat, what it wants, and the gold it is given each turn. `trade-routes.ts` defines and runs trade routes. `education.ts` is schooling, `liberty.ts` the Sons of
 Liberty, `placement.ts` automatic job choice. `voyage.ts` is the Atlantic crossing and `pioneer.ts` clearing, plowing and road building. `colony.ts` founds, joins and abandons colonies; `jobs.ts` decides who may work which square or
 building and what they would make; `economy.ts` is a colony's turn (production, conversion,
 storage) and `construction.ts` what it may build, buying, and completion. `cargo.ts` is holds, goods transfer and colonist equipment. `explore.ts` is fog and sight, `tile.ts` and `yields.ts` the tile model and production,
@@ -55,7 +55,16 @@ purity rules as the engine.
 `random.ts` is the random player the simulations use. `european.ts` plays a colonial power (R-802):
 `europeanAction(state)` returns the next action for the power to move and `playTurn(state)` runs
 a whole turn, returning the actions it took so the app can log them. Its numbers are `AI_PLAN` in
-`src/engine/data/ai.ts`.
+`src/engine/data/ai.ts`. `wagons.ts` is its wagon trains and their trade with the native peoples (R-804): when a colony
+builds one, what it loads, where it goes, and the answers given in the trade talks (`AI_WAGONS`).
+`missions.ts` is its missionaries (R-805) and what each kind of unit does on entering a settlement (`AI_MISSIONS`).
+`navy.ts` is its warships and privateers (R-806): the stations it wants kept, which ship takes which, and when a ship attacks (`AI_NAVY`).
+`colony.ts` runs its colonies: the job plan dealt out every turn, with the scoring of squares and benches that places everyone not an expert (`AI_JOBS`), and the list a colony builds from (`AI_COLONY`).
+`campaign.ts` is its wars on land (R-807): what it wants attacked and defended, landings beside rival colonies, which troops go where, and when a troop attacks (`AI_CAMPAIGN`); also the threat to a colony and the defenders it wants.
+`settle.ts` decides whether a colonist founds a colony or joins one, which colony, and which port a ship takes passengers to (`AI_SETTLE`); it also rates a square as a site and reckons what a settler makes of it (`AI_SITE`).
+`muster.ts` is a colony seeing to its own defence: the units it takes back in and the one colonist a turn it sends out armed (`AI_MUSTER`).
+`freight.ts` is what a ship loads in a colony, which port an empty one fetches from, and when she makes for Europe (`AI_FREIGHT`).
+`supply.ts` is what a colony asks to be sent and where a ship takes her cargo (`AI_SUPPLY`); the docks routine in `european.ts` does the buying (`AI_DOCKS`).
 
 ## `src/ui/`
 `pixel-art.ts` is all the map art as data: a 32-colour palette and functions that return

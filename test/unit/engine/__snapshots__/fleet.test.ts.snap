@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`fleet rule table > matches the snapshot 1`] = `
+{
+  "artilleryHoldsOver": 4,
+  "artilleryOdds": 4,
+  "besetRange": 5,
+  "caravelHoldsMost": 2,
+  "frigateLate": [
+    200,
+    2000,
+  ],
+  "frigateOdds": 2,
+  "frigateWarshipsBelow": 8,
+  "galleonOdds": 4,
+  "merchantmanHoldsBelow": 12,
+  "merchantmanOdds": 2,
+  "privateerLate": [
+    100,
+    1000,
+  ],
+  "privateerOdds": 4,
+  "privateerWarshipsBelow": 4,
+  "privateersAnswering": 2,
+  "subsidyBaseYear": 1500,
+  "subsidyDoubledFrom": 1700,
+  "subsidyFromTurn": 20,
+  "subsidyHalves": [
+    2,
+    2,
+    2,
+    3,
+    4,
+  ],
+  "subsidyTimes": 4,
+  "subsidyYears": 50,
+  "threatDivisor": 4,
+  "threatPerFrigate": 4,
+}
+`;

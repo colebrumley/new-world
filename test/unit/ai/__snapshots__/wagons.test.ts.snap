@@ -1,0 +1,24 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`wagon rule table > matches the snapshot 1`] = `
+{
+  "buildAlarmBelow": 50,
+  "buildBeforeYear": 1600,
+  "capitalNearer": 2,
+  "cargo": 100,
+  "fullStockTimes": 2,
+  "markdownFrom": 2,
+  "markdownOdds": 4,
+  "neverLoaded": [
+    "lumber",
+    "tools",
+    "muskets",
+  ],
+  "priceLimit": 4,
+  "pricePenalty": 5,
+  "stockLeast": 50,
+  "tradeGoodsBelow": 100,
+  "tradeGoodsLimit": 8,
+  "tradeGoodsPriceMost": 3,
+}
+`;

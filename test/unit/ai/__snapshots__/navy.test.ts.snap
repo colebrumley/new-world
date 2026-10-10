@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`naval rule table > matches the snapshot 1`] = `
+{
+  "attackMovesLeast": 3,
+  "blockadeBase": 2,
+  "blockadeDistance": 2,
+  "blockadeMost": 2,
+  "blockadePopulationAdd": 4,
+  "blockadePopulationShift": 3,
+  "carryPopulation": 6,
+  "carryPorts": 1,
+  "colonySight": 2,
+  "enemyShipPriority": 3,
+  "homeFrigatePriority": 8,
+  "homePriority": 5,
+  "homeRange": 5,
+  "loadDivisor": 8,
+  "loadLeast": 3,
+  "loadMost": 99,
+}
+`;

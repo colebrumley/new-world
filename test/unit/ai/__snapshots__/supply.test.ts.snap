@@ -1,0 +1,34 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`supply and docks rule tables > match the snapshots 1`] = `
+{
+  "askedBonus": 32,
+  "cargoEvery": 3,
+  "goods": [
+    "muskets",
+    "tools",
+    "tradeGoods",
+    "horses",
+  ],
+  "holdsKept": 2,
+  "horses": 50,
+  "lot": 100,
+  "musketLotsBase": 2,
+  "muskets": 50,
+  "tools": 20,
+}
+`;
+
+exports[`supply and docks rule tables > match the snapshots 2`] = `
+{
+  "lateFrom": 100,
+  "lateOdds": 3,
+  "pioneerOdds": 3,
+  "pioneersMost": 2,
+  "recruitColoniesShift": 1,
+  "reservePerPerson": 30,
+  "reserveTimes": 2,
+  "skilledPioneerOdds": 5,
+  "soldierOdds": 2,
+}
+`;

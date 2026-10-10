@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`colony rule table > matches the snapshot 1`] = `
+{
+  "armoryAfterTurn": 80,
+  "armoryFrom": 6,
+  "armoryPrice": 4,
+  "armoryTools": 40,
+  "artilleryBelow": 3,
+  "carpenterFrom": 2,
+  "chainSecond": 3,
+  "chainStock": 100,
+  "chainThird": 8,
+  "customAnywayFrom": 12,
+  "customFrom": 6,
+  "customLead": 2,
+  "fortressFrom": 10,
+  "gift": 100,
+  "giftBelow": 2,
+  "giftEvery": 8,
+  "giftGold": 200,
+  "lumberjackBelow": 10,
+  "mediumBelow": 8,
+  "newspaperBells": 4,
+  "peoplePerWarehouse": 6,
+  "schoolFrom": [
+    4,
+    10,
+    16,
+  ],
+  "shortTimes": 16,
+  "smallBelow": 4,
+  "smithFrom": 4,
+  "smithOre": 40,
+  "smithPrice": 4,
+  "stableHorses": 2,
+  "yieldLeast": 5,
+  "yieldLeastShort": 3,
+}
+`;

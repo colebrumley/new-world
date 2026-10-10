@@ -9,6 +9,9 @@ import { ROYAL, type RefUnit } from './data/royal';
 import { UNIT_TYPES, type UnitTypeId } from './data/units';
 import { DIFFICULTIES } from './data/yields';
 import { newDockUnit } from './europe';
+import type { CustomHouseEvent } from './custom-house';
+import { computerColonies } from './computer';
+import { computerTreasury } from './fleet';
 import { rebelSentiment } from './liberty';
 import { fullMoves } from './movement';
 import { createRng } from './rng';
@@ -347,6 +350,8 @@ export function royalTurn(state: GameState, playerId: PlayerId, taxed: boolean, 
   if (!player || !active(player)) return state;
   let next = taxed ? state : kingsWar(state, playerId, events as RoyalEvent[]);
   next = frigateOffer(next, playerId, events);
+  next = computerTreasury(next, playerId, events as unknown as CustomHouseEvent[]);
+  next = computerColonies(next, playerId, events as unknown as Parameters<typeof computerColonies>[2]);
   next = mercenaryOffer(next, playerId, events as RoyalEvent[]);
   next = growRef(next, playerId, events as RoyalEvent[]);
   next = succession(next, playerId, events as RoyalEvent[]);

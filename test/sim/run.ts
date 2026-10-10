@@ -48,7 +48,10 @@ export function tally(goods: Record<GoodId, number>, events: readonly GameEvent[
     if (e.type === 'goodsSpoiled') for (const good of GOOD_IDS) goods[good] -= e.lost[good] ?? 0;
     if (e.type === 'partyHeld') goods[e.good] -= e.destroyed;
     if (e.type === 'goodsSold' || e.type === 'customHouseSold') goods[e.good] -= e.amount;
-    if (e.type === 'goodsBought') goods[e.good] += e.amount;
+    if (e.type === 'goodsBought' || e.type === 'colonySupplied') goods[e.good] += e.amount;
+    // a computer power's reserve in Europe is out of the world; a colonist it makes a pioneer is given tools for one job
+    if (e.type === 'reserveStocked') goods[e.good] -= e.amount;
+    if (e.type === 'unitEquipped' && e.role === 'pioneer' && state.players.find((p) => p.id === state.units[e.unitId]?.owner)?.kind === 'ai') goods.tools += PIONEER_TOOLS.min;
     if (e.type === 'tributeDemanded' && e.good) goods[e.good] += e.amount;
     if (e.type === 'nativeSale') goods[e.good] -= e.amount;
     // goods sold abroad stay in the world: they only change hands
