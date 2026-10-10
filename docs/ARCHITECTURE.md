@@ -68,6 +68,7 @@ builds one, what it loads, where it goes, and the answers given in the trade tal
 
 ## `src/ui/`
 `unit-art.ts`, `place-art.ts`, `floor-art.ts` and `feature-art.ts` are the detailed pictures of units, colonies and native settlements, the ground of each terrain, and the forests, hills and mountains that stand on it, on a 32-pixel grid, written by `scripts/bake-art.py` from the pictures kept in `art/` (our own, constraint C1); `pixel-art.ts` adds the owner's colour, the orders tab and the other marks, and `render.ts` and `tiles.ts` use them wherever a square is at least 32 pixels (from there up `view.ts` keeps a square a multiple of 32), falling back to the 16-pixel art below that.
+`chart.ts` and `chart-art.ts` are the explorer's chart the unexplored map is drawn as: `chart.ts` says where the compass roses, sea serpents and ships stand, from the map's seed and size alone (pure; one rose to a 24 x 24 region, the others one to an 8 x 8 cell at most), and `chart-art.ts` is the vellum floor and those pictures at 32, 16 and 8 pixels to the square, drawn by `scripts/draw-chart.py` into `art/chart/` and written out by `scripts/bake-art.py chart` in six inks of the map palette. `pixel-art.ts` turns them into sprites and adds the ink hatching along the edges of a vellum square that meet the known (an edge mask over the eight neighbours); `render.ts` draws a mark only while every square it covers is unexplored.
 `pixel-art.ts` is all the map art as data: a 32-colour palette and functions that return
 16 x 16 grids of palette indices for a tile, a unit, a colony, a settlement (nothing in it needs
 a canvas, so it is unit-tested as data). `tiles.ts` turns that art into small canvases, once
@@ -78,7 +79,7 @@ unit, the water shimmer and the slide of a moving piece are driven from the fram
 (`data-frames`); `?still` freezes them. See `docs/VISUAL_CHECKLIST.md`.
 Reads state, never changes it. `view.ts` is the camera math (four zoom levels, clamping, pan,
 pixel/tile conversion). `tiles.ts` paints each distinct tile look procedurally and caches it per
-pixel size. `render.ts` draws the visible tiles, fog and pieces; `minimap.ts` draws the New World
+pixel size. `render.ts` draws the visible tiles, the chart over what is unexplored, and the pieces; `minimap.ts` draws the New World
 view; `sidebar.ts` builds the information sidebar from a pure `sidebarModel`. `keymap.ts` is the keyboard table (it also generates `docs/KEYS.md`), `pointer.ts` says what a click, a drag from the active unit, a turn of the wheel or a pinch means on the map (pure), `command-bar.ts` is the sidebar's row of buttons, one per map command, each running what its key runs, `magnified.ts` is the notice shown while the page itself is magnified (a pinch), `unit-queue.ts` decides
 which unit asks for orders next, `dialog.ts` is the pop-up question, `europe-model.ts` turns the
 player's side of Europe into plain data and `europe-screen.ts` draws it (sea lanes, harbour, docks,

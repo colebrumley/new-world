@@ -1,6 +1,7 @@
 // Canvas 2D map drawing (R-105): only the tiles inside the view are drawn, each from the tile
-// cache, with fog for unexplored tiles and the visible pieces on top.
+// cache, unexplored tiles as the vellum of an explorer's chart (R-1011), and the visible pieces on top.
 import { holdsUsed } from '../engine/cargo';
+import { chartMarks, markShows } from './chart';
 import { COLONY_LIMITS } from '../engine/data/colony';
 import type { NationId } from '../engine/data/nations';
 import { UNIT_TYPES } from '../engine/data/units';
@@ -11,12 +12,15 @@ import { attitude, isHostile } from '../engine/alarm';
 import { TRIBES, type TribeId } from '../engine/data/tribes';
 import { tribeOfOwner } from '../engine/settlements';
 import { isExploredBy, isWater, type Tile } from '../engine/tile';
-import { activeFrameArt, colonyArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, PALETTE, pieceArt, settlementArt, type InkId, type Sprite } from './pixel-art';
-import { DETAIL_FROM, drawArt, lookOf, TILE_VARIANTS, type TileCache } from './tiles';
+import { activeFrameArt, colonyArt, chartMarkArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, PALETTE, pieceArt, settlementArt, VELLUM, vellumArt, type InkId, type Sprite } from './pixel-art';
+import { chartGrid, DETAIL_FROM, drawArt, lookOf, TILE_VARIANTS, type TileCache } from './tiles';
 import { orderLetter, topUnit } from './unit-queue';
 import type { View } from './view';
 
+/** What lies beyond the map's edge: the page's own dark. */
 export const VOID_COLOR: string = PALETTE[INK.void];
+/** Bare vellum: an unexplored square on the minimap. */
+export const VELLUM_COLOR: string = PALETTE[VELLUM];
 
 /** Ink for each nation's pieces: English red, French blue, Spanish yellow, Dutch orange. */
 const NATION_INK: Readonly<Record<NationId, InkId>> = { england: INK.red, france: INK.blue, spain: INK.yellow, netherlands: INK.orange };
@@ -99,7 +103,11 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, view: Vi
   renderPieces(ctx, state, view, cache, extras);
 }
 
-/** The ground: the void, and every explored square in view. It changes only with the map, the view and the water's phase. */
+/**
+ * The ground: the void beyond the map, every explored square in view, and the rest as an explorer's chart:
+ * vellum, hatched where it meets the known, with the chart's roses and creatures where all they cover is
+ * still unknown. It changes only with the map, the view and the water's phase.
+ */
 export function renderGround(ctx: CanvasRenderingContext2D, state: GameState, view: View, cache: TileCache, waterPhase = 0): void {
   const { map } = state;
   const t = view.tileSize;
@@ -115,10 +123,26 @@ export function renderGround(ctx: CanvasRenderingContext2D, state: GameState, vi
   const ox = Math.round(-view.originX * t);
   const oy = Math.round(-view.originY * t);
 
+  const grid = chartGrid(t);
+  /** Whether a square is on the map and not yet seen. */
+  const unknown = (x: number, y: number): boolean => {
+    const tile = tileOf(map, x, y);
+    return tile !== null && !view.revealAll && !isExploredBy(tile, viewer);
+  };
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
       const tile = map.tiles[y * map.width + x];
-      if (!tile || !(view.revealAll || isExploredBy(tile, viewer))) continue;
+      if (!tile) continue;
+      if (unknown(x, y)) {
+        // vellum, hatched along whichever of its edges and corners touch the known
+        let mask = 0;
+        N8.forEach(([dx, dy], i) => {
+          if (tileOf(map, x + dx, y + dy) && !unknown(x + dx, y + dy)) mask |= 1 << i;
+        });
+        const variant = grid === 8 ? 0 : (x * 7 + y * 13) % TILE_VARIANTS;
+        ctx.drawImage(cache.sprite(`vellum|${grid}|${variant}|${mask}`, () => vellumArt(grid, variant, mask)), ox + x * t, oy + y * t, t, t);
+        continue;
+      }
       const look = lookOf(
         tile,
         tile.river === 'none' ? 0 : riverMask(map, x, y),
@@ -128,6 +152,11 @@ export function renderGround(ctx: CanvasRenderingContext2D, state: GameState, vi
       );
       ctx.drawImage(cache.get(look, t), ox + x * t, oy + y * t, t, t);
     }
+  }
+  if (view.revealAll) return;
+  for (const mark of chartMarks(state.seed, map.width, map.height)) {
+    if (mark.x >= x1 || mark.y >= y1 || mark.x + mark.size <= x0 || mark.y + mark.size <= y0 || !markShows(mark, unknown)) continue;
+    ctx.drawImage(cache.sprite(`chart|${mark.kind}|${grid}`, () => chartMarkArt(mark.kind, grid)), ox + mark.x * t, oy + mark.y * t, mark.size * t, mark.size * t);
   }
 }
 

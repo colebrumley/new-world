@@ -1182,6 +1182,38 @@ they are started.
   own items lay them out. The sidebar is still 232px and fits a 640px window without a scroll.
   The title, map, a dialog and the sidebar as first themed are in `docs/theme/`.
 
+- [x] **R-1011 The unexplored map as an explorer's chart**
+  The look is an explorer's chart on a captain's table: unexplored sea and land is aged vellum
+  with ink hatching, compass roses and the odd sea serpent, and the known world is painted in on
+  top of it.
+  - Unexplored squares draw a vellum floor (16 px art, and 32 px detailed art where squares are
+    32 px or more, like the terrains) instead of the void colour; the window background outside
+    the map stays the page's.
+  - Where vellum meets an explored square, the vellum side carries light ink hatching along that
+    edge (an edge mask, as rivers and roads are overlaid), so the frontier reads as a drawn
+    coastline of the known.
+  - On open vellum, a 4x4-square compass rose and at least two chart decorations (sea creature,
+    ship in the margin) are placed deterministically from the map seed, never overlapping
+    explored squares, at most one rose per 24x24 region.
+  - The minimap's unexplored area uses the vellum colour.
+  - Checklist point 1 (palette only) and point 2 (pixel grid, no smoothing) still hold; a row in
+    `docs/VISUAL_CHECKLIST.md` for the chart.
+  - The vellum is baked palette art in parchment, sand, hill, earth, wood and ink; the source
+    pictures are our own (constraint C1) and are kept in `art/chart/`.
+  **Verify:** `npm test -- test/unit/ui/render.test.ts` and `pixel-art.test.ts`;
+  `npm run test:e2e -- visual` and `map`; `npm run check`.
+  *Built:* `scripts/draw-chart.py` draws the vellum, the rose, a sea serpent and a ship at 32, 16
+  and 8 pixels to the square into `art/chart/`, in the six inks alone; `scripts/bake-art.py chart`
+  writes them out as `src/ui/chart-art.ts` (no shrinking, no colours beyond the palette).
+  `src/ui/chart.ts` places the marks from the seed and the map's size, never from the terrain, so
+  the chart gives nothing away: one rose to a 24 x 24 region, kept 4 squares from its edge, and
+  a serpent (3 x 3) or ship (2 x 2) in one 8 x 8 cell in four, none against a rose. A mark is
+  drawn only while every square it covers is unknown, and goes whole when one is seen.
+  `vellumArt` in `pixel-art.ts` hatches the edges by a mask of the eight neighbours; the map's own
+  edge is not a coast. At the smallest zoom the vellum is bare and a frontier is one quiet line.
+  The minimap's view box is now lined in ink, since white alone is lost on vellum. The four
+  views as first drawn are in `docs/chart/`.
+
 ---
 
 ## Appendix A — Terrain

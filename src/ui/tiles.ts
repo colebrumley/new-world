@@ -3,7 +3,7 @@
 // art into a small canvas once and hands it out again, and draws it scaled without smoothing.
 import { terrainOf, type Tile } from '../engine/tile';
 import type { TerrainId } from '../engine/data/terrain';
-import { ART, DETAIL, detailedTileArt, GROUND, MINI, miniTileArt, PALETTE, tileArt, toRgba, type Sprite, type TileLook } from './pixel-art';
+import { ART, DETAIL, detailedTileArt, GROUND, MINI, miniTileArt, PALETTE, tileArt, toRgba, type ChartGrid, type Sprite, type TileLook } from './pixel-art';
 
 export type { TileLook } from './pixel-art';
 
@@ -21,6 +21,9 @@ export const DETAIL_FROM = 12;
 
 /** Which of the three sets of art a square of this many pixels is drawn from: simplified, the 16-pixel grid, or the detailed 32-pixel grid where it divides the square exactly. */
 const grade = (size: number): 's' | 'l' | 'd' => (size < DETAIL_FROM ? 's' : size % DETAIL === 0 ? 'd' : 'l');
+
+/** How many art pixels to the square the explorer's chart is drawn on, for a square of `size` pixels: the same three sets as the terrain. */
+export const chartGrid = (size: number): ChartGrid => (grade(size) === 's' ? 8 : grade(size) === 'd' ? DETAIL : ART);
 
 /** The art for a tile at a square of `size` pixels. */
 export function tileSprite(look: TileLook, size: number): Sprite {
