@@ -26,6 +26,7 @@ exports[`campaign rule table > matches the snapshot 1`] = `
   "oddsScale": 8,
   "quietTimes": 20,
   "restEvery": 4,
+  "settlePriority": 2,
   "settlementAlarmFrom": 75,
   "settlementPriority": 4,
   "settlementPriorityNoMission": 2,

@@ -13,6 +13,9 @@ import {
 } from './state';
 import { isWater, terrainDef, type Tile } from './tile';
 
+/** The eight ways to step, north first and round by east. */
+const HEADINGS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]] as const;
+
 export type MoveErrorCode =
   | 'badDirection'
   | 'offMap'
@@ -291,9 +294,12 @@ export function executeMove(state: GameState, unitId: UnitId, plan: MovePlan): M
   const carrier = UNIT_TYPES[unit.type].holds > 0;
   const docking = carrier && colonyAt(state, tx, ty) !== null;
   const spent = docking || (plan.kind === 'disembark' && !viaColony);
+  // (a computer power's scout remembers which way it went)
+  const tracked = unit.type === 'scout' && state.players.find((p) => p.id === unit.owner)?.kind === 'ai';
   const moved: Unit = {
     ...unit, x: tx, y: ty, aboard: null, movesLeft: spent ? 0 : Math.max(0, unit.movesLeft - plan.cost),
     orders: unit.orders === 'goto' || unit.orders === 'trade' ? unit.orders : 'none', workTurns: 0,
+    ...(tracked ? { heading: HEADINGS.findIndex(([hx, hy]) => hx === Math.sign(tx - unit.x) && hy === Math.sign(ty - unit.y)) } : {}),
   };
   const changed: Unit[] = [moved];
   // cargo rides along; arriving in a colony wakes the passengers

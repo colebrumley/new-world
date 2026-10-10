@@ -162,6 +162,16 @@ describe('what it does next', () => {
     expect(policy(setTile(s, 9, 5, { road: true }))).toEqual({ type: 'goTo', unitId: 'p', x: 6, y: 3 });
   });
 
+  it('a scout remembers which way it last stepped', () => {
+    let s = withColony(base('england'), { id: 'col', x: 6, y: 3, name: 'C', colonists: people(3), construction: { kind: 'building', id: 'stockade' } });
+    s = withUnit(s, { id: 'sc', type: 'scout', x: 9, y: 4 });
+    const east = applyAction(s, { type: 'moveUnit', unitId: 'sc', dx: 1, dy: 0 }).state;
+    expect(east.units['sc']?.heading).toBe(2);
+    // a person's scout is not tracked
+    const mine = applyAction({ ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, kind: 'human' as const } : p)) }, { type: 'moveUnit', unitId: 'sc', dx: 1, dy: 0 }).state;
+    expect(mine.units['sc']?.heading).toBeUndefined();
+  });
+
   it('a scout rides a step at a time: every step is to a land square beside it, and it never stands still while it can move', () => {
     let s = withColony(base('england'), { id: 'col', x: 6, y: 3, name: 'C', colonists: people(3), construction: { kind: 'building', id: 'stockade' } });
     s = withUnit(s, { id: 'sc', type: 'scout', x: 9, y: 4 });

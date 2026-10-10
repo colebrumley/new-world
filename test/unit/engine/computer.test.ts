@@ -187,4 +187,15 @@ describe('the upkeep of a computer power\'s colony', () => {
     expect(run(at(26)).state.players[0]?.tribeWars).toEqual(['sioux']);
     expect(run(at(25)).state.players[0]?.tribeWars).toBeUndefined();
   });
+
+  it('a ship lying in one of its ports with a foreign frigate within five squares counts the turns, and forgets them when the frigate is gone', () => {
+    const port = withUnit(town({ goods: { tools: 20 }, waited: 0 }), { id: 'ship', type: 'caravel', profession: null, x: 3, y: 3 });
+    const beset = withUnit(port, { id: 'foe', owner: 'b', type: 'frigate', profession: null, x: 0, y: 0 });
+    const once = run(beset).state;
+    expect(once.units['ship']?.blockaded).toBe(1);
+    expect(run(once).state.units['ship']?.blockaded).toBe(2);
+    const gone = { ...once, units: { ship: once.units['ship']! } };
+    expect(run(gone).state.units['ship']?.blockaded).toBe(0);
+    expect(run(port).state.units['ship']?.blockaded).toBeUndefined();
+  });
 });

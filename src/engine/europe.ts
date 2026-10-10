@@ -97,6 +97,10 @@ export function purchasePrice(state: GameState, owner: PlayerId, type: UnitTypeI
   const buyer = state.players.find((p) => p.id === owner);
   // a computer power is owed a gun in Europe for each one its colonies have built
   if (type === 'artillery' && buyer?.kind === 'ai' && (buyer.gunCredit ?? 0) > 0) return 0;
+  // the gun it buys for its largest ship while an armed man waits on the docks has a price of its own
+  if (type === 'artillery' && buyer?.kind === 'ai' && state.turn >= AI_RESERVE.artilleryFromTurn && docksOf(state, owner).some((u) => UNIT_TYPES[u.type].attack > 1 && u.type !== 'artillery')) {
+    return (AI_RESERVE.artilleryPriceBase - DIFFICULTIES.indexOf(state.difficulty)) * AI_RESERVE.artilleryPriceTimes;
+  }
   return type === 'artillery' ? base + ARTILLERY_PRICE_STEP * (buyer?.artilleryBought ?? 0) : base;
 }
 

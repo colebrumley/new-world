@@ -189,6 +189,10 @@ export interface InvadeRequest {
   readonly priority: number;
   readonly colonyId: string;
   readonly land: number;
+  /** A landing to settle, not to fight: beside a small rival colony, or a native settlement, on land where the power has no colony. */
+  readonly settle?: true;
+  /** The colony or settlement the landing is made beside. */
+  readonly beside?: readonly [number, number];
 }
 
 const openSea = (state: GameState, x: number, y: number): boolean => {
@@ -258,22 +262,42 @@ export function invadeRequests(state: GameState, player: Player): InvadeRequest[
 
 function workOutInvasions(state: GameState, player: Player): InvadeRequest[] {
   const out: InvadeRequest[] = [];
-  for (const c of Object.values(state.colonies)) {
-    if (invasionRefusal(state, player, c) !== null) continue;
-    const beach = invasionBeach(state, c, player.id) as readonly [number, number];
-    const land = landOf(state, c);
-    let priority: number = AI_CAMPAIGN.invadePriority;
+  const taken = new Set<number>();
+  const weigh = (c: Colony, land: number, base: number): number => {
+    let priority = base;
     const there = Object.values(state.colonies).filter((o) => isPower(state, o.owner) && landOf(state, o) === land);
     if (state.players.find((p) => p.id === c.owner)?.kind === 'human') {
       priority += AI_CAMPAIGN.invadeHumanBonus;
       // more still where the human has a landmass of some size all to himself
       if (there.every((o) => o.owner === c.owner)) priority += AI_CAMPAIGN.invadeAloneFrom.filter((size) => landmassSize(state, land) >= size).length;
     }
-    const european = there.length;
-    if (AI_CAMPAIGN.crowdedPer * european > landmassSize(state, land)) priority -= AI_CAMPAIGN.crowdedPenalty;
+    if (AI_CAMPAIGN.crowdedPer * there.length > landmassSize(state, land)) priority -= AI_CAMPAIGN.crowdedPenalty;
     if (player.stance[c.owner] === 'war') priority += AI_CAMPAIGN.invadeWarBonus;
-    if (state.turn < AI_CAMPAIGN.doubledBefore) priority *= 2;
-    out.push({ x: beach[0], y: beach[1], priority, colonyId: c.id, land });
+    return state.turn < AI_CAMPAIGN.doubledBefore ? priority * 2 : priority;
+  };
+  for (const c of Object.values(state.colonies)) {
+    const land = landOf(state, c);
+    const refusal = invasionRefusal(state, player, c);
+    if (refusal === null) {
+      const beach = invasionBeach(state, c, player.id) as readonly [number, number];
+      taken.add(land);
+      out.push({ x: beach[0], y: beach[1], priority: weigh(c, land, AI_CAMPAIGN.invadePriority), colonyId: c.id, land, beside: [c.x, c.y] });
+      continue;
+    }
+    // where it has no colony and the rival has few people there, it lands settlers beside him instead
+    if (refusal !== 'notOutnumbered' && refusal !== 'tooFew') continue;
+    if (strengthOn(state, player.id, land).colonies !== 0 || strengthOn(state, c.owner, land).people >= AI_CAMPAIGN.invadeColonistsFrom || !worthTaking(state, c)) continue;
+    const beach = invasionBeach(state, c, player.id);
+    if (!beach) continue;
+    taken.add(land);
+    out.push({ x: beach[0], y: beach[1], priority: weigh(c, land, AI_CAMPAIGN.settlePriority), colonyId: c.id, land, settle: true, beside: [c.x, c.y] });
+  }
+  // and beside a native settlement on land where it has no colony, and no landing is planned already
+  for (const v of Object.values(state.settlements)) {
+    const land = landOf(state, v);
+    if (taken.has(land) || strengthOn(state, player.id, land).colonies !== 0) continue;
+    const beach = invasionBeach(state, v, player.id);
+    if (beach) out.push({ x: beach[0], y: beach[1], priority: AI_CAMPAIGN.settlePriority, colonyId: '', land, settle: true, beside: [v.x, v.y] });
   }
   return out.map((r, i) => ({ r, i })).sort((a, b) => b.r.priority - a.r.priority || a.i - b.i).map((e) => e.r);
 }
@@ -283,12 +307,13 @@ export function isFull(state: GameState, ship: Unit, boarding = 0): boolean {
   return holdsUsed(state, ship) + boarding >= UNIT_TYPES[ship.type].holds;
 }
 
-/** The landing a full troop ship at (x, y) takes: as a warship takes its station. */
-export function invasionFor(state: GameState, player: Player, x: number, y: number): InvadeRequest | null {
+/** The landing a full ship at (x, y) takes, as a warship takes its station: any, with troops aboard; with pioneers only, one made to settle. */
+export function invasionFor(state: GameState, player: Player, x: number, y: number, troops = true): InvadeRequest | null {
   const base = baseLoad(state, player);
   let best: InvadeRequest | null = null;
   let least = 9999;
   for (const r of invadeRequests(state, player)) {
+    if (!troops && !r.settle) continue;
     const score = Math.trunc((base * far(r.x, r.y, x, y)) / (r.priority + 1));
     if (score < least && (3 * r.priority) >> 1 >= Math.trunc(score / base)) {
       least = score;
@@ -298,14 +323,14 @@ export function invasionFor(state: GameState, player: Player, x: number, y: numb
   return best;
 }
 
-/** Where a soldier aboard a ship lying off an invasion beach steps ashore: the free square of that landmass nearest the colony. */
+/** Where someone aboard a ship lying off a landing beach steps ashore: the free square of that landmass nearest what the landing is made beside. Troops at any landing; settlers at one made to settle. */
 export function landingStep(state: GameState, rider: Unit, ship: Unit, player: Player): Action | null {
-  if (!isTroop(rider) || rider.movesLeft <= 0) return null;
-  const request = invadeRequests(state, player).find((r) => r.x === ship.x && r.y === ship.y);
-  const colony = request ? state.colonies[request.colonyId] : undefined;
-  if (!request || !colony) return null;
+  if (rider.movesLeft <= 0) return null;
+  const request = invadeRequests(state, player).find((r) => r.x === ship.x && r.y === ship.y && (isTroop(rider) || (r.settle === true && UNIT_TYPES[rider.type].colonistRole && rider.type !== 'missionary')));
+  if (!request?.beside) return null;
+  const [tx, ty] = request.beside;
   const steps = DIRS.filter(([dx, dy]) => freeLanding(state, ship.x + dx, ship.y + dy, request.land))
-    .sort((a, b) => far(ship.x + a[0], ship.y + a[1], colony.x, colony.y) - far(ship.x + b[0], ship.y + b[1], colony.x, colony.y));
+    .sort((a, b) => far(ship.x + a[0], ship.y + a[1], tx, ty) - far(ship.x + b[0], ship.y + b[1], tx, ty));
   for (const [dx, dy] of steps) {
     const ashore: Action = { type: 'moveUnit', unitId: rider.id, dx, dy };
     if (ok(state, ashore)) return ashore;

@@ -127,4 +127,16 @@ describe('where an empty ship goes', () => {
     expect(bound(pair, true)).toBe(true);
     expect(bound(pair, false)).toBe(false);
   });
+
+  it('a small ship in a port beset by a foreign frigate lies there until she has waited ten turns less her holds', () => {
+    // furs in the warehouse that she would otherwise load
+    const beset = (waited: number): GameState => {
+      const s = ship(col(base(), 'home', 4, { furs: 100 }), 3, 4);
+      return { ...s, units: { ...s.units, ship: { ...u(s, 'ship'), blockaded: waited } } };
+    };
+    // a caravel has two holds: she waits while eight is more than the turns she has lain there
+    expect(policy(beset(7))).toEqual({ type: 'endTurn' });
+    expect(policy(beset(8))).toMatchObject({ type: 'loadCargo', good: 'furs' });
+    expect(policy(beset(0))).toMatchObject({ type: 'loadCargo', good: 'furs' });
+  });
 });

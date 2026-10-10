@@ -2,6 +2,8 @@
 
 exports[`freight rule table > matches the snapshot 1`] = `
 {
+  "blockadeRange": 5,
+  "blockadeWait": 10,
   "customHouseKeeps": [
     "food",
     "lumber",
