@@ -994,6 +994,11 @@ Legend:
   and sets `touch-action: pan-x pan-y`; over the map the wheel still zooms the map.
   A page magnified all the same (browsers restore it with the page, and keep some gestures to
   themselves) shows a notice naming the key that undoes it, Ctrl/Cmd+0 (`src/ui/magnified.ts`).
+  Later: the pointer's shape says what a click will do (`mapCursor`): an arrow the way the active
+  unit would step, a hand on a colony that would open or a unit that would be picked. A colony or
+  unit of ours beside the active unit is stepped onto by a click on the part of its square nearest
+  the unit (`STEP_RIM`, the touching corner for a diagonal); the rest of the square opens or picks
+  as before. This is how a unit is walked into its colony diagonally without a numeric keypad.
 
 ### Tuning items raised by R-1009
 

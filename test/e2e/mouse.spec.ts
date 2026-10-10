@@ -82,6 +82,25 @@ test('a colony is founded and the turn ended with the mouse alone', async ({ pag
   await expect(page.locator('.colony-screen')).toBeVisible();
   await page.locator('.colony-close').click();
 
+  // The pioneer is still aboard, beside the colony. Over the middle of the colony the pointer is a
+  // hand (a click opens it); over the edge nearest the ship it is an arrow, and a click there walks him in.
+  await expect(field(page, 'unit')).toHaveText('Pioneer');
+  await expect(field(page, 'location')).toHaveText(`(${ship.x}, ${ship.y})`);
+  const middle = await pixel(canvas, ship.x - 1, ship.y);
+  const edge = { x: middle.x + (await viewOf(canvas)).tileSize * 0.35, y: middle.y };
+  await canvas.hover({ position: middle });
+  await expect(canvas).toHaveCSS('cursor', 'pointer');
+  await canvas.hover({ position: edge });
+  await expect.poll(() => canvas.evaluate((c) => (c as HTMLCanvasElement).style.cursor)).toContain('w-resize');
+  await canvas.click({ position: edge });
+  await settled(page);
+  await expect(page.locator('.colony-screen')).toHaveCount(0);
+  // going ashore was his move for the turn: the ship comes up, and the colony shows him at its gates
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  await canvas.click({ position: middle });
+  await expect(page.locator('.colony-screen .outside-row .token-unit')).toHaveCount(1);
+  await page.locator('.colony-close').click();
+
   // A report and a menu from the bar.
   await command(page, 'reports').click();
   await dialog.getByRole('button', { name: 'Colony Adviser' }).click();
