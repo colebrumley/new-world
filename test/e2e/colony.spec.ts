@@ -291,6 +291,8 @@ test('the colony is drawn as a town plan: pictures of buildings with places to s
   // in a small town a picture is drawn three screen pixels to the art pixel
   expect((await colony.locator('.building[data-building="townHall"] canvas.building-art').boundingBox())?.width).toBe(96);
 
+  await page.screenshot({ path: 'test-results/colony-one-colonist.png' });
+
   // someone put to work in a building stands on its picture, as a figure with a name
   await colony.locator('.square .token').dragTo(colony.locator('.building[data-building="townHall"] canvas.building-art'));
   const worker = colony.locator('.building[data-building="townHall"] .building-plot .token-colonist');
@@ -337,7 +339,6 @@ test('the colony is drawn as a town plan: pictures of buildings with places to s
   expect(help.style).toBe('italic');
   expect(help.ink).toBeGreaterThan(body.ink); // faded
   expect(help.ink).toBeLessThan(120); // and still ink
-  await page.screenshot({ path: 'test-results/colony-one-colonist.png' });
 });
 
 test('a large colony: every chain shows the picture of the link it has reached, cargo is icons, and the flag is the owner\'s', async ({ page }) => {
@@ -381,11 +382,11 @@ test('a large colony: every chain shows the picture of the link it has reached, 
   await expect(colony.locator('.building canvas.building-art')).toHaveCount(top.length);
   for (const id of ['shipyard', 'fortress', 'university', 'textileMill', 'cathedral']) await expect(colony.locator(`.building[data-building="${id}"] canvas.building-art`)).toHaveCount(1);
   for (const id of ['docks', 'drydock', 'stockade']) await expect(colony.locator(`.building[data-building="${id}"]`)).toHaveCount(0);
-  const [shipyard, cathedral] = await Promise.all(['shipyard', 'cathedral'].map((id) => colony.locator(`.building[data-building="${id}"] canvas`).evaluate((c) => (c as HTMLCanvasElement).toDataURL())));
+  const [shipyard, cathedral] = await Promise.all(['shipyard', 'cathedral'].map((id) => colony.locator(`.building[data-building="${id}"] canvas.building-art`).evaluate((c) => (c as HTMLCanvasElement).toDataURL())));
   expect(shipyard).not.toBe(cathedral);
-  expect((await colony.locator('.building[data-building="shipyard"] canvas').evaluate(painted, DUTCH_ORANGE)).match).toBeGreaterThan(3);
+  expect((await colony.locator('.building[data-building="shipyard"] canvas.building-art').evaluate(painted, DUTCH_ORANGE)).match).toBeGreaterThan(3);
   // with this many buildings the pictures are drawn smaller so the plan fits
-  expect((await colony.locator('.building[data-building="shipyard"] canvas').boundingBox())?.width).toBe(64);
+  expect((await colony.locator('.building[data-building="shipyard"] canvas.building-art').boundingBox())?.width).toBe(64);
   // three weavers stand on the mill, and it has no place left
   const mill = colony.locator('.building[data-building="textileMill"]');
   await expect(mill.locator('.token-colonist canvas.token-figure')).toHaveCount(3);
@@ -409,11 +410,12 @@ test('a large colony: every chain shows the picture of the link it has reached, 
   }
   expect(await colony.evaluate((node) => node.scrollHeight - node.clientHeight)).toBeLessThanOrEqual(0);
 
+  await page.screenshot({ path: 'test-results/colony-large.png' });
+
   // a weaver is carried from the mill to the cathedral by a click on him and a click on its picture
   await mill.locator('.token-colonist').first().click();
   await colony.locator('.building[data-building="cathedral"] canvas.building-art').click();
   await expect(colony.locator('.building[data-building="cathedral"] .token-colonist')).toHaveCount(2);
   await expect(mill.locator('.slot-free')).toHaveCount(1);
-  await page.screenshot({ path: 'test-results/colony-large.png' });
   expect(errors).toEqual([]);
 });

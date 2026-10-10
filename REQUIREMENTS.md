@@ -1182,7 +1182,7 @@ they are started.
   own items lay them out. The sidebar is still 232px and fits a 640px window without a scroll.
   The title, map, a dialog and the sidebar as first themed are in `docs/theme/`.
 
-- [~] **R-1013 Colony screen art**
+- [x] **R-1013 Colony screen art**
   Depends on R-1010 (theme tokens and the Fell face in `src/ui/style.css`). Parchment panels over
   a dark wood frame: the colony screen (`src/ui/colony-screen.ts`, `colony-model.ts`, the
   `.colony-*` rules) becomes a town plan drawn in ink on parchment. Art comes from the sprite

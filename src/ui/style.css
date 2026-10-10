@@ -611,7 +611,7 @@ canvas.minimap {
   font-family: var(--font-display); font-weight: normal; font-size: 0.85rem; letter-spacing: var(--tracking-display); color: var(--ink-faded);
 }
 .colony-screen p { margin: 0; }
-.colony-settlement { grid-area: settlement; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px; align-content: start; }
+.colony-settlement { grid-area: settlement; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px 4px; align-content: start; }
 .colony-settlement h3, .colony-warehouse h3 { grid-column: 1 / -1; }
 .colony-area { grid-area: area; }
 /* the two lines of figures across the top, then those not working and those outside the gates side by side */
@@ -658,12 +658,12 @@ canvas.minimap {
 .hide-numbers .token-colonist .token-sub { display: none; }
 
 /* a building is its picture on a plot of the plan; the people who work in it stand along its foot, on the ground line */
-.building { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding: 2px 2px 3px; border-radius: 3px; text-align: center; }
+.building { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; padding: 1px 2px 2px; border-radius: 3px; text-align: center; }
 /* the buildings nobody works in are drawn after the workplaces, so a row of the plan is all of one height */
 .building:not([data-drop]) { order: 1; }
 .building-plot { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; border-bottom: var(--rule); }
 .building-art { display: block; }
-.building-slots { display: flex; justify-content: center; align-items: flex-start; gap: 2px; width: 100%; min-height: 0; margin-top: -18px; margin-bottom: 2px; }
+.building-slots { display: flex; justify-content: center; align-items: flex-start; gap: 2px; width: 100%; min-height: 0; margin-top: -26px; margin-bottom: 1px; }
 .building-slots:empty { display: none; }
 .building-slots .token { flex: 0 1 auto; padding: 0 1px 1px; background: none; border-color: transparent; }
 .building-slots .token-label, .building-slots .token-sub { font-size: 0.66rem; line-height: 1.05; letter-spacing: -0.02em; }
