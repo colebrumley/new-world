@@ -1,15 +1,38 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr edit:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(npm run review:*)",
+      "Bash(npm run tidy:*)",
+      "Bash(npm run board:*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
         "matcher": "startup|resume",
-        "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/board.mjs\"" }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/board.mjs\""
+          }
+        ]
       }
     ],
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/guard.mjs\"" }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/guard.mjs\""
+          }
+        ]
       }
     ]
   }
