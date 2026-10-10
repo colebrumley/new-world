@@ -14,9 +14,14 @@ export function createCustomizeScreen(onStart: (world: WorldOptions) => void, on
   const form = document.createElement('form');
   form.className = 'title-screen customize';
 
+  // the same sheet the title screen's menu is set on, in the same frame
+  const cartouche = document.createElement('div');
+  cartouche.className = 'cartouche';
+  form.append(cartouche);
+
   const heading = document.createElement('h1');
   heading.textContent = 'Customize New World';
-  form.append(heading);
+  cartouche.append(heading);
 
   for (const group of GROUPS) {
     const set = document.createElement('fieldset');
@@ -33,7 +38,7 @@ export function createCustomizeScreen(onStart: (world: WorldOptions) => void, on
       label.append(input, ` ${group.labels[i] ?? value}`);
       set.append(label);
     });
-    form.append(set);
+    cartouche.append(set);
   }
 
   const buttons = document.createElement('div');
@@ -46,7 +51,7 @@ export function createCustomizeScreen(onStart: (world: WorldOptions) => void, on
   cancel.textContent = 'Cancel';
   cancel.addEventListener('click', onCancel);
   buttons.append(start, cancel);
-  form.append(buttons);
+  cartouche.append(buttons);
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();

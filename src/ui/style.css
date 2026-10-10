@@ -139,7 +139,7 @@ select, input[type='text'] {
 }
 
 /* A sheet of parchment lying on the wood. */
-.title-screen, .dialog, .europe-panel, .event-log, .sidebar-info, .sidebar-status, .sidebar-features, .sidebar-cargo, .sidebar-aboard {
+.dialog, .europe-panel, .event-log, .sidebar-info, .sidebar-status, .sidebar-features, .sidebar-cargo, .sidebar-aboard {
   background: var(--sheet);
   border: var(--rule);
   box-shadow: var(--lift);
@@ -161,57 +161,6 @@ select, input[type='text'] {
   border-radius: 50%;
   background: radial-gradient(circle at 36% 30%, color-mix(in srgb, var(--nation) 55%, var(--parchment-light)), var(--nation) 50%, color-mix(in srgb, var(--nation) 62%, var(--ink)));
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--nation) 72%, var(--ink)), 0 1px 2px var(--shadow);
-}
-
-/* --- title ----------------------------------------------------------------------------------- */
-.title-screen {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  box-sizing: border-box;
-  max-width: calc(100% - 2rem);
-  max-height: calc(100% - 2rem);
-  overflow: auto;
-  padding: 2.25rem 3.25rem 1.75rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  /* a chart's neatline: a second rule inside the edge */
-  outline: var(--rule);
-  outline-offset: -7px;
-}
-
-.title-screen h1 {
-  margin: 0;
-  font-size: 3rem;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-}
-
-.title-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-width: 20rem;
-}
-
-.title-menu button {
-  font-size: 1.1rem;
-  padding: 0.6rem 1rem;
-  text-align: left;
-}
-
-.title-menu button:hover:not(:disabled),
-.title-menu button:focus-visible {
-  background: var(--plate-brass);
-}
-
-.title-notice {
-  min-height: 1.5em;
-  margin: 0;
-  color: var(--ink-amber);
 }
 
 /* --- the game: map, sidebar, command bar ------------------------------------------------------- */
@@ -354,25 +303,9 @@ canvas.minimap {
   list-style: none;
 }
 
-.customize {
-  gap: 0.8rem;
-}
 
-.customize fieldset {
-  min-width: 26rem;
-  border: var(--rule);
-  display: flex;
-  gap: 1.2rem;
-}
 
-.customize-buttons {
-  display: flex;
-  gap: 0.75rem;
-}
 
-.customize-buttons button {
-  padding: 0.5rem 1.5rem;
-}
 
 .game {
   position: relative;
@@ -548,9 +481,6 @@ canvas.minimap {
 .pedia-page th { text-align: left; font-weight: normal; color: var(--ink-faded); padding: 1px 14px 1px 0; vertical-align: top; }
 .pedia-page p { margin: 0 0 6px; max-width: 46rem; }
 
-.title-difficulty { margin-top: 10px; }
-.title-difficulty select { padding: 2px 6px; }
-.title-difficulty-note { margin: 4px 0 0; max-width: 30rem; font-size: 0.85rem; color: var(--ink-faded); text-align: center; }
 
 /* --- save and load --------------------------------------------------------------------------- */
 .save-dialog { max-width: 40rem; }
@@ -732,3 +662,217 @@ canvas.minimap {
 .colony-screen:is([data-holding='colonist'], [data-holding='unit']) :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row):hover,
 .colony-screen[data-holding='good'] .carrier:hover,
 .colony-screen[data-holding='cargo'] :is(.carrier, .colony-warehouse):hover { outline-style: solid; outline-width: 2px; background-color: var(--parchment-shade); }
+
+/* --- title screen: a frontispiece (R-1012) --------------------------------------------------- */
+/* The wood the painting hangs on is the table's, darkened, while the title screen or a screen reached from it is up. */
+body:has(#app > .title-screen) { background: linear-gradient(var(--veil), var(--veil)); }
+
+/* The painting (ui/frontispiece.ts): enlarged by a whole number (ui/title.ts) and never smoothed, centred on the wood. */
+.frontispiece {
+  display: none;
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  image-rendering: pixelated;
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+  /* a brass slip, then the moulding of the frame */
+  box-shadow: 0 0 0 2px var(--brass), 0 0 0 5px var(--wood-dark), 0 0 0 6px var(--brass-dark), 0 0 26px 8px var(--wood-dark);
+}
+body:has(#app > .title-screen) > .frontispiece { display: block; }
+.frontispiece[data-painted] { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .frontispiece { transition: none; }
+}
+
+.title-screen {
+  position: relative; /* above the painting */
+  z-index: 1;
+  box-sizing: border-box;
+  height: 100%;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 5px 12px var(--wood-dark));
+}
+
+/* The sheet the title and menu are set on: parchment with scooped corners and an ink rule inside its edge. */
+.cartouche {
+  --scoop: 13px;
+  position: relative;
+  box-sizing: border-box;
+  width: min(23rem, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 1.3rem 1.6rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--ink);
+  background: var(--sheet);
+  mask:
+    radial-gradient(circle var(--scoop) at 0 0, transparent 97%, var(--ink)) 0 0 / 51% 51% no-repeat,
+    radial-gradient(circle var(--scoop) at 100% 0, transparent 97%, var(--ink)) 100% 0 / 51% 51% no-repeat,
+    radial-gradient(circle var(--scoop) at 0 100%, transparent 97%, var(--ink)) 0 100% / 51% 51% no-repeat,
+    radial-gradient(circle var(--scoop) at 100% 100%, transparent 97%, var(--ink)) 100% 100% / 51% 51% no-repeat;
+}
+.cartouche::before {
+  --ring: calc(var(--scoop) + 1px);
+  --arc: transparent calc(var(--ring) - 1.5px), var(--ink) calc(var(--ring) - 1px) var(--ring), transparent calc(var(--ring) + 0.5px);
+  --corner: calc(var(--ring) + 1px) calc(var(--ring) + 1px) no-repeat;
+  content: '';
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  background: var(--ink);
+  /* only a line is kept: along each side, and round each scooped corner */
+  mask:
+    linear-gradient(var(--ink), var(--ink)) center top / calc(100% - 2 * var(--ring)) 1px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) center bottom / calc(100% - 2 * var(--ring)) 1px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) left center / 1px calc(100% - 2 * var(--ring)) no-repeat,
+    linear-gradient(var(--ink), var(--ink)) right center / 1px calc(100% - 2 * var(--ring)) no-repeat,
+    radial-gradient(circle at 0 0, var(--arc)) 0 0 / var(--corner),
+    radial-gradient(circle at 100% 0, var(--arc)) 100% 0 / var(--corner),
+    radial-gradient(circle at 0 100%, var(--arc)) 0 100% / var(--corner),
+    radial-gradient(circle at 100% 100%, var(--arc)) 100% 100% / var(--corner);
+}
+
+/* The title: large small capitals (the display face draws them) over a thick-and-thin rule. */
+.cartouche h1 {
+  align-self: stretch;
+  margin: 0;
+  font-size: 3.1rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-align: center;
+  white-space: nowrap;
+}
+.cartouche h1::after {
+  content: '';
+  display: block;
+  height: 3px;
+  margin-top: 0.6rem;
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+
+/* The menu: a list, each line ruled off from the next, a lozenge marking the one in hand. */
+.title-menu {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+.title-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.12rem;
+  padding: 0.42rem 0.5rem;
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted var(--ink-rule);
+  border-radius: 0;
+  box-shadow: none;
+  text-align: left;
+}
+.title-menu button:last-child { border-bottom: 0; }
+.title-menu button::before {
+  content: '';
+  flex: none;
+  box-sizing: border-box;
+  width: 0.5em;
+  height: 0.5em;
+  border: 1px solid currentColor;
+  transform: rotate(45deg);
+}
+.title-menu button:hover:not(:disabled),
+.title-menu button:focus-visible {
+  background: color-mix(in srgb, var(--brass) 32%, transparent);
+  box-shadow: none;
+}
+.title-menu button:hover:not(:disabled)::before,
+.title-menu button:focus-visible::before { background: currentColor; }
+.title-menu button:focus-visible { outline-offset: -2px; }
+/* a choice that cannot be made stays legible: faded ink, slanted, its lozenge dotted */
+.title-menu button:disabled {
+  opacity: 1;
+  color: var(--ink-faded);
+  font-style: italic;
+}
+.title-menu button:disabled::before { border-style: dotted; }
+
+.title-difficulty {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+}
+.title-difficulty select {
+  font-family: var(--font-body);
+  letter-spacing: 0;
+  padding: 2px 6px;
+  margin-left: 0.3rem;
+}
+.title-difficulty-note {
+  margin: 0;
+  min-height: 2.5em; /* two lines: the note comes with the game, and must not move the menu when it does */
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.25;
+  color: var(--ink-faded);
+  text-align: center;
+}
+.title-notice {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink-amber);
+  text-align: center;
+}
+.title-notice:empty { display: none; }
+
+/* Customize New World: the same frame, a wider sheet. */
+.customize .cartouche { width: min(31rem, 100%); }
+.customize .cartouche h1 { font-size: 2.1rem; }
+.customize fieldset {
+  align-self: stretch;
+  margin: 0;
+  padding: 0.3rem 0.8rem 0.5rem;
+  border: 0;
+  border-top: var(--rule);
+  display: flex;
+  gap: 1.2rem;
+}
+.customize legend { padding: 0 0.5rem 0 0; }
+.customize-buttons {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.2rem;
+}
+.customize-buttons button { padding: 0.35rem 1.4rem; }
+
+/* A report opened from the title (the Hall of Fame): a parchment sheet in the same frame, in place of the menu. */
+.title-screen:has(~ .report-screen) > .cartouche { visibility: hidden; }
+.title-screen ~ .report-screen {
+  margin: auto;
+  width: min(46rem, calc(100% - 2.5rem));
+  height: fit-content;
+  max-height: calc(100% - 2.5rem);
+  padding: 1.1rem 1.5rem 1rem;
+  background: var(--sheet);
+  border: var(--rule);
+  outline: var(--rule);
+  outline-offset: -6px;
+  box-shadow: 0 5px 14px var(--wood-dark);
+  font-size: 0.95rem;
+}
+.title-screen ~ .report-screen h2 {
+  font-size: 2rem;
+  text-align: center;
+  padding-bottom: 0.4rem;
+  border-bottom: 3px double var(--ink);
+}
+.title-screen ~ .report-screen .report-section { background: none; border: 0; padding: 0; }
+.title-screen ~ .report-screen .report-section h3 { display: none; } /* the sheet's own heading says it */
+.title-screen ~ .report-screen .report-section tr + tr > * { border-top: 1px dotted var(--ink-rule); }
+.title-screen ~ .report-screen .report-close { align-self: center; padding: 0.35rem 1.4rem; }

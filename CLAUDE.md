@@ -92,6 +92,15 @@ however small.
 - Never add a runtime dependency unless the requirement names it. Dev dependencies are fine if
   they serve a Verify line.
 - Never include or fetch anyone else's game assets or text (constraint C1). If a test needs art, draw it procedurally.
+- **Art for the game is generated with Codex, then run through pixelforge.** Do not draw a source picture
+  with a script. Ask Codex for it (`codex exec --skip-git-repo-check -s workspace-write -C <scratch dir>
+  -i <reference.png> "Use your image generation tool to make ... and save it here as name.png"`), giving
+  it pictures already in `art/` as style references, the subject as our own (never another game's or an
+  artist's look), flat colours with bold dark outlines, and, where the result must be in the map palette,
+  the hex colours of `PALETTE` to draw in. Put the PNG in its folder under `art/`, run
+  `scripts/shrink-art.py` on it, then `scripts/bake-art.py` (both with pixelforge's Python; see their
+  docstrings), and look at the baked result before committing. The prompt is sent to an outside service:
+  put nothing in it that is not already public in this repository.
 - Do not ask the user questions. Make the choice a careful engineer would make, write it in the
   commit body, and continue.
 
