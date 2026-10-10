@@ -6,7 +6,7 @@ One paragraph per top-level module. Keep this current when a module is added.
 Pure rules and state. Every function is `(state, ...args) => newState | result`. It may not import
 from `src/ui` or `src/app`, nor use the DOM, `fetch`, `Date.now`, or `Math.random` (constraint C3).
 ESLint enforces this (`eslint.config.js`, the `PURE_GLOBS` block) and
-`test/unit/boundaries.test.ts` asserts the rule exists and the tree passes it.
+`test/unit/boundaries.test.ts` asserts the rule exists and catches each offence; `npm run lint` holds the tree to it.
 
 ## `src/engine/data/`
 Static rule tables: terrain, goods, units, buildings,
@@ -91,6 +91,18 @@ actions. `storage.ts` is the localStorage autosave; `hall-of-fame.ts` keeps the 
 `test/unit` mirrors `src` paths (Vitest). `test/e2e` is Playwright (chromium). `test/sim` holds slow
 headless simulations gated behind `SIM=1`.
 
+Local runs are made to share a machine. Each Playwright run builds into
+`node_modules/.cache/new-world-e2e/<port>` and serves that on a port of its own
+(`playwright.config.ts`; `PW_PORT` overrides it), so runs in other checkouts or sessions never
+meet. Outside CI both runners use a few workers (`PW_WORKERS`, `VITEST_WORKERS`), and a Playwright
+run stops after three failures or five minutes. `npm run sweep` (`scripts/sweep-test-procs.mjs`)
+ends test workers, browsers and preview servers left behind by a run that was killed.
+
+Sessions work in worktrees under `.claude/worktrees/` and talk through the board
+(`scripts/board.mjs`, `npm run board`): one file per claimed requirement and a log of notes, kept
+in the repository's shared git directory so that every worktree sees the same board and none of
+it is committed. A claim whose worktree no longer exists is free to take.
+
 ## Balance
 `test/sim/balance.test.ts` (`SIM=1 npm test -- balance`) plays twenty full games between four
 computer powers and writes `docs/BALANCE.md`, comparing what happened with the target ranges of
@@ -101,7 +113,8 @@ REQUIREMENTS.md Appendix L. Metrics outside range become `[!]` tuning items in t
 passes 20 KB or all scripts together pass 400 KB, gzipped. `test/e2e/budget.spec.ts` holds the
 time budgets: title screen within 1.5 s on throttled Fast 3G (measured by the page's own
 `new-world:title` performance mark), and an end of turn with four powers and forty colonies
-within 500 ms (measured in the page around the dispatch).
+within 500 ms (measured in the page around the dispatch). The time budgets run in CI, or locally
+with `BUDGET=1 npm run test:e2e -- budget`; a busy machine cannot keep them.
 
 ## Deployment
 The build is static and every path in it is relative (`base: './'`), so `dist/` can be served

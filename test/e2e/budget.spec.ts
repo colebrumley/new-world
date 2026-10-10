@@ -11,6 +11,9 @@ import { withColony } from '../helpers/world';
 import { field } from './helpers';
 
 // Performance budgets (R-1007). The size budget is scripts/check-size.mjs, run by `npm run check`.
+// Time budgets measure the machine as much as the game, so they run where the machine is quiet:
+// in CI, or locally when asked for with BUDGET=1.
+test.skip(!process.env['CI'] && !process.env['BUDGET'], 'time budgets run in CI or with BUDGET=1');
 
 /** Chrome DevTools' "Fast 3G" preset. */
 const FAST_3G = { offline: false, latency: 562.5, downloadThroughput: (1.6 * 1024 * 1024 * 0.9) / 8, uploadThroughput: (750 * 1024 * 0.9) / 8 };
