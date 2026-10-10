@@ -35,8 +35,8 @@ describe('europeView', () => {
     const s = port();
     const v = europeView(s, 'a')!;
     expect(v).toMatchObject({ port: 'London', gold: 900, taxRate: 7 });
-    expect(v.expected).toEqual([{ id: 'in', label: 'Caravel', turns: 2 }]);
-    expect(v.outbound).toEqual([{ id: 'out', label: 'Galleon', turns: 1 }]);
+    expect(v.expected).toEqual([{ id: 'in', type: 'caravel', label: 'Caravel', turns: 2 }]);
+    expect(v.outbound).toEqual([{ id: 'out', type: 'galleon', label: 'Galleon', turns: 1 }]);
     expect(v.inPort).toHaveLength(1);
     expect(v.inPort[0]).toMatchObject({ id: 'ship', label: 'Merchantman', holds: 4, used: 3, passengers: [{ id: 'rider', label: 'Free Colonist' }] });
     expect(v.inPort[0]?.cargo.map((c) => [c.good, c.amount])).toEqual([['furs', 100], ['tools', 30]]);
