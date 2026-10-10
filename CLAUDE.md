@@ -93,7 +93,10 @@ the definition of done.
    Read them together. Fix every Codex P1 and P2 and every CodeRabbit comment you can confirm
    against the code, re-run the tests for what you touched, commit as `R-xxxx: fix <what>`, push, and
    run the review once more. A finding you disagree with gets one sentence of why in the pull
-   request. Do not run the review a third time.
+   request. The script refuses a third run.
+   - The second run is narrow: Codex reads only the commits since the first, to say whether each
+     finding is resolved and whether the fixes broke anything. It does not look for new problems
+     in code the first run already read.
    - CodeRabbit reads a pull request once. The second run prints what is still open of its first
      reading and does not ask again; never ask it yourself.
    - It is allowed a few reviews an hour across the whole repository. When the script says it was
