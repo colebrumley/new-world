@@ -148,3 +148,17 @@ export function movementNotices(before: GameState, after: GameState, playerId: P
   }
   return lines.length <= most ? lines : [...lines.slice(0, most), `${lines.length - most} more foreign or native units were seen on the move.`];
 }
+
+/** A line for each ship of this player's that made port in Europe (R-1022). Always logged; no option governs it. */
+export function voyageNotices(events: readonly GameEvent[], state: GameState, playerId: PlayerId): string[] {
+  const player = state.players.find((p) => p.id === playerId);
+  if (!player) return [];
+  const out: string[] = [];
+  for (const e of events) {
+    if (e.type !== 'shipReachedEurope') continue;
+    const ship = state.units[e.unitId];
+    if (!ship || ship.owner !== playerId) continue;
+    out.push(`Our ${UNIT_TYPES[ship.type].name} has reached ${NATIONS[player.nation].homePort} and awaits orders.`);
+  }
+  return out;
+}
