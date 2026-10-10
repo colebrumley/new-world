@@ -1,0 +1,61 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the heads of the reports > matches the snapshot 1`] = `
+{
+  "colonies": {
+    "glyph": "wheat",
+    "lead": "Each of our colonies in a line: its people, its temper, and what its carpenters have in hand. What lies in the warehouse of each follows below.",
+    "wax": 26,
+  },
+  "congress": {
+    "glyph": "quill",
+    "lead": "These are the minds that have joined our cause, and the one we are courting next. Every bell rung in our colonies brings the next seat nearer, and wears the patience of the Crown thinner.",
+    "wax": 27,
+  },
+  "economy": {
+    "glyph": "anchor",
+    "lead": "The state of our purse, and of the market across the ocean. Prices there bend to what we sell and what we buy, so no figure below will hold for long.",
+    "wax": 28,
+  },
+  "foreign": {
+    "glyph": "quill",
+    "lead": "How the powers of Europe stand toward one another in the New World. Peace here is seldom more than a pause, so it is as well to know who is fighting whom.",
+    "wax": 6,
+  },
+  "hall": {
+    "glyph": "quill",
+    "lead": "The governors who came before, set down in the order of their renown. Every game played to its end earns a line here.",
+    "wax": 31,
+  },
+  "indians": {
+    "glyph": "quill",
+    "lead": "The peoples who held this land before we came, so far as we have met them, and how they look on our coming. A settlement pushed too far will not wait for its chiefs to act.",
+    "wax": 25,
+  },
+  "labor": {
+    "glyph": "wheat",
+    "lead": "A tally of our people by their trades, and of the colonies where each trade is followed. Choose a line to be shown on the map where the most of them live.",
+    "wax": 24,
+  },
+  "naval": {
+    "glyph": "anchor",
+    "lead": "Every ship that sails under our flag: where she lies, where she is bound, and what is in her hold. A ship in the yards is listed with the turns she still needs there.",
+    "wax": 8,
+  },
+  "religion": {
+    "glyph": "cross",
+    "lead": "Faith fills ships. The more crosses our churches raise, the sooner the restless of Europe take passage to join us, and the more missions we may keep among our neighbours.",
+    "wax": 31,
+  },
+  "score": {
+    "glyph": "quill",
+    "lead": "The account that history will keep of us. People, learning, wealth and liberty all weigh in it, and a war for independence won weighs most of all.",
+    "wax": 26,
+  },
+  "terrain": {
+    "glyph": "wheat",
+    "lead": "Here is every kind of country our surveyors have put a name to, and what a colonist may hope to win from it. The figures are for land as it is found, before axe or plough has touched it.",
+    "wax": 21,
+  },
+}
+`;

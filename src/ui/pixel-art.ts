@@ -806,6 +806,50 @@ export function flagArt(id: FlagId): Sprite {
   return s;
 }
 
+/** What is pressed into a seal: one of four marks, for the four kinds of business an adviser reports on. */
+export const SEAL_GLYPHS = ['quill', 'cross', 'anchor', 'wheat'] as const;
+export type SealGlyph = (typeof SEAL_GLYPHS)[number];
+
+/** A round of wax, pressed a little out of true, lit from the upper left. */
+const SEAL_WAX = [
+  '.....oooooo.....',
+  '...oowwwwwwoo...',
+  '..owwwwwwwwwwoo.',
+  '.owhhwwwwwwwwwo.',
+  '.owhwwwwwwwwwwwo',
+  'owwwwwwwwwwwwwwo',
+  'owwwwwwwwwwwwwwo',
+  'owwwwwwwwwwwwwwo',
+  'owwwwwwwwwwwwwwo',
+  'owwwwwwwwwwwwwwo',
+  'owwwwwwwwwwwwwwo',
+  '.owwwwwwwwwwwwo.',
+  '.owwwwwwwwwwwwo.',
+  '..oowwwwwwwwoo..',
+  '....oowwwwoo....',
+  '......oooo......',
+];
+/** The marks, eight by eight: a pen for affairs of state, a cross for the church, an anchor for the sea and its trade, an ear of wheat for the land and those who work it. */
+const SEAL_MARKS: Readonly<Record<SealGlyph, readonly string[]>> = {
+  quill: ['.....mmm', '....mmmm', '...mmmm.', '..mmmm..', '..mmm...', '.mm.....', '.m......', 'm.......'],
+  cross: ['...mm...', '...mm...', '.mmmmmm.', '.mmmmmm.', '...mm...', '...mm...', '...mm...', '...mm...'],
+  anchor: ['...mm...', '..m..m..', '...mm...', '.mmmmmm.', '...mm...', 'm..mm..m', 'mm.mm.mm', '.mmmmmm.'],
+  wheat: ['...mm...', '.m.mm.m.', '..mmmm..', '.m.mm.m.', '..mmmm..', '.m.mm.m.', '..mmmm..', '...mm...'],
+};
+/** Waxes pale enough that the mark is pressed in ink; on every other the mark is left the colour of the sheet. */
+const PALE_WAX: readonly InkId[] = [INK.yellow, INK.orange, INK.sand, INK.prairie];
+
+/**
+ * A wax seal on the 16-pixel grid: a round of wax in the given colour inside an ink edge, a glint of
+ * light at its upper left, and one of the four marks pressed into the middle of it.
+ */
+export function sealArt(glyph: SealGlyph, wax: InkId): Sprite {
+  const s = blank();
+  stamp(s, 0, 0, SEAL_WAX, { o: INK.ink, w: wax, h: INK.white });
+  stamp(s, 4, 4, SEAL_MARKS[glyph], { m: PALE_WAX.includes(wax) ? INK.ink : INK.parchment });
+  return s;
+}
+
 /** The same art at half the size, for the smallest zoom: every other art pixel. */
 export function halve(sprite: Sprite): Sprite {
   const size = sprite.size >> 1;

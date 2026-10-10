@@ -1273,7 +1273,7 @@ they are started.
   **Verify:** `npm run test:e2e -- colony`; `npm test -- test/unit/ui`; `npm run check`;
   screenshots of a one-colonist and a large colony in the pull request.
 
-- [~] **R-1015 Reports, encyclopedia, saves and options as parchment pages**
+- [x] **R-1015 Reports, encyclopedia, saves and options as parchment pages**
   Depends on R-1010 (theme tokens and the Fell face in `src/ui/style.css`). Parchment panels over
   a dark wood frame, ink text in the Fell face. The report screen (`src/ui/report.ts` and
   `src/ui/reports/*`, the `.report-*` rules), the encyclopedia (`src/ui/pedia-screen.ts`,
@@ -1295,6 +1295,24 @@ they are started.
   - The in-game text stays our own prose (`test/unit/no-copied-text.test.ts`).
   **Verify:** `npm run test:e2e -- reports`, `saves`, `options`, `combat`; `npm run check`;
   screenshots of one report, the encyclopedia and the save dialog in the pull request.
+  *Built:* a report opens with a head (`src/ui/report.ts`): its adviser's seal, the title, and an
+  empty `.report-portrait` slot for R-1016, over a double rule; under it the adviser's opening
+  sentence or two, our own words, with a drop capital. `sealArt` in `pixel-art.ts` draws the seal on
+  the 16-pixel grid: a round of wax with a glint, and a quill (affairs of state), a cross (the
+  church), an anchor (the sea and its trade) or an ear of wheat (the land) pressed into it, the
+  mark in ink on a pale wax. `src/ui/reports/heads.ts` gives each of the ten reports and the Hall
+  of Fame its mark, its wax and its opening; no two share a seal. A section whose first row names
+  the columns is marked `columns: true`, and that row is set in small capitals over a full rule;
+  the cells themselves are as they were, so the e2e snapshots are untouched. Everything else is
+  the stylesheet: sections head a rule and their lines are ruled faintly across the page; the
+  encyclopedia is an open book, its index led out with dots and the current entry marked by a
+  ribbon in sealing-wax red; the save table is a ledger with its columns ruled off in red; the
+  options are a checklist with a box and a tick drawn in ink (Customize has ink rings to match);
+  the combat analysis sets the two sides in columns with the sum under a line, and the result is
+  a slip of parchment stamped askew in green or red. Rows that go to the map and entries of the
+  index show the ink focus ring; `test/unit/ui/style.test.ts` holds these pages to that and to
+  the still stamp under `prefers-reduced-motion`. The save notice is amber rather than red, since
+  it reports successes too. Pictures are in `docs/theme/` (report, pedia, saves, options, combat).
 
 ---
 

@@ -37,9 +37,9 @@ export function terrainReport(): Report {
     id: 'terrain',
     title: 'Terrain Information',
     sections: [
-      { heading: 'Open land', rows: rows('open') },
-      { heading: 'Forest', rows: rows('forest') },
-      { heading: 'Other', rows: rows('other') },
+      { heading: 'Open land', rows: rows('open'), columns: true },
+      { heading: 'Forest', rows: rows('forest'), columns: true },
+      { heading: 'Other', rows: rows('other'), columns: true },
       { heading: 'Notes', rows: [['Yields are what a free colonist brings in from an unimproved square; experts, plowing, rivers, roads and special resources add to them.']] },
     ],
   };
@@ -98,7 +98,7 @@ export function laborReport(state: GameState, playerId: PlayerId): Report {
   return {
     id: 'labor',
     title: 'Labor Adviser',
-    sections: [{ heading: `Colonists by occupation (${total})`, rows: rows.length > 0 ? [['Occupation', 'Number', 'Where'], ...rows] : [], zoom: [null, ...zoom], empty: 'We have no colonists in the New World.' }],
+    sections: [{ heading: `Colonists by occupation (${total})`, rows: rows.length > 0 ? [['Occupation', 'Number', 'Where'], ...rows] : [], columns: true, zoom: [null, ...zoom], empty: 'We have no colonists in the New World.' }],
   };
 }
 const count = (profession: ProfessionId, n: number): string => (n === 1 ? PROFESSIONS[profession].name : PROFESSIONS[profession].plural);
@@ -121,6 +121,7 @@ export function economicReport(state: GameState, playerId: PlayerId): Report {
       },
       {
         heading: 'Trade with Europe',
+        columns: true,
         rows: [
           ['Cargo', 'Europe pays', 'Europe asks', 'Net sold to date', 'In our stores and holds', 'Change each turn'],
           ...GOOD_IDS.map((good) => {
@@ -145,12 +146,14 @@ export function colonyReport(state: GameState, playerId: PlayerId): Report {
     sections: [
       {
         heading: `Colonies (${mine.length})`,
+        columns: true,
         rows: mine.length > 0 ? [['Colony', 'People', 'Sons of Liberty', 'Building', 'Units here'], ...mine.map((c) => [c.name, String(c.colonists.length), `${solPercent(state, c)}%`, building(c), String(Object.values(state.units).filter((u) => u.x === c.x && u.y === c.y && onMap(u)).length)])] : [],
         zoom: [null, ...where],
         empty: 'We have founded no colony yet.',
       },
       {
         heading: 'Warehouses',
+        columns: true,
         rows: mine.length > 0 ? [['Colony', ...GOOD_IDS.map((g) => goodName(g).slice(0, 4))], ...mine.map((c) => [c.name, ...GOOD_IDS.map((g) => ((c.goods[g] ?? 0) === 0 ? '-' : String(c.goods[g])))])] : [],
         zoom: [null, ...where],
         empty: 'Nothing is in store.',
@@ -186,6 +189,7 @@ export function navalReport(state: GameState, playerId: PlayerId): Report {
     sections: [
       {
         heading: `Ships (${ships.length})`,
+        columns: true,
         rows: ships.length > 0 ? [['Ship', 'Where', 'Bound for', 'Carrying'], ...ships.map((u) => [UNIT_TYPES[u.type].name, place(u), bound(u), cargo(u)])] : [],
         zoom: [null, ...ships.map((u): Spot => (onMap(u) ? [u.x, u.y] : null))],
         empty: 'We have no ships.',
@@ -227,6 +231,7 @@ export function indianReport(state: GameState, playerId: PlayerId): Report {
     sections: [
       {
         heading: 'Native peoples',
+        columns: true,
         rows: rows.length > 0 ? [['People', 'Relations', 'Mood', 'Settlements', 'Our missions', ''], ...rows] : [],
         zoom: [null, ...zoom],
         empty: 'We have met none of the native peoples yet.',

@@ -78,6 +78,7 @@ const LEVEL: Readonly<Record<GameState['difficulty'], string>> = { discoverer: '
 export function hallSection(hall: readonly HallEntry[]): ReportSection {
   return {
     heading: 'Hall of Fame',
+    columns: true,
     rows: hall.length === 0 ? [] : [
       ['', 'Leader', 'Level', 'Ended', 'Score', 'Rating', 'Remembered by'],
       ...hall.map((e, i) => [
