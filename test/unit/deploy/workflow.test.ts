@@ -31,4 +31,18 @@ describe('the deploy workflow', () => {
     expect(source).toMatch(/branches: \[main\]/);
     expect(source).toMatch(/path: dist/);
   });
+
+  it('runs only when the build or the checks could change', () => {
+    // the quoted entries of the `paths:` list under one trigger of `on:`
+    const paths = (trigger: string): string[] => {
+      const block = source.match(new RegExp(`^  ${trigger}:\\n((?:    .*\\n)+)`, 'm'))?.[1] ?? '';
+      return [...block.matchAll(/^ {6}- '(.+)'$/gm)].map((m) => m[1]!);
+    };
+    const push = paths('push');
+    const pullRequest = paths('pull_request');
+    for (const input of ['src/**', 'public/**', 'index.html', 'package-lock.json', '.github/workflows/deploy.yml']) expect(push, input).toContain(input);
+    for (const other of ['docs/**', 'test/**', 'art/**', '.claude/**']) expect(push, other).not.toContain(other);
+    for (const input of push) expect(pullRequest, input).toContain(input);
+    expect(pullRequest).toContain('test/**');
+  });
 });

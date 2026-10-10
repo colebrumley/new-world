@@ -1,11 +1,37 @@
-# Checks the game on every pull request, and checks and publishes the build to GitHub Pages on every
-# push to main.
+# Checks the game on pull requests, and checks and publishes the build to GitHub Pages on pushes to
+# main. Both runs are filtered by path: docs, specs, CLAUDE.md, .claude/, art sources and the backlog
+# change neither the build nor the checks, so a push or pull request touching only those does nothing.
+# (Actions has no YAML anchors, so the push list is repeated in the pull request list.)
 name: Deploy
 
 on:
   push:
     branches: [main]
+    # only what the published build is made from
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy.yml'
   pull_request:
+    # the above, plus what the checks and the e2e suite run on
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy.yml'
+      - 'test/**'
+      - 'scripts/**'
+      - 'eslint.config.js'
+      - 'playwright.config.ts'
   workflow_dispatch:
 
 permissions:

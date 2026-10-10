@@ -137,9 +137,12 @@ from any folder. `public/manifest.webmanifest` and `public/icon.svg` make it ins
 `vite.config.ts` writes `dist/sw.js` at build time with the list of built files: the worker
 fetches them all when it installs and then serves them cache-first (the page itself
 network-first), which is what lets the game be played offline. `.github/workflows/deploy.yml`
-runs `npm run check` and the e2e suite on every push to main and publishes `dist/` to GitHub
-Pages. The e2e suite always runs against `vite preview` of the real build, and
-`test/unit/deploy/workflow.test.ts` lints the workflow with actionlint.
+runs `npm run check` and the e2e suite, then publishes `dist/` to GitHub Pages, on pushes to main
+that change what the build is made from (`src/`, `public/`, `index.html`, the Vite and TypeScript
+config, the package files), and runs the checks alone on pull requests that change those or the
+tests and tooling; a push or pull request touching only docs, specs, `.claude/` or `art/` runs
+nothing. The e2e suite always runs against `vite preview` of the real build, and
+`test/unit/deploy/workflow.test.ts` lints the workflow with actionlint and holds the path lists.
 
 ## Theme (`src/ui/style.css`, `src/ui/fonts/`)
 The page around the map is an explorer's chart on a captain's table: dark oiled wood with brass
