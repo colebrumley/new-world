@@ -330,6 +330,26 @@ describe('America map', () => {
     }
   });
 
+  it('holds seven silver deposits along the Andes', () => {
+    const silver = SQUARES.filter((p) => square(p).resource === 'silverDeposit');
+    const andes: [number, number][] = [[26, 41], [29, 45], [30, 49], [31, 51], [30, 53], [30, 55], [30, 58]];
+    const byRow = (a: readonly [number, number], b: readonly [number, number]): number => a[1] - b[1] || a[0] - b[0];
+    expect(silver.filter((p) => p[1] >= 35).sort(byRow)).toEqual(andes);
+    expect([...silver].sort(byRow)).toEqual([[9, 23], [14, 23], ...andes]);
+    for (const p of silver) expect(square(p).relief, key(p)).toBe('mountains');
+    for (const a of silver) for (const b of silver) if (a !== b) expect(chebyshev(a, b), `${key(a)} ${key(b)}`).toBeGreaterThanOrEqual(2);
+    // The colony squares the deposits were laid out for: hills, clear of every settlement site, silver in reach.
+    const sites = AMERICA_TRIBES.flatMap((tribe): (readonly [number, number])[] => [...AMERICA_TRIBE_SITES[tribe]]);
+    const colonies: [[number, number], number][] = [[[30, 46], 1], [[31, 50], 2], [[31, 52], 2], [[31, 54], 2]];
+    for (const [p, reach] of colonies) {
+      const t = square(p);
+      expect([solid(t), t.relief], key(p)).toEqual([true, 'hills']);
+      expect(Math.min(...sites.map((s) => chebyshev(p, s))), key(p)).toBeGreaterThanOrEqual(2);
+      expect(silver.filter((s) => chebyshev(p, s) === 1).length, key(p)).toBeGreaterThanOrEqual(reach);
+    }
+    expect(square([30, 45]).resource).toBe('oreDeposit');
+  });
+
   it('keeps the densities of resources, rumors, relief and forest near the generator', () => {
     const land = SOLID.map(square);
     const resources = land.filter((t) => t.resource !== null).length;
