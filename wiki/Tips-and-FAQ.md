@@ -48,7 +48,7 @@ Goods they lack, room to live, and to be left in peace. A chief will tell a scou
 
 ### When should I declare independence?
 
-You can once half your colonists support it (50% rebel sentiment). Before you do, make sure the colonies that will be attacked are well defended, with veteran soldiers, artillery and stout walls, and that the Sons of Liberty are strong in them: veterans in colonies at 50% or more become Continental Army when the war starts. The Continental Congress report (F3) shows the force the King will send. Declaring cuts you off from Europe, so stock up on muskets, horses and tools first. See [[The Crown and Independence]].
+You can once half your colonists support it (50% rebel sentiment). Before you do, make sure the colonies that will be attacked are well defended, with veteran soldiers, artillery and stout walls, and that the Sons of Liberty are strong in them. When the war starts, each colony at 50% membership or more turns some of its veteran soldiers and dragoons into Continental Army: at least one, more as membership climbs toward 100%, and never more than half the colony's population. The Continental Congress report (F3) shows the force the King will send. Declaring cuts you off from Europe, so stock up on muskets, horses and tools first. See [[The Crown and Independence]].
 
 ### Where do I report a bug?
 
@@ -65,4 +65,4 @@ Open an issue in the repository's [Issues](https://github.com/colebrumley/new-wo
 7. **Let the natives teach you.** Walk a free colonist or an indentured servant into a friendly settlement and ask to be taught. Most settlements teach their trade once, for nothing, and an expert farmer or fisherman brings in more than a plain colonist.
 8. **Mind the natives' land.** Colonies close to a settlement alarm its people, and working their land without paying alarms them more. Pay for land when you can, keep a little distance, and send missionaries.
 9. **Fortify a soldier in each colony.** From the turn after he digs in, a fortified unit defends half again as well, against raiders, rivals and in the end the Crown.
-10. **Prepare before you declare.** Once you declare, Europe is closed to you. Build up muskets, horses and tools, raise Sons of Liberty membership past 50% in your strongest colonies, and keep veteran soldiers there: they become Continental Army on the first turn of the war.
+10. **Prepare before you declare.** Once you declare, Europe is closed to you. Build up muskets, horses and tools, raise Sons of Liberty membership past 50% in your strongest colonies, and keep veteran soldiers there: on the first turn of the war some of them join the Continental Army, more the higher the membership.

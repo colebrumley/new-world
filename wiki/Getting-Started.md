@@ -102,7 +102,7 @@ Every colonist eats two food a turn, so make sure the colony grows at least as m
 
 Once a colony has goods to sell, such as furs, sugar, tobacco or lumber, bring the ship into its port. On the colony screen, drag goods from the warehouse into the ship's hold in the **Transport** panel. Back on the map, press **G** (Go to): a ship that can reach the Sea Lane is offered Europe first. Or sail east into the Sea Lane at the edge of the map, and the game asks whether to sail for Europe. The crossing takes a couple of turns each way.
 
-In your home port the **Europe** screen opens. Sell the cargo, buy what the colonies lack, and pick up anyone waiting on the docks. Then choose **Set sail** to send the ship back to the New World. [[Europe and Trade]] covers prices and taxes.
+When the ship has arrived in your home port, press **E** or the **Europe** button to open the Europe screen. Sell the cargo, buy what the colonies lack, and pick up anyone waiting on the docks. Then choose **Set sail** to send the ship back to the New World. [[Europe and Trade]] covers prices and taxes.
 
 ### Recruit
 
@@ -127,4 +127,4 @@ Each turn you give orders to your units one at a time; the game moves on to the 
 
 ## How to save
 
-With **Autosave** on (it is on at first), the game keeps itself in your browser as you play: close the tab and **Load Game** brings you back to where you were. To keep a game at a particular point, press **Alt+L** (or **Menu...** then **Save or load a game**) and save it in one of eight slots. You can also export a game to a file. [[Help and Options]] covers saving and loading in full.
+With **Autosave** on (it is on at first), the game keeps itself in your browser as you play: close the tab and **Load Game** brings you back to where you were. To keep a game at a particular point, press **Alt+L** (or **Menu...** then **Save or load a game**) and save it in one of the eight slots of your own (the other two of the ten are the autosaves). You can also export a game to a file. [[Help and Options]] covers saving and loading in full.
