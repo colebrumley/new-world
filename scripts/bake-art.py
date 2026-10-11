@@ -17,12 +17,14 @@ src/engine/data/resources.ts: a picture of the thing itself on a flat magenta gr
 square and baked at 24 pixels and again at 12 in the same colours (src/ui/resource-art.ts). art/buildings holds one picture per colony building and art/goods one
 icon per good (and for hammers, crosses and bells); those two folders are drawn from plain shapes
 by scripts/draw-colony-art.py. The pictures must be our own (constraint C1). Every one is cut from
-its ground (a floor is not), shrunk by pixelforge (units, places, buildings and goods in one shared
-palette per folder, terrain in a few flat colours per picture), and written
+its ground (a floor is not), shrunk by pixelforge in one shared palette per folder, and written
 out as data: src/ui/unit-art.ts, place-art.ts, feature-art.ts, floor-art.ts, building-art.ts and
 goods-art.ts, which pixel-art.ts draws from. In a place or a building, whatever is painted cyan is
 given the owner's colour when it is drawn. A floor is shifted so that its commonest colour is the
-terrain's ground colour, which is read from PALETTE and GROUND in src/ui/pixel-art.ts.
+terrain's ground colour, which is read from PALETTE and GROUND in src/ui/pixel-art.ts. The floors are shrunk in
+the colours of PALETTE and no others; the features share one palette of their own. The floors and the
+features are each baked twice: at 32 pixels, and again at 16 in the colours of the 32-pixel bake and no others
+(FLOOR_ART_16, FEATURE_ART_16), which the 16-pixel grid draws.
 
 art/chart holds the explorer's chart the unexplored map is drawn as: the vellum floor, the compass
 rose and the chart's creatures, each at 32, 16 and 8 pixels to the square. They are drawn by
@@ -153,8 +155,14 @@ def floor(path: Path) -> Image.Image:
     return Image.fromarray(np.clip(rgb + (target - commonest), 0, 255).astype(np.uint8), 'RGB')
 
 
+# How many colours the forests, hills and mountains share. (The floors are baked in the map palette itself: their
+# marks are a cell or two across, and in a palette worked out from the pictures such marks fall between its colours
+# and are lost to the ground, so that drifted snow comes out as one flat white.)
+FEATURE_PALETTE = 32
+
+
 def bake(folder: str, size: int, palette: int, owner_key: bool = False, prepare=cut_out, shared: bool = True,
-         against: list[str] | None = None, outline: str = 'none') -> tuple[list[str], dict[str, list[str]]]:
+         against: list[str] | None = None, outline: str = 'none', specks: bool = False) -> tuple[list[str], dict[str, list[str]]]:
     """
     Every picture in the folder at `size` pixels square: the colours used, and rows of letters per picture.
     The folder shares one palette of `palette` colours, or, with `shared` off, each picture is cut down to
@@ -162,6 +170,8 @@ def bake(folder: str, size: int, palette: int, owner_key: bool = False, prepare=
     `against`, the colours of an earlier bake, the pictures are shrunk in those colours and no others, and
     the letters are that bake's: a smaller copy that needs no colours of its own. `outline` is a colour to draw
     round each silhouette after shrinking, for a copy too small to keep the outline its source was painted with.
+    With `specks`, a cell that stands alone in its colour is kept and not folded into the colour round it: a
+    ground's texture is such cells.
     """
     sources = {p.stem: p for p in sorted((ROOT / folder).glob('*.png'))}
     forge = Path(os.environ['PIXELFORGE']).expanduser()
@@ -175,7 +185,7 @@ def bake(folder: str, size: int, palette: int, owner_key: bool = False, prepare=
         if against:
             hexes.write_text('\n'.join(c[1:] for c in against) + '\n')
         flags = ['--preset', 'sprite', '--method', 'box', '--no-crop-to-alpha', '--no-key-bg', '--out-width', str(size), '--out-height', str(size),
-                 *(['--palette-name', str(hexes)] if against else ['--palette-size', str(palette)]), '--outline', outline, '--dither', 'none']
+                 *(['--palette-name', str(hexes)] if against else ['--palette-size', str(palette)]), '--outline', outline, '--dither', 'none', *(['--no-remove-orphans'] if specks else [])]
         jobs = [['batch', str(ready)]] if shared else [['convert', str(ready / f'{name}.png'), '--orphan-min-region', '3'] for name in sources]
         for job in jobs:
             subprocess.run([sys.executable, '-m', 'pixelforge', *job, '-o', str(out), *flags], cwd=forge, check=True, stdout=subprocess.DEVNULL)
@@ -201,20 +211,27 @@ def bake(folder: str, size: int, palette: int, owner_key: bool = False, prepare=
     return colours, figures
 
 
-def level(colours: list[str], figures: dict[str, list[str]]) -> list[str]:
-    """Give each floor's commonest colour exactly its terrain's colour, so the ground is one flat colour that matches the minimap."""
+def level(colours: list[str], figures: dict[str, list[str]], copies: dict[str, list[str]] | None = None) -> list[str]:
+    """
+    Give each floor's commonest colour exactly its terrain's colour, so the ground is one flat colour that matches the
+    minimap. `copies` is the same floors at a smaller size in the same letters: the colour that is levelled in a floor
+    is levelled in its copy too, so the two sizes are one ground. Colours no floor uses any more are dropped.
+    """
     colours = list(colours)
     ground = ground_colours()
+    sets = [figures, copies] if copies else [figures]
     for name, rows in figures.items():
         letters = ''.join(rows)
-        base = max(set(letters), key=letters.count)
+        base = max(sorted(set(letters)), key=letters.count)
         want = ground[name]
         if want not in colours:
             colours.append(want)
-        figures[name] = [row.replace(base, CODES[colours.index(want)]) for row in rows]
-    used = sorted({letter for rows in figures.values() for row in rows for letter in row}, key=CODES.index)
-    for name, rows in figures.items():
-        figures[name] = [''.join(CODES[used.index(letter)] for letter in row) for row in rows]
+        for pictures in sets:
+            pictures[name] = [row.replace(base, CODES[colours.index(want)]) for row in pictures[name]]
+    used = sorted({letter for pictures in sets for rows in pictures.values() for row in rows for letter in row}, key=CODES.index)
+    for pictures in sets:
+        for name, rows in pictures.items():
+            pictures[name] = [''.join(CODES[used.index(letter)] for letter in row) for row in rows]
     return [colours[CODES.index(letter)] for letter in used]
 
 
@@ -277,12 +294,13 @@ def chart() -> None:
 
 
 def write(path: str, title: str, prefix: str, size_name: str, size: int, colours: list[str], figures: dict[str, list[str]], note: str,
-          smaller: tuple[int, dict[str, list[str]], str] | None = None) -> None:
+          smaller: tuple[int, dict[str, list[str]], str] | None = None,
+          colours_note: str = 'The colours this art is drawn in, beyond the 32 of the map palette.') -> None:
     """The baked file. `smaller` is a second set of the same pictures at a smaller size in the same colours: its size, its rows and its note."""
     lines = [
         f'// {title}, made by scripts/bake-art.py from our own pictures (constraint C1). Do not edit by hand.',
         '',
-        '/** The colours this art is drawn in, beyond the 32 of the map palette. */',
+        f'/** {colours_note} */',
         f'export const {prefix}_COLORS = [' + ', '.join(f"'{c}'" for c in colours) + '] as const;',
         '',
         '/** How many art pixels square a picture is at most. */',
@@ -473,14 +491,19 @@ def main() -> None:
         write('src/ui/place-art.ts', 'Colonies and native settlements for the map', 'PLACE', 'PLACE_SIZE', 32, colours, figures,
               "One picture per look of a place: rows of letters from PLACE_CODES; '*' is the owner's colour and a full stop is see-through.")
     if wanted('features'):
-        colours, figures = bake('art/features', 32, 5, prepare=stand, shared=False)
+        colours, figures = bake('art/features', 32, FEATURE_PALETTE, prepare=stand)
+        _, copies = bake('art/features', 16, FEATURE_PALETTE, prepare=stand, against=colours)
         write('src/ui/feature-art.ts', 'Forests, hills and mountains for the map', 'FEATURE', 'FEATURE_SIZE', 32, colours, figures,
-              'One picture per terrain that has something standing on its ground: rows of letters from FEATURE_CODES; a full stop is see-through.')
+              'One picture per terrain that has something standing on its ground: rows of letters from FEATURE_CODES; a full stop is see-through.',
+              smaller=(16, copies, 'The same pictures at half the size, in the same colours and letters, for the 16-pixel grid.'))
     if wanted('floors'):
-        colours, figures = bake('art/floors', 32, 3, prepare=floor, shared=False)
-        colours = level(colours, figures)
+        colours, figures = bake('art/floors', 32, 0, prepare=floor, against=map_palette(), specks=True)
+        _, copies = bake('art/floors', 16, 0, prepare=floor, against=colours, specks=True)
+        colours = level(colours, figures, copies)
         write('src/ui/floor-art.ts', 'Ground textures for the map', 'FLOOR', 'FLOOR_SIZE', 32, colours, figures,
-              'One texture per open terrain, filling the square: rows of letters from FLOOR_CODES.')
+              'One texture per open terrain, filling the square: rows of letters from FLOOR_CODES.',
+              smaller=(16, copies, 'The same textures at half the size, in the same colours and letters, for the 16-pixel grid.'),
+              colours_note='The colours this art is drawn in: every one is a colour of the map palette.')
     if wanted('resources'):
         colours, figures = bake('art/resources', 24, 24, prepare=centre)
         colours = one_ink(colours, figures)
