@@ -6,7 +6,7 @@ Buildings are how a colony grows from a few huts into a town. Most house a trade
 
 Most buildings come in lines. Each one in a line replaces the one before it, does the same work better and needs it built first: a Weaver's House becomes a Weaver's Shop and then a Textile Mill. Every new colony starts with the first building of seven lines: the Town Hall, the Carpenter's Shop and the five craft houses.
 
-In a craft line the second building doubles what each worker makes, and the third (the factory) makes half again as much as the second while using less raw material. Factories need Adam Smith in the Congress.
+In a craft line the second building adds each worker's base amount again (a free colonist makes 6 instead of 3), and the third (the factory) makes half again as much as the second while using less raw material. Factories need Adam Smith in the Congress.
 
 ## Every building
 
@@ -20,22 +20,22 @@ Sprites are drawn in your colours in the game. Hammers and tools are what the bu
 | ![Carpenter's Shop](images/art/buildings/carpentersShop.png) | Carpenter's Shop | 39 | 0 | 1 | - | Up to 3 carpenters turn lumber into hammers, one for one. |
 | ![Lumber Mill](images/art/buildings/lumberMill.png) | Lumber Mill | 52 | 0 | 3 | - | Carpenters make twice as many hammers. |
 | ![Weaver's House](images/art/buildings/weaversHouse.png) | Weaver's House | 64 | 0 | 1 | - | Up to 3 colonists turn cotton into cloth, one for one. |
-| ![Weaver's Shop](images/art/buildings/weaversShop.png) | Weaver's Shop | 64 | 20 | 1 | - | Each worker makes twice what he made in the Weaver's House. |
+| ![Weaver's Shop](images/art/buildings/weaversShop.png) | Weaver's Shop | 64 | 20 | 1 | - | Each worker makes his base amount again on top: a free colonist 6 instead of 3, an expert 12 instead of 6. |
 | ![Textile Mill](images/art/buildings/textileMill.png) | Textile Mill | 160 | 100 | 8 | Adam Smith | Half again the output of the Weaver's Shop, using only 2 cotton for every 3 cloth. |
 | ![Tobacconist's House](images/art/buildings/tobacconistsHouse.png) | Tobacconist's House | 64 | 0 | 1 | - | Up to 3 colonists turn tobacco into cigars, one for one. |
-| ![Tobacconist's Shop](images/art/buildings/tobacconistsShop.png) | Tobacconist's Shop | 64 | 20 | 1 | - | Each worker makes twice what he made in the Tobacconist's House. |
+| ![Tobacconist's Shop](images/art/buildings/tobacconistsShop.png) | Tobacconist's Shop | 64 | 20 | 1 | - | Each worker makes his base amount again on top: a free colonist 6 instead of 3, an expert 12 instead of 6. |
 | ![Cigar Factory](images/art/buildings/cigarFactory.png) | Cigar Factory | 160 | 100 | 8 | Adam Smith | Half again the output of the Tobacconist's Shop, using only 2 tobacco for every 3 cigars. |
 | ![Rum Distiller's House](images/art/buildings/rumDistillersHouse.png) | Rum Distiller's House | 64 | 0 | 1 | - | Up to 3 colonists turn sugar into rum, one for one. |
-| ![Rum Distillery](images/art/buildings/rumDistillery.png) | Rum Distillery | 64 | 20 | 1 | - | Each worker makes twice what he made in the Rum Distiller's House. |
+| ![Rum Distillery](images/art/buildings/rumDistillery.png) | Rum Distillery | 64 | 20 | 1 | - | Each worker makes his base amount again on top: a free colonist 6 instead of 3, an expert 12 instead of 6. |
 | ![Rum Factory](images/art/buildings/rumFactory.png) | Rum Factory | 160 | 100 | 8 | Adam Smith | Half again the output of the Rum Distillery, using only 2 sugar for every 3 rum. |
 | ![Fur Trader's House](images/art/buildings/furTradersHouse.png) | Fur Trader's House | 56 | 0 | 1 | - | Up to 3 colonists turn furs into coats, one for one. |
-| ![Fur Trading Post](images/art/buildings/furTradingPost.png) | Fur Trading Post | 56 | 20 | 1 | - | Each worker makes twice what he made in the Fur Trader's House. |
+| ![Fur Trading Post](images/art/buildings/furTradingPost.png) | Fur Trading Post | 56 | 20 | 1 | - | Each worker makes his base amount again on top: a free colonist 6 instead of 3, an expert 12 instead of 6. |
 | ![Fur Factory](images/art/buildings/furFactory.png) | Fur Factory | 160 | 100 | 6 | Adam Smith | Half again the output of the Fur Trading Post, using only 2 furs for every 3 coats. |
 | ![Blacksmith's House](images/art/buildings/blacksmithsHouse.png) | Blacksmith's House | 64 | 0 | 1 | - | Up to 3 colonists turn ore into tools, one for one. |
-| ![Blacksmith's Shop](images/art/buildings/blacksmithsShop.png) | Blacksmith's Shop | 64 | 20 | 1 | - | Each worker makes twice what he made in the Blacksmith's House. |
+| ![Blacksmith's Shop](images/art/buildings/blacksmithsShop.png) | Blacksmith's Shop | 64 | 20 | 1 | - | Each worker makes his base amount again on top: a free colonist 6 instead of 3, an expert 12 instead of 6. |
 | ![Iron Works](images/art/buildings/ironWorks.png) | Iron Works | 240 | 100 | 8 | Adam Smith | Half again the output of the Blacksmith's Shop, using only 2 ore for every 3 tools. |
 | ![Armory](images/art/buildings/armory.png) | Armory | 52 | 0 | 1 | - | Up to 3 colonists turn tools into muskets, one for one. Artillery can be built. |
-| ![Magazine](images/art/buildings/magazine.png) | Magazine | 120 | 50 | 8 | - | Each worker makes twice what he made in the Armory. |
+| ![Magazine](images/art/buildings/magazine.png) | Magazine | 120 | 50 | 8 | - | Each worker makes his base amount again on top: a free colonist 6 instead of 3, an expert 12 instead of 6. |
 | ![Arsenal](images/art/buildings/arsenal.png) | Arsenal | 240 | 100 | 8 | Adam Smith | Half again the output of the Magazine, using only 2 tools for every 3 muskets. |
 | ![Docks](images/art/buildings/docks.png) | Docks | 52 | 0 | 1 | water beside the colony | Colonists can fish on the colony's water squares. |
 | ![Drydock](images/art/buildings/drydock.png) | Drydock | 80 | 50 | 4 | the open sea beside the colony | Damaged ships come here to be repaired, in half the time Europe takes. |
@@ -45,7 +45,7 @@ Sprites are drawn in your colours in the game. Hammers and tools are what the bu
 | ![University](images/art/buildings/university.png) | University | 200 | 100 | 10 | - | Seats 3 teachers. An expert may teach here if his trade is taught at level 3 or below. |
 | ![Warehouse](images/art/buildings/warehouse.png) | Warehouse | 80 | 0 | 1 | - | The colony keeps 200 of each good instead of 100. |
 | ![Warehouse Expansion](images/art/buildings/warehouseExpansion.png) | Warehouse Expansion | 80 | 20 | 1 | - | The colony keeps 300 of each good. |
-| ![Stable](images/art/buildings/stable.png) | Stable | 64 | 0 | 1 | - | Horses breed twice as fast: 2 for every 25 in the herd instead of every 50. |
+| ![Stable](images/art/buildings/stable.png) | Stable | 64 | 0 | 1 | - | A big herd breeds faster: up to 2 new horses for every 25 in the herd (or part of 25) instead of every 50, food and room allowing. |
 | ![Custom House](images/art/buildings/customHouse.png) | Custom House | 160 | 50 | 1 | Peter Stuyvesant | Sells the goods you choose without a ship: each turn, down to 50 once 100 are in store. |
 | ![Printing Press](images/art/buildings/printingPress.png) | Printing Press | 52 | 20 | 1 | - | Half again the colony's liberty bells. |
 | ![Newspaper](images/art/buildings/newspaper.png) | Newspaper | 120 | 50 | 4 | - | Twice the colony's liberty bells, in place of the press's half again. |

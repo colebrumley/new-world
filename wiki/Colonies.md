@@ -6,7 +6,7 @@ A colony is where your people live and work. Colonists farm, fish, cut timber an
 
 Any colonist may found a colony, whatever he carries: a soldier, a pioneer or a scout founds one as well as a free colonist. Only an Indian convert cannot. Move him to the square you want and press **B** (or the Build button).
 
-You may found on any land except Mountains, and not on a square next to another colony, yours or anyone's: there must be at least one empty square between two colonies. Once you have declared independence you can found no more. There may be 48 colonies in the whole game, and you may hold 38 of them; colonies you take in war do not count against you.
+You may found on any land except Mountains, and not on a square next to another colony, yours or anyone's: there must be at least one empty square between two colonies. Once you have declared independence you can found no more. There may be 48 colonies in the whole game, and you can found no more once you hold 38. Colonies you take in war can carry you past 38, but while you hold 38 or more you cannot found another.
 
 The game warns you, and lets you go ahead anyway, when the site has no way to the ocean. On the two easiest levels it also warns you when the land around is poor (fewer than four useful squares) or has no forest for lumber.
 
@@ -65,7 +65,7 @@ Every colonist makes a base amount: an expert or a free colonist 3 in a building
 
 ## Goods
 
-Each good in the warehouse is either raw (it comes from the land) or made from another good in a building. Made goods sell for more. Hammers, crosses and liberty bells are made like goods but are never cargo: they cannot be stored, carried or sold.
+Each good in the warehouse is either raw (it comes from the land) or made from another good in a building. Made goods sell for more. Hammers, crosses and liberty bells are made like goods but are never cargo: they cannot be loaded or sold. Hammers wait in the colony's own store for its building project (see [[Buildings]]).
 
 The squares listed are the best for each raw good, with what a free colonist makes there before roads, rivers, plowing and resources.
 
@@ -73,14 +73,14 @@ The squares listed are the best for each raw good, with what a free colonist mak
 
 | Icon | Cargo | Raw or made | Made from | Made by | Made in |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| ![Food](images/art/goods/food.png) | Food | Raw | Land; water too once the colony has Docks (fish) | Expert Farmer, Expert Fisherman | A square: Plains 5, Savannah 4, Tundra 3 and 14 more; at sea Ocean 3, Sea Lane 3 |
+| ![Food](images/art/goods/food.png) | Food | Raw | Land; water too once the colony has Docks (fish) | Expert Farmer, Expert Fisherman | A square: Plains 5, Savannah 4, Tundra 3 and 14 more; fish Ocean 4, Sea Lane 4 by the shore, less out at sea |
 | ![Sugar](images/art/goods/sugar.png) | Sugar | Raw | Land | Master Sugar Planter | A square: Savannah 3, Swamp 2, Tropical Forest 1 and 1 more |
 | ![Tobacco](images/art/goods/tobacco.png) | Tobacco | Raw | Land | Master Tobacco Planter | A square: Grassland 3, Marsh 2, Conifer Forest 1 and 1 more |
 | ![Cotton](images/art/goods/cotton.png) | Cotton | Raw | Land | Master Cotton Planter | A square: Prairie 3, Plains 2, Desert 1 and 3 more |
 | ![Furs](images/art/goods/furs.png) | Furs | Raw | Land | Expert Fur Trapper | A square: Boreal Forest 3, Mixed Forest 3, Scrub Forest 2 and 5 more |
 | ![Lumber](images/art/goods/lumber.png) | Lumber | Raw | Land | Expert Lumberjack | A square: Mixed Forest 6, Conifer Forest 6, Boreal Forest 4 and 5 more |
 | ![Ore](images/art/goods/ore.png) | Ore | Raw | Land | Expert Ore Miner | A square: Mountains 4, Hills 4, Tundra 2 and 8 more |
-| ![Silver](images/art/goods/silver.png) | Silver | Raw | Land | Expert Silver Miner | A square: Mountains 1 |
+| ![Silver](images/art/goods/silver.png) | Silver | Raw | Land | Expert Silver Miner | A square: Mountains 1 with a road; more on a silver or mineral deposit |
 | ![Horses](images/art/goods/horses.png) | Horses | Bred | Spare food | Nobody: they breed by themselves | A colony with 2 or more; faster with a Stable |
 | ![Rum](images/art/goods/rum.png) | Rum | Made | Sugar | Anyone as distiller; the expert is the Master Distiller | Rum Distiller's House → Rum Distillery → Rum Factory |
 | ![Cigars](images/art/goods/cigars.png) | Cigars | Made | Tobacco | Anyone as tobacconist; the expert is the Master Tobacconist | Tobacconist's House → Tobacconist's Shop → Cigar Factory |
@@ -107,11 +107,11 @@ When a turn's food and the store together are not enough, the store empties and 
 
 ## Horses
 
-![Horses](images/art/goods/horses.png) Horses breed by themselves in a colony with at least two of them and food to spare. The herd can grow by 2 for every 50 horses or part of 50 (every 25 with a Stable), but no more than half the turn's food surplus, and no more than the warehouse has room for. Each new horse uses one food from that turn's surplus; stored food is never touched. Fifty horses mount a scout or a dragoon.
+![Horses](images/art/goods/horses.png) Horses breed by themselves in a colony with at least two of them and food to spare. The herd can grow by 2 for every 50 horses or part of 50 (every 25 with a Stable), but no more than half the turn's food surplus (rounded up), and no more than the warehouse has room for. Each new horse uses one food from that turn's surplus; stored food is never touched. Fifty horses mount a scout or a dragoon.
 
 ## The warehouse and spoilage
 
-A colony keeps 100 of each good; a Warehouse raises that to 200 and a Warehouse Expansion to 300. Food is the only good not limited. At the very end of the colony's turn, everything over the limit is thrown away. You are told when goods already in store were lost; the part that was this turn's own extra goes without a word. During the turn the stock may run over, and unloading a ship over the limit only warns you, so you have until the turn ends to ship the extra away.
+A colony keeps 100 of each good; a Warehouse raises that to 200 and a Warehouse Expansion to 300. Food is the only good not limited. At the very end of the colony's turn, everything over the limit is thrown away. You are told when goods already in store were lost; the part that was this turn's own extra goes without a word. One exception: when exactly one of the old stock is over the limit, it is left in place. During the turn the stock may run over, and unloading a ship over the limit only warns you, so you have until the turn ends to ship the extra away.
 
 You are also told when a good passes another hundred, and when it fills the warehouse.
 
@@ -121,9 +121,9 @@ You are also told when a good passes another hundred, and when it fills the ware
 
 **Membership** is the share of the colony's people who are Sons of Liberty; the rest are Tories. Bells raise it slowly, a little each turn, and it slips back unless bells keep coming. Left to settle, a colony ringing one bell a turn for each colonist ends near 50%, and two bells for each colonist near 100%. New colonists dilute it; people leaving or dying raise it. In a colony making fewer bells than it has people, some of the bells are lost.
 
-**The production bonus.** At 50% membership every worker in the colony, in the fields and in the buildings, makes one more of whatever he makes. At 100% he makes two more. The bonus changes by one step a turn at most, and once at 100% the colony keeps the second step until membership falls below 95%. The centre square gets the bonus too. Each change is announced.
+**The production bonus.** At 50% membership every worker in the colony, in the fields and in the buildings, has one added to what he makes, before an expert's or a building's doubling, so a worker whose output is doubled gains two. At 100% two are added. Teachers make nothing, so the bonus does not touch them. The bonus changes by one step a turn at most, and once at 100% the colony keeps the second step until membership falls below 95%. The centre square gets the bonus too. Each change is announced.
 
-**The Tory penalty.** Tories in a big colony make everyone less productive. Count the Tories (the population times the Tory share, rounded); for every 10 of them on Discoverer, 9 on Explorer, 8 on Conquistador, 7 on Governor or 6 on Viceroy, every worker makes one less, and the penalty is taken from the bonus. A colony of five or fewer never has enough Tories to suffer, but a colony of twenty with no Sons of Liberty loses two or more from every worker. You are warned when a colony reaches the penalty.
+**The Tory penalty.** Tories in a big colony make everyone less productive. Count the Tories (the population times the Tory share, rounded); for every 10 of them on Discoverer, 9 on Explorer, 8 on Conquistador, 7 on Governor or 6 on Viceroy, one is taken from every worker in the same way the bonus adds one, and the penalty is set against the bonus. A colony of five or fewer never has enough Tories to suffer, but a colony of twenty with no Sons of Liberty loses two or more from every worker. You are warned when a colony reaches the penalty.
 
 Your nation's **rebel sentiment** is the membership of all your colonies together, weighted by their population.
 
@@ -161,7 +161,7 @@ A colonist who joins without being told where to work is given a job. If the col
 
 A colonist can leave the colony through his jobs menu or by being dragged outside the gates, but the last colonist cannot. A colony with a Stockade or stronger works cannot drop below three colonists by choice. The colony screen offers no way to abandon a colony; a colony ends only when it starves out or is taken.
 
-When a colony is lost, its owner's ships in its port leave damaged and lose their cargo, sailing for the nearest colony with a Drydock, or for Europe.
+When a colony is lost, its owner's ships in its port leave damaged, losing their cargo and any passengers aboard. They sail for the nearest colony with a Drydock, or for Europe; with neither (Europe is closed once you have declared independence), they sink.
 
 ## When a colony is attacked
 

@@ -22,8 +22,10 @@ import { NAVAL } from '../../../src/engine/data/naval';
 import { WAREHOUSE } from '../../../src/engine/data/pioneer';
 import { PRODUCTION, TRADE_IDS, TRADES } from '../../../src/engine/data/production';
 import { PROFESSION_IDS, PROFESSIONS } from '../../../src/engine/data/professions';
-import { RAW_GOODS, TERRAIN, TERRAIN_IDS, baseYield, type RawGood } from '../../../src/engine/data/terrain';
+import { CLEARED_FROM, RAW_GOODS, TERRAIN, TERRAIN_IDS, type ForestTerrain, type RawGood, type TerrainId } from '../../../src/engine/data/terrain';
 import { UNIT_TYPES } from '../../../src/engine/data/units';
+import { makeTile, type BaseTerrain, type Tile } from '../../../src/engine/tile';
+import { tileYield } from '../../../src/engine/yields';
 
 const cell = (value: string | number): string => String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 
@@ -79,12 +81,27 @@ const chainNames = (chain: BuildingChain): string =>
   (BUILDING_CHAINS[chain] as readonly BuildingId[]).filter((id) => !BUILDINGS[id].unused).map((id) => BUILDINGS[id].name).join(' → ');
 const expertsFor = (good: RawGood): string[] => PROFESSION_IDS.filter((p) => PROFESSIONS[p].expertGood === good).map((p) => PROFESSIONS[p].name);
 
-/** Where a free colonist gets this raw good, best first, as "Plains 5, Savannah 4, Grassland 3 and 4 more". */
+/** A square of this terrain with no river, road, plowing or resource. */
+function bareTile(terrain: TerrainId): Tile {
+  if (terrain === 'hills' || terrain === 'mountains') return makeTile({ base: 'plains', relief: terrain });
+  if (terrain in CLEARED_FROM) return makeTile({ base: CLEARED_FROM[terrain as ForestTerrain], forest: true });
+  return makeTile({ base: terrain as BaseTerrain });
+}
+
+/**
+ * Where a free colonist gets this raw good on a bare square, best first, as "Plains 5, Savannah 4,
+ * Tundra 3 and 14 more". Fish are counted on a shore square (fewer water neighbours give more).
+ */
 function bestSquares(good: RawGood, shown = 3): string {
-  const rows = TERRAIN_IDS.map((t) => ({ name: TERRAIN[t].name, n: baseYield(t, good) }))
+  const rows = TERRAIN_IDS.map((t) => ({ name: TERRAIN[t].name, n: tileYield(bareTile(t), good) }))
     .filter((r) => r.n > 0)
     .sort((a, b) => b.n - a.n);
   const head = rows.slice(0, shown).map((r) => `${r.name} ${r.n}`).join(', ');
+  if (rows.length === 0) {
+    // silver: a bare square gives none without a deposit, but a road brings a little out
+    const roads = TERRAIN_IDS.map((t) => ({ name: TERRAIN[t].name, n: tileYield({ ...bareTile(t), road: true }, good) })).filter((r) => r.n > 0);
+    return `${roads.map((r) => `${r.name} ${r.n} with a road`).join(', ')}; more on a silver or mineral deposit`;
+  }
   return rows.length > shown ? `${head} and ${rows.length - shown} more` : head;
 }
 
@@ -94,7 +111,7 @@ function goodsRow(good: GoodId | AbstractGoodId): (string | number)[] {
     const raw = good as RawGood;
     if (raw === 'food') {
       return [icon, goodName(good), 'Raw', 'Land; water too once the colony has Docks (fish)', [...expertsFor('food'), ...expertsFor('fish')].join(', '),
-        `A square: ${bestSquares('food')}; at sea ${bestSquares('fish', 2)}`];
+        `A square: ${bestSquares('food')}; fish ${bestSquares('fish', 2)} by the shore, less out at sea`];
     }
     return [icon, goodName(good), 'Raw', 'Land', expertsFor(raw).join(', '), `A square: ${bestSquares(raw)}`];
   }
@@ -131,7 +148,10 @@ function buildingEffect(id: BuildingId): string {
     const output = goodName(t.output as GoodId).toLowerCase();
     const [used, made] = PRODUCTION.factoryInput;
     if (b.level === 1) return `Up to ${workers} colonists turn ${input} into ${output}, one for one.${id === 'armory' ? ` ${UNIT_TYPES.artillery.name} can be built.` : ''}`;
-    if (b.level === 2) return `Each worker makes twice what he made in the ${BUILDINGS[line[0] as BuildingId].name}.`;
+    if (b.level === 2) {
+      const base = PRODUCTION.base.skilled;
+      return `Each worker makes his base amount again on top: a free colonist ${2 * base} instead of ${base}, an expert ${2 * base * PRODUCTION.expertMultiplier} instead of ${base * PRODUCTION.expertMultiplier}.`;
+    }
     return `Half again the output of the ${BUILDINGS[line[1] as BuildingId].name}, using only ${used} ${input} for every ${made} ${output}.`;
   }
   const shipyardUnits = (Object.keys(BUILDABLE_UNITS) as (keyof typeof BUILDABLE_UNITS)[]).filter((u) => BUILDABLE_UNITS[u] === 'shipyard').map((u) => UNIT_TYPES[u].name);
@@ -152,7 +172,7 @@ function buildingEffect(id: BuildingId): string {
     case 'university': return teachers(3);
     case 'warehouse': return `The colony keeps ${WAREHOUSE.base + WAREHOUSE.step} of each good instead of ${WAREHOUSE.base}.`;
     case 'warehouseExpansion': return `The colony keeps ${WAREHOUSE.base + 2 * WAREHOUSE.step} of each good.`;
-    case 'stable': return `Horses breed twice as fast: ${HORSES.perHerd} for every ${HORSES.herdSizeWithStable} in the herd instead of every ${HORSES.herdSize}.`;
+    case 'stable': return `A big herd breeds faster: up to ${HORSES.perHerd} new horses for every ${HORSES.herdSizeWithStable} in the herd (or part of ${HORSES.herdSizeWithStable}) instead of every ${HORSES.herdSize}, food and room allowing.`;
     case 'customHouse': return `Sells the goods you choose without a ship: each turn, down to ${CUSTOM_HOUSE.keep} once ${CUSTOM_HOUSE.sellAt} are in store.`;
     case 'printingPress': return "Half again the colony's liberty bells.";
     case 'newspaper': return "Twice the colony's liberty bells, in place of the press's half again.";
