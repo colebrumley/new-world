@@ -418,9 +418,14 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         if (e.type === 'nativeGift' && session.state.colonies[e.colonyId]?.owner === me()) say(`Natives brought a gift of ${e.amount} ${GOOD_NAMES[e.good]} to ${session.state.colonies[e.colonyId]?.name ?? 'our colony'}.`);
         if (e.type === 'convertJoined' && e.player === me()) say('A native convert has joined one of our colonies.');
       }
-      void royalBusiness();
+      for (const e of stepped.events) {
+        if ((e.type === 'buildingCompleted' || e.type === 'unitBuilt') && session.state.colonies[e.colonyId]?.owner === me() && !finished.includes(e.colonyId)) finished.push(e.colonyId);
+      }
     }
-    if (action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'foundColony' || action.type === 'endTurn') void afterMoving(stepped.events);
+    // the turn's questions come first; then the player is taken to each colony with a finished project
+    const business = turnEnded ? royalBusiness() : Promise.resolve();
+    const moved = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'foundColony' || action.type === 'endTurn' ? afterMoving(stepped.events) : Promise.resolve();
+    if (turnEnded) void Promise.all([business, moved]).then(visitFinished);
     if (session.state.over) void announceEnd();
     audio.play(cuesFor(stepped.events, session.state, me()), options);
     canvas.dataset['cues'] = audio.played.slice(-6).join(',');
@@ -966,7 +971,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   };
 
   // --- the colony screen -------------------------------------------------------------------
-  let colonyScreen: { element: HTMLElement; refresh(): void } | null = null;
+  let colonyScreen: { element: HTMLElement; refresh(): void; chooseProject(): Promise<void> } | null = null;
   const closeColony = (): void => {
     colonyScreen?.element.remove();
     colonyScreen = null;
@@ -974,6 +979,20 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     settle();
     dirty = true;
     canvas.focus();
+    void visitFinished();
+  };
+  /** Colonies that finished a building or a unit this turn, still to be taken to for their next project. */
+  const finished: string[] = [];
+  /** Takes the player to the next colony whose project is finished, on the question of what to build now. */
+  const visitFinished = async (): Promise<void> => {
+    if (colonyScreen || europeScreen || session.state.over || screen.querySelector('[role="dialog"]')) return;
+    for (let next = finished.shift(); next !== undefined; next = finished.shift()) {
+      if (session.state.colonies[next]?.owner !== me()) continue;
+      openColony(next);
+      const opened = colonyScreen as { chooseProject(): Promise<void> } | null;
+      await opened?.chooseProject();
+      return;
+    }
   };
   const openColony = (colonyId: string): void => {
     if (colonyScreen || session.state.colonies[colonyId]?.owner !== me()) return;

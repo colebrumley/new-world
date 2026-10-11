@@ -22,6 +22,7 @@ const EVENTS: GameEvent[] = [
   { type: 'membershipChanged', colonyId: 'james', percent: 40, rising: true },
   { type: 'rebelMajority', colonyId: 'james', percent: 52 },
   { type: 'buildingCompleted', colonyId: 'james', building: 'stockade', tools: 0 },
+  { type: 'alreadyHave', colonyId: 'james', building: 'docks' },
   { type: 'colonistStarved', colonyId: 'james', colonistId: 'x' },
   { type: 'foodLow', colonyId: 'theirs', turnsLeft: 1 },
 ];
@@ -37,6 +38,7 @@ describe('colony notices', () => {
       'Jamestown: Sons of Liberty membership has risen to 40%.',
       'Jamestown: half the colony now stands with the Sons of Liberty (52%). Production rises.',
       'Jamestown has completed its Stockade.',
+      'Jamestown already has its Docks: choose something else to build.',
       'Jamestown: a colonist has starved.',
     ]);
   });
@@ -46,9 +48,9 @@ describe('colony notices', () => {
     const all = lines(DEFAULT_OPTIONS);
     const cases: [keyof Options, RegExp][] = [['reportTrained', /taught/], ['reportFood', /food will run out/], ['reportRawMaterials', /want of ore/], ['reportTools', /more tools/], ['reportInefficient', /Tory feeling/], ['reportSonsOfLiberty', /membership has risen/], ['reportRebelMajority', /half the colony/]];
     for (const [key, pattern] of cases) expect(lines(off(key)), key).toEqual(all.filter((l) => !pattern.test(l)));
-    // a death and a finished building are always told
+    // a death, a finished building and a project left on a building the colony has are always told
     const silent = lines(off('reportTrained', 'reportFood', 'reportRawMaterials', 'reportTools', 'reportInefficient', 'reportNewCargo', 'reportSonsOfLiberty', 'reportRebelMajority'));
-    expect(silent).toEqual(['Jamestown has completed its Stockade.', 'Jamestown: a colonist has starved.']);
+    expect(silent).toEqual(['Jamestown has completed its Stockade.', 'Jamestown already has its Docks: choose something else to build.', 'Jamestown: a colonist has starved.']);
   });
 });
 

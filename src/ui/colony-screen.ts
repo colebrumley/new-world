@@ -60,7 +60,7 @@ function picture(art: Sprite | null, className: string, scale = 1): HTMLCanvasEl
   return canvas;
 }
 
-export function openColonyScreen(parent: HTMLElement, colonyId: string, host: ColonyScreenHost): { element: HTMLElement; refresh(): void } {
+export function openColonyScreen(parent: HTMLElement, colonyId: string, host: ColonyScreenHost): { element: HTMLElement; refresh(): void; chooseProject(): Promise<void> } {
   const root = el('section', 'colony-screen');
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-label', 'Colony');
@@ -455,8 +455,8 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     } else {
       const c = view.construction;
       multi.append(
-        el('p', 'construction-item', c.item ? `Building: ${c.item}` : 'Building nothing'),
-        el('p', 'construction-progress', c.item ? `Hammers ${c.hammers}/${c.hammersNeeded}, tools ${Math.min(c.tools, c.toolsNeeded)}/${c.toolsNeeded}` : `Hammers stored: ${c.hammers}`),
+        el('p', 'construction-item', c.built ? `${c.item} is built: choose the next project.` : c.item ? `Building: ${c.item}` : 'Building nothing'),
+        el('p', 'construction-progress', c.item && !c.built ? `Hammers ${c.hammers}/${c.hammersNeeded}, tools ${Math.min(c.tools, c.toolsNeeded)}/${c.toolsNeeded}` : `Hammers stored: ${c.hammers}`),
       );
       const change = el('button', 'construction-change', 'Change (C)');
       change.type = 'button';
@@ -811,7 +811,14 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
 
   parent.append(root);
   render();
-  return { element: root, refresh: render };
+  /** Shows the construction view and asks what to build next: for a colony whose project has just finished. */
+  async function chooseProject(): Promise<void> {
+    tab = 'construction';
+    render();
+    await constructionMenu();
+  }
+
+  return { element: root, refresh: render, chooseProject };
 }
 
 export type { ColonyView };
