@@ -90,7 +90,7 @@ function tribes(): string {
         `${start} (the ${CAPITAL_NAME.settlement.toLowerCase()} up to ${max})`,
         tribe.treasure,
         skills[id].slice(0, SKILLS_SHOWN).map((p) => PROFESSIONS[p].name).join(', '),
-        `${TRIBE_HOMES[id]}; ${AMERICA_TRIBE_SITES[id].length} settlements`,
+        `${TRIBE_HOMES[id]}; up to ${AMERICA_TRIBE_SITES[id].length} settlements`,
       ];
     }),
   );
@@ -112,7 +112,7 @@ function nativeAttitudes(): string {
   const means = [
     'Friendly. Their braves call on your colonies with gifts and converts, and they teach and trade freely.',
     'Wary. Lessons may fail, a chief may have a scout killed, and a brave at your gate may demand goods instead of bringing them.',
-    'Sullen. They will not teach, they refuse tribute, and their braves come to your colonies with black looks only.',
+    'Sullen. They will not teach, a demand for tribute that fails is refused outright, and their braves come to your colonies with black looks only.',
     'Hostile. Ships are turned away, wagon trains risk their cargo, scouts are killed, and braves attack your units and colonies.',
     'This settlement alone has turned on you: ships are turned away and its brave attacks your units and colonies.',
   ];

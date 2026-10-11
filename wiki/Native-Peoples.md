@@ -14,14 +14,14 @@ village peoples farm and live in longhouse villages; the two city peoples build 
 
 |  | People | How they live | People per settlement | Treasure | Most often teach | On the America map |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| ![Inca city](images/art/places/villageInca.png) | Incas | Civilized: cities | 9 (the capital up to 13) | Jewelled Relics | Expert Farmer, Expert Silver Miner, Expert Ore Miner | the mountains and coast of western South America; 5 settlements |
-| ![Aztec city](images/art/places/villageAztec.png) | Aztecs | Advanced: cities | 7 (the capital up to 10) | Gold Bars | Expert Farmer, Expert Fisherman, Expert Ore Miner | Mexico and Central America; 4 settlements |
-| ![Arawak village](images/art/places/villageLonghouse.png) | Arawaks | Agrarian: villages | 5 (the capital up to 7) | Bone Jewelry | Expert Fisherman, Expert Farmer, Master Sugar Planter | the Caribbean islands and the shores around them; 5 settlements |
-| ![Iroquois village](images/art/places/villageLonghouse.png) | Iroquois | Agrarian: villages | 5 (the capital up to 7) | Wood Carvings | Expert Farmer, Expert Ore Miner, Expert Fur Trapper | the north-east, from the Great Lakes to the Atlantic; 11 settlements |
-| ![Cherokee village](images/art/places/villageLonghouse.png) | Cherokee | Agrarian: villages | 5 (the capital up to 7) | Turquoise | Expert Farmer, Expert Fur Trapper, Expert Fisherman | the south-east of North America; 4 settlements |
-| ![Apache camp](images/art/places/villageCamp.png) | Apache | Semi-Nomadic: camps | 3 (the capital up to 4) | Beads | Expert Farmer, Master Cotton Planter, Expert Fur Trapper | the dry south-west of North America; 7 settlements |
-| ![Sioux camp](images/art/places/villageCamp.png) | Sioux | Semi-Nomadic: camps | 3 (the capital up to 4) | Beads | Expert Farmer, Master Cotton Planter, Expert Fur Trapper | the northern plains; 7 settlements |
-| ![Tupi camp](images/art/places/villageCamp.png) | Tupi | Semi-Nomadic: camps | 3 (the capital up to 4) | Gems | Master Sugar Planter, Expert Farmer, Expert Fur Trapper | the Amazon basin and the east of South America; 15 settlements |
+| ![Inca city](images/art/places/villageInca.png) | Incas | Civilized: cities | 9 (the capital up to 13) | Jewelled Relics | Expert Farmer, Expert Silver Miner, Expert Ore Miner | the mountains and coast of western South America; up to 5 settlements |
+| ![Aztec city](images/art/places/villageAztec.png) | Aztecs | Advanced: cities | 7 (the capital up to 10) | Gold Bars | Expert Farmer, Expert Fisherman, Expert Ore Miner | Mexico and Central America; up to 4 settlements |
+| ![Arawak village](images/art/places/villageLonghouse.png) | Arawaks | Agrarian: villages | 5 (the capital up to 7) | Bone Jewelry | Expert Fisherman, Expert Farmer, Master Sugar Planter | the Caribbean islands and the shores around them; up to 5 settlements |
+| ![Iroquois village](images/art/places/villageLonghouse.png) | Iroquois | Agrarian: villages | 5 (the capital up to 7) | Wood Carvings | Expert Farmer, Expert Ore Miner, Expert Fur Trapper | the north-east, from the Great Lakes to the Atlantic; up to 11 settlements |
+| ![Cherokee village](images/art/places/villageLonghouse.png) | Cherokee | Agrarian: villages | 5 (the capital up to 7) | Turquoise | Expert Farmer, Expert Fur Trapper, Expert Fisherman | the south-east of North America; up to 4 settlements |
+| ![Apache camp](images/art/places/villageCamp.png) | Apache | Semi-Nomadic: camps | 3 (the capital up to 4) | Beads | Expert Farmer, Master Cotton Planter, Expert Fur Trapper | the dry south-west of North America; up to 7 settlements |
+| ![Sioux camp](images/art/places/villageCamp.png) | Sioux | Semi-Nomadic: camps | 3 (the capital up to 4) | Beads | Expert Farmer, Master Cotton Planter, Expert Fur Trapper | the northern plains; up to 7 settlements |
+| ![Tupi camp](images/art/places/villageCamp.png) | Tupi | Semi-Nomadic: camps | 3 (the capital up to 4) | Gems | Master Sugar Planter, Expert Farmer, Expert Fur Trapper | the Amazon basin and the east of South America; up to 15 settlements |
 
 <!-- /table -->
 
@@ -44,7 +44,7 @@ right of each of their settlements shows how they feel about you. Its colour is 
 | :--- | :--- | :--- | :--- |
 | Content | green | tribal alarm under 25 | Friendly. Their braves call on your colonies with gifts and converts, and they teach and trade freely. |
 | Uneasy | bright blue | tribal alarm 25 to 49 | Wary. Lessons may fail, a chief may have a scout killed, and a brave at your gate may demand goods instead of bringing them. |
-| Restless | yellow | tribal alarm 50 to 74 | Sullen. They will not teach, they refuse tribute, and their braves come to your colonies with black looks only. |
+| Restless | yellow | tribal alarm 50 to 74 | Sullen. They will not teach, a demand for tribute that fails is refused outright, and their braves come to your colonies with black looks only. |
 | Angry | orange | tribal alarm 75 or more | Hostile. Ships are turned away, wagon trains risk their cargo, scouts are killed, and braves attack your units and colonies. |
 | War | red | this settlement's own alarm 128 or more | This settlement alone has turned on you: ships are turned away and its brave attacks your units and colonies. |
 
@@ -60,8 +60,8 @@ when one of their braves walks up to yours. Their alarm at you starts low, and i
 meeting. Their chief then offers a treaty of peace.
 
 Accept it. The treaty gives you no land, but without it your missionaries cannot found missions, your
-colonists cannot live among them and your soldiers cannot demand tribute. Refusing sets their alarm
-straight to the top. A treaty you leave unanswered counts as accepted at the end of your turn.
+colonists cannot live among them and your soldiers cannot demand tribute. Refusing raises their alarm
+sharply: to the top for most powers, half as far for France or with Pocahontas. A treaty you leave unanswered counts as accepted at the end of your turn.
 
 ## Entering a settlement
 
@@ -79,8 +79,8 @@ or with open hostility) and lists what this unit may do. A visit ends the unit's
 | ![Wagon train](images/art/units/wagonTrain.png) Wagon train or ship | **Trade**: sell your cargo, give it as a gift, and buy what they offer. |
 
 A ship is turned away from a people who have never met you on land, from a people who are Angry, and
-from a settlement whose own alarm is high. A wagon train or ship that comes to an Angry people can only
-**enter a hostile village**, which risks losing the carrier and everything aboard.
+from a settlement whose own alarm is high. A wagon train that comes to an Angry people can only
+**enter a hostile village**, which risks losing the wagon train and everything aboard.
 
 **Tribute.** Demanding tribute weighs your whole strength in arms against theirs and their anger, with
 some luck on both sides. If you win and have a colony, a settlement pays once: the good it has most of,
@@ -152,10 +152,11 @@ goods his people want most.
 - **What they will not take.** They will not look at the good they last bought, the one they last
   sold you, or one a haggle failed over. Selling them the same good again and again lowers its price;
   their memory of it fades with time.
-- **Arms and mounts.** Muskets and horses arm and mount their braves: 25 or more muskets or horses
-  gives them one lot, 50 or more two, and horses add to the herds they breed from.
+- **Arms and mounts.** Muskets and horses arm and mount their braves. Selling 25 or more muskets or
+  horses gives them one lot, 50 or more two; a gift of any amount gives them one. Horses also add to
+  the herds they breed from.
 - **Buying.** After a sale or a gift they offer three of the goods they have most of, never trade goods,
-  tools or muskets. You are offered as much as you just sold, a quarter of it on a ship. Their price
+  tools or muskets; where food would be among them they offer coats instead. You are offered as much as you just sold, a quarter of it on a ship. Their price
   follows the European price for made goods, falls when they have plenty and rises with their alarm.
   You may haggle a quarter off; if it fails they sell nothing more until your next sale or gift.
 
