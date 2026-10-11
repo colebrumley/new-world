@@ -1,6 +1,6 @@
 # The America map, authored square by square: spec for R-1049 to R-1050
 
-Written by `/plan` on 2026-10-11. Status: proposed.
+Written by `/plan` on 2026-10-11. Status: built.
 
 **The request, in the owner's words:** the America map is very generic and is missing critical
 features: a ship cannot go around the southern tip of South America, and there is no Mississippi.
