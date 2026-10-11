@@ -46,6 +46,26 @@ describe('the map renderer, against a plain pixel buffer', () => {
     expect(fingerprint(shot(scene(), 960, 768, 3, { waterPhase: 1 }).rgb)).not.toBe(base); // the sea
     expect(fingerprint(shot(scene(), 960, 768, 3, { cursor: { x: 3, y: 3 } }).rgb)).not.toBe(base);
     expect(fingerprint(shot(scene(), 960, 768, 3, { slide: { unitId: 'u', dx: -0.5, dy: 0 } }).rgb)).not.toBe(base);
+    // a piece being dragged is drawn once more under the pointer
+    expect(fingerprint(shot(scene(), 960, 768, 3, { dragged: { unitId: 'u', x: 101, y: 203 } }).rgb)).not.toBe(base);
+  });
+
+  it('marks a square the dragged unit cannot go to in red', () => {
+    const count = (rgb: Uint8Array, ink: number): number => {
+      const hex = PALETTE[ink] as string;
+      let n = 0;
+      for (let i = 0; i < rgb.length; i += 3) if (`#${[rgb[i], rgb[i + 1], rgb[i + 2]].map((v) => (v as number).toString(16).padStart(2, '0')).join('')}` === hex) n++;
+      return n;
+    };
+    const plain = shot(scene(), 960, 768, 3).rgb;
+    const yellow = shot(scene(), 960, 768, 3, { cursor: { x: 5, y: 1 } }).rgb;
+    const blocked = shot(scene(), 960, 768, 3, { cursor: { x: 5, y: 1, blocked: true } }).rgb;
+    // the frame that is yellow on its own is red when blocked, pixel for pixel
+    const frame = count(yellow, INK.yellow) - count(plain, INK.yellow);
+    expect(frame).toBeGreaterThan(0);
+    expect(count(blocked, INK.red) - count(plain, INK.red)).toBe(frame);
+    expect(count(blocked, INK.yellow)).toBe(count(plain, INK.yellow));
+    expect(fingerprint(blocked)).not.toBe(fingerprint(yellow));
   });
 
   // --- the explorer's chart (R-1011): a 48 x 48 world of which only a patch round (20, 20) is known ---
