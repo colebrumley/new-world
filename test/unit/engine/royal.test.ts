@@ -336,6 +336,10 @@ describe('cashing a treasure train', () => {
     expect(code(colonist, { type: 'cashTreasure', unitId: 'nobody' })).toBe('notTreasure');
     expect(() => applyAction(outside, { type: 'cashTreasure', unitId: 't' })).toThrow();
     expect(cashTreasure(outside, 'a', 't', [])).toBe(outside);
+    // called directly, it still checks whose unit it is and that it is a treasure
+    expect(cashTreasure(colonist, 'a', 'c', [])).toBe(colonist);
+    const theirs = setup();
+    expect(cashTreasure(theirs, 'b', 't', [])).toBe(theirs);
   });
 
   it('a ship that makes port in Europe pays every treasure aboard whole, and nothing for an empty ship', () => {

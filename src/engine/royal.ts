@@ -299,8 +299,8 @@ export function checkCashTreasure(state: GameState, playerId: PlayerId, unitId: 
 
 /** Cash a treasure standing in an own colony: the Crown carries it home for its fee, or after the Declaration agents buy it whole. */
 export function cashTreasure(state: GameState, playerId: PlayerId, unitId: UnitId, events: RoyalEvent[]): GameState {
-  const unit = state.units[unitId] as Unit;
-  const found = appraise(state, unit);
+  if (!checkCashTreasure(state, playerId, unitId).ok) return state;
+  const found = appraise(state, state.units[unitId] as Unit);
   if (!('quote' in found)) return state;
   const { quote, colony } = found;
   const units = Object.fromEntries(Object.entries(state.units).filter(([id]) => id !== unitId));
