@@ -1410,7 +1410,7 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1021 Europe button state** — docs/specs/europe-call.md, item W1, size S.
 - [x] **R-1022 Log a ship reaching Europe** — docs/specs/europe-call.md, item W2, size S.
 - [x] **R-1023 Wiki scaffold, publishing workflow and README** — docs/specs/player-manual-wiki.md, item W1, size M.
-- [ ] **R-1024 Export the game's sprites as images for the manual** — docs/specs/player-manual-wiki.md, item W2, size M.
+- [x] **R-1024 Export the game's sprites as images for the manual** — docs/specs/player-manual-wiki.md, item W2, size M.
 - [ ] **R-1025 Generated reference tables in wiki pages** — docs/specs/player-manual-wiki.md, item W3, size S.
 - [ ] **R-1026 Screenshots of every screen for the manual** — docs/specs/player-manual-wiki.md, item W4, size M.
 - [ ] **R-1027 Manual: Home, Getting Started, Controls, Options, FAQ, Glossary** — docs/specs/player-manual-wiki.md, item W5, size M.
