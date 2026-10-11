@@ -164,7 +164,8 @@ test('a dragged token travels under the pointer as a ghost, red over a place tha
   await expect(townHall).toHaveAttribute('data-drop-state', 'ok');
   // (a building that is no place to work is laid out after the others, so the next one slides under the pointer)
   await townHall.evaluate((b) => b.removeAttribute('data-drop'));
-  await colony.locator('[data-region="settlement"]').dispatchEvent('scroll');
+  // (a real scroll does not bubble, so neither does this one: only a listener that captures hears it)
+  await colony.locator('[data-region="settlement"]').dispatchEvent('scroll', { bubbles: false });
   await expect(townHall).not.toHaveAttribute('data-drop-state');
   await expect(colony.locator('.building[data-drop-state="ok"]')).toHaveCount(1);
   await colony.dispatchEvent('mouseleave', { buttons: 1 });
