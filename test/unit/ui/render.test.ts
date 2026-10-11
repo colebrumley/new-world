@@ -4,8 +4,10 @@
 import { describe, expect, it } from 'vitest';
 import type { GameState, Settlement } from '../../../src/engine/state';
 import { chartMarks } from '../../../src/ui/chart';
-import { ART_COLORS, INK, PALETTE } from '../../../src/ui/pixel-art';
-import { makeView } from '../../../src/ui/view';
+import { ART_COLORS, at, COAST_MASKS, EDGE_MASKS, floorArt, INK, overArt, PALETTE, rotate, type Sprite, type TileGrid } from '../../../src/ui/pixel-art';
+import { landBeside, renderGround } from '../../../src/ui/render';
+import { lookOf, tileSprite, type TileCache } from '../../../src/ui/tiles';
+import { makeView, type View } from '../../../src/ui/view';
 import { fingerprint, referencePixels } from '../../helpers/reference-canvas';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
@@ -223,6 +225,188 @@ describe('the map renderer, against a plain pixel buffer', () => {
     const beside = changed(draw(land('A Very Long Name Here', 0, 0), 256, 3, 0), draw(land('', 0, 0), 256, 3, 0));
     expect(beside.length).toBeGreaterThan(0);
     for (const [x] of beside) expect(x).toBeLessThan(4 + 16 * 7 + 3 - 96);
+  });
+
+  // --- blended edges and coasts (R-1041): each square drawn one art pixel to the canvas pixel, so a cell is a pixel ---
+  const GRIDS = [32, 16] as const satisfies readonly TileGrid[];
+  const land = (rows: readonly string[]): GameState => world({ rows, players: [{ id: 'a' }] });
+  const window = (state: GameState, grid: number, options: Partial<View> = {}): View =>
+    ({ width: state.map.width * grid, height: state.map.height * grid, zoom: 0, tileSize: grid, originX: 0, originY: 0, showHidden: false, revealAll: false, ...options });
+  const drawn = (state: GameState, grid: number, waterPhase = 0): ReturnType<typeof referencePixels> => referencePixels(state, window(state, grid), { activeUnitId: null, cursor: null, waterPhase });
+  /** The colour of one cell of the square at (x, y) as drawn. */
+  const cell = (made: ReturnType<typeof referencePixels>, grid: number, x: number, y: number, cx: number, cy: number): string => {
+    const i = ((y * grid + cy) * made.width + x * grid + cx) * 3;
+    return `#${[made.rgb[i], made.rgb[i + 1], made.rgb[i + 2]].map((n) => (n as number).toString(16).padStart(2, '0')).join('')}`;
+  };
+  /** The colour of one cell of a sprite. */
+  const ink = (sprite: Sprite, cx: number, cy: number): string => ART_COLORS[at(sprite, cx, cy) - 1] as string;
+  const variantAt = (x: number, y: number): number => (x * 7 + y * 13) % 4;
+  /** The square at (x, y) as it stands alone: floor and all, nothing of its neighbours. */
+  const composite = (state: GameState, grid: number, x: number, y: number): Sprite => tileSprite(lookOf(state.map.tiles[y * state.map.width + x]!, 0, 0, variantAt(x, y), false), grid);
+  /** What each cell of that square is when it stands alone. */
+  const alone = (state: GameState, grid: number, x: number, y: number): ((cx: number, cy: number) => string) => {
+    const sprite = composite(state, grid, x, y);
+    return (cx, cy) => ink(sprite, cx, cy);
+  };
+  /** Every cell of the square, with what it is expected to be. Returns the cells that are not. */
+  const wrong = (made: ReturnType<typeof referencePixels>, grid: number, x: number, y: number, expected: (cx: number, cy: number) => string): string[] => {
+    const out: string[] = [];
+    for (let cy = 0; cy < grid; cy++) for (let cx = 0; cx < grid; cx++) if (cell(made, grid, x, y, cx, cy) !== expected(cx, cy)) out.push(`${cx},${cy}`);
+    return out;
+  };
+  const stencil = (grid: TileGrid, side: number, cx: number, cy: number): boolean => ((EDGE_MASKS[grid][side] as readonly string[])[cy] as string)[cx] === '#';
+
+  it('spills each differing neighbour\'s floor a little way in through that side\'s stencil, forests as their open ground', () => {
+    const state = land(['~~~~', '~.g~', '~ff~', '~~~~']);
+    for (const grid of GRIDS) {
+      const made = drawn(state, grid);
+      const own = (x: number, y: number): ((cx: number, cy: number) => string) => alone(state, grid, x, y);
+      // the plains square: grassland inside the east stencil, itself everywhere else
+      const grass = floorArt(grid, 'grassland', variantAt(2, 1));
+      const [plainsAlone, grassAlone, woodAlone] = [own(1, 1), own(2, 1), own(2, 2)];
+      expect(wrong(made, grid, 1, 1, (cx, cy) => (stencil(grid, 1, cx, cy) ? ink(grass, cx, cy) : plainsAlone(cx, cy))), `plains ${grid}`).toEqual([]);
+      // the grassland square: the plains square's floor inside the west stencil, the forest's open ground (plains) inside the south one
+      const plains = floorArt(grid, 'plains', variantAt(1, 1));
+      const wood = floorArt(grid, 'plains', variantAt(2, 2));
+      expect(wrong(made, grid, 2, 1, (cx, cy) => (stencil(grid, 3, cx, cy) ? ink(plains, cx, cy) : stencil(grid, 2, cx, cy) ? ink(wood, cx, cy) : grassAlone(cx, cy))), `grassland ${grid}`).toEqual([]);
+      // the mixed forest beside the plains square is plains to it: nothing spills, either way
+      expect(wrong(made, grid, 1, 2, own(1, 2)), `forest ${grid}`).toEqual([]);
+      // the forest under the grassland takes grassland through its north stencil, under its trees, and nothing else
+      const trees = overArt(lookOf(state.map.tiles[2 * 4 + 2]!, 0, 0, variantAt(2, 2), false), grid);
+      expect(wrong(made, grid, 2, 2, (cx, cy) => (stencil(grid, 0, cx, cy) && at(trees, cx, cy) === 0 ? ink(grass, cx, cy) : woodAlone(cx, cy))), `forest under grassland ${grid}`).toEqual([]);
+      // the land does not move with the water
+      const later = drawn(state, grid, 1);
+      for (const [x, y] of [[1, 1], [2, 1], [1, 2], [2, 2]] as const) expect(wrong(later, grid, x, y, (cx, cy) => cell(made, grid, x, y, cx, cy))).toEqual([]);
+      expect(wrong(later, grid, 0, 0, (cx, cy) => cell(made, grid, 0, 0, cx, cy)).length).toBeGreaterThan(0);
+    }
+    // a square whose four orthogonal neighbours are its own open terrain is itself alone, whatever lies at its corners
+    const same = land(['g.g', '.f.', 'g.g']);
+    for (const grid of GRIDS) expect(wrong(drawn(same, grid), grid, 1, 1, alone(same, grid, 1, 1)), `${grid}`).toEqual([]);
+  });
+
+  it('never spills water onto land: a land square\'s water side shows the land that water is painted as', () => {
+    // the water between is painted as the plains to its west, so the grassland takes plains through its west side
+    const state = land(['.~g']);
+    for (const grid of GRIDS) {
+      const made = drawn(state, grid);
+      expect(wrong(made, grid, 0, 0, alone(state, grid, 0, 0)), `plains ${grid}`).toEqual([]);
+      const plains = floorArt(grid, 'plains', variantAt(1, 0));
+      const grassAlone = alone(state, grid, 2, 0);
+      expect(wrong(made, grid, 2, 0, (cx, cy) => (stencil(grid, 3, cx, cy) ? ink(plains, cx, cy) : grassAlone(cx, cy))), `grassland ${grid}`).toEqual([]);
+    }
+    expect(landBeside(state.map, 1, 0)).toBe('plains');
+    expect(landBeside(state.map, 1, 0, (x) => x !== 0)).toBe('grassland');
+    expect(landBeside(state.map, 0, 0)).toBe(null);
+    // west, then south, then east, then north; a forest counts as its open ground
+    const ring = land(['.g.', 'w~f', '.a.']);
+    expect(landBeside(ring.map, 1, 1)).toBe('swamp');
+    expect(landBeside(ring.map, 1, 1, (x) => x !== 0)).toBe('arctic');
+    expect(landBeside(ring.map, 1, 1, (x, y) => x !== 0 && y !== 2)).toBe('plains');
+    expect(landBeside(ring.map, 1, 1, (x, y) => x === 1 && y === 0)).toBe('grassland');
+  });
+
+  it('carries the coast on the water square: the land beside it under its edge, a line of shallows, then the water', () => {
+    const island = land(['~~~', '~.~', '~~~']);
+    const hex = (i: number): string => PALETTE[i] as string;
+    for (const grid of GRIDS) {
+      const half = grid / 2;
+      const made = drawn(island, grid);
+      const plains = floorArt(grid, 'plains', variantAt(1, 0));
+      const water = composite(island, grid, 1, 0);
+      // north of the island: every column is plains from the bottom up, then shallows, then the sea, and the top half is the sea alone
+      for (let cx = 0; cx < grid; cx++) {
+        let cy = grid - 1;
+        while (cell(made, grid, 1, 0, cx, cy) === ink(plains, cx, cy) && cy >= half) cy--;
+        const depth = grid - 1 - cy;
+        expect(depth, `${grid} column ${cx}`).toBeGreaterThanOrEqual(2);
+        expect(depth, `${grid} column ${cx}`).toBeLessThanOrEqual(grid / 16 * 3);
+        let shallows = 0;
+        while (cell(made, grid, 1, 0, cx, cy) === hex(INK.wave) && cy >= half) {
+          shallows++;
+          cy--;
+        }
+        expect(shallows, `${grid} column ${cx}`).toBeGreaterThanOrEqual(grid / 16);
+        expect(shallows, `${grid} column ${cx}`).toBeLessThanOrEqual(grid / 16 + 2);
+        for (; cy >= 0; cy--) expect(cell(made, grid, 1, 0, cx, cy), `${grid} ${cx},${cy}`).toBe(ink(water, cx, cy));
+      }
+      // north-west of it: a small corner of plains at the south-east, shallows beside it, the sea everywhere else
+      const corner = composite(island, grid, 0, 0);
+      const floor = floorArt(grid, 'plains', variantAt(0, 0));
+      const shape = rotate(rotate(COAST_MASKS[grid][2] as readonly string[]));
+      const differs = wrong(made, grid, 0, 0, (cx, cy) => ink(corner, cx, cy));
+      expect(differs.length).toBeGreaterThan(0);
+      for (const where of differs) {
+        const [cx, cy] = where.split(',').map(Number) as [number, number];
+        expect(cx >= half && cy >= half, `${grid} ${where}`).toBe(true);
+        expect(cell(made, grid, 0, 0, cx, cy), `${grid} ${where}`).toBe((shape[cy - half] as string)[cx - half] === '.' ? ink(floor, cx, cy) : hex(INK.wave));
+      }
+      expect(cell(made, grid, 0, 0, grid - 1, grid - 1)).toBe(ink(floor, grid - 1, grid - 1));
+      expect(differs.some((where) => cell(made, grid, 0, 0, ...(where.split(',').map(Number) as [number, number])) === hex(INK.wave))).toBe(true);
+      // the land square carries none of it
+      expect(wrong(made, grid, 1, 1, alone(island, grid, 1, 1)), `${grid}`).toEqual([]);
+      // and water with no land about is water alone
+      const sea = land(['~~~~', '~~~.']);
+      expect(wrong(drawn(sea, grid), grid, 0, 0, alone(sea, grid, 0, 0)), `${grid}`).toEqual([]);
+      expect(wrong(drawn(sea, grid), grid, 2, 0, alone(sea, grid, 2, 0)).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('draws an open bay where land lies to the north, the west and between: land along both sides, water in the middle', () => {
+    const bay = land(['...', '.~.', '...']);
+    for (const grid of GRIDS) {
+      const half = grid / 2;
+      const made = drawn(bay, grid);
+      const floor = floorArt(grid, 'plains', variantAt(1, 1));
+      const water = composite(bay, grid, 1, 1);
+      const shape = COAST_MASKS[grid][7] as readonly string[];
+      for (let i = 0; i < grid; i++) {
+        expect(cell(made, grid, 1, 1, i, 0), `north ${i}`).toBe(ink(floor, i, 0));
+        expect(cell(made, grid, 1, 1, 0, i), `west ${i}`).toBe(ink(floor, 0, i));
+        expect(cell(made, grid, 1, 1, i, grid - 1), `south ${i}`).toBe(ink(floor, i, grid - 1));
+        expect(cell(made, grid, 1, 1, grid - 1, i), `east ${i}`).toBe(ink(floor, grid - 1, i));
+      }
+      // the north-west quarter is the shape for all three: plains where it is land, and the middle of the square is the sea
+      for (let cy = 0; cy < half; cy++) for (let cx = 0; cx < half; cx++) if ((shape[cy] as string)[cx] === '.') expect(cell(made, grid, 1, 1, cx, cy), `${cx},${cy}`).toBe(ink(floor, cx, cy));
+      for (let cy = half - 2; cy < half + 2; cy++) for (let cx = half - 2; cx < half + 2; cx++) expect(cell(made, grid, 1, 1, cx, cy)).toBe(ink(water, cx, cy));
+    }
+  });
+
+  it('shows nothing of a neighbour the viewer has not seen: no blend from it, and no coast toward it', () => {
+    const hide = (state: GameState, x: number, y: number): GameState => setTile(state, x, y, { explored: 0 });
+    for (const grid of GRIDS) {
+      const edge = hide(land(['.g', '..']), 1, 0);
+      expect(wrong(drawn(edge, grid), grid, 0, 0, alone(edge, grid, 0, 0)), `land ${grid}`).toEqual([]);
+      expect(wrong(drawn(land(['.g', '..']), grid), grid, 0, 0, alone(edge, grid, 0, 0)).length).toBeGreaterThan(0);
+      const shore = hide(land(['~.', '~~']), 1, 0);
+      expect(wrong(drawn(shore, grid), grid, 0, 0, alone(shore, grid, 0, 0)), `water ${grid}`).toEqual([]);
+      // nor is unseen land read through the water beside it
+      const beyond = hide(land(['.~g']), 0, 0);
+      expect(wrong(drawn(beyond, grid), grid, 2, 0, alone(beyond, grid, 2, 0)), `through water ${grid}`).toEqual([]);
+    }
+  });
+
+  it('draws a land square in two pieces and a coastal water square in six; the smallest zoom draws one', () => {
+    const island = land(['~~~', '~.~', '~~~']);
+    const count = (state: GameState, grid: number): number[] => {
+      const calls = new Array<number>(state.map.width * state.map.height).fill(0);
+      const ctx = {
+        fillStyle: '',
+        imageSmoothingEnabled: true,
+        fillRect: (): void => {},
+        drawImage: (_art: unknown, x: number, y: number): void => {
+          calls[(y / grid) * state.map.width + x / grid]!++;
+        },
+      };
+      const cache = { get: () => ({}), sprite: () => ({}), size: 0 };
+      renderGround(ctx as unknown as CanvasRenderingContext2D, state, window(state, grid), cache as unknown as TileCache);
+      return calls;
+    };
+    expect(count(island, 32)).toEqual([6, 6, 6, 6, 2, 6, 6, 6, 6]);
+    expect(count(island, 16)).toEqual([6, 6, 6, 6, 2, 6, 6, 6, 6]);
+    expect(count(island, 8)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1]);
+    // open sea is two (floor and over); a land square adds one for each side that differs
+    expect(count(land(['~~~~', '~~~.']), 32).slice(0, 2)).toEqual([2, 2]);
+    expect(count(land(['~~~~', '~.g~', '~ff~', '~~~~']), 32).filter((_, i) => [5, 6, 9, 10].includes(i))).toEqual([3, 4, 2, 3]);
   });
 
   it('matches the baseline at each zoom', () => {
