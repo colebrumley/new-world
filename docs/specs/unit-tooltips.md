@@ -1,6 +1,6 @@
 # Units on the map tooltip: spec for R-1051
 
-Written by `/plan` on 2026-10-11. Status: proposed.
+Written by `/plan` on 2026-10-11. Status: built.
 
 **The request, in the owner's words:** "When there is a unit on top of a tile, I want that unit's
 information to be shown on the pop-up tooltip as well." The slip that appears when the pointer rests
