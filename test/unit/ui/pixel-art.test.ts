@@ -481,6 +481,11 @@ describe('detailed terrain', () => {
     const share = (rows: readonly string[], is: (rgb: number[]) => boolean): number => [...rows.join('')].filter((ch) => ch !== '.' && is(channels(ch))).length / rows.join('').length;
     expect(share(rows, (rgb) => rgb.every((n) => n >= 200))).toBeGreaterThanOrEqual(0.12);
     expect(share(rows, (rgb) => rgb.every((n) => n < 48))).toBeGreaterThanOrEqual(0.08);
+    // and the snow lies on the upper faces, not at the foot: more of it in the upper half than the lower, and next to none in the bottom quarter
+    const snowy = (from: number, to: number): number => share(rows.slice(from, to), (rgb) => rgb.every((n) => n >= 200)) * (to - from) * FEATURE_SIZE;
+    expect(snowy(0, FEATURE_SIZE / 2)).toBeGreaterThan(snowy(FEATURE_SIZE / 2, FEATURE_SIZE));
+    expect(snowy((FEATURE_SIZE * 3) / 4, FEATURE_SIZE)).toBeLessThan(8);
+    expect(snowy(FEATURE_SIZE - 1, FEATURE_SIZE)).toBe(0);
     // the hills beside them hold no snow, so the two reliefs are told apart by more than their shapes
     expect(share(FEATURE_ART.hills as readonly string[], (rgb) => rgb.every((n) => n >= 200))).toBe(0);
   });
