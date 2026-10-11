@@ -13,7 +13,7 @@ import { TRIBES, type TribeId } from '../engine/data/tribes';
 import { tribeOfOwner } from '../engine/settlements';
 import type { TerrainId } from '../engine/data/terrain';
 import { isExploredBy, isWater, terrainOf, type Tile } from '../engine/tile';
-import { activeFrameArt, colonyArt, chartMarkArt, blockedCursorArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, LABEL_LENGTH, LABEL_SIZE, LABEL_STEP, labelArt, labelText, openOf, PALETTE, pieceArt, settlementArt, VELLUM, vellumArt, type InkId, type Sprite } from './pixel-art';
+import { activeFrameArt, colonyArt, chartMarkArt, blockedCursorArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, joins, LABEL_LENGTH, LABEL_SIZE, LABEL_STEP, labelArt, labelText, openOf, PALETTE, pieceArt, settlementArt, VELLUM, vellumArt, type InkId, type Sprite } from './pixel-art';
 import { blendLayer, chartGrid, coastLayer, DETAIL_FROM, drawArt, floorLayer, lookOf, overLayer, TILE_VARIANTS, type TileCache } from './tiles';
 import { orderLetter, topUnit } from './unit-queue';
 import type { View } from './view';
@@ -68,6 +68,41 @@ function roadMask(map: GameMap, x: number, y: number): number {
   let mask = 0;
   N8.forEach(([dx, dy], i) => {
     if (tileOf(map, x + dx, y + dy)?.road) mask |= 1 << i;
+  });
+  return mask;
+}
+
+/** The side of a neighbour that faces back: north's is south, east's is west. */
+const facing = (side: number): number => (side + 2) % 4;
+
+/**
+ * Which orthogonal neighbours a square's forest, hills or mountains run on into: bits N=1, E=2, S=4, W=8.
+ * `terrainAt` gives a neighbour's terrain as it is drawn, or null where it is off the map or not to be read
+ * (a square the viewer has not seen), which never joins.
+ */
+export function joinMask(terrain: TerrainId, x: number, y: number, terrainAt: (x: number, y: number) => TerrainId | null): number {
+  let mask = 0;
+  N4.forEach(([dx, dy], side) => {
+    const beside = terrainAt(x + dx, y + dy);
+    if (beside !== null && joins(terrain, beside)) mask |= 1 << side;
+  });
+  return mask;
+}
+
+/**
+ * The river mouths on a water square: bits N=1, E=2, S=4, W=8 for each orthogonal land neighbour with a river
+ * whose own mask points at this square, and the same sides as bits 16 to 128 where that river is a major one.
+ * The mouth is read from the land, since no river lies on a water square. `shows` leaves out squares that are
+ * not to be read (those the viewer has not seen).
+ */
+export function mouthMask(map: GameMap, x: number, y: number, shows: (x: number, y: number) => boolean = () => true): number {
+  let mask = 0;
+  N4.forEach(([dx, dy], side) => {
+    const nx = x + dx;
+    const ny = y + dy;
+    const beside = tileOf(map, nx, ny);
+    if (!beside || isWater(beside) || beside.river === 'none' || !shows(nx, ny) || !(riverMask(map, nx, ny) & (1 << facing(side)))) return;
+    mask |= (beside.river === 'major' ? 17 : 1) << side;
   });
   return mask;
 }
@@ -171,6 +206,12 @@ export function renderGround(ctx: CanvasRenderingContext2D, state: GameState, vi
     const tile = tileOf(map, x, y);
     return tile !== null && !isWater(tile) && !unknown(x, y);
   };
+  /** A square's terrain as it is drawn, forests stripped in the hidden-terrain view; null off the map and where the viewer has not seen. */
+  const shownTerrain = (x: number, y: number): TerrainId | null => {
+    const tile = tileOf(map, x, y);
+    if (tile === null || unknown(x, y)) return null;
+    return terrainOf(view.showHidden && tile.forest ? { ...tile, forest: false } : tile);
+  };
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
       const tile = map.tiles[y * map.width + x];
@@ -191,6 +232,10 @@ export function renderGround(ctx: CanvasRenderingContext2D, state: GameState, vi
         tile.road ? roadMask(map, x, y) : 0,
         (variantAt(x, y) + (isWater(tile) ? waterPhase : 0)) % TILE_VARIANTS,
         view.showHidden,
+        false,
+        // the smallest zoom draws neither joins nor mouths
+        grid === 8 || isWater(tile) ? 0 : joinMask(shownTerrain(x, y) as TerrainId, x, y, shownTerrain),
+        grid !== 8 && isWater(tile) ? mouthMask(map, x, y, seenLand) : 0,
       );
       // at the smallest zoom a square is one flat picture
       if (grid === 8) {

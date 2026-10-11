@@ -11,7 +11,8 @@ path to a checkout of it, and the script is run with that checkout's Python. Wit
 
 art/units holds one square picture per unit type (colonist.png, soldier.png, ...), art/places one
 per look of a colony or native settlement, and art/features one per forest, hills and mountains,
-each a single subject on a flat magenta ground. art/floors holds one ground texture per open
+each a single subject on a flat magenta ground (a feature is baked once, as it stands: where two of a kind
+meet, pixel-art.ts draws the picture again half a square over, so the wood or the ridge runs on). art/floors holds one ground texture per open
 terrain, filling its square. art/resources holds one marker per special resource, named by its id in
 src/engine/data/resources.ts: a picture of the thing itself on a flat magenta ground, centred in its
 square and baked at 24 pixels and again at 12 in the same colours (src/ui/resource-art.ts). art/buildings holds one picture per colony building and art/goods one
@@ -114,32 +115,6 @@ def centre(path: Path) -> Image.Image:
     canvas = Image.new('RGBA', (side, side), (0, 0, 0, 0))
     canvas.paste(figure, ((side - figure.width) // 2, (side - figure.height) // 2))
     return canvas
-
-
-# The features whose clump leaves bare ground showing at the corners of the square, picked by eye:
-# these are baked with a second row behind. The others already fill their square, and a second row
-# only clutters them.
-TWO_ROWS = {'boreal', 'broadleaf', 'wetland', 'hills'}
-
-
-def stand(path: Path) -> Image.Image:
-    """
-    A forest, hills or mountains on its square. For those in TWO_ROWS the clump is drawn twice, a second
-    copy behind the first moved half a square sideways (wrapping round), so that squares side by side read
-    as one wood and not as rows of clumps with bare ground between.
-    """
-    clump = cut_out(path)
-    if path.stem not in TWO_ROWS:
-        return clump
-    front = clump.crop(clump.getbbox())
-    side = front.width
-    square = Image.new('RGBA', (side, side), (0, 0, 0, 0))
-    back = Image.new('RGBA', (side, front.height), (0, 0, 0, 0))
-    back.paste(front, (side // 2, 0))
-    back.paste(front, (side // 2 - side, 0))
-    square.alpha_composite(back, (0, 0))
-    square.alpha_composite(front, (0, max(0, side - front.height)))
-    return square
 
 
 def floor(path: Path) -> Image.Image:
@@ -491,8 +466,8 @@ def main() -> None:
         write('src/ui/place-art.ts', 'Colonies and native settlements for the map', 'PLACE', 'PLACE_SIZE', 32, colours, figures,
               "One picture per look of a place: rows of letters from PLACE_CODES; '*' is the owner's colour and a full stop is see-through.")
     if wanted('features'):
-        colours, figures = bake('art/features', 32, FEATURE_PALETTE, prepare=stand)
-        _, copies = bake('art/features', 16, FEATURE_PALETTE, prepare=stand, against=colours)
+        colours, figures = bake('art/features', 32, FEATURE_PALETTE)
+        _, copies = bake('art/features', 16, FEATURE_PALETTE, against=colours)
         write('src/ui/feature-art.ts', 'Forests, hills and mountains for the map', 'FEATURE', 'FEATURE_SIZE', 32, colours, figures,
               'One picture per terrain that has something standing on its ground: rows of letters from FEATURE_CODES; a full stop is see-through.',
               smaller=(16, copies, 'The same pictures at half the size, in the same colours and letters, for the 16-pixel grid.'))

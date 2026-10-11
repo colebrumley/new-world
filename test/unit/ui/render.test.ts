@@ -5,8 +5,9 @@ import { describe, expect, it } from 'vitest';
 import type { GameState, Settlement } from '../../../src/engine/state';
 import { chartMarks } from '../../../src/ui/chart';
 import { ART_COLORS, at, COAST_MASKS, EDGE_MASKS, floorArt, INK, overArt, PALETTE, rotate, type Sprite, type TileGrid } from '../../../src/ui/pixel-art';
-import { landBeside, renderGround } from '../../../src/ui/render';
-import { lookOf, tileSprite, type TileCache } from '../../../src/ui/tiles';
+import { joinMask, landBeside, mouthMask, renderGround } from '../../../src/ui/render';
+import { terrainOf } from '../../../src/engine/tile';
+import { lookKey, lookOf, tileSprite, type TileCache } from '../../../src/ui/tiles';
 import { makeView, type View } from '../../../src/ui/view';
 import { fingerprint, referencePixels } from '../../helpers/reference-canvas';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
@@ -241,13 +242,20 @@ describe('the map renderer, against a plain pixel buffer', () => {
   /** The colour of one cell of a sprite. */
   const ink = (sprite: Sprite, cx: number, cy: number): string => ART_COLORS[at(sprite, cx, cy) - 1] as string;
   const variantAt = (x: number, y: number): number => (x * 7 + y * 13) % 4;
-  /** The square at (x, y) as it stands alone: floor and all, nothing of its neighbours. */
-  const composite = (state: GameState, grid: number, x: number, y: number): Sprite => tileSprite(lookOf(state.map.tiles[y * state.map.width + x]!, 0, 0, variantAt(x, y), false), grid);
+  /** The look of the square at (x, y) with no river or road, joined to the sides in `join` and with the river mouths in `mouth`. */
+  const lookAt = (state: GameState, x: number, y: number, join = 0, mouth = 0): ReturnType<typeof lookOf> =>
+    lookOf(state.map.tiles[y * state.map.width + x]!, 0, 0, variantAt(x, y), false, false, join, mouth);
+  /** The square at (x, y) as it stands alone: floor and all, nothing of its neighbours but the joins named. */
+  const composite = (state: GameState, grid: number, x: number, y: number, join = 0): Sprite => tileSprite(lookAt(state, x, y, join), grid);
   /** What each cell of that square is when it stands alone. */
-  const alone = (state: GameState, grid: number, x: number, y: number): ((cx: number, cy: number) => string) => {
-    const sprite = composite(state, grid, x, y);
+  const alone = (state: GameState, grid: number, x: number, y: number, join = 0): ((cx: number, cy: number) => string) => {
+    const sprite = composite(state, grid, x, y, join);
     return (cx, cy) => ink(sprite, cx, cy);
   };
+  /** A fixture's terrain at (x, y), or null off its map: what `joinMask` reads when everything is seen. */
+  const terrainAt = (state: GameState) => (x: number, y: number) =>
+    x >= 0 && y >= 0 && x < state.map.width && y < state.map.height ? terrainOf(state.map.tiles[y * state.map.width + x]!) : null;
+  const joinAt = (state: GameState, x: number, y: number): number => joinMask(terrainAt(state)(x, y)!, x, y, terrainAt(state));
   /** Every cell of the square, with what it is expected to be. Returns the cells that are not. */
   const wrong = (made: ReturnType<typeof referencePixels>, grid: number, x: number, y: number, expected: (cx: number, cy: number) => string): string[] => {
     const out: string[] = [];
@@ -260,19 +268,20 @@ describe('the map renderer, against a plain pixel buffer', () => {
     const state = land(['~~~~', '~.g~', '~ff~', '~~~~']);
     for (const grid of GRIDS) {
       const made = drawn(state, grid);
-      const own = (x: number, y: number): ((cx: number, cy: number) => string) => alone(state, grid, x, y);
+      const own = (x: number, y: number, join = 0): ((cx: number, cy: number) => string) => alone(state, grid, x, y, join);
       // the plains square: grassland inside the east stencil, itself everywhere else
       const grass = floorArt(grid, 'grassland', variantAt(2, 1));
-      const [plainsAlone, grassAlone, woodAlone] = [own(1, 1), own(2, 1), own(2, 2)];
+      // the two forests stand side by side, so each one's canopy runs on toward the other: east for the one, west for the other
+      const [plainsAlone, grassAlone, woodAlone] = [own(1, 1), own(2, 1), own(2, 2, 8)];
       expect(wrong(made, grid, 1, 1, (cx, cy) => (stencil(grid, 1, cx, cy) ? ink(grass, cx, cy) : plainsAlone(cx, cy))), `plains ${grid}`).toEqual([]);
       // the grassland square: the plains square's floor inside the west stencil, the forest's open ground (plains) inside the south one
       const plains = floorArt(grid, 'plains', variantAt(1, 1));
       const wood = floorArt(grid, 'plains', variantAt(2, 2));
       expect(wrong(made, grid, 2, 1, (cx, cy) => (stencil(grid, 3, cx, cy) ? ink(plains, cx, cy) : stencil(grid, 2, cx, cy) ? ink(wood, cx, cy) : grassAlone(cx, cy))), `grassland ${grid}`).toEqual([]);
       // the mixed forest beside the plains square is plains to it: nothing spills, either way
-      expect(wrong(made, grid, 1, 2, own(1, 2)), `forest ${grid}`).toEqual([]);
+      expect(wrong(made, grid, 1, 2, own(1, 2, 2)), `forest ${grid}`).toEqual([]);
       // the forest under the grassland takes grassland through its north stencil, under its trees, and nothing else
-      const trees = overArt(lookOf(state.map.tiles[2 * 4 + 2]!, 0, 0, variantAt(2, 2), false), grid);
+      const trees = overArt(lookAt(state, 2, 2, 8), grid);
       expect(wrong(made, grid, 2, 2, (cx, cy) => (stencil(grid, 0, cx, cy) && at(trees, cx, cy) === 0 ? ink(grass, cx, cy) : woodAlone(cx, cy))), `forest under grassland ${grid}`).toEqual([]);
       // the land does not move with the water
       const later = drawn(state, grid, 1);
@@ -383,6 +392,146 @@ describe('the map renderer, against a plain pixel buffer', () => {
       const beyond = hide(land(['.~g']), 0, 0);
       expect(wrong(drawn(beyond, grid), grid, 2, 0, alone(beyond, grid, 2, 0)), `through water ${grid}`).toEqual([]);
     }
+  });
+
+  // --- joins, river mouths and the order of what stands on a square (R-1046) ---
+  /** Every colour of a floor. */
+  const floorInks = (grid: TileGrid, terrain: Parameters<typeof floorArt>[1], variant: number): Set<string> => new Set([...floorArt(grid, terrain, variant).cells].map((c) => ART_COLORS[c - 1] as string));
+
+  it('runs a canopy on across the edge to a forest beside it, and not toward open ground', () => {
+    const wood = land(['ff', 'f.']);
+    // the corner forest joins east and south; the one under it joins north only, its east neighbour being plains
+    expect(joinAt(wood, 0, 0)).toBe(2 | 4);
+    expect(joinAt(wood, 0, 1)).toBe(1);
+    expect(joinAt(wood, 1, 0)).toBe(8);
+    expect(joinAt(wood, 1, 1)).toBe(0);
+    for (const grid of GRIDS) {
+      const made = drawn(wood, grid);
+      // the square is its own picture with the joins under it, and nothing else
+      expect(wrong(made, grid, 0, 0, alone(wood, grid, 0, 0, 2 | 4)), `${grid}`).toEqual([]);
+      expect(wrong(made, grid, 0, 1, alone(wood, grid, 0, 1, 1)), `${grid}`).toEqual([]);
+      // where the square alone shows its floor, the joined one has trees: in its bottom rows and in its right columns
+      const over = overArt(lookAt(wood, 0, 0), grid);
+      const joined = overArt(lookAt(wood, 0, 0, 2 | 4), grid);
+      const filled = (cx: number, cy: number): boolean => at(over, cx, cy) === 0 && at(joined, cx, cy) !== 0;
+      const cells = [...Array(grid).keys()];
+      const edge = grid / 8;
+      expect(cells.some((cx) => cells.slice(grid - edge).some((cy) => filled(cx, cy))), `${grid} bottom rows`).toBe(true);
+      expect(cells.some((cy) => cells.slice(grid - edge).some((cx) => filled(cx, cy))), `${grid} right columns`).toBe(true);
+      // a join only ever adds trees where the square alone showed its floor: its own picture is untouched
+      for (let i = 0; i < over.cells.length; i++) if (over.cells[i] !== 0) expect(joined.cells[i]).toBe(over.cells[i]);
+      expect(joined.cells.filter((c) => c !== 0).length).toBeGreaterThan(over.cells.filter((c) => c !== 0).length);
+    }
+  });
+
+  it('joins a wood to any wood but scrub, hills to hills and mountains to mountains, and nothing to what is unseen or off the map', () => {
+    // hills beside mountains: neither joins
+    const ridge = land(['hm']);
+    expect(joinAt(ridge, 0, 0)).toBe(0);
+    expect(joinAt(ridge, 1, 0)).toBe(0);
+    expect(joinAt(land(['hh', 'mm']), 0, 0)).toBe(2);
+    expect(joinAt(land(['hh', 'mm']), 1, 1)).toBe(8);
+    // a swamp forest joins a plains forest, though their floors differ; a forest never joins hills
+    expect(joinAt(land(['fW', 'h.']), 0, 0)).toBe(2);
+    // scrub stands alone, on both sides of the edge
+    const dry = setTile(land(['ff']), 1, 0, { base: 'desert' });
+    expect(terrainAt(dry)(1, 0)).toBe('scrub');
+    expect(joinAt(dry, 0, 0)).toBe(0);
+    expect(joinAt(dry, 1, 0)).toBe(0);
+    expect(joinAt(setTile(dry, 0, 0, { base: 'desert' }), 0, 0)).toBe(0);
+    // open ground and water join nothing
+    expect(joinAt(land(['..', '~~']), 0, 0)).toBe(0);
+    expect(joinAt(land(['..', '~~']), 0, 1)).toBe(0);
+    for (const grid of GRIDS) {
+      // an unseen forest is not joined to: the square beside it is drawn as it stands alone
+      const hidden = setTile(land(['ff']), 1, 0, { explored: 0 });
+      expect(wrong(drawn(hidden, grid), grid, 0, 0, alone(hidden, grid, 0, 0)), `unseen ${grid}`).toEqual([]);
+      expect(wrong(drawn(land(['ff']), grid), grid, 0, 0, alone(hidden, grid, 0, 0)).length, `seen ${grid}`).toBeGreaterThan(0);
+      // with the forests stripped (the hidden-terrain view) nothing is left to join, but hills still join hills
+      const bare = referencePixels(land(['ff']), window(land(['ff']), grid, { showHidden: true }), { activeUnitId: null, cursor: null });
+      const stripped = tileSprite(lookOf(land(['ff']).map.tiles[0]!, 0, 0, 0, true), grid);
+      expect(wrong(bare, grid, 0, 0, (cx, cy) => ink(stripped, cx, cy)), `stripped ${grid}`).toEqual([]);
+      const hills = land(['hh']);
+      const shown = referencePixels(hills, window(hills, grid, { showHidden: true }), { activeUnitId: null, cursor: null });
+      const ridged = tileSprite(lookOf(hills.map.tiles[0]!, 0, 0, 0, true, false, 2), grid);
+      expect(wrong(shown, grid, 0, 0, (cx, cy) => ink(ridged, cx, cy)), `hills ${grid}`).toEqual([]);
+    }
+    // the smallest zoom draws no joins: every square is keyed as it stands alone
+    const keys: string[] = [];
+    const cache = { get: (look: Parameters<typeof lookKey>[0], size: number) => (keys.push(lookKey(look, size)), {}), sprite: () => ({}), size: 0 };
+    const ctx = { fillStyle: '', imageSmoothingEnabled: true, fillRect: (): void => {}, drawImage: (): void => {} };
+    const far = land(['ff', '~R']);
+    renderGround(ctx as unknown as CanvasRenderingContext2D, far, window(far, 8), cache as unknown as TileCache);
+    expect(keys).toHaveLength(4);
+    for (const key of keys) expect(key.endsWith('|0|0'), key).toBe(true);
+  });
+
+  it('leaves no bare ground in the middle of the edge two forests share', () => {
+    const wood = land(['ff']);
+    const made = drawn(wood, 32);
+    // the sixteen cells nearest the middle of the shared edge, eight either side: the last column of one and the first of the other
+    for (const [x, cx] of [[0, 31], [1, 0]] as const) {
+      const floor = floorInks(32, 'plains', variantAt(x, 0));
+      for (let cy = 12; cy < 20; cy++) expect(floor.has(cell(made, 32, x, 0, cx, cy)), `square ${x} cell ${cx},${cy}`).toBe(false);
+    }
+  });
+
+  it('draws the mouth of a river on the water it runs out into: a stub from that side to the middle', () => {
+    const blue = PALETTE[INK.brightBlue] as string;
+    const count = (made: ReturnType<typeof referencePixels>, grid: number, x: number, y: number): number => wrong(made, grid, x, y, () => blue).length;
+    for (const [glyph, major] of [['r', false], ['R', true]] as const) {
+      const state = land([`~${glyph}`, '~.']);
+      // the river square's own mask points west at the water (and nowhere else: the square under it has no river)
+      expect(mouthMask(state.map, 0, 0)).toBe(major ? 2 | 32 : 2);
+      expect(mouthMask(state.map, 0, 1)).toBe(0);
+      expect(mouthMask(state.map, 1, 0)).toBe(0);
+      for (const grid of GRIDS) {
+        const made = drawn(state, grid);
+        const wide = grid === 32 ? (major ? 3 : 2) : major ? 2 : 1;
+        // every column from the east edge to the middle holds that many blue cells, in the rows about the middle; the west half holds none
+        for (let cx = 0; cx < grid; cx++) {
+          const rows = [...Array(grid).keys()].filter((cy) => cell(made, grid, 0, 0, cx, cy) === blue);
+          expect(rows.length, `${glyph} ${grid} column ${cx}`).toBe(cx >= grid / 2 ? wide : 0);
+          if (rows.length > 0) {
+            expect(rows[0], `${glyph} ${grid} column ${cx}`).toBeGreaterThanOrEqual(grid / 2 - 2);
+            expect(rows[rows.length - 1], `${glyph} ${grid} column ${cx}`).toBeLessThanOrEqual(grid / 2);
+          }
+        }
+        // the stub lies inside the river's own stroke where they meet, and the water under the plains square has none
+        const stroke = [...Array(grid).keys()].filter((cy) => cell(made, grid, 1, 0, 0, cy) === blue);
+        for (let cy = 0; cy < grid; cy++) if (cell(made, grid, 0, 0, grid - 1, cy) === blue) expect(stroke, `${glyph} ${grid}`).toContain(cy);
+        expect(count(made, grid, 0, 1), `${glyph} ${grid}`).toBe(grid * grid);
+        // the mouth is the over layer's: the square is otherwise what it is without the river beside it
+        const dry = drawn(setTile(state, 1, 0, { river: 'none' }), grid);
+        for (const where of wrong(made, grid, 0, 0, (cx, cy) => cell(dry, grid, 0, 0, cx, cy))) {
+          const [cx, cy] = where.split(',').map(Number) as [number, number];
+          expect(cell(made, grid, 0, 0, cx, cy), `${glyph} ${grid} ${where}`).toBe(blue);
+        }
+      }
+    }
+    // each side has its own stub; a river the viewer has not seen has no mouth; the smallest zoom draws none
+    const ringed = land(['.r.', 'r~R', '.R.']);
+    expect(mouthMask(ringed.map, 1, 1)).toBe(1 | 2 | 4 | 8 | 32 | 64);
+    expect(mouthMask(ringed.map, 1, 1, (x) => x !== 1)).toBe(2 | 8 | 32);
+    const hidden = setTile(land(['~r', '~.']), 1, 0, { explored: 0 });
+    for (const grid of GRIDS) expect(wrong(drawn(hidden, grid), grid, 0, 0, () => blue).length).toBe(grid * grid);
+    const north = overArt(lookAt(ringed, 1, 1, 0, 1), 32);
+    for (let cy = 0; cy < 32; cy++) expect([...Array(32).keys()].filter((cx) => at(north, cx, cy) !== 0), `row ${cy}`).toEqual(cy < 16 ? [15, 16] : []);
+    const west = overArt(lookAt(ringed, 1, 1, 0, 8 | 128), 16);
+    for (let cx = 0; cx < 16; cx++) expect([...Array(16).keys()].filter((cy) => at(west, cx, cy) !== 0), `column ${cx}`).toEqual(cx < 8 ? [7, 8] : []);
+  });
+
+  it('keys the over layer by both masks, and leaves a square that stands alone as it was', () => {
+    const wood = land(['ff']);
+    const look = lookAt(wood, 0, 0);
+    for (const size of [64, 32, 16, 8]) {
+      expect(lookKey({ ...look, joinMask: 2 }, size)).not.toBe(lookKey(look, size));
+      expect(lookKey({ ...look, mouthMask: 2 }, size)).not.toBe(lookKey(look, size));
+      expect(lookKey({ ...look, mouthMask: 2 }, size)).not.toBe(lookKey({ ...look, joinMask: 2 }, size));
+    }
+    // the colony screen's call names neither mask: both are 0
+    const tile = wood.map.tiles[0]!;
+    expect(lookOf(tile, 15, 0, 0, false, true)).toMatchObject({ joinMask: 0, mouthMask: 0 });
   });
 
   it('draws a land square in two pieces and a coastal water square in six; the smallest zoom draws one', () => {
