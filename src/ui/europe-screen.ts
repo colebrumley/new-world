@@ -4,6 +4,8 @@
 import type { Action, GameEvent } from '../engine/actions';
 import type { GoodId } from '../engine/data/goods';
 import type { GameState } from '../engine/state';
+import { roomFor } from '../engine/cargo';
+import { HOLD_CAPACITY } from '../engine/data/goods';
 import { ask, askText } from './dialog';
 import { dockOptions, europeView, type EuropeVoyage } from './europe-model';
 import { figureArt, flagArt, goodArt, type Sprite } from './pixel-art';
@@ -80,16 +82,33 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
   };
 
   async function howMany(question: string, most: number): Promise<number> {
-    const answer = await askText(root, { text: `${question} (up to ${most})`, initial: String(most), maxLength: 3 });
+    const answer = await askText(root, { text: `${question} (up to ${most})`, initial: String(most), maxLength: 4 });
     const n = Math.floor(Number(answer));
     return answer !== null && Number.isFinite(n) && n > 0 ? Math.min(n, most) : 0;
   }
 
+  /** A click buys one hold; "some" asks for any amount the ship has room for, placed as a trade per hold. */
   async function buy(good: GoodId, some: boolean): Promise<void> {
-    if (!shipId) monitor = 'There is no ship in port to load.';
+    const ship = shipId ? host.state().units[shipId] : undefined;
+    const room = ship ? roomFor(host.state(), ship, good) : 0;
+    if (!shipId || !ship) monitor = 'There is no ship in port to load.';
+    else if (some && room === 0) monitor = 'The holds are full.';
     else {
-      const amount = some ? await howMany(`Buy how many ${good}?`, 100) : 100;
-      if (amount > 0) attempt({ type: 'buyGoods', unitId: shipId, good, amount });
+      const wanted = some ? await howMany(`Buy how many ${good}?`, room) : HOLD_CAPACITY;
+      let bought = 0;
+      let paid = 0;
+      for (let left = wanted; left > 0; ) {
+        const amount = Math.min(HOLD_CAPACITY, left);
+        const events = attempt({ type: 'buyGoods', unitId: shipId, good, amount });
+        if (!events) break;
+        for (const e of events) {
+          if (e.type !== 'goodsBought') continue;
+          bought += e.amount;
+          paid += e.cost;
+        }
+        left -= amount;
+      }
+      if (bought > 0 && (wanted > HOLD_CAPACITY || bought < wanted)) monitor = `Bought ${bought} ${good} for ${paid} gold${bought < wanted ? `; ${monitor}` : ''}`;
     }
     render();
   }
