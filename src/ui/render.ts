@@ -55,11 +55,16 @@ function tileOf(map: GameMap, x: number, y: number): Tile | null {
   return x >= 0 && y >= 0 && x < map.width && y < map.height ? (map.tiles[y * map.width + x] ?? null) : null;
 }
 
-function riverMask(map: GameMap, x: number, y: number): number {
+/**
+ * The sides on which a river runs on: those whose neighbour has a river or is water. `shows` says which
+ * neighbours may be read; one the viewer has not seen continues nothing, so that a river's piece tells
+ * nothing of the square beyond it.
+ */
+function riverMask(map: GameMap, x: number, y: number, shows: (x: number, y: number) => boolean = () => true): number {
   let mask = 0;
   N4.forEach(([dx, dy], i) => {
     const n = tileOf(map, x + dx, y + dy);
-    if (n && (n.river !== 'none' || isWater(n))) mask |= 1 << i;
+    if (n && shows(x + dx, y + dy) && (n.river !== 'none' || isWater(n))) mask |= 1 << i;
   });
   return mask;
 }
@@ -228,7 +233,7 @@ export function renderGround(ctx: CanvasRenderingContext2D, state: GameState, vi
       }
       const look = lookOf(
         tile,
-        tile.river === 'none' ? 0 : riverMask(map, x, y),
+        tile.river === 'none' ? 0 : riverMask(map, x, y, (nx, ny) => !unknown(nx, ny)),
         tile.road ? roadMask(map, x, y) : 0,
         (variantAt(x, y) + (isWater(tile) ? waterPhase : 0)) % TILE_VARIANTS,
         view.showHidden,

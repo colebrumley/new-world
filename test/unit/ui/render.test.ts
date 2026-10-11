@@ -550,6 +550,19 @@ describe('the map renderer, against a plain pixel buffer', () => {
     for (let cx = 0; cx < 8; cx++) for (let cy = 0; cy < 8; cy++) expect(river(cell(far, 8, 0, 0, cx, cy))).toBe(false);
   });
 
+  it('a river does not run on toward a square the viewer has not seen, at any zoom', () => {
+    const state = land(['rr', 'r.']);
+    const unseen = setTile(state, 0, 1, { explored: 0 });
+    for (const grid of [32, 16, 8]) {
+      const south = (made: ReturnType<typeof referencePixels>): number => [...Array(grid).keys()].filter((cx) => cell(made, grid, 0, 0, cx, grid - 1) === PALETTE[INK.blue]).length;
+      const east = (made: ReturnType<typeof referencePixels>): number => [...Array(grid).keys()].filter((cy) => cell(made, grid, 0, 0, grid - 1, cy) === PALETTE[INK.blue]).length;
+      expect(south(drawn(state, grid)), `${grid}`).toBeGreaterThan(0);
+      expect(south(drawn(unseen, grid)), `${grid}`).toBe(0);
+      expect(east(drawn(unseen, grid)), `${grid}`).toBe(east(drawn(state, grid)));
+      expect(east(drawn(unseen, grid)), `${grid}`).toBeGreaterThan(0);
+    }
+  });
+
   it('the colony screen\'s 64-pixel square holds the river of the 32 grid, each art pixel doubled', () => {
     for (const [glyph, wide] of [['r', 3], ['R', 5]] as const) {
       const tile = land([glyph]).map.tiles[0]!;
