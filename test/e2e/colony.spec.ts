@@ -153,6 +153,25 @@ test('a dragged token travels under the pointer as a ghost, red over a place tha
   await expect(colony.locator('.square .token')).toHaveCount(1);
   await expect(townHall.locator('.token')).toHaveCount(0);
 
+  // a redraw between the press and the drag (N hides the numbers): the token now on screen is the one dimmed
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.keyboard.press('n');
+  await expect(colony).toHaveClass(/\bhide-numbers\b/);
+  await page.mouse.move(hall.x, hall.y, { steps: 4 });
+  await expect(colony.locator('.square .token.token-lifted')).toHaveCount(1);
+  // and a place scrolled under the still pointer is marked without a move
+  await expect(townHall).toHaveAttribute('data-drop-state', 'ok');
+  // (a building that is no place to work is laid out after the others, so the next one slides under the pointer)
+  await townHall.evaluate((b) => b.removeAttribute('data-drop'));
+  await colony.locator('[data-region="settlement"]').dispatchEvent('scroll');
+  await expect(townHall).not.toHaveAttribute('data-drop-state');
+  await expect(colony.locator('.building[data-drop-state="ok"]')).toHaveCount(1);
+  await colony.dispatchEvent('mouseleave', { buttons: 1 });
+  await page.mouse.up();
+  await page.keyboard.press('n');
+  await expect(colony).not.toHaveClass(/\bhide-numbers\b/);
+
   // letting go over the warehouse: the ghost and the marks are gone, he has not moved, and the game says why
   await page.mouse.move(from.x, from.y);
   await page.mouse.down();

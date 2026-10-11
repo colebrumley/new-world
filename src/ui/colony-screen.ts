@@ -574,16 +574,18 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   /** After a redraw in the middle of a drag (a refresh from the host): the ghost and the marks, which the redraw dropped, go back. */
   function restoreDrag(): void {
     const grip = held;
-    if (!grip?.ghost) return;
+    if (!grip) return;
     const from = root.querySelector<HTMLElement>(`[data-drag="${grip.source}"]`);
     if (!from) {
-      // what was being dragged is no longer here
+      // what was pressed or being dragged is no longer here
       endDrag(grip);
       held = null;
       showHolding();
       return;
     }
+    // a press that is not yet a drag keeps hold of the new token too, so that the drag dims the one on screen
     grip.from = from;
+    if (!grip.ghost) return;
     from.classList.add('token-lifted');
     root.append(grip.ghost);
     // the places are new elements and the state may have changed under the drag: ask again
@@ -614,6 +616,11 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     }
     aim(held, event.clientX, event.clientY);
   });
+  // A region (or the screen) scrolled under a still pointer puts another place beneath it: mark that one.
+  // Scroll events do not bubble, hence the capture.
+  root.addEventListener('scroll', () => {
+    if (held?.ghost) aim(held, held.px, held.py);
+  }, true);
   // The screen covers the whole game, so the pointer leaving it has left the window: the press is
   // over, and so is the drag (a release out there never reaches us).
   root.addEventListener('mouseleave', (event) => {
