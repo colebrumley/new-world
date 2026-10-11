@@ -94,7 +94,7 @@ describe('America map', () => {
     for (const a of rumors) for (const b of rumors) if (a !== b) expect(chebyshev(a, b), `${key(a)} ${key(b)}`).toBeGreaterThanOrEqual(3);
   });
 
-  it('runs every river at least two squares to the water', () => {
+  it('runs every river at least two squares, and every one to the water but the transcribed stranded ones', () => {
     const river = SQUARES.filter((p) => square(p).river !== 'none');
     const isRiver = new Set(river.map(key));
     // Runs of one kind, 4-connected.
@@ -136,6 +136,9 @@ describe('America map', () => {
     ];
     expect(river.map(key).filter((k) => !reaches.has(k))).toEqual(STRANDED);
   });
+
+  // Pending until R-1050 redraws the rivers: then STRANDED above is empty and this is that check.
+  it.todo('lets every river square walk over river squares to one beside water');
 
   it('marks Sea Lane exactly in the lane columns away from land', () => {
     const lane = (x: number): boolean => x < MAPGEN.westLaneColumns || x >= COLUMNS - MAPGEN.eastLaneColumns;
