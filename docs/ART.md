@@ -55,7 +55,7 @@ painting, which is 8 to 5. The older pictures in `art/` are 1254 pixels square.
 |---|---|---|---|
 | `art/floors` | The ground of each of the thirteen terrains that has a floor, named by its terrain id (`plains.png`, `seaLane.png`, ...): bare ground with a little texture, in one clearly dominant colour, filling the square. | 32 px, three colours a picture, then levelled so the commonest colour is exactly the terrain's palette colour | `src/ui/floor-art.ts` |
 | `art/features` | What stands on the ground: one picture for each of the eight forests, for hills and for mountains, named by its terrain id, cut out on magenta. | 32 px, five colours a picture | `src/ui/feature-art.ts` |
-| `art/resources` | One marker per special resource, named by its id in `src/engine/data/resources.ts`: a picture of the thing itself, cut out on magenta. (Not yet a folder; it arrives with the resource markers.) | to be set by the item that adds it | `src/ui/resource-art.ts` |
+| `art/resources` | One marker per special resource, named by its id in `src/engine/data/resources.ts`: a picture of the thing itself, cut out on magenta: one bold, compact silhouette with few parts, since it is shrunk further than anything else. | 24 px, one palette of 24 for the folder, the subject centred in its square with a twelfth of the square clear round it (`centre`), and the near-black outline colours folded into one ink (`one_ink`); then a 12 px copy in the same colours (`--palette-name`), with an outline of that ink drawn round it after shrinking, as the painted one is too thin to survive | `src/ui/resource-art.ts` (`RESOURCE_ART`, `RESOURCE_ART_12`) |
 | `art/places` | A colony at each state of its walls and a native settlement at each level of advancement, cut out on magenta, roofs in cyan. | 32 px, one palette of 24 for the folder | `src/ui/place-art.ts` |
 | `art/units` | One figure per unit type, named by its id, cut out on magenta. | 30 px, one palette of 32 for the folder | `src/ui/unit-art.ts` |
 | `art/portraits` | A head and shoulders for each adviser, the King and each founding father, on plain parchment, an adviser's coat in cyan. The faces are invented: none is a likeness of a historical person. | 64 px, in the map palette alone | `src/ui/portrait-art.ts` |
@@ -206,8 +206,8 @@ export PIXELFORGE=$PWD/pixelforge PY=$PWD/pixelforge/.venv/bin/python
 1. **Shrink the source**, once for each new picture: `$PY scripts/shrink-art.py art/<folder>/<name>.png ...`
    takes the grain out and saves the picture with a palette, at the same size in pixels. A picture
    that already has a palette is left alone.
-2. **Bake**: `$PY scripts/bake-art.py <folder> ...` (`floors`, `features`, `units`, `places`,
-   `portraits`, `title`, `chart`, `buildings`, `goods`; every folder if none is named). It rewrites
+2. **Bake**: `$PY scripts/bake-art.py <folder> ...` (`floors`, `features`, `resources`, `units`,
+   `places`, `portraits`, `title`, `chart`, `buildings`, `goods`; every folder if none is named). It rewrites
    the folder's `src/ui/*-art.ts`. Those files are never edited by hand.
 3. **Run it again** and check that nothing changed: `git diff --exit-code src/ui/<file>.ts` after a
    second bake must be empty. A bake is the same every time for one pixelforge commit.
@@ -238,7 +238,7 @@ differently, which changes every cell of a baked file without anything being wro
 of an untouched folder differs from what is committed, check the commit first; when the commit
 has moved on, say so in the pull request and update this line.
 
-Only `floor-art.ts`, `title-art.ts` and `portrait-art.ts` have been baked at that commit so far.
+Only `floor-art.ts`, `title-art.ts`, `portrait-art.ts` and `resource-art.ts` have been baked at that commit so far.
 `unit-art.ts`, `place-art.ts`, `feature-art.ts`, `building-art.ts` and `goods-art.ts` were baked
 before this line was kept, and baking those folders again at this commit changes every one of them
 with no change to their sources (the features, for one, come out in 50 colours of their own where
@@ -252,6 +252,10 @@ should expect that, look at the result, and say so in its pull request.
   see-through); `test/unit/ui/pixel-art.test.ts` checks it. A new folder counts against it.
 - A baked file's letters come from one alphabet of 52, so a folder holds at most 52 colours of its
   own.
+- A resource marker is opaque over 120 to 460 of its 576 cells and holds the folder's outline ink;
+  the thirteen are distinct at 24 pixels and at 12, and the 12-pixel copies use no colour the
+  24-pixel ones do not (a unit test). A marker is judged at its baked size, not at its source size:
+  thin stalks, veins and joints turn to noise at 24 pixels, so ask for few, large parts.
 - Every floor's commonest colour is its terrain's `GROUND` colour (a unit test), so that the two
   nearest zooms agree with the far ones and with the minimap.
 - The title painting and the portraits use no colour outside the palette (their unit tests).
