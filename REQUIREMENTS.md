@@ -1414,12 +1414,12 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1025 Generated reference tables in wiki pages** — docs/specs/player-manual-wiki.md, item W3, size S.
 - [x] **R-1026 Screenshots of every screen for the manual** — docs/specs/player-manual-wiki.md, item W4, size M.
 - [x] **R-1027 Manual: Home, Getting Started, Controls, Options, FAQ, Glossary** — docs/specs/player-manual-wiki.md, item W5, size M.
-- [ ] **R-1028 Manual: The Map** — docs/specs/player-manual-wiki.md, item W6, size S.
+- [x] **R-1028 Manual: The Map** — docs/specs/player-manual-wiki.md, item W6, size S.
 - [x] **R-1029 Manual: Units and Combat** — docs/specs/player-manual-wiki.md, item W7, size M.
 - [x] **R-1030 Manual: Colonies and Buildings** — docs/specs/player-manual-wiki.md, item W8, size M.
 - [ ] **R-1031 Manual: Europe and Trade; The Crown and Independence** — docs/specs/player-manual-wiki.md, item W9, size M.
-- [ ] **R-1032 Manual: Native Peoples** — docs/specs/player-manual-wiki.md, item W10, size S.
-- [ ] **R-1033 Manual: Founding Fathers, Other Powers, Reports, Score** — docs/specs/player-manual-wiki.md, item W11, size M.
+- [x] **R-1032 Manual: Native Peoples** — docs/specs/player-manual-wiki.md, item W10, size S.
+- [x] **R-1033 Manual: Founding Fathers, Other Powers, Reports, Score** — docs/specs/player-manual-wiki.md, item W11, size M.
 - [x] **R-1034 Manual: Gallery of the game's art** — docs/specs/player-manual-wiki.md, item W12, size S.
 - [x] **R-1035 Colony drag ghost and verdict** — docs/specs/drag-feedback.md, item W1, size M.
 - [x] **R-1036 Map drag piece and blocked marker** — docs/specs/drag-feedback.md, item W2, size S.

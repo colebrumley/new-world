@@ -6,31 +6,45 @@
 // (with UPDATE_FIXTURES=1) or fails when the body is not what the renderer gives. Every number comes
 // from the rule tables, so the manual cannot disagree with the game. Content items add their own
 // renderers to TABLES.
-import { describeDifficulty, difficultyProfile } from '../../../src/engine/difficulty';
+import { describeDifficulty, difficultyProfile, DIFFICULTY_NAMES } from '../../../src/engine/difficulty';
 import { DIFFICULTIES, YIELD_RULES } from '../../../src/engine/data/yields';
 import { NATION_IDS, NATIONS, STARTING_FORCE } from '../../../src/engine/data/nations';
 import { KEY_CONTEXT_TITLES, KEYMAP, type KeyContext } from '../../../src/ui/keymap';
 import { COLONY_OPTIONS, GAME_OPTIONS, SOUND_OPTIONS, type ColonyOptionKey } from '../../../src/ui/options';
 import { landsWith } from '../../../src/ui/power';
-import { BUILDING_CHAINS, BUILDINGS, type BuildingChain, type BuildingId } from '../../../src/engine/data/buildings';
-import { COLONY_LIMITS } from '../../../src/engine/data/colony';
+import { BUILDINGS, BUILDING_CHAINS, type BuildingChain, type BuildingId } from '../../../src/engine/data/buildings';
 import { COMBAT } from '../../../src/engine/data/combat';
 import { BUILDABLE_UNITS } from '../../../src/engine/data/construction';
+import { MISSIONARY_BUILDINGS } from '../../../src/engine/data/equipment';
+import { GOOD_NAMES, ABSTRACT_GOOD_IDS, GOOD_IDS, type AbstractGoodId, type GoodId } from '../../../src/engine/data/goods';
+import { NAVAL, REPAIR_HEAD_START } from '../../../src/engine/data/naval';
+import { TRADE_IDS, TRADES, PRODUCTION } from '../../../src/engine/data/production';
+import { PROFESSIONS, SPECIALISTS, type ProfessionId, PROFESSION_IDS } from '../../../src/engine/data/professions';
+import { DEFENSE_STEP_PERCENT, TERRAIN, TERRAIN_IDS, CLEARED_FROM, defensePercent, RAW_GOODS, type ForestTerrain, type RawGood, type TerrainId } from '../../../src/engine/data/terrain';
+import { ARTILLERY_PRICE_STEP, PIONEER_TOOLS, UNIT_TYPE_IDS, UNIT_TYPES, type UnitTypeId } from '../../../src/engine/data/units';
+import { PIONEER_WORK, WAREHOUSE } from '../../../src/engine/data/pioneer';
+import { RESOURCE_BONUS, RESOURCE_IDS, RESOURCE_TERRAINS, RESOURCES, type ResourceBonus, type ResourceId } from '../../../src/engine/data/resources';
+import { jobTurns } from '../../../src/engine/pioneer';
+import { makeTile, type Tile } from '../../../src/engine/tile';
+import { FREE_COLONIST, tileYield, type OutdoorWorker } from '../../../src/engine/yields';
+import { AMERICA_TRIBE_SITES } from '../../../src/engine/data/america';
+import { ATTITUDES, CAPITAL_NAME, NATIVES, settlementPopulation, TECH_LEVELS, TRIBE_IDS, TRIBES, type TribeId } from '../../../src/engine/data/tribes';
+import { createGame } from '../../../src/engine/game';
+import { settlementSkill } from '../../../src/engine/learning';
+import { INK, PALETTE, VILLAGE_LOOKS } from '../../../src/ui/pixel-art';
+import { MOOD_COLORS } from '../../../src/ui/render';
+import { CALENDAR, firstTurnOfYear } from '../../../src/engine/calendar';
+import { fatherCost } from '../../../src/engine/congress';
+import { CONGRESS } from '../../../src/engine/data/congress';
+import { FATHER_CATEGORIES, FATHER_ERAS, FATHER_IDS, FATHERS } from '../../../src/engine/data/fathers';
+import { HONOURS, SCORE } from '../../../src/engine/data/score';
+import { ratingOf } from '../../../src/engine/score';
+import { world } from '../world';
+import { COLONY_LIMITS } from '../../../src/engine/data/colony';
 import { CROSSES } from '../../../src/engine/data/crosses';
 import { CUSTOM_HOUSE } from '../../../src/engine/data/custom-house';
-import { MISSIONARY_BUILDINGS } from '../../../src/engine/data/equipment';
-import { FATHERS } from '../../../src/engine/data/fathers';
 import { HORSES } from '../../../src/engine/data/food';
-import { ABSTRACT_GOOD_IDS, GOOD_IDS, GOOD_NAMES, type AbstractGoodId, type GoodId } from '../../../src/engine/data/goods';
 import { LIBERTY } from '../../../src/engine/data/liberty';
-import { NAVAL, REPAIR_HEAD_START } from '../../../src/engine/data/naval';
-import { WAREHOUSE } from '../../../src/engine/data/pioneer';
-import { PRODUCTION, TRADE_IDS, TRADES } from '../../../src/engine/data/production';
-import { PROFESSION_IDS, PROFESSIONS, SPECIALISTS } from '../../../src/engine/data/professions';
-import { CLEARED_FROM, DEFENSE_STEP_PERCENT, RAW_GOODS, TERRAIN, TERRAIN_IDS, type ForestTerrain, type RawGood, type TerrainId } from '../../../src/engine/data/terrain';
-import { ARTILLERY_PRICE_STEP, PIONEER_TOOLS, UNIT_TYPE_IDS, UNIT_TYPES, type UnitTypeId } from '../../../src/engine/data/units';
-import { makeTile, type BaseTerrain, type Tile } from '../../../src/engine/tile';
-import { tileYield } from '../../../src/engine/yields';
 
 const cell = (value: string | number): string => String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 
@@ -219,34 +233,265 @@ function shipRepairs(): string {
 }
 
 
-/** The renderer for each block name: GitHub Markdown, a table or a list. */
-export const TABLES: Readonly<Record<string, () => string>> = {
-  'difficulty-levels': difficultyLevels,
-  nations,
-  controls,
-  options,
-  units,
-  professions,
-  'combat-modifiers': combatModifiers,
-  'ship-repairs': shipRepairs,
-  goods: goodsTable,
-  buildings: buildingsTable,
-  'buildable-units': buildableUnits,
+// --- The Map (R-1028) ------------------------------------------------------------------------
+
+/** A bare square of one terrain row: no river, road, plowing or resource. */
+function bareTile(terrain: TerrainId): Tile {
+  if (terrain === 'hills' || terrain === 'mountains') return makeTile({ base: 'plains', relief: terrain });
+  if (Object.hasOwn(CLEARED_FROM, terrain)) return makeTile({ base: CLEARED_FROM[terrain as ForestTerrain], forest: true });
+  return makeTile({ base: terrain as Exclude<TerrainId, ForestTerrain | 'hills' | 'mountains'> });
+}
+
+const rawGoodName = (good: RawGood): string => (good === 'fish' ? 'Fish' : GOOD_NAMES[good]);
+
+/** "3 Food, 3 Tobacco": what a free colonist brings in on the square, zeros left out. */
+function yieldsOn(tile: Tile, waterNeighbors = 0): string {
+  return RAW_GOODS.flatMap((good) => {
+    const n = tileYield(tile, good, FREE_COLONIST, { waterNeighbors });
+    return n > 0 ? [`${n} ${rawGoodName(good)}`] : [];
+  }).join(', ');
+}
+
+function terrainKind(terrain: TerrainId): string {
+  const def = TERRAIN[terrain];
+  if (def.water) return 'water';
+  if (def.kind === 'open') return 'open';
+  if (def.kind === 'forest') return 'forested';
+  return terrain === 'arctic' ? 'ice' : terrain;
+}
+
+/** "4 Fish with 0 to 5 water neighbours, 2 Fish with 6 to 7, ...": one entry per band of the fish rule. */
+function fishByBand(tile: Tile): string {
+  const mins = YIELD_RULES.fishByWaterNeighbors.map(([min]) => min).sort((a, b) => a - b);
+  return mins.map((min, i) => {
+    const next = mins[i + 1];
+    const band = next === undefined ? (min === 8 ? 'all 8' : `${min} or more`) : next - 1 === min ? `${min}` : next - 2 === min ? `${min} or ${next - 1}` : `${min} to ${next - 1}`;
+    return `${yieldsOn(tile, min)} with ${band}${i === 0 ? ' of the 8 neighbours water' : ''}`;
+  }).join(', ');
+}
+
+function terrainTable(): string {
+  return mdTable(
+    ['', 'Terrain', 'Kind', 'Move cost', 'Defence', 'A free colonist gets', 'Cleared, it becomes'],
+    TERRAIN_IDS.map((t) => {
+      const def = TERRAIN[t];
+      const tile = bareTile(t);
+      const fish = def.water ? fishByBand(tile) : yieldsOn(tile) || 'nothing';
+      const defence = defensePercent(t);
+      return [
+        img(`images/art/terrain/${t}.png`, def.name), def.name, terrainKind(t), def.moveCost, defence === 0 ? 'none' : `+${defence}%`, fish,
+        Object.hasOwn(CLEARED_FROM, t) ? TERRAIN[CLEARED_FROM[t as ForestTerrain]].name : '',
+      ];
+    }),
+  );
+}
+
+function pioneerWork(): string {
+  const turns = (n: number, hardy: number): string => `${n} (${hardy})`;
+  return mdTable(
+    ['Terrain', 'Road', 'Clear the forest', 'Plow'],
+    TERRAIN_IDS.filter((t) => !TERRAIN[t].water).map((t) => {
+      const tile = bareTile(t);
+      const forest = Object.hasOwn(CLEARED_FROM, t);
+      const noPlow = (PIONEER_WORK.noPlow as readonly string[]).includes(t);
+      const job = (j: 'road' | 'plow'): string => turns(jobTurns(tile, j, false), jobTurns(tile, j, true));
+      return [TERRAIN[t].name, job('road'), forest ? job('plow') : '', forest ? 'clear first' : noPlow ? 'cannot be plowed' : job('plow')];
+    }),
+  );
+}
+
+/** What a resource adds to a free colonist's figure and to an expert's, read from the yield rule itself. */
+function resourceEffectText(r: ResourceId, bare: Tile): string {
+  const tile = { ...bare, resource: r };
+  const bonuses: Partial<Record<RawGood, ResourceBonus>> = RESOURCE_BONUS[r];
+  const parts = RAW_GOODS.flatMap((good) => {
+    const b = bonuses[good];
+    if (!b) return [];
+    if (b.kind === 'double') return [`doubles ${rawGoodName(good)}`];
+    const gain = (w: OutdoorWorker): number => tileYield(tile, good, w) - tileYield(bare, good, w);
+    return [`+${gain(FREE_COLONIST)} ${rawGoodName(good)} (+${gain({ ...FREE_COLONIST, expertGood: good })} for the expert)`];
+  });
+  return parts.join(', ');
+}
+
+/** Every resource a map can carry. The Depleted Mine is left out: no map places one and no deposit becomes one in play. */
+function resourceTable(): string {
+  return mdTable(
+    ['', 'Resource', 'Found on', 'Adds'],
+    RESOURCE_IDS.filter((r) => r !== 'depletedMine').map((r) => {
+      const terrains: readonly TerrainId[] = RESOURCE_TERRAINS[r];
+      const bare = bareTile(terrains[0]!);
+      return [img(`images/art/resources/${r}.png`, RESOURCES[r].name), RESOURCES[r].name, terrains.map((t) => TERRAIN[t].name).join(', '), resourceEffectText(r, bare)];
+    }),
+  );
+}
+
+// R-1032: the native peoples.
+
+/** Where each people lives on the America map, in words (the sites are in src/engine/data/america.ts). */
+const TRIBE_HOMES: Readonly<Record<TribeId, string>> = {
+  inca: 'the mountains and coast of western South America',
+  aztec: 'Mexico and Central America',
+  arawak: 'the Caribbean islands and the shores around them',
+  iroquois: 'the north-east, from the Great Lakes to the Atlantic',
+  cherokee: 'the south-east of North America',
+  apache: 'the dry south-west of North America',
+  sioux: 'the northern plains',
+  tupi: 'the Amazon basin and the east of South America',
 };
 
-/** A marked block: the opening marker (group 1), its name (2), its body (3) and the closing marker (4). */
-export const BLOCK = /(<!--\s*table:\s*([\w-]+)\s*-->)([\s\S]*?)(<!--\s*\/table\s*-->)/g;
+/** Games of the America map sampled to find the trades each people most often teaches. */
+const SKILL_SAMPLES = 20;
+const SKILLS_SHOWN = 3;
 
-/** The renderer registered under a block name, or undefined (never one inherited from Object). */
-export const rendererFor = (name: string): (() => string) | undefined => (Object.hasOwn(TABLES, name) ? TABLES[name] : undefined);
+/** For each people, the trades its settlements teach, most often first, over a sample of America games. */
+function taughtSkills(): Record<TribeId, ProfessionId[]> {
+  const tally = new Map<TribeId, Map<ProfessionId, number>>(TRIBE_IDS.map((t) => [t, new Map()]));
+  for (let i = 1; i <= SKILL_SAMPLES; i++) {
+    const state = createGame({ seed: `wiki-skills-${i}`, scenario: 'america' });
+    for (const settlement of Object.values(state.settlements)) {
+      const counts = tally.get(settlement.tribe)!;
+      const skill = settlementSkill(state, settlement);
+      counts.set(skill, (counts.get(skill) ?? 0) + 1);
+    }
+  }
+  return Object.fromEntries(
+    TRIBE_IDS.map((t) => [t, [...tally.get(t)!].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([skill]) => skill)]),
+  ) as Record<TribeId, ProfessionId[]>;
+}
 
-/** The markdown with the body of every marked block replaced by its renderer's output. */
-export function fillTables(markdown: string): string {
-  return markdown.replace(BLOCK, (_all, open: string, name: string, _body: string, close: string) => {
-    const render = rendererFor(name);
-    if (!render) throw new Error(`no renderer is registered for the table block "${name}"`);
-    return `${open}\n\n${render()}\n\n${close}`;
+function tribes(): string {
+  const skills = taughtSkills();
+  return mdTable(
+    ['', 'People', 'How they live', 'People per settlement', 'Treasure', 'Most often teach', 'On the America map'],
+    TRIBE_IDS.map((id) => {
+      const tribe = TRIBES[id];
+      const level = TECH_LEVELS[tribe.tech];
+      const { start } = settlementPopulation(id, false);
+      const { max } = settlementPopulation(id, true);
+      return [
+        img(`images/art/places/${VILLAGE_LOOKS[tribe.tech]}.png`, `${tribe.adjective} ${level.settlement.toLowerCase()}`),
+        tribe.name,
+        `${level.name}: ${level.plural.toLowerCase()}`,
+        `${start} (the ${CAPITAL_NAME.settlement.toLowerCase()} up to ${max})`,
+        tribe.treasure,
+        skills[id].slice(0, SKILLS_SHOWN).map((p) => PROFESSIONS[p].name).join(', '),
+        `${TRIBE_HOMES[id]}; up to ${AMERICA_TRIBE_SITES[id].length} settlements`,
+      ];
+    }),
+  );
+}
+
+/** The ink a mood mark is drawn in, as words: `brightBlue` is "bright blue". */
+const inkName = (hex: string): string =>
+  (Object.entries(INK).find(([, ink]) => PALETTE[ink] === hex)?.[0] ?? hex).replace(/[A-Z]/g, (c) => ` ${c.toLowerCase()}`);
+
+function nativeAttitudes(): string {
+  const [uneasy, restless, angry] = NATIVES.alarmLevels;
+  const when = [
+    `tribal alarm under ${uneasy}`,
+    `tribal alarm ${uneasy} to ${restless - 1}`,
+    `tribal alarm ${restless} to ${angry - 1}`,
+    `tribal alarm ${angry} or more`,
+    `this settlement's own alarm ${NATIVES.settlementHostile} or more`,
+  ];
+  const means = [
+    'Friendly. Their braves call on your colonies with gifts and converts, and they teach and trade freely.',
+    'Wary. Lessons may fail, a chief may have a scout killed, and a brave at your gate may demand goods instead of bringing them.',
+    'Sullen. They will not teach, a demand for tribute that fails is refused or laughed at, and their braves come to your colonies with black looks only.',
+    'Hostile. Ships are turned away, wagon trains risk their cargo, scouts are killed, and braves attack your units and colonies.',
+    'This settlement alone has turned on you: ships are turned away and its brave attacks your units and colonies.',
+  ];
+  return mdTable(
+    ['Attitude', 'Mark', 'When', 'What it means'],
+    ATTITUDES.map((name, i) => [name, inkName(MOOD_COLORS[i]!), when[i]!, means[i]!]),
+  );
+}
+
+// R-1033 (W11): Founding Fathers, Score and Hall of Fame.
+
+const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** The three eras of the Congress's offer weights, by name. */
+const FATHER_ERA_NAMES = [`${CALENDAR.startYear} to ${FATHER_ERAS[0]}`, `${FATHER_ERAS[0]} to ${FATHER_ERAS[1]}`, `after ${FATHER_ERAS[1]}`] as const;
+
+/** Every Founding Father, grouped by field: portrait, name, effect, and the eras he may be offered in. */
+function fathers(): string {
+  return mdTable(
+    ['', 'Founding Father', 'Field', 'Effect', 'May be offered'],
+    FATHER_CATEGORIES.flatMap((field) =>
+      FATHER_IDS.filter((id) => FATHERS[id].category === field).map((id) => {
+        const f = FATHERS[id];
+        const eras = FATHER_ERA_NAMES.filter((_, i) => f.weights[i] !== 0).join(', ');
+        return [`<img src="images/art/portraits/${id}.png" width="64" alt="${f.name}">`, f.name, capital(field), f.effect, eras];
+      }),
+    ),
+  );
+}
+
+/** Bells the next Founding Father costs a human power, by level and year (from the engine's fatherCost). */
+function fatherCostTable(): string {
+  const seats = [1, 2, 3, 5, 10];
+  const years = [CALENDAR.startYear, ...CONGRESS.dearerFrom];
+  const cost = (difficulty: (typeof DIFFICULTIES)[number], seated: number, year: number): number => {
+    const state = world({ rows: ['.'], players: [{ id: 'a', fathers: FATHER_IDS.slice(0, seated) }], difficulty });
+    return fatherCost({ ...state, turn: firstTurnOfYear(year) }, 'a');
+  };
+  const ordinal = (n: number): string => `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
+  return mdTable(
+    ['Level', 'From', ...seats.map((n) => `${ordinal(n)} father`)],
+    DIFFICULTIES.flatMap((d) => years.map((year) => [DIFFICULTY_NAMES[d], year, ...seats.map((n) => cost(d, n - 1, year))])),
+  );
+}
+
+/** What counts toward the score, and how much. */
+function score(): string {
+  const levels = DIFFICULTIES.length;
+  const independence = [0, 1, 2, 3].map((ahead) => {
+    const times = (SCORE.independenceBase + (SCORE.independenceBase >> ahead)) / SCORE.independenceBase;
+    return `x${times} ${ahead === 0 ? 'if no other power was independent first' : `behind ${ahead} ${ahead === 1 ? 'power' : 'powers'}`}`;
   });
+  return mdTable(
+    ['What counts', 'Points'],
+    [
+      ['Each specialist (a colonist with a skill), in a colony or outside one', SCORE.expert],
+      ['Each free colonist', SCORE.free],
+      ['Each indentured servant, petty criminal or Indian convert', SCORE.lowly],
+      ['Each Founding Father in the Congress', SCORE.perFather],
+      ['Gold in the treasury', `1 for every ${SCORE.goldPerPoint}`],
+      ['Rebel sentiment (as it stood at the Declaration, once that is made)', '1 per percentage point'],
+      ['Each native settlement you destroyed', `minus 1 (${DIFFICULTY_NAMES[DIFFICULTIES[0]!]}) to minus ${levels} (${DIFFICULTY_NAMES[DIFFICULTIES[levels - 1]!]})`],
+      [`Independence declared before ${SCORE.earlyBefore}, and won`, `${SCORE.earlyPerYear} for each year early`],
+      ['Liberty bells rung after a foreign power intervened in your war of independence',`1 per ${SCORE.bellsPerPoint} bells, at most ${SCORE.bellsCap}`],
+      ['Independence won: the whole is multiplied', independence.join('; ')],
+    ],
+  );
+}
+
+/** The rating factor by difficulty: the score times it over a hundred is the weighted score. */
+function scoreRating(): string {
+  return mdTable(
+    ['Level', 'Rating factor (per hundred)', 'A score of 100 gives a weighted score of', 'and a Colonial Rating of'],
+    DIFFICULTIES.map((d) => {
+      const r = ratingOf(d, 100);
+      return [DIFFICULTY_NAMES[d], SCORE.difficultyFactor[DIFFICULTIES.indexOf(d)]!, r.weighted, `${r.percent}%`];
+    }),
+  );
+}
+
+/** The honours by rank, with the least weighted score and rating each needs (found by asking the engine's ratingOf). */
+function honours(): string {
+  // the level with the largest factor reaches every weighted score from some whole score
+  const top = DIFFICULTIES.reduce((a, b) => (SCORE.difficultyFactor[DIFFICULTIES.indexOf(b)]! > SCORE.difficultyFactor[DIFFICULTIES.indexOf(a)]! ? b : a));
+  const least: { weighted: number; percent: number }[] = [];
+  for (let s = 0; s < 100000 && least.length < HONOURS.length; s++) {
+    const { rank, weighted, percent } = ratingOf(top, s);
+    if (rank !== null) for (let r = least.length; r <= rank; r++) least[r] = { weighted, percent };
+  }
+  return mdTable(
+    ['Rank', 'Weighted score of at least', 'Colonial Rating of at least', 'Posterity names after you'],
+    HONOURS.map((honour, rank) => [rank + 1, least[rank]?.weighted ?? '-', least[rank] === undefined ? '-' : `${least[rank].percent}%`, honour]),
+  );
 }
 
 // --- R-1030: Colonies and Buildings --------------------------------------------------------------
@@ -254,13 +499,6 @@ export function fillTables(markdown: string): string {
 const chainNames = (chain: BuildingChain): string =>
   (BUILDING_CHAINS[chain] as readonly BuildingId[]).filter((id) => !BUILDINGS[id].unused).map((id) => BUILDINGS[id].name).join(' → ');
 const expertsFor = (good: RawGood): string[] => PROFESSION_IDS.filter((p) => PROFESSIONS[p].expertGood === good).map((p) => PROFESSIONS[p].name);
-
-/** A square of this terrain with no river, road, plowing or resource. */
-function bareTile(terrain: TerrainId): Tile {
-  if (terrain === 'hills' || terrain === 'mountains') return makeTile({ base: 'plains', relief: terrain });
-  if (terrain in CLEARED_FROM) return makeTile({ base: CLEARED_FROM[terrain as ForestTerrain], forest: true });
-  return makeTile({ base: terrain as BaseTerrain });
-}
 
 /**
  * Where a free colonist gets this raw good on a bare square, best first, as "Plains 5, Savannah 4,
@@ -397,4 +635,44 @@ function buildableUnits(): string {
       return [img(`images/art/units/${u}.png`, UNIT_TYPES[u].name), UNIT_TYPES[u].name, cost.hammers, cost.tools, needs ? BUILDINGS[needs].name : 'Fewer wagon trains than you have colonies'];
     }),
   );
+}
+
+/** The renderer for each block name: GitHub Markdown, a table or a list. */
+export const TABLES: Readonly<Record<string, () => string>> = {
+  'difficulty-levels': difficultyLevels,
+  nations,
+  controls,
+  options,
+  units,
+  professions,
+  'combat-modifiers': combatModifiers,
+  'ship-repairs': shipRepairs,
+  terrain: terrainTable,
+  'pioneer-work': pioneerWork,
+  resources: resourceTable,
+  tribes,
+  'native-attitudes': nativeAttitudes,
+  fathers,
+  'father-cost': fatherCostTable,
+  score,
+  'score-rating': scoreRating,
+  honours,
+  goods: goodsTable,
+  buildings: buildingsTable,
+  'buildable-units': buildableUnits,
+};
+
+/** A marked block: the opening marker (group 1), its name (2), its body (3) and the closing marker (4). */
+export const BLOCK = /(<!--\s*table:\s*([\w-]+)\s*-->)([\s\S]*?)(<!--\s*\/table\s*-->)/g;
+
+/** The renderer registered under a block name, or undefined (never one inherited from Object). */
+export const rendererFor = (name: string): (() => string) | undefined => (Object.hasOwn(TABLES, name) ? TABLES[name] : undefined);
+
+/** The markdown with the body of every marked block replaced by its renderer's output. */
+export function fillTables(markdown: string): string {
+  return markdown.replace(BLOCK, (_all, open: string, name: string, _body: string, close: string) => {
+    const render = rendererFor(name);
+    if (!render) throw new Error(`no renderer is registered for the table block "${name}"`);
+    return `${open}\n\n${render()}\n\n${close}`;
+  });
 }
