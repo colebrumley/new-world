@@ -1426,6 +1426,13 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1037 Shrink the manual's screenshots to palette PNGs** — docs/specs/player-manual-wiki.md, item W13, size S.
 - [x] **R-1038 Engine: cash a treasure train** — docs/specs/treasure-cashing.md, item W1, size S.
 - [x] **R-1039 Treasure: the Crown's question, orders menu, notice and manual** — docs/specs/treasure-cashing.md, item W2, size S.
+- [ ] **R-1040 Map art: palette retune and the art guide** — docs/specs/map-art-redesign.md, item W1, size M.
+- [ ] **R-1041 Map art: blended edges and coasts** — docs/specs/map-art-redesign.md, item W2, size L.
+- [ ] **R-1042 Map art: terrain floors and features regenerated** — docs/specs/map-art-redesign.md, item W3, size L.
+- [ ] **R-1043 Map art: pictorial resource markers** — docs/specs/map-art-redesign.md, item W4, size M.
+- [ ] **R-1044 Map art: the lost-city seal** — docs/specs/map-art-redesign.md, item W5, size S.
+- [ ] **R-1045 Map art: colony names on the map** — docs/specs/map-art-redesign.md, item W6, size M.
+- [ ] **R-1046 Map art: canopy and relief joins, river mouths, overlay order** — docs/specs/map-art-redesign.md, item W7, size M.
 
 ---
 
