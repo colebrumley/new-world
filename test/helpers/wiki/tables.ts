@@ -12,17 +12,17 @@ import { NATION_IDS, NATIONS, STARTING_FORCE } from '../../../src/engine/data/na
 import { KEY_CONTEXT_TITLES, KEYMAP, type KeyContext } from '../../../src/ui/keymap';
 import { COLONY_OPTIONS, GAME_OPTIONS, SOUND_OPTIONS, type ColonyOptionKey } from '../../../src/ui/options';
 import { landsWith } from '../../../src/ui/power';
-import { BUILDINGS } from '../../../src/engine/data/buildings';
+import { BUILDINGS, BUILDING_CHAINS, type BuildingChain, type BuildingId } from '../../../src/engine/data/buildings';
 import { COMBAT } from '../../../src/engine/data/combat';
 import { BUILDABLE_UNITS } from '../../../src/engine/data/construction';
 import { MISSIONARY_BUILDINGS } from '../../../src/engine/data/equipment';
-import { GOOD_NAMES } from '../../../src/engine/data/goods';
+import { GOOD_NAMES, ABSTRACT_GOOD_IDS, GOOD_IDS, type AbstractGoodId, type GoodId } from '../../../src/engine/data/goods';
 import { NAVAL, REPAIR_HEAD_START } from '../../../src/engine/data/naval';
 import { TRADE_IDS, TRADES, PRODUCTION } from '../../../src/engine/data/production';
-import { PROFESSIONS, SPECIALISTS, type ProfessionId } from '../../../src/engine/data/professions';
+import { PROFESSIONS, SPECIALISTS, type ProfessionId, PROFESSION_IDS } from '../../../src/engine/data/professions';
 import { DEFENSE_STEP_PERCENT, TERRAIN, TERRAIN_IDS, CLEARED_FROM, defensePercent, RAW_GOODS, type ForestTerrain, type RawGood, type TerrainId } from '../../../src/engine/data/terrain';
 import { ARTILLERY_PRICE_STEP, PIONEER_TOOLS, UNIT_TYPE_IDS, UNIT_TYPES, type UnitTypeId } from '../../../src/engine/data/units';
-import { PIONEER_WORK } from '../../../src/engine/data/pioneer';
+import { PIONEER_WORK, WAREHOUSE } from '../../../src/engine/data/pioneer';
 import { RESOURCE_BONUS, RESOURCE_IDS, RESOURCE_TERRAINS, RESOURCES, type ResourceBonus, type ResourceId } from '../../../src/engine/data/resources';
 import { jobTurns } from '../../../src/engine/pioneer';
 import { makeTile, type Tile } from '../../../src/engine/tile';
@@ -40,6 +40,11 @@ import { FATHER_CATEGORIES, FATHER_ERAS, FATHER_IDS, FATHERS } from '../../../sr
 import { HONOURS, SCORE } from '../../../src/engine/data/score';
 import { ratingOf } from '../../../src/engine/score';
 import { world } from '../world';
+import { COLONY_LIMITS } from '../../../src/engine/data/colony';
+import { CROSSES } from '../../../src/engine/data/crosses';
+import { CUSTOM_HOUSE } from '../../../src/engine/data/custom-house';
+import { HORSES } from '../../../src/engine/data/food';
+import { LIBERTY } from '../../../src/engine/data/liberty';
 
 const cell = (value: string | number): string => String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 
@@ -489,6 +494,149 @@ function honours(): string {
   );
 }
 
+// --- R-1030: Colonies and Buildings --------------------------------------------------------------
+
+const chainNames = (chain: BuildingChain): string =>
+  (BUILDING_CHAINS[chain] as readonly BuildingId[]).filter((id) => !BUILDINGS[id].unused).map((id) => BUILDINGS[id].name).join(' → ');
+const expertsFor = (good: RawGood): string[] => PROFESSION_IDS.filter((p) => PROFESSIONS[p].expertGood === good).map((p) => PROFESSIONS[p].name);
+
+/**
+ * Where a free colonist gets this raw good on a bare square, best first, as "Plains 5, Savannah 4,
+ * Tundra 3 and 14 more". Fish are counted on a shore square (fewer water neighbours give more).
+ */
+function bestSquares(good: RawGood, shown = 3): string {
+  const rows = TERRAIN_IDS.map((t) => ({ name: TERRAIN[t].name, n: tileYield(bareTile(t), good) }))
+    .filter((r) => r.n > 0)
+    .sort((a, b) => b.n - a.n);
+  const head = rows.slice(0, shown).map((r) => `${r.name} ${r.n}`).join(', ');
+  if (rows.length === 0) {
+    // silver: a bare square gives none without a deposit, but a road brings a little out
+    const roads = TERRAIN_IDS.map((t) => ({ name: TERRAIN[t].name, n: tileYield({ ...bareTile(t), road: true }, good) })).filter((r) => r.n > 0);
+    return `${roads.map((r) => `${r.name} ${r.n} with a road`).join(', ')}; more on a silver or mineral deposit`;
+  }
+  return rows.length > shown ? `${head} and ${rows.length - shown} more` : head;
+}
+
+/** Fish on a bare Ocean square by how many of its eight neighbours are water: "fish 4 with up to 5 water neighbours, ...". */
+function fishByWater(): string {
+  const steps = [...YIELD_RULES.fishByWaterNeighbors].map(([min]) => min).sort((a, b) => a - b);
+  const parts = steps.map((min, i) => {
+    const max = (steps[i + 1] ?? 9) - 1;
+    const n = tileYield(bareTile('ocean'), 'fish', undefined, { waterNeighbors: min, hasDocks: true });
+    const span = min === 0 ? `up to ${max}` : min === max ? `${min}` : `${min} or ${max}`;
+    return `${n} with ${span} water neighbours`;
+  });
+  return `fish ${parts.join(', ')}`;
+}
+
+function goodsRow(good: GoodId | AbstractGoodId): (string | number)[] {
+  const icon = img(`images/art/goods/${good}.png`, goodName(good));
+  if ((RAW_GOODS as readonly string[]).includes(good)) {
+    const raw = good as RawGood;
+    if (raw === 'food') {
+      return [icon, goodName(good), 'Raw', 'Land; water too once the colony has Docks (fish)', [...expertsFor('food'), ...expertsFor('fish')].join(', '),
+        `A square: ${bestSquares('food')}; ${fishByWater()}`];
+    }
+    return [icon, goodName(good), 'Raw', 'Land', expertsFor(raw).join(', '), `A square: ${bestSquares(raw)}`];
+  }
+  if (good === 'horses') {
+    return [icon, goodName(good), 'Bred', 'Spare food', 'Nobody: they breed by themselves', `A colony with ${HORSES.minimumHerd} or more; faster with a ${BUILDINGS.stable.name}`];
+  }
+  const trade = TRADE_IDS.find((t) => TRADES[t].output === good);
+  if (!trade) return [icon, goodName(good), 'Bought', 'Not made in a colony', '-', 'Europe'];
+  const t = TRADES[trade];
+  const kind = (ABSTRACT_GOOD_IDS as readonly string[]).includes(good) ? 'Made, not cargo' : 'Made';
+  const extra = good === 'bells' ? ` (the colony rings ${LIBERTY.freeBells} a turn by itself)` : good === 'crosses' ? ` (the colony makes ${CROSSES.perColony} a turn by itself)` : '';
+  return [icon, goodName(good), kind, t.input ? goodName(t.input) : 'Nothing', `Anyone as ${t.name.toLowerCase()}; the expert is the ${PROFESSIONS[t.expert].name}`, `${chainNames(t.chain)}${extra}`];
+}
+
+/** Every cargo, and the three things a colony makes that are not cargo: what it is and where it comes from. */
+function goodsTable(): string {
+  return mdTable(['Icon', 'Cargo', 'Raw or made', 'Made from', 'Made by', 'Made in'], [...GOOD_IDS, ...ABSTRACT_GOOD_IDS].map(goodsRow));
+}
+
+/** The order the Buildings page lists the lines in. */
+const BUILDING_LINES = [
+  'townHall', 'carpenter', 'weaver', 'tobacconist', 'distiller', 'furTrader', 'blacksmith', 'armory', 'docks', 'school',
+  'warehouse', 'stable', 'customHouse', 'press', 'church', 'fortification',
+] as const satisfies readonly BuildingChain[];
+
+function buildingEffect(id: BuildingId): string {
+  const b = BUILDINGS[id];
+  const workers = PRODUCTION.workersPerBuilding;
+  const line = b.chain ? (BUILDING_CHAINS[b.chain] as readonly BuildingId[]) : [id];
+  const trade = TRADE_IDS.find((t) => TRADES[t].chain === b.chain);
+  if (trade && TRADES[trade].rule === 'craft') {
+    const t = TRADES[trade];
+    const input = goodName(t.input as GoodId).toLowerCase();
+    const output = goodName(t.output as GoodId).toLowerCase();
+    const [used, made] = PRODUCTION.factoryInput;
+    if (b.level === 1) return `Up to ${workers} colonists turn ${input} into ${output}, one for one.${id === 'armory' ? ` ${UNIT_TYPES.artillery.name} can be built.` : ''}`;
+    if (b.level === 2) {
+      const base = PRODUCTION.base.skilled;
+      return `Each worker makes his base amount again on top: a free colonist ${2 * base} instead of ${base}, an expert ${2 * base * PRODUCTION.expertMultiplier} instead of ${base * PRODUCTION.expertMultiplier}.`;
+    }
+    return `Half again the output of the ${BUILDINGS[line[1] as BuildingId].name}, using only ${used} ${input} for every ${made} ${output}.`;
+  }
+  const shipyardUnits = (Object.keys(BUILDABLE_UNITS) as (keyof typeof BUILDABLE_UNITS)[]).filter((u) => BUILDABLE_UNITS[u] === 'shipyard').map((u) => UNIT_TYPES[u].name);
+  const defence = (level: number): string => `+${COMBAT.settledQuarters * (1 + level) * 25}%`;
+  const teachers = (level: 1 | 2 | 3): string => {
+    const n = PRODUCTION.teachers[level];
+    return `Seats ${n} teacher${n === 1 ? '' : 's'}. An expert may teach here if his trade is taught at level ${level === 1 ? '1' : `${level} or below`}.`;
+  };
+  switch (id) {
+    case 'townHall': return `Up to ${workers} statesmen ring liberty bells. The colony rings ${LIBERTY.freeBells} a turn with nobody here.`;
+    case 'carpentersShop': return `Up to ${workers} carpenters turn lumber into hammers, one for one.`;
+    case 'lumberMill': return 'Carpenters make twice as many hammers.';
+    case 'docks': return "Colonists can fish on the colony's water squares.";
+    case 'drydock': return 'Damaged ships come here to be repaired, in half the time Europe takes.';
+    case 'shipyard': return `Ships can be built: ${shipyardUnits.join(', ')}.`;
+    case 'schoolhouse': return teachers(1);
+    case 'college': return teachers(2);
+    case 'university': return teachers(3);
+    case 'warehouse': return `The colony keeps ${WAREHOUSE.base + WAREHOUSE.step} of each good instead of ${WAREHOUSE.base}.`;
+    case 'warehouseExpansion': return `The colony keeps ${WAREHOUSE.base + 2 * WAREHOUSE.step} of each good.`;
+    case 'stable': return `A big herd breeds faster: up to ${HORSES.perHerd} new horses for every ${HORSES.herdSizeWithStable} in the herd (or part of ${HORSES.herdSizeWithStable}) instead of every ${HORSES.herdSize}, food and room allowing.`;
+    case 'customHouse': return `Sells the goods you choose without a ship: each turn, down to ${CUSTOM_HOUSE.keep} once ${CUSTOM_HOUSE.sellAt} are in store.`;
+    case 'printingPress': return "Half again the colony's liberty bells.";
+    case 'newspaper': return "Twice the colony's liberty bells, in place of the press's half again.";
+    case 'church': return `The colony makes ${CROSSES.perColony + CROSSES.perChurchLevel} crosses a turn instead of ${CROSSES.perColony}, and up to ${workers} preachers make more.`;
+    case 'cathedral': return `The colony makes ${CROSSES.perColony + 2 * CROSSES.perChurchLevel} crosses a turn, and each preacher makes twice as many.`;
+    case 'stockade': return `Defenders get ${defence(1)} (a bare colony gives ${defence(0)}). The colony can no longer drop below ${COLONY_LIMITS.stockadeMinPopulation} colonists by choice, nor be abandoned.`;
+    case 'fort': return `Defenders get ${defence(2)}. Fires on enemy ships beside the colony and costs them ${NAVAL.fortSlow} thirds of a move.`;
+    case 'fortress': return `Defenders get ${defence(3)}. Fires on enemy ships beside the colony twice as hard and stops them there.`;
+    default: return '';
+  }
+}
+
+/** Every building a colony can raise, line by line, with its sprite, its cost and what it does. */
+function buildingsTable(): string {
+  const rows: (string | number)[][] = [];
+  for (const line of BUILDING_LINES) {
+    for (const id of BUILDING_CHAINS[line] as readonly BuildingId[]) {
+      const b = BUILDINGS[id];
+      if (b.unused) continue;
+      const needs = [b.needsFather ? FATHERS[b.needsFather].name : '', id === 'docks' ? 'water beside the colony' : b.coastal ? 'the open sea beside the colony' : '']
+        .filter(Boolean)
+        .join('; ');
+      rows.push([img(`images/art/buildings/${id}.png`, b.name), b.name, b.hammers, b.tools, b.minPopulation, needs || '-', buildingEffect(id)]);
+    }
+  }
+  return mdTable(['Sprite', 'Building', 'Hammers', 'Tools', 'Colonists needed', 'Also needs', 'What it does'], rows);
+}
+
+/** The units a colony can build, with their cost and what each needs. */
+function buildableUnits(): string {
+  return mdTable(
+    ['Sprite', 'Unit', 'Hammers', 'Tools', 'Needs'],
+    (Object.keys(BUILDABLE_UNITS) as (keyof typeof BUILDABLE_UNITS)[]).map((u) => {
+      const cost = UNIT_TYPES[u].build ?? { hammers: 0, tools: 0 };
+      const needs = BUILDABLE_UNITS[u];
+      return [img(`images/art/units/${u}.png`, UNIT_TYPES[u].name), UNIT_TYPES[u].name, cost.hammers, cost.tools, needs ? BUILDINGS[needs].name : 'Fewer wagon trains than you have colonies'];
+    }),
+  );
+}
+
 /** The renderer for each block name: GitHub Markdown, a table or a list. */
 export const TABLES: Readonly<Record<string, () => string>> = {
   'difficulty-levels': difficultyLevels,
@@ -509,6 +657,9 @@ export const TABLES: Readonly<Record<string, () => string>> = {
   score,
   'score-rating': scoreRating,
   honours,
+  goods: goodsTable,
+  buildings: buildingsTable,
+  'buildable-units': buildableUnits,
 };
 
 /** A marked block: the opening marker (group 1), its name (2), its body (3) and the closing marker (4). */
