@@ -1439,7 +1439,7 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1050 America map redrawn: Cape Horn open, the Mississippi and the great rivers, real coasts and ranges, settlements fixed on their sites** — docs/specs/america-map.md, item W2, size L.
 - [x] **R-1051 Units on the map tooltip: the player's own with moves, orders and load, the top one of another power's** — docs/specs/unit-tooltips.md, item W1, size S.
 - [x] **R-1052 Four more silver deposits in the Andes on the America map, seven in all** — docs/specs/andes-silver.md, item W1, size S.
-- [ ] **R-1053 A silver marker that shows on mountains: bright metal in dark rock** — docs/specs/andes-silver.md, item W2, size M.
+- [x] **R-1053 A silver marker that shows on mountains: bright metal in dark rock** — docs/specs/andes-silver.md, item W2, size M.
 
 ---
 
