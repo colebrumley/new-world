@@ -84,7 +84,7 @@ You start in 1492 on the open sea, at the east side of the map. Your ship is the
 
 ### Make landfall
 
-When land lies alongside, steer the ship at the shore. The game asks whether the passengers should stay aboard or **Make landfall**. Landfall moves nobody: the ship stays where it is and its passengers wake, the first of them now the active unit. Move each one onto the land yourself, with the arrow key or a click on the square. Stepping ashore ends that unit's turn. Then click the unit on land that is to found the colony, to make it the active unit again.
+When land lies alongside, steer the ship at the shore. The game asks whether the passengers should stay aboard or **Make landfall**. Landfall moves nobody: the ship stays where it is, its passengers wake, and the first one ready for orders becomes the active unit. Move each one onto the land yourself, with the arrow key or a click on the square. Stepping ashore ends that unit's turn, so it cannot be made the active unit again until the next turn. End the turn; when the unit on land comes up (or you click it), it is ready to found the colony.
 
 ### Found a colony
 
