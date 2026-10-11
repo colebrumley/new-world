@@ -7,7 +7,7 @@
 // from the rule tables, so the manual cannot disagree with the game. Content items add their own
 // renderers to TABLES.
 import { describeDifficulty, difficultyProfile } from '../../../src/engine/difficulty';
-import { DIFFICULTIES } from '../../../src/engine/data/yields';
+import { DIFFICULTIES, YIELD_RULES } from '../../../src/engine/data/yields';
 import { NATION_IDS, NATIONS, STARTING_FORCE } from '../../../src/engine/data/nations';
 import { KEY_CONTEXT_TITLES, KEYMAP, type KeyContext } from '../../../src/ui/keymap';
 import { COLONY_OPTIONS, GAME_OPTIONS, SOUND_OPTIONS, type ColonyOptionKey } from '../../../src/ui/options';
@@ -20,9 +20,13 @@ import { GOOD_NAMES } from '../../../src/engine/data/goods';
 import { NAVAL, REPAIR_HEAD_START } from '../../../src/engine/data/naval';
 import { TRADE_IDS, TRADES, PRODUCTION } from '../../../src/engine/data/production';
 import { PROFESSIONS, SPECIALISTS } from '../../../src/engine/data/professions';
-import { DEFENSE_STEP_PERCENT, TERRAIN, TERRAIN_IDS } from '../../../src/engine/data/terrain';
+import { DEFENSE_STEP_PERCENT, TERRAIN, TERRAIN_IDS, CLEARED_FROM, defensePercent, RAW_GOODS, type ForestTerrain, type RawGood, type TerrainId } from '../../../src/engine/data/terrain';
 import { ARTILLERY_PRICE_STEP, PIONEER_TOOLS, UNIT_TYPE_IDS, UNIT_TYPES, type UnitTypeId } from '../../../src/engine/data/units';
-import { YIELD_RULES } from '../../../src/engine/data/yields';
+import { PIONEER_WORK } from '../../../src/engine/data/pioneer';
+import { RESOURCE_BONUS, RESOURCE_IDS, RESOURCE_TERRAINS, RESOURCES, type ResourceBonus, type ResourceId } from '../../../src/engine/data/resources';
+import { jobTurns } from '../../../src/engine/pioneer';
+import { makeTile, type Tile } from '../../../src/engine/tile';
+import { FREE_COLONIST, tileYield, type OutdoorWorker } from '../../../src/engine/yields';
 
 const cell = (value: string | number): string => String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 
@@ -211,6 +215,99 @@ function shipRepairs(): string {
 }
 
 
+// --- The Map (R-1028) ------------------------------------------------------------------------
+
+/** A bare square of one terrain row: no river, road, plowing or resource. */
+function bareTile(terrain: TerrainId): Tile {
+  if (terrain === 'hills' || terrain === 'mountains') return makeTile({ base: 'plains', relief: terrain });
+  if (Object.hasOwn(CLEARED_FROM, terrain)) return makeTile({ base: CLEARED_FROM[terrain as ForestTerrain], forest: true });
+  return makeTile({ base: terrain as Exclude<TerrainId, ForestTerrain | 'hills' | 'mountains'> });
+}
+
+const rawGoodName = (good: RawGood): string => (good === 'fish' ? 'Fish' : GOOD_NAMES[good]);
+
+/** "3 Food, 3 Tobacco": what a free colonist brings in on the square, zeros left out. */
+function yieldsOn(tile: Tile, waterNeighbors = 0): string {
+  return RAW_GOODS.flatMap((good) => {
+    const n = tileYield(tile, good, FREE_COLONIST, { waterNeighbors });
+    return n > 0 ? [`${n} ${rawGoodName(good)}`] : [];
+  }).join(', ');
+}
+
+function terrainKind(terrain: TerrainId): string {
+  const def = TERRAIN[terrain];
+  if (def.water) return 'water';
+  if (def.kind === 'open') return 'open';
+  if (def.kind === 'forest') return 'forested';
+  return terrain === 'arctic' ? 'ice' : terrain;
+}
+
+/** "4 Fish with 0 to 5 water neighbours, 2 Fish with 6 to 7, ...": one entry per band of the fish rule. */
+function fishByBand(tile: Tile): string {
+  const mins = YIELD_RULES.fishByWaterNeighbors.map(([min]) => min).sort((a, b) => a - b);
+  return mins.map((min, i) => {
+    const next = mins[i + 1];
+    const band = next === undefined ? (min === 8 ? 'all 8' : `${min} or more`) : next - 1 === min ? `${min}` : next - 2 === min ? `${min} or ${next - 1}` : `${min} to ${next - 1}`;
+    return `${yieldsOn(tile, min)} with ${band}${i === 0 ? ' of the 8 neighbours water' : ''}`;
+  }).join(', ');
+}
+
+function terrainTable(): string {
+  return mdTable(
+    ['', 'Terrain', 'Kind', 'Move cost', 'Defence', 'A free colonist gets', 'Cleared, it becomes'],
+    TERRAIN_IDS.map((t) => {
+      const def = TERRAIN[t];
+      const tile = bareTile(t);
+      const fish = def.water ? fishByBand(tile) : yieldsOn(tile) || 'nothing';
+      const defence = defensePercent(t);
+      return [
+        img(`images/art/terrain/${t}.png`, def.name), def.name, terrainKind(t), def.moveCost, defence === 0 ? 'none' : `+${defence}%`, fish,
+        Object.hasOwn(CLEARED_FROM, t) ? TERRAIN[CLEARED_FROM[t as ForestTerrain]].name : '',
+      ];
+    }),
+  );
+}
+
+function pioneerWork(): string {
+  const turns = (n: number, hardy: number): string => `${n} (${hardy})`;
+  return mdTable(
+    ['Terrain', 'Road', 'Clear the forest', 'Plow'],
+    TERRAIN_IDS.filter((t) => !TERRAIN[t].water).map((t) => {
+      const tile = bareTile(t);
+      const forest = Object.hasOwn(CLEARED_FROM, t);
+      const noPlow = (PIONEER_WORK.noPlow as readonly string[]).includes(t);
+      const job = (j: 'road' | 'plow'): string => turns(jobTurns(tile, j, false), jobTurns(tile, j, true));
+      return [TERRAIN[t].name, job('road'), forest ? job('plow') : '', forest ? 'clear first' : noPlow ? 'cannot be plowed' : job('plow')];
+    }),
+  );
+}
+
+/** What a resource adds to a free colonist's figure and to an expert's, read from the yield rule itself. */
+function resourceEffectText(r: ResourceId, bare: Tile): string {
+  const tile = { ...bare, resource: r };
+  const bonuses: Partial<Record<RawGood, ResourceBonus>> = RESOURCE_BONUS[r];
+  const parts = RAW_GOODS.flatMap((good) => {
+    const b = bonuses[good];
+    if (!b) return [];
+    if (b.kind === 'double') return [`doubles ${rawGoodName(good)}`];
+    const gain = (w: OutdoorWorker): number => tileYield(tile, good, w) - tileYield(bare, good, w);
+    return [`+${gain(FREE_COLONIST)} ${rawGoodName(good)} (+${gain({ ...FREE_COLONIST, expertGood: good })} for the expert)`];
+  });
+  return parts.join(', ');
+}
+
+/** Every resource a map can carry. The Depleted Mine is left out: no map places one and no deposit becomes one in play. */
+function resourceTable(): string {
+  return mdTable(
+    ['', 'Resource', 'Found on', 'Adds'],
+    RESOURCE_IDS.filter((r) => r !== 'depletedMine').map((r) => {
+      const terrains: readonly TerrainId[] = RESOURCE_TERRAINS[r];
+      const bare = bareTile(terrains[0]!);
+      return [img(`images/art/resources/${r}.png`, RESOURCES[r].name), RESOURCES[r].name, terrains.map((t) => TERRAIN[t].name).join(', '), resourceEffectText(r, bare)];
+    }),
+  );
+}
+
 /** The renderer for each block name: GitHub Markdown, a table or a list. */
 export const TABLES: Readonly<Record<string, () => string>> = {
   'difficulty-levels': difficultyLevels,
@@ -221,6 +318,9 @@ export const TABLES: Readonly<Record<string, () => string>> = {
   professions,
   'combat-modifiers': combatModifiers,
   'ship-repairs': shipRepairs,
+  terrain: terrainTable,
+  'pioneer-work': pioneerWork,
+  resources: resourceTable,
 };
 
 /** A marked block: the opening marker (group 1), its name (2), its body (3) and the closing marker (4). */
