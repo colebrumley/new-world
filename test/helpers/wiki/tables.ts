@@ -6,7 +6,7 @@
 // (with UPDATE_FIXTURES=1) or fails when the body is not what the renderer gives. Every number comes
 // from the rule tables, so the manual cannot disagree with the game. Content items add their own
 // renderers to TABLES.
-import { describeDifficulty, difficultyProfile } from '../../../src/engine/difficulty';
+import { describeDifficulty, difficultyProfile, DIFFICULTY_NAMES } from '../../../src/engine/difficulty';
 import { DIFFICULTIES, YIELD_RULES } from '../../../src/engine/data/yields';
 import { NATION_IDS, NATIONS, STARTING_FORCE } from '../../../src/engine/data/nations';
 import { KEY_CONTEXT_TITLES, KEYMAP, type KeyContext } from '../../../src/ui/keymap';
@@ -33,6 +33,19 @@ import { RESOURCE_BONUS, RESOURCE_IDS, RESOURCE_TERRAINS, RESOURCES, type Resour
 import { jobTurns } from '../../../src/engine/pioneer';
 import { makeTile, type Tile } from '../../../src/engine/tile';
 import { FREE_COLONIST, tileYield, type OutdoorWorker } from '../../../src/engine/yields';
+import { AMERICA_TRIBE_SITES } from '../../../src/engine/data/america';
+import { ATTITUDES, CAPITAL_NAME, NATIVES, settlementPopulation, TECH_LEVELS, TRIBE_IDS, TRIBES, type TribeId } from '../../../src/engine/data/tribes';
+import { createGame } from '../../../src/engine/game';
+import { settlementSkill } from '../../../src/engine/learning';
+import { INK, PALETTE, VILLAGE_LOOKS } from '../../../src/ui/pixel-art';
+import { MOOD_COLORS } from '../../../src/ui/render';
+import { CALENDAR, firstTurnOfYear } from '../../../src/engine/calendar';
+import { fatherCost } from '../../../src/engine/congress';
+import { CONGRESS } from '../../../src/engine/data/congress';
+import { FATHER_CATEGORIES, FATHER_ERAS, FATHER_IDS, FATHERS } from '../../../src/engine/data/fathers';
+import { HONOURS, SCORE } from '../../../src/engine/data/score';
+import { ratingOf } from '../../../src/engine/score';
+import { world } from '../world';
 
 const cell = (value: string | number): string => String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 
@@ -414,6 +427,174 @@ function expeditionaryForce(): string {
   );
 }
 
+// R-1032: the native peoples.
+
+/** Where each people lives on the America map, in words (the sites are in src/engine/data/america.ts). */
+const TRIBE_HOMES: Readonly<Record<TribeId, string>> = {
+  inca: 'the mountains and coast of western South America',
+  aztec: 'Mexico and Central America',
+  arawak: 'the Caribbean islands and the shores around them',
+  iroquois: 'the north-east, from the Great Lakes to the Atlantic',
+  cherokee: 'the south-east of North America',
+  apache: 'the dry south-west of North America',
+  sioux: 'the northern plains',
+  tupi: 'the Amazon basin and the east of South America',
+};
+
+/** Games of the America map sampled to find the trades each people most often teaches. */
+const SKILL_SAMPLES = 20;
+const SKILLS_SHOWN = 3;
+
+/** For each people, the trades its settlements teach, most often first, over a sample of America games. */
+function taughtSkills(): Record<TribeId, ProfessionId[]> {
+  const tally = new Map<TribeId, Map<ProfessionId, number>>(TRIBE_IDS.map((t) => [t, new Map()]));
+  for (let i = 1; i <= SKILL_SAMPLES; i++) {
+    const state = createGame({ seed: `wiki-skills-${i}`, scenario: 'america' });
+    for (const settlement of Object.values(state.settlements)) {
+      const counts = tally.get(settlement.tribe)!;
+      const skill = settlementSkill(state, settlement);
+      counts.set(skill, (counts.get(skill) ?? 0) + 1);
+    }
+  }
+  return Object.fromEntries(
+    TRIBE_IDS.map((t) => [t, [...tally.get(t)!].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([skill]) => skill)]),
+  ) as Record<TribeId, ProfessionId[]>;
+}
+
+function tribes(): string {
+  const skills = taughtSkills();
+  return mdTable(
+    ['', 'People', 'How they live', 'People per settlement', 'Treasure', 'Most often teach', 'On the America map'],
+    TRIBE_IDS.map((id) => {
+      const tribe = TRIBES[id];
+      const level = TECH_LEVELS[tribe.tech];
+      const { start } = settlementPopulation(id, false);
+      const { max } = settlementPopulation(id, true);
+      return [
+        img(`images/art/places/${VILLAGE_LOOKS[tribe.tech]}.png`, `${tribe.adjective} ${level.settlement.toLowerCase()}`),
+        tribe.name,
+        `${level.name}: ${level.plural.toLowerCase()}`,
+        `${start} (the ${CAPITAL_NAME.settlement.toLowerCase()} up to ${max})`,
+        tribe.treasure,
+        skills[id].slice(0, SKILLS_SHOWN).map((p) => PROFESSIONS[p].name).join(', '),
+        `${TRIBE_HOMES[id]}; up to ${AMERICA_TRIBE_SITES[id].length} settlements`,
+      ];
+    }),
+  );
+}
+
+/** The ink a mood mark is drawn in, as words: `brightBlue` is "bright blue". */
+const inkName = (hex: string): string =>
+  (Object.entries(INK).find(([, ink]) => PALETTE[ink] === hex)?.[0] ?? hex).replace(/[A-Z]/g, (c) => ` ${c.toLowerCase()}`);
+
+function nativeAttitudes(): string {
+  const [uneasy, restless, angry] = NATIVES.alarmLevels;
+  const when = [
+    `tribal alarm under ${uneasy}`,
+    `tribal alarm ${uneasy} to ${restless - 1}`,
+    `tribal alarm ${restless} to ${angry - 1}`,
+    `tribal alarm ${angry} or more`,
+    `this settlement's own alarm ${NATIVES.settlementHostile} or more`,
+  ];
+  const means = [
+    'Friendly. Their braves call on your colonies with gifts and converts, and they teach and trade freely.',
+    'Wary. Lessons may fail, a chief may have a scout killed, and a brave at your gate may demand goods instead of bringing them.',
+    'Sullen. They will not teach, a demand for tribute that fails is refused or laughed at, and their braves come to your colonies with black looks only.',
+    'Hostile. Ships are turned away, wagon trains risk their cargo, scouts are killed, and braves attack your units and colonies.',
+    'This settlement alone has turned on you: ships are turned away and its brave attacks your units and colonies.',
+  ];
+  return mdTable(
+    ['Attitude', 'Mark', 'When', 'What it means'],
+    ATTITUDES.map((name, i) => [name, inkName(MOOD_COLORS[i]!), when[i]!, means[i]!]),
+  );
+}
+
+// R-1033 (W11): Founding Fathers, Score and Hall of Fame.
+
+const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** The three eras of the Congress's offer weights, by name. */
+const FATHER_ERA_NAMES = [`${CALENDAR.startYear} to ${FATHER_ERAS[0]}`, `${FATHER_ERAS[0]} to ${FATHER_ERAS[1]}`, `after ${FATHER_ERAS[1]}`] as const;
+
+/** Every Founding Father, grouped by field: portrait, name, effect, and the eras he may be offered in. */
+function fathers(): string {
+  return mdTable(
+    ['', 'Founding Father', 'Field', 'Effect', 'May be offered'],
+    FATHER_CATEGORIES.flatMap((field) =>
+      FATHER_IDS.filter((id) => FATHERS[id].category === field).map((id) => {
+        const f = FATHERS[id];
+        const eras = FATHER_ERA_NAMES.filter((_, i) => f.weights[i] !== 0).join(', ');
+        return [`<img src="images/art/portraits/${id}.png" width="64" alt="${f.name}">`, f.name, capital(field), f.effect, eras];
+      }),
+    ),
+  );
+}
+
+/** Bells the next Founding Father costs a human power, by level and year (from the engine's fatherCost). */
+function fatherCostTable(): string {
+  const seats = [1, 2, 3, 5, 10];
+  const years = [CALENDAR.startYear, ...CONGRESS.dearerFrom];
+  const cost = (difficulty: (typeof DIFFICULTIES)[number], seated: number, year: number): number => {
+    const state = world({ rows: ['.'], players: [{ id: 'a', fathers: FATHER_IDS.slice(0, seated) }], difficulty });
+    return fatherCost({ ...state, turn: firstTurnOfYear(year) }, 'a');
+  };
+  const ordinal = (n: number): string => `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
+  return mdTable(
+    ['Level', 'From', ...seats.map((n) => `${ordinal(n)} father`)],
+    DIFFICULTIES.flatMap((d) => years.map((year) => [DIFFICULTY_NAMES[d], year, ...seats.map((n) => cost(d, n - 1, year))])),
+  );
+}
+
+/** What counts toward the score, and how much. */
+function score(): string {
+  const levels = DIFFICULTIES.length;
+  const independence = [0, 1, 2, 3].map((ahead) => {
+    const times = (SCORE.independenceBase + (SCORE.independenceBase >> ahead)) / SCORE.independenceBase;
+    return `x${times} ${ahead === 0 ? 'if no other power was independent first' : `behind ${ahead} ${ahead === 1 ? 'power' : 'powers'}`}`;
+  });
+  return mdTable(
+    ['What counts', 'Points'],
+    [
+      ['Each specialist (a colonist with a skill), in a colony or outside one', SCORE.expert],
+      ['Each free colonist', SCORE.free],
+      ['Each indentured servant, petty criminal or Indian convert', SCORE.lowly],
+      ['Each Founding Father in the Congress', SCORE.perFather],
+      ['Gold in the treasury', `1 for every ${SCORE.goldPerPoint}`],
+      ['Rebel sentiment (as it stood at the Declaration, once that is made)', '1 per percentage point'],
+      ['Each native settlement you destroyed', `minus 1 (${DIFFICULTY_NAMES[DIFFICULTIES[0]!]}) to minus ${levels} (${DIFFICULTY_NAMES[DIFFICULTIES[levels - 1]!]})`],
+      [`Independence declared before ${SCORE.earlyBefore}, and won`, `${SCORE.earlyPerYear} for each year early`],
+      ['Liberty bells rung after a foreign power intervened in your war of independence',`1 per ${SCORE.bellsPerPoint} bells, at most ${SCORE.bellsCap}`],
+      ['Independence won: the whole is multiplied', independence.join('; ')],
+    ],
+  );
+}
+
+/** The rating factor by difficulty: the score times it over a hundred is the weighted score. */
+function scoreRating(): string {
+  return mdTable(
+    ['Level', 'Rating factor (per hundred)', 'A score of 100 gives a weighted score of', 'and a Colonial Rating of'],
+    DIFFICULTIES.map((d) => {
+      const r = ratingOf(d, 100);
+      return [DIFFICULTY_NAMES[d], SCORE.difficultyFactor[DIFFICULTIES.indexOf(d)]!, r.weighted, `${r.percent}%`];
+    }),
+  );
+}
+
+/** The honours by rank, with the least weighted score and rating each needs (found by asking the engine's ratingOf). */
+function honours(): string {
+  // the level with the largest factor reaches every weighted score from some whole score
+  const top = DIFFICULTIES.reduce((a, b) => (SCORE.difficultyFactor[DIFFICULTIES.indexOf(b)]! > SCORE.difficultyFactor[DIFFICULTIES.indexOf(a)]! ? b : a));
+  const least: { weighted: number; percent: number }[] = [];
+  for (let s = 0; s < 100000 && least.length < HONOURS.length; s++) {
+    const { rank, weighted, percent } = ratingOf(top, s);
+    if (rank !== null) for (let r = least.length; r <= rank; r++) least[r] = { weighted, percent };
+  }
+  return mdTable(
+    ['Rank', 'Weighted score of at least', 'Colonial Rating of at least', 'Posterity names after you'],
+    HONOURS.map((honour, rank) => [rank + 1, least[rank]?.weighted ?? '-', least[rank] === undefined ? '-' : `${least[rank].percent}%`, honour]),
+  );
+}
+
 /** The renderer for each block name: GitHub Markdown, a table or a list. */
 export const TABLES: Readonly<Record<string, () => string>> = {
   'difficulty-levels': difficultyLevels,
@@ -434,6 +615,13 @@ export const TABLES: Readonly<Record<string, () => string>> = {
   'skilled-immigrants': skilledImmigrants,
   'tax-events': taxEvents,
   'expeditionary-force': expeditionaryForce,
+  tribes,
+  'native-attitudes': nativeAttitudes,
+  fathers,
+  'father-cost': fatherCostTable,
+  score,
+  'score-rating': scoreRating,
+  honours,
 };
 
 /** A marked block: the opening marker (group 1), its name (2), its body (3) and the closing marker (4). */
