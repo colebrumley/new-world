@@ -94,7 +94,11 @@ test('with "End of turn" off, the turn still ends once the question about the la
   await load(page, { ...state, units: { ...state.units, gold: { ...state.units['gold']!, movesLeft: 3 } } });
   const date = await field(page, 'date').textContent();
   await page.keyboard.press('ArrowLeft');
-  await page.getByRole('dialog').getByRole('button', { name: 'Decline' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('The Crown will carry this treasure');
+  // the turn waits for the answer
+  await expect(field(page, 'date')).toHaveText(date!);
+  await dialog.getByRole('button', { name: 'Decline' }).click();
   await expect(field(page, 'date')).not.toHaveText(date!);
 });
 
@@ -103,4 +107,31 @@ test('a treasure sent to the colony with Go To is asked about when it arrives', 
   await page.keyboard.press('g');
   await page.getByRole('dialog').getByRole('button', { name: 'Jamestown' }).click();
   await expect(page.getByRole('dialog')).toContainText('The Crown will carry this treasure');
+});
+
+test('a treasure put ashore from a galleon in the colony screen is asked about there (with Cortes)', async ({ page }) => {
+  const rows = Array.from({ length: 8 }, (_, y) => (y === 0 || y === 7 ? '~'.repeat(10) : '~~......~~'));
+  let state = world({ rows, seed: 5, players: [{ id: 'p0', kind: 'human', nation: 'england', fathers: ['hernanCortes'] }] });
+  state = withColony(state, { id: 'james', owner: 'p0', x: 2, y: 3, name: 'Jamestown' });
+  state = withUnit(state, { id: 'ship', owner: 'p0', type: 'galleon', profession: null, x: 2, y: 3 });
+  state = withUnit(state, { id: 'gold', owner: 'p0', type: 'treasure', profession: null, x: 2, y: 3, aboard: 'ship', orders: 'sentry' });
+  state = { ...state, units: { ...state.units, gold: { ...state.units['gold']!, treasure: VALUE } } };
+  const { net } = royalTransport(state, 'p0', VALUE);
+  await page.addInitScript((text) => localStorage.setItem('new-world:autosave', text), saveGame({ options: { seed: 5 }, log: [], state }));
+  await page.goto('/');
+  await page.getByRole('menuitem', { name: 'Load Game' }).click();
+  await expect(field(page, 'unit')).toHaveText('Galleon');
+  await page.keyboard.press('v');
+  await page.keyboard.press('Enter');
+  const colony = page.locator('.colony-screen');
+  await expect(colony).toBeVisible();
+  await colony.locator('.carrier .token-unit').click();
+  await colony.locator('.outside-row .row-title').click();
+  const dialog = page.getByRole('dialog').filter({ hasText: 'The Crown will carry this treasure' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Accept' }).click();
+  await page.getByRole('dialog').filter({ hasText: 'added to the treasury' }).getByRole('button', { name: 'Continue' }).click();
+  await expect(colony.locator('.token-unit', { hasText: 'Treasure' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(field(page, 'treasury')).toHaveText(`${net} gold`);
 });
