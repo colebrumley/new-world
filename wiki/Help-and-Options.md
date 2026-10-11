@@ -26,7 +26,7 @@ Open them from the keyboard, or with **Menu...** in the sidebar. Each option is 
 | Combat analysis | Show the odds and ask before an attack. | On |
 | Water shimmer | Animate the sea. | On |
 | Tutorial hints | Advice in the log at the moments a newcomer needs it. | On |
-| Terrain tooltips | Describe the square under the pointer: its terrain, features and yields. | On |
+| Terrain tooltips | Describe the square under the pointer: its terrain, features and yields, and the units on it. | On |
 
 ### Colony report options
 
@@ -91,6 +91,6 @@ The encyclopedia (**Alt+P**, or **Menu...** then **Encyclopedia**) has a page fo
 
 ## Tooltips
 
-Hold the pointer over a map square to see a slip describing it: the terrain, any river, road, plowing, resource or rumor, what a colonist working it would bring in, the cost of moving onto it and its value in defence. Turn the **Terrain tooltips** game option off if you would rather not see it; the same facts for the active unit's square stay in the sidebar, and **F1** (Terrain Information) lists every kind of terrain.
+Hold the pointer over a map square to see a slip describing it: the terrain, any river, road, plowing, resource or rumor, what a colonist working it would bring in, the cost of moving onto it and its value in defence. Where the map shows a unit on the square the slip names it underneath: each of your own units with its moves, its orders and what it carries, or whose the unit of another power is and its kind. Turn the **Terrain tooltips** game option off if you would rather not see it; the same facts for the active unit's square stay in the sidebar, and **F1** (Terrain Information) lists every kind of terrain.
 
 Elsewhere, hold the pointer over a sidebar button to see its name and key, over an option to see what it does, and over the Europe button to see which of your ships are in port there or crossing, and when each arrives. [[Controls]] lists every key; [[Reports and Advisers]] describes the reports.

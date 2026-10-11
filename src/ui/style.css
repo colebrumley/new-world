@@ -626,6 +626,9 @@ canvas.minimap {
 .map-tooltip p { margin: 0; }
 .map-tooltip-title { font-family: var(--font-display); font-size: 0.95rem; letter-spacing: var(--tracking-display); }
 .map-tooltip-ground { color: var(--ink-faded); }
+/* the units the map shows on the square come last, under a thin rule; what each carries is said fainter beneath it */
+.map-tooltip-ground + .map-tooltip-unit { margin-top: 3px; padding-top: 2px; border-top: var(--rule); }
+.map-tooltip-carried { color: var(--ink-faded); }
 
 /* --- adviser reports --------------------------------------------------------------------- */
 /* A report is a page of parchment (R-1015): the adviser's seal and the title at its head over a

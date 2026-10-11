@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { SIGHT } from '../../../src/engine/data/sight';
+import type { GameState, Unit } from '../../../src/engine/state';
 import { makeTile } from '../../../src/engine/tile';
-import { groundFeatures, placeTooltip, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_GAP } from '../../../src/ui/tile-tooltip';
-import { setTile, world } from '../../helpers/world';
+import { sidebarModel } from '../../../src/ui/sidebar';
+import { groundFeatures, placeTooltip, slipUnits, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_GAP, TOOLTIP_UNIT_LIMIT } from '../../../src/ui/tile-tooltip';
+import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
 const land = () => world({ rows: ['.....', '.....', '.....'] });
 
@@ -55,6 +58,135 @@ describe('tileTip', () => {
     expect(tileTip(s, 5, 0)).toBeNull();
     expect(tileTip(s, 1, 1)).toBeNull();
     expect(tileTip(s, 1, 1, true)?.title).toBe('Plains');
+  });
+});
+
+describe('tileTip units', () => {
+  const four = (rows = ['.....', '.....', '~~~~~']): GameState =>
+    world({ rows, players: [{ id: 'a' }, { id: 'b', nation: 'france' }, { id: 'c', nation: 'spain' }, { id: 'd', nation: 'netherlands' }] });
+  const units = (s: GameState, x: number, y: number, revealAll = false, active: string | null = null) => tileTip(s, x, y, revealAll, active)?.units;
+  const lines = (s: GameState, x: number, y: number, revealAll = false, active: string | null = null) => units(s, x, y, revealAll, active)?.map((u) => u.line);
+  const patch = (s: GameState, id: string, change: Partial<Unit>): GameState => ({ ...s, units: { ...s.units, [id]: { ...s.units[id]!, ...change } } });
+
+  it('is empty on a square with no unit', () => {
+    const s = withUnit(four(), { id: 'u1', type: 'soldier', x: 1, y: 1 });
+    expect(units(s, 3, 0)).toEqual([]);
+    expect(tileTip(s, 3, 0)).toEqual({ ...tileTip(four(), 3, 0) });
+  });
+
+  it("describes each of the viewer's units with its label, moves and orders, the top of the stack first", () => {
+    let s = withUnit(four(), { id: 'u1', type: 'soldier', profession: 'veteranSoldier', x: 1, y: 1, orders: 'fortified' });
+    s = withUnit(s, { id: 'u2', type: 'pioneer', profession: 'hardyPioneer', x: 1, y: 1, movesLeft: 1, orders: 'road' });
+    s = withUnit(s, { id: 'u3', type: 'colonist', x: 1, y: 1 });
+    s = withUnit(s, { id: 'ship', type: 'caravel', x: 1, y: 2 });
+    expect(lines(s, 1, 1)).toEqual(['Veteran Soldier · Moves 1 · Fortified', 'Hardy Pioneer · Moves 1/3 · Build road', 'Free Colonist · Moves 1 · No orders']);
+    expect(lines(s, 1, 2)).toEqual(['Caravel · Moves 4 · No orders']);
+    // the active unit is the top, the rest keep the stack's order
+    expect(lines(s, 1, 1, false, 'u2')).toEqual(['Hardy Pioneer · Moves 1/3 · Build road', 'Veteran Soldier · Moves 1 · Fortified', 'Free Colonist · Moves 1 · No orders']);
+  });
+
+  it("says what a unit of the viewer's carries, as the sidebar lists it", () => {
+    let s = withUnit(four(), { id: 'ship', type: 'caravel', x: 1, y: 2, cargo: { muskets: 100 } });
+    s = withUnit(s, { id: 'rider', type: 'colonist', x: 1, y: 2, aboard: 'ship' });
+    s = withUnit(s, { id: 'digger', type: 'pioneer', x: 0, y: 0 });
+    s = patch(withUnit(s, { id: 'gold', type: 'treasure', x: 2, y: 0 }), 'gold', { treasure: 3000 });
+    s = withUnit(s, { id: 'guard', type: 'soldier', x: 4, y: 0 });
+    // the colonist aboard is part of the caravel's load, not an entry of its own
+    expect(units(s, 1, 2)).toEqual([{ line: 'Caravel · Moves 4 · No orders', carried: 'Carrying Free Colonist, 100 Muskets' }]);
+    expect(units(s, 1, 2)?.[0]?.carried.replace('Carrying ', '').split(', ')).toEqual(sidebarModel(s, s.units['ship']!, null).aboard);
+    expect(units(s, 0, 0)?.[0]?.carried).toBe('Carrying 100 Tools');
+    expect(units(s, 2, 0)).toEqual([{ line: 'Treasure Train · Moves 1 · No orders', carried: 'Carrying 3000 gold' }]);
+    expect(units(s, 4, 0)?.[0]?.carried).toBe('');
+  });
+
+  it('never lists a unit on a voyage', () => {
+    let s = withUnit(four(), { id: 'ship', type: 'caravel', x: 1, y: 2 });
+    s = patch(s, 'ship', { voyage: { phase: 'toEurope', turnsLeft: 1, origin: [1, 2] } });
+    expect(units(s, 1, 2)).toEqual([]);
+  });
+
+  it("names another power's unit by its owner and kind, and says nothing of what it carries", () => {
+    let s = withUnit(four(), { id: 'me', type: 'scout', x: 2, y: 1 });
+    s = withUnit(s, { id: 'f1', owner: 'b', type: 'soldier', profession: 'veteranSoldier', x: 1, y: 0 });
+    s = withUnit(s, { id: 'd1', owner: 'd', type: 'colonist', profession: 'masterCarpenter', x: 2, y: 0 });
+    s = withUnit(s, { id: 'n1', owner: 'tribe:sioux', type: 'brave', x: 3, y: 0 });
+    s = withUnit(s, { id: 'w1', owner: 'c', type: 'wagonTrain', x: 3, y: 1, cargo: { furs: 100 } });
+    expect(units(s, 1, 0)).toEqual([{ line: 'French Soldier', carried: '' }]);
+    expect(units(s, 2, 0)).toEqual([{ line: 'Dutch Colonist', carried: '' }]);
+    expect(units(s, 3, 0)).toEqual([{ line: 'Sioux Braves', carried: '' }]);
+    expect(units(s, 3, 1)).toEqual([{ line: 'Spanish Wagon Train', carried: '' }]);
+  });
+
+  it("calls the Crown's army Royal, unless the kind's name already says whose it is", () => {
+    let s: GameState = { ...four(), crownPlayer: 'b' };
+    s = withUnit(s, { id: 'me', type: 'scout', x: 2, y: 1 });
+    s = withUnit(s, { id: 'k1', owner: 'b', type: 'artillery', x: 1, y: 0 });
+    s = withUnit(s, { id: 'k2', owner: 'b', type: 'regular', x: 2, y: 0 });
+    s = withUnit(s, { id: 'k3', owner: 'b', type: 'manOWar', x: 2, y: 2 });
+    expect(lines(s, 1, 0)).toEqual(['Royal Artillery']);
+    expect(lines(s, 2, 0)).toEqual(["King's Regular"]);
+    expect(lines(s, 2, 2)).toEqual(['Royal Man-O-War · holds empty']);
+  });
+
+  it('adds the holds in use to a foreign ship', () => {
+    let s = withUnit(four(), { id: 'me', type: 'caravel', x: 2, y: 2 });
+    s = withUnit(s, { id: 'g', owner: 'c', type: 'galleon', x: 1, y: 2, cargo: { sugar: 150 } });
+    s = withUnit(s, { id: 'p', owner: 'c', type: 'colonist', x: 1, y: 2, aboard: 'g' });
+    s = withUnit(s, { id: 'c1', owner: 'b', type: 'caravel', x: 3, y: 2, cargo: { furs: 20 } });
+    expect(units(s, 1, 2)).toEqual([{ line: 'Spanish Galleon · 3 holds in use', carried: '' }]);
+    expect(lines(s, 3, 2)).toEqual(['French Caravel · 1 hold in use']);
+    expect(lines(patch(s, 'c1', { cargo: {} }), 3, 2)).toEqual(['French Caravel · holds empty']);
+  });
+
+  it('says only "and others" of the rest of a foreign stack', () => {
+    let s = withUnit(four(), { id: 'me', type: 'scout', x: 2, y: 1 });
+    s = withUnit(s, { id: 'f1', owner: 'b', type: 'soldier', x: 1, y: 0 });
+    s = withUnit(s, { id: 'f2', owner: 'b', type: 'dragoon', x: 1, y: 0 });
+    s = withUnit(s, { id: 'f3', owner: 'b', type: 'artillery', x: 1, y: 0 });
+    expect(units(s, 1, 0)).toEqual([{ line: 'French Soldier', carried: '' }, { line: 'and others', carried: '' }]);
+  });
+
+  it("leaves out a foreign unit out of sight of the viewer's units, unless all is revealed", () => {
+    let s = withUnit(four(), { id: 'me', type: 'scout', x: 0, y: 0 });
+    s = withUnit(s, { id: 'f1', owner: 'b', type: 'soldier', x: 0 + SIGHT.foreignUnitRange + 1, y: 0 });
+    expect(units(s, s.units['f1']!.x, 0)).toEqual([]);
+    expect(lines(s, s.units['f1']!.x, 0, true)).toEqual(['French Soldier']);
+    expect(lines(patch(s, 'me', { x: 1 }), s.units['f1']!.x, 0)).toEqual(['French Soldier']);
+  });
+
+  it('lists only the active unit on a square with a colony', () => {
+    let s = withColony(four(), { id: 'town', x: 1, y: 1 });
+    s = withUnit(s, { id: 'u1', type: 'soldier', x: 1, y: 1, orders: 'fortified' });
+    s = withUnit(s, { id: 'u2', type: 'colonist', x: 1, y: 1 });
+    expect(units(s, 1, 1)).toEqual([]);
+    expect(units(s, 1, 1, false, 'elsewhere')).toEqual([]);
+    expect(lines(s, 1, 1, false, 'u2')).toEqual(['Free Colonist · Moves 1 · No orders']);
+    // another power's colony, seen with the viewer's unit beside it
+    let f = withColony(four(), { id: 'ville', owner: 'b', x: 3, y: 0 });
+    f = withUnit(f, { id: 'f1', owner: 'b', type: 'soldier', x: 3, y: 0 });
+    f = withUnit(f, { id: 'me', type: 'scout', x: 2, y: 0 });
+    expect(units(f, 3, 0)).toEqual([]);
+    expect(units(f, 3, 0, true, 'me')).toEqual([]);
+  });
+
+  it('is still null off the map and on an unexplored square, whatever stands there', () => {
+    let s = withUnit(four(), { id: 'u1', type: 'soldier', x: 1, y: 1 });
+    s = setTile(s, 1, 1, { explored: 0b10 });
+    expect(tileTip(s, 1, 1, false, 'u1')).toBeNull();
+    expect(tileTip(s, -1, 0, false, 'u1')).toBeNull();
+  });
+});
+
+describe('slipUnits', () => {
+  const entries = (n: number) => Array.from({ length: n }, (_, i) => ({ line: `unit ${i}`, carried: i === 0 ? 'Carrying 100 Tools' : '' }));
+  it('keeps every entry up to the limit, and past it says how many more there are', () => {
+    expect(slipUnits(entries(TOOLTIP_UNIT_LIMIT))).toEqual(entries(TOOLTIP_UNIT_LIMIT));
+    expect(slipUnits([])).toEqual([]);
+    const cut = slipUnits(entries(50));
+    expect(cut).toHaveLength(TOOLTIP_UNIT_LIMIT);
+    expect(cut.slice(0, -1)).toEqual(entries(TOOLTIP_UNIT_LIMIT - 1));
+    expect(cut.at(-1)).toEqual({ line: `and ${50 - (TOOLTIP_UNIT_LIMIT - 1)} more`, carried: '' });
+    expect(slipUnits(entries(4), 3).map((u) => u.line)).toEqual(['unit 0', 'unit 1', 'and 2 more']);
   });
 });
 
