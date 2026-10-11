@@ -46,7 +46,10 @@ describe('the Europe and Crown tables', () => {
   });
 
   it('the skilled draw lists every calling with its weight', () => {
-    expect(rows('skilled-immigrants')).toHaveLength(Object.keys(SKILLED_IMMIGRANTS).length);
+    const skilled = rows('skilled-immigrants');
+    const entries = Object.entries(SKILLED_IMMIGRANTS) as [keyof typeof PROFESSIONS, number][];
+    expect(skilled).toHaveLength(entries.length);
+    entries.forEach(([p, weight], i) => expect(skilled[i]).toMatch(new RegExp(`^\\| ${PROFESSIONS[p].name} \\| ${weight} \\| `)));
     expect(TABLES['skilled-immigrants']!()).toContain('Chance (out of 25)');
   });
 

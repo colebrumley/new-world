@@ -121,4 +121,4 @@ The larger of the powers that left will hire out trained troops. On any turn whe
 
 **If the war is still going in 1850**, it ends in a negotiated peace, and that counts as a loss.
 
-Either way the game is scored. Winning adds points for each year you declared before 1780, and for the bells rung after a friend came in, and the whole score is multiplied by how many rivals won their independence before you. See [[Score and Hall of Fame]].
+Either way the game is scored. Winning adds points for each year you declared before 1780, and for the bells rung after a friend came in, and the whole is then doubled if no rival won its independence before you, with a smaller bonus for each rival that did. See [[Score and Hall of Fame]].

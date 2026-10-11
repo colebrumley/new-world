@@ -6,7 +6,7 @@ Europe is not on the map. A ship reaches it by sailing onto the **Sea Lane**, th
 
 - **Sailing by hand.** When a ship steps east, north-east or south-east from one Sea Lane square onto another, or steps off the east or west edge of the map, the game asks: "The open ocean lies ahead. Shall we set course for Europe?" Say yes and she leaves the map with everyone and everything aboard.
 - **Go To Europe.** Press **G** with a ship selected. If the water she is in reaches the Sea Lane, Europe is the first entry in the list, ahead of your colonies. She makes for the nearest Sea Lane square, over as many turns as it takes, and sets sail without asking.
-- **The crossing.** A ship arrives at the start of your second turn after she left. Now and then, if you own three ships or more, a crossing takes a turn longer; Ferdinand Magellan ends that. Coming back takes the same time.
+- **The crossing.** A ship arrives at the start of your second turn after she left. Now and then, if you own three ships or more, a crossing takes a turn longer; Ferdinand Magellan ends that. The voyage home follows the same rule, rolled afresh.
 - **Turning back.** A ship at sea can be turned around from the Europe screen (the **Turn back** button under her). She needs two turns to get back to where she came from.
 - **Coming home.** A returning ship reappears on the square she left from, or on the nearest free Sea Lane square to it.
 
@@ -42,7 +42,7 @@ Every good has two prices. The **bid** is what Europe pays you for one unit; the
 
 ### Why prices move
 
-Trade moves prices, a step at a time. Selling a good pushes its price down; buying it pushes it up. A single sale may not move a price at once, but the market remembers how much has changed hands, and when enough has, the price steps. Left alone, prices drift back as Europe's appetite returns, so a good you flooded recovers over the following turns.
+Trade moves prices, a step at a time. Selling a good pushes its price down; buying it pushes it up. A single sale may not move a price at once, but the market remembers how much has changed hands, and when enough has, the price steps. Left alone, most prices drift back up as Europe's appetite returns, so a good you flooded recovers over the following turns. Trade goods, tools and muskets go the other way: Europe makes them, and their prices sink slowly unless someone keeps buying.
 
 - **You are not alone.** The other powers sell into the same market, so their trade pushes your prices too. A glut of furs from a rival lowers what you are paid for yours.
 - **Manufactured goods** (rum, cigars, cloth and coats) are priced against one another. Selling a great deal of one makes it cheaper while the others hold their value or gain a little, so a colony that makes two of them sells more for the same fall.
@@ -96,7 +96,7 @@ Three would-be colonists wait in Europe for a passage. **Recruit (R)** shows the
 
 ### Who comes
 
-When a place in the line is filled, the game first tries the unskilled kinds and only then draws a skilled colonist. Petty criminals and indentured servants are more common on the harder levels. With William Brewster, criminals and servants no longer join the line, and those already in it are replaced by free colonists. On every fourth turn the newcomer who fills a gap is always skilled.
+When a place in the line is filled, the game first tries the unskilled kinds and only then draws a skilled colonist. Petty criminals and indentured servants are more common on the harder levels. With William Brewster, criminals and servants no longer join the line, and those already in it are replaced by free colonists. When crosses bring someone over by lot on a turn divisible by four, the newcomer who fills the gap is always skilled.
 
 <!-- table: immigrant-odds -->
 
