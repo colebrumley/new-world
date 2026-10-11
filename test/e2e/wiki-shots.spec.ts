@@ -45,7 +45,8 @@ async function shoot(page: Page, name: string, { parked = true }: { parked?: boo
   if (parked) await park(page);
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await settled(page);
-  await page.screenshot({ path: `${OUT}/${name}.png` });
+  // (CSS transitions, such as the title painting's fade, are finished first)
+  await page.screenshot({ path: `${OUT}/${name}.png`, animations: 'disabled' });
 }
 
 /** Open the page with a prepared game in the autosave and load it from the title screen. */
@@ -259,7 +260,7 @@ test('Europe and its Recruit window', async ({ page }) => {
   await expect(europe).toBeVisible();
   await shoot(page, 'europe');
   await page.keyboard.press('r');
-  await expect(page.getByRole('dialog').filter({ hasText: /recruit/i }).last()).toBeVisible();
+  await expect(page.locator('.dialog').filter({ hasText: 'Whose passage will you pay?' })).toBeVisible();
   await shoot(page, 'europe-recruit');
 });
 
