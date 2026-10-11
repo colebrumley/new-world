@@ -1,13 +1,17 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pillow==12.3.0"]
+# ///
 """Draw the source pictures for the colony screen (R-1013): art/buildings and art/goods.
 
-    PIXELFORGE=pixelforge pixelforge/.venv/bin/python scripts/draw-colony-art.py
+    uv run scripts/draw-colony-art.py
 
 Every picture is made here from plain shapes, so the sources are our own (constraint C1) and can be
 changed by changing this file. A building is laid out on a 32 x 32 grid and a goods icon on a 16 x 16
 one, each drawn large on a flat magenta ground with a dark outline, in the manner of the pictures in
 art/places; roofs, flags and awnings are cyan, which scripts/bake-art.py turns into the owner's colour.
 Run this, then scripts/bake-art.py, which shrinks the pictures and writes src/ui/building-art.ts and
-goods-art.ts. Only Pillow is needed; the Python of a pixelforge checkout has it.
+goods-art.ts. Only Pillow is needed; uv gives it the one named above.
 """
 import math
 from pathlib import Path

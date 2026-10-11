@@ -1,6 +1,10 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pillow==12.3.0"]
+# ///
 """Draw the source pictures for the explorer's chart: what the unexplored map is made of (R-1011).
 
-    uv run --with pillow scripts/draw-chart.py && uv run --with pillow --with numpy scripts/bake-art.py chart
+    uv run scripts/draw-chart.py && uv run scripts/bake-art.py chart
 
 Writes art/chart/*.png: the vellum floor, the compass rose, the sea serpent and the ship, each at
 the three grids the map is drawn on (32, 16 and 8 art pixels to the square; the number ends the

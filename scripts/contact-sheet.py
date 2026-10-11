@@ -1,6 +1,10 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["numpy==2.4.6", "pillow==12.3.0"]
+# ///
 """One labelled sheet of a folder of the game's baked pictures, to look at and to show in a pull request.
 
-    pixelforge/.venv/bin/python scripts/contact-sheet.py <folder> [scale]
+    uv run scripts/contact-sheet.py <folder> [scale]
 
 `folder` is one under wiki/images/art/ (terrain, resources, units, places, buildings, goods, portraits,
 chart, title): the game's own sprites as PNG files, which `UPDATE_FIXTURES=1 npm test -- test/unit/wiki`
@@ -8,8 +12,8 @@ writes from what the game draws now, so run that first after a bake. Each is alr
 whole number there (a 32-pixel square is 128 pixels across); `scale` enlarges them again by a whole
 number, with no smoothing, and is 1 if left out. The pictures are laid out in rows in the order of
 their names, each on a neutral ground with its name under it, and the sheet is written to
-test-results/sheet-<folder>.png (which git ignores). Needs Pillow and numpy, which pixelforge's
-environment has (docs/ART.md).
+test-results/sheet-<folder>.png (which git ignores). uv gives it the Pillow and numpy named
+above (docs/ART.md).
 """
 import math
 import sys

@@ -214,28 +214,28 @@ blocking rules in `CLAUDE.md`).
 
 ## The pipeline
 
-pixelforge (<https://github.com/colebrumley/pixelforge>) shrinks the pictures. `PIXELFORGE` is the
-path to a checkout of it, and both scripts are run with that checkout's Python, which has Pillow
-and numpy. Below, `$PY` is `$PIXELFORGE/.venv/bin/python`.
+pixelforge (<https://github.com/colebrumley/pixelforge>) shrinks the pictures. It is a single
+program, built with a Rust toolchain; the baker runs the `pixelforge` on `PATH`, or the program
+`PIXELFORGE` names if that is set. The scripts themselves are Python and are run with `uv run`:
+each names the Pillow and numpy it needs at its top, and uv fetches them.
 
 ```bash
-git clone https://github.com/colebrumley/pixelforge && (cd pixelforge && uv sync)
-export PIXELFORGE=$PWD/pixelforge PY=$PWD/pixelforge/.venv/bin/python
+cargo install --git https://github.com/colebrumley/pixelforge pixelforge
 ```
 
-1. **Shrink the source**, once for each new picture: `$PY scripts/shrink-art.py art/<folder>/<name>.png ...`
+1. **Shrink the source**, once for each new picture: `uv run scripts/shrink-art.py art/<folder>/<name>.png ...`
    takes the grain out and saves the picture with a palette, at the same size in pixels. A picture
    that already has a palette is left alone.
-2. **Bake**: `$PY scripts/bake-art.py <folder> ...` (`floors`, `features`, `resources`, `units`,
+2. **Bake**: `uv run scripts/bake-art.py <folder> ...` (`floors`, `features`, `resources`, `units`,
    `places`, `portraits`, `title`, `chart`, `buildings`, `goods`; every folder if none is named). It rewrites
    the folder's `src/ui/*-art.ts`. Those files are never edited by hand.
 3. **Run it again** and check that nothing changed: `git diff --exit-code src/ui/<file>.ts` after a
-   second bake must be empty. A bake is the same every time for one pixelforge commit.
+   second bake must be empty. A bake is the same every time for one pixelforge version.
 4. **Update the unit snapshots** that hold art: `npm test -- test/unit/ui/pixel-art.test.ts test/unit/ui/render.test.ts -u`
    (the `-u` goes last: put first, it takes the file after it for its own and that file is not run).
 5. **Update the manual's sprites**: `UPDATE_FIXTURES=1 npm test -- test/unit/wiki` rewrites
    `wiki/images/art/`.
-6. **Make a contact sheet** and look at it: `$PY scripts/contact-sheet.py <folder> [scale]` tiles
+6. **Make a contact sheet** and look at it: `uv run scripts/contact-sheet.py <folder> [scale]` tiles
    the PNGs of `wiki/images/art/<folder>/` (`terrain`, `resources`, `units`, `places`, `portraits`,
    `title`, ...) into one labelled sheet, each enlarged `scale` times over, and writes
    `test-results/sheet-<folder>.png`. Floors and features show under `terrain`. This is the picture
@@ -250,17 +250,20 @@ export PIXELFORGE=$PWD/pixelforge PY=$PWD/pixelforge/.venv/bin/python
    changes) and link them in the pull request by commit.
 9. `npm run guard`, `npm run check`, `npm run test:e2e`.
 
-### The pixelforge commit
+### The pixelforge version
 
-The bakes committed here were made with pixelforge at commit
-`0edd46251b5ce2f925cd4345b0a8e5cf3b6a853e`. Another commit may shrink a picture a little
-differently, which changes every cell of a baked file without anything being wrong. When a bake
-of an untouched folder differs from what is committed, check the commit first; when the commit
-has moved on, say so in the pull request and update this line.
+The bakes committed here match pixelforge 0.2.0 (commit
+`227b1dfc85b15d95df5c75cc733065caeed27956`), the first version written in Rust, with Pillow 12.3.0
+and numpy 2.4.6 as the scripts name them. It gives the same cells as the last Python version did
+(commit `0edd46251b5ce2f925cd4345b0a8e5cf3b6a853e`) for every folder here. Another version may
+shrink a picture a little differently, which changes every cell of a baked file without anything
+being wrong. When a bake of an untouched folder differs from what is committed, check
+`pixelforge --version` first; when the version has moved on, say so in the pull request and update
+this line.
 
-Only `floor-art.ts`, `feature-art.ts`, `title-art.ts`, `portrait-art.ts` and `resource-art.ts` have been baked at that commit so far.
+Only `floor-art.ts`, `feature-art.ts`, `title-art.ts`, `portrait-art.ts` and `resource-art.ts` have been baked at that version so far.
 `unit-art.ts`, `place-art.ts`, `building-art.ts` and `goods-art.ts` were baked
-before this line was kept, and baking those folders again at this commit changes every one of them
+before this line was kept, and baking those folders again at this version changes every one of them
 with no change to their sources. An item that re-bakes one of them
 should expect that, look at the result, and say so in its pull request.
 

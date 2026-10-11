@@ -7,3 +7,4 @@ ref/
 *.zip
 orig/
 .claude/worktrees/
+__pycache__/

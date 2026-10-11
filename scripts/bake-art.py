@@ -1,12 +1,17 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["numpy==2.4.6", "pillow==12.3.0"]
+# ///
 """Bake the detailed art from source pictures (R-1006 for the map, R-1013 for the colony screen).
 
-    git clone https://github.com/colebrumley/pixelforge && (cd pixelforge && uv sync)
-    PIXELFORGE=pixelforge pixelforge/.venv/bin/python scripts/bake-art.py [folder ...]
+    cargo install --git https://github.com/colebrumley/pixelforge pixelforge
+    uv run scripts/bake-art.py [folder ...]
 
 What a source picture must look like, how one is generated and what to update after a bake are in docs/ART.md.
 
-The pictures are shrunk by pixelforge (https://github.com/colebrumley/pixelforge); PIXELFORGE is the
-path to a checkout of it, and the script is run with that checkout's Python. With folder names
+The pictures are shrunk by pixelforge (https://github.com/colebrumley/pixelforge), a program found on
+PATH, or at the path PIXELFORGE names if it is set. uv gives the script the Pillow and numpy named
+above. With folder names
 (chart, units, places, features, floors, resources, title, buildings, goods, portraits) only those are baked.
 
 art/units holds one square picture per unit type (colonist.png, soldier.png, ...), art/places one
@@ -33,7 +38,7 @@ scripts/draw-chart.py at their final size in six inks of the map palette, so the
 as they are, with no shrinking and no colours of their own (src/ui/chart-art.ts). That step alone
 does not need pixelforge:
 
-    uv run --with pillow scripts/draw-chart.py && uv run --with pillow --with numpy scripts/bake-art.py chart
+    uv run scripts/draw-chart.py && uv run scripts/bake-art.py chart
 
 art/title holds the painting that hangs behind the title screen (frontispiece.png, 8:5, generated
 like the others and drawn in the map palette's colours so that none is lost). It is shrunk to 320 x 200 in the 32 colours of PALETTE in
@@ -56,6 +61,19 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+
+
+
+def forge(*args: str) -> None:
+    """Run pixelforge: the program on PATH, or the one PIXELFORGE names."""
+    program = os.path.expanduser(os.environ.get('PIXELFORGE', 'pixelforge'))
+    if os.path.isdir(program):
+        raise SystemExit(f'PIXELFORGE={program} is a folder: pixelforge is a program now, see docs/ART.md')
+    try:
+        subprocess.run([program, *args], check=True, stdout=subprocess.DEVNULL)
+    except FileNotFoundError:
+        raise SystemExit(f'{program}: not found. cargo install --git https://github.com/colebrumley/pixelforge pixelforge')
+
 
 CODES = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 OWNER = '*'
@@ -149,7 +167,6 @@ def bake(folder: str, size: int, palette: int, owner_key: bool = False, prepare=
     ground's texture is such cells.
     """
     sources = {p.stem: p for p in sorted((ROOT / folder).glob('*.png'))}
-    forge = Path(os.environ['PIXELFORGE']).expanduser()
     colours: list[str] = list(against or [])
     figures: dict[str, list[str]] = {}
     with tempfile.TemporaryDirectory() as tmp:
@@ -163,7 +180,7 @@ def bake(folder: str, size: int, palette: int, owner_key: bool = False, prepare=
                  *(['--palette-name', str(hexes)] if against else ['--palette-size', str(palette)]), '--outline', outline, '--dither', 'none', *(['--no-remove-orphans'] if specks else [])]
         jobs = [['batch', str(ready)]] if shared else [['convert', str(ready / f'{name}.png'), '--orphan-min-region', '3'] for name in sources]
         for job in jobs:
-            subprocess.run([sys.executable, '-m', 'pixelforge', *job, '-o', str(out), *flags], cwd=forge, check=True, stdout=subprocess.DEVNULL)
+            forge(*job, '-o', str(out), *flags)
         for name in sources:
             art = np.array(Image.open(out / f'{name}.png').convert('RGBA')).astype(int)
             rows = []
@@ -325,7 +342,6 @@ def portraits(folder: str, size: int) -> tuple[list[str], dict[str, list[str]]]:
     """
     palette = map_palette()
     sources = {p.stem: p for p in sorted((ROOT / folder).glob('*.png'))}
-    forge = Path(os.environ['PIXELFORGE']).expanduser()
     colours: list[str] = []
     figures: dict[str, list[str]] = {}
     with tempfile.TemporaryDirectory() as tmp:
@@ -344,7 +360,7 @@ def portraits(folder: str, size: int) -> tuple[list[str], dict[str, list[str]]]:
             keyed[name] = np.array(cover) > 127
         flags = ['--preset', 'background', '--method', 'box', '--out-width', str(size), '--out-height', str(size), '--palette-name', str(hexes),
                  '--outline', 'none', '--dither', 'none', '--no-tileset']
-        subprocess.run([sys.executable, '-m', 'pixelforge', 'batch', str(ready), '-o', str(out), *flags], cwd=forge, check=True, stdout=subprocess.DEVNULL)
+        forge('batch', str(ready), '-o', str(out), *flags)
         for name in sources:
             art = np.array(Image.open(out / f'{name}.png').convert('RGB')).astype(int)
             if art.shape[:2] != (size, size):
@@ -397,13 +413,12 @@ def painting(source: str, width: int, height: int) -> tuple[list[str], list[str]
     """The picture at `width` x `height` in the map palette alone: the colours it uses, and its rows, each a run of
     letters, a letter followed by how many times it repeats when that is more than once."""
     palette = map_palette()
-    forge = Path(os.environ['PIXELFORGE']).expanduser()
     with tempfile.TemporaryDirectory() as tmp:
         hexes = Path(tmp, 'map.hex')
         hexes.write_text('\n'.join(c[1:] for c in palette) + '\n')
         flags = ['--preset', 'background', '--method', 'box', '--out-width', str(width), '--out-height', str(height), '--palette-name', str(hexes),
                  '--outline', 'none', '--dither', 'none', '--no-tileset']
-        subprocess.run([sys.executable, '-m', 'pixelforge', 'convert', str(ROOT / source), '-o', tmp, *flags], cwd=forge, check=True, stdout=subprocess.DEVNULL)
+        forge('convert', str(ROOT / source), '-o', tmp, *flags)
         art = np.array(Image.open(Path(tmp, Path(source).name)).convert('RGB')).astype(int)
     if art.shape[:2] != (height, width):
         raise SystemExit(f'{source}: baked to {art.shape[1]} x {art.shape[0]}, not {width} x {height}')

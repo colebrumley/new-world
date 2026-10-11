@@ -1,13 +1,17 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["numpy==2.4.6", "pillow==12.3.0"]
+# ///
 """Shrink the source pictures in art/ in place (run once on a new picture, before scripts/bake-art.py).
 
-    pixelforge/.venv/bin/python scripts/shrink-art.py [FILE...]      # every PNG under art/ if none is named
+    uv run scripts/shrink-art.py [FILE...]      # every PNG under art/ if none is named
 
 A generated picture looks flat but carries a faint grain over every area, which a PNG cannot pack:
 about 1.3 MB for a 1254 x 1254 picture of a dozen colours. This takes the grain out and saves the
 picture with a palette, at the same size in pixels: a median filter, a cut to 64 colours, colours
 within TOLERANCE of a commoner one folded into it, and stray pixels given their neighbours'
 colour. Edges lose their smoothing, which does not show at this size. A picture that already has
-a palette is left alone. Needs Pillow and numpy, which pixelforge's environment has.
+a palette is left alone. uv gives it the Pillow and numpy named above.
 """
 import sys
 from pathlib import Path
