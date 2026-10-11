@@ -90,10 +90,11 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
   /** A click buys one hold; "some" asks for any amount the ship has room for, placed as a trade per hold. */
   async function buy(good: GoodId, some: boolean): Promise<void> {
     const ship = shipId ? host.state().units[shipId] : undefined;
+    const room = ship ? roomFor(host.state(), ship, good) : 0;
     if (!shipId || !ship) monitor = 'There is no ship in port to load.';
+    else if (some && room === 0) monitor = 'The holds are full.';
     else {
-      const room = roomFor(host.state(), ship, good);
-      const wanted = some ? await howMany(`Buy how many ${good}?`, Math.max(HOLD_CAPACITY, room)) : HOLD_CAPACITY;
+      const wanted = some ? await howMany(`Buy how many ${good}?`, room) : HOLD_CAPACITY;
       let bought = 0;
       let paid = 0;
       for (let left = wanted; left > 0; ) {
