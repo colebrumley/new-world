@@ -44,7 +44,7 @@ right of each of their settlements shows how they feel about you. Its colour is 
 | :--- | :--- | :--- | :--- |
 | Content | green | tribal alarm under 25 | Friendly. Their braves call on your colonies with gifts and converts, and they teach and trade freely. |
 | Uneasy | bright blue | tribal alarm 25 to 49 | Wary. Lessons may fail, a chief may have a scout killed, and a brave at your gate may demand goods instead of bringing them. |
-| Restless | yellow | tribal alarm 50 to 74 | Sullen. They will not teach, a demand for tribute that fails is refused outright, and their braves come to your colonies with black looks only. |
+| Restless | yellow | tribal alarm 50 to 74 | Sullen. They will not teach, a demand for tribute that fails is refused or laughed at, and their braves come to your colonies with black looks only. |
 | Angry | orange | tribal alarm 75 or more | Hostile. Ships are turned away, wagon trains risk their cargo, scouts are killed, and braves attack your units and colonies. |
 | War | red | this settlement's own alarm 128 or more | This settlement alone has turned on you: ships are turned away and its brave attacks your units and colonies. |
 
@@ -61,7 +61,7 @@ meeting. Their chief then offers a treaty of peace.
 
 Accept it. The treaty gives you no land, but without it your missionaries cannot found missions, your
 colonists cannot live among them and your soldiers cannot demand tribute. Refusing raises their alarm
-sharply: to the top for most powers, half as far for France or with Pocahontas. A treaty you leave unanswered counts as accepted at the end of your turn.
+by 100, to the top; the rise is halved for France, and halved again with Pocahontas. A treaty you leave unanswered counts as accepted at the end of your turn.
 
 ## Entering a settlement
 
@@ -156,7 +156,7 @@ goods his people want most.
   horses gives them one lot, 50 or more two; a gift of any amount gives them one. Horses also add to
   the herds they breed from.
 - **Buying.** After a sale or a gift they offer three of the goods they have most of, never trade goods,
-  tools or muskets; where food would be among them they offer coats instead. You are offered as much as you just sold, a quarter of it on a ship. Their price
+  tools or muskets; where food would be among them they offer coats instead. You are offered as much as you just sold or gave, a quarter of it on a ship. Their price
   follows the European price for made goods, falls when they have plenty and rises with their alarm.
   You may haggle a quarter off; if it fails they sell nothing more until your next sale or gift.
 
