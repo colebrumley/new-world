@@ -1,6 +1,6 @@
 # Map art redesign: spec for R-1040 to R-1046
 
-Written by `/plan` on 2026-10-11. Status: proposed.
+Written by `/plan` on 2026-10-11. Status: built.
 
 **The request, in the owner's words:** the graphics are not up to snuff. The reference screenshot
 the owner supplied (a classic map of this kind at 32 pixels to the square) is much more cohesive,
