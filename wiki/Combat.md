@@ -8,13 +8,13 @@ A fight is always one unit against one: the unit you send in, against the defend
 
 You attack by moving a unit with an attack value onto a square held by someone else. The attacker's strength starts from its attack value and the defender's from its defence value, as listed on [[Units]]. Each is then raised or lowered by the modifiers below: veterans fight better, the ground and the walls of a colony help the defender, and every attacker has an edge of half again.
 
-Then one throw decides it. The attacker's chance of winning is its strength over both strengths added together: an attack of 6 against a defence of 2 wins three times in four. There is no draw. On land the winner stays on its own square, and the attack uses a full move; a mounted unit keeps any moves it has left after that. With less than a full move left a unit can still attack, but more weakly (Fatigue, below).
+Then one throw decides it. The attacker's chance of winning is its strength over both strengths added together: an attack of 6 against a defence of 2 wins three times in four. There is no draw. On land the winner stays on its own square unless it has taken a colony (below), and the attack uses a full move; a mounted unit keeps any moves it has left after that. With less than a full move left a unit can still attack, but more weakly (Fatigue, below).
 
 Some adjustments are not shown in the Combat Analysis dialog. A human side gets a small edge that grows on the easier levels, and on the two easiest levels a human's colonies are shielded early in the game. A real fighting unit attacking a unit that is hardly armed (a defence under 2) halves its defence. Natives never take a power's last colony.
 
 **What happens to the loser** depends on what it is:
 
-- A dragoon loses its horses and becomes a soldier; a soldier loses its muskets and becomes a colonist. Continental Cavalry becomes Continental Army, and Continental Army a colonist; the King's Cavalry becomes regulars.
+- A dragoon loses its horses and becomes a soldier; a soldier loses its muskets and becomes a colonist, or a missionary again if he is a Jesuit Missionary. Continental Cavalry becomes Continental Army, and Continental Army a colonist; the King's Cavalry becomes regulars.
 - Artillery is damaged; damaged artillery is destroyed.
 - Scouts, pioneers, missionaries, the King's regulars and every native band are destroyed.
 - Colonists, wagon trains and treasure trains are captured by a European unit with an attack value, and destroyed by natives.
@@ -59,7 +59,7 @@ These are all the modifiers the dialog can show. A defender's bonus for its plac
 
 **Who defends.** A colony is defended by its best armed unit: the one with the highest defence there once every bonus is counted. Only units with an attack value count, so a colony full of colonists and pioneers has no defender. Then a colonist is drafted and fights with a defence of 1; with Paul Revere in the Congress and fifty muskets in store he takes them up and fights at 2.
 
-**Walls.** A colony's walls help every defender inside it: a bare colony gives half again, a Stockade twice the strength, a Fort two and a half times and a Fortress three times (see the table). Fortifying adds nothing more behind a fort or a fortress. Artillery is strong behind walls and doubles its defence against a native raid, but outside a colony it fights at a quarter unless it is defending while fortified.
+**Walls.** A colony's walls help every defender inside it: a bare colony gives half again, a Stockade twice the strength, a Fort two and a half times and a Fortress three times (see the table). Fortifying adds nothing more behind a fort or a fortress. Artillery is strong behind walls and doubles its defence against a native raid, but outside a colony it fights at a quarter, attacking or defending, unless the European unit defending is fortifying or fortified.
 
 **Capture.** When a European attacker beats a drafted colonist, it takes the colony. The colony changes hands with all its colonists, buildings and stores; the victor moves in, the land the colony worked goes to the captor, and the two powers are at war. Before a Declaration of Independence the captor also takes gold: the loser's treasury times this colony's share of the loser's colonists. The colony keeps two thirds of its Sons of Liberty. The loser's other land units there are taken too, and its ships in port are crippled and sent away. If an armed defender loses, it is beaten as usual and the colony stands.
 

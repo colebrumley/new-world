@@ -43,7 +43,7 @@ Moves are whole squares of open land a turn. Attack is the unit's strength when 
 
 ![A colonist](images/art/units/colonist.png) A colonist is a person. Inside a colony he works a square of land or a trade in a building; outside it he can be given equipment and a task, and lay it down again in any of your colonies. He comes over from Europe as a recruit or after training, or is born in a colony that has stored enough food (see [[Colonies]] and [[Europe and Trade]]).
 
-What a colonist is good at is his profession. An ordinary free colonist can do any work. Indentured servants are as good as anyone in the fields but poor at a craft; petty criminals are fit for field work and little else; an Indian convert is better than a colonist on the land and at sea but does not work indoors. Schooling, or winning a battle as a soldier, moves a criminal up to servant and a servant up to free colonist.
+What a colonist is good at is his profession. An ordinary free colonist can do any work. Indentured servants are as good as anyone in the fields but poor at a craft; petty criminals are fit for field work and little else; an Indian convert is better than a colonist on the land and at sea, and poor at a craft. Schooling, or winning a battle as a soldier, moves a criminal up to servant and a servant up to free colonist.
 
 An expert is a colonist with a skill. At his own work he does about twice what a free colonist does; anywhere else he is a free colonist. There are three ways to get one: train him in Europe, teach a free colonist in a school (a Schoolhouse, College or University, each able to teach the skills of its own level and below), or have a native settlement teach him. A free colonist, servant or criminal who works as a planter or a fur trapper may also learn the trade by doing it, while you have no expert of that kind anywhere.
 
@@ -94,7 +94,7 @@ A colonist who is an expert at the wrong job can have his specialty cleared on t
 
 ![A soldier](images/art/units/soldier.png) ![A dragoon](images/art/units/dragoon.png) A soldier is a colonist with fifty muskets; a dragoon has fifty muskets and fifty horses. A dragoon moves four squares a turn and hits harder. You arm a colonist in a colony, from the orders of a unit standing on the colony's square on the colony screen, using muskets and horses from the colony's store; or on the docks in Europe, where they are bought for him. Lay the equipment down and he is a colonist again, and the goods go back into the colony's store.
 
-When a dragoon loses a fight he loses his horses and becomes a soldier; a soldier who loses becomes a colonist. The goods are gone. A Veteran Soldier fights half again as well as a colonist with the same muskets, whether he is on foot or mounted.
+When a dragoon loses a fight he loses his horses and becomes a soldier; a soldier who loses becomes a colonist (a Jesuit Missionary under arms becomes a missionary again). The goods are gone. A Veteran Soldier fights half again as well as a colonist with the same muskets, whether he is on foot or mounted.
 
 **Promotion.** A soldier or dragoon who wins a fight may be raised a step: a petty criminal to indentured servant, a servant to free colonist, and a free colonist to Veteran Soldier. The harder the fight, the likelier the promotion; with George Washington in the Congress it is certain. After a Declaration of Independence your veterans who win may join the Continental Army.
 
@@ -108,7 +108,7 @@ When a dragoon loses a fight he loses his horses and becomes a soldier; a soldie
 
 ![A caravel](images/art/units/caravel.png) Ships carry goods and people across the sea and to and from Europe. Each hold takes 100 of one good or one land unit; wagon trains and other ships cannot be carried. The Caravel, Merchantman and Galleon are cargo ships and cannot attack. The Privateer and Frigate carry cargo and fight; the Man-O-War is the Crown's. Ships are bought in Europe or built in a colony with a Shipyard. Galleons, privateers and frigates see two squares around.
 
-**Carrying units.** A land unit goes aboard by stepping onto a ship's square, or by being on sentry on a ship's square when the ship moves off, while there is room. Stepping between land and a ship ends the unit's turn unless a colony is at one end. A ship in a colony unloads its passengers there; at sea beside empty land you can make landfall (below).
+**Carrying units.** A land unit goes aboard by stepping onto a ship's square, or by being on sentry on a ship's square when the ship moves off, while there is room. Stepping between land and a ship ends the unit's turn unless a colony is at one end. When a ship enters a colony its passengers wake but stay aboard; send them ashore with the Go ashore order on the colony screen, or move them off. At sea beside empty land you can make landfall (below).
 
 **Repair.** A ship that loses a fight is sunk or crippled. A crippled ship loses everything aboard and is taken to your nearest colony with a Drydock, or to Europe if you have none; it cannot move until it is repaired. The longest the repairs take is below; a ship beaten by a weaker one is ready sooner. During the War of Independence, with Europe closed, a crippled ship with no drydock to go to sinks.
 
@@ -127,7 +127,7 @@ When a dragoon loses a fight he loses his horses and becomes a soldier; a soldie
 
 ## Artillery
 
-![Artillery](images/art/units/artillery.png) Artillery is the strongest attacker you can build: a colony with an Armory can make it, and Europe sells it at a price that rises with each piece bought. It is at its best in a colony and weak in the open, where it fights at a quarter of its strength unless it is defending while fortified. Artillery in a colony attacked by natives defends at double. Beaten once it becomes ![Damaged artillery](images/art/units/damagedArtillery.png) Damaged Artillery; beaten again it is lost.
+![Artillery](images/art/units/artillery.png) Artillery is the strongest attacker you can build: a colony with an Armory can make it, and Europe sells it at a price that rises with each piece bought. It is at its best in a colony and weak in the open, where it fights at a quarter of its strength, attacking or defending, unless the European unit defending is fortifying or fortified. Artillery in a colony attacked by natives defends at double. Beaten once it becomes ![Damaged artillery](images/art/units/damagedArtillery.png) Damaged Artillery; beaten again it is lost.
 
 ## The native units
 
@@ -167,7 +167,7 @@ You can also click a unit to make it active, click beside it to move it, or drag
 
 ## Moving
 
-Each unit has its moves afresh every turn, and the game counts them in thirds. Stepping onto a square costs its terrain's move cost in whole moves: one for plains or grassland, two for most forest, marsh, swamp and hills, three for mountains and the wettest forests. [[The Map]] describes each kind of ground. A step along a road costs a third of a move when both squares have one (a colony counts as a road), and so does a step along a river, if it is not diagonal. Entering a native settlement never costs more than one move.
+Each unit has its moves afresh every turn, and the game counts them in thirds. Stepping onto a square costs its terrain's move cost in whole moves: one for plains or grassland, two for most forest, marsh, swamp and hills, three for mountains and the wettest forests. [[The Map]] describes each kind of ground. A step along a road costs a third of a move when both squares have one (a colony counts as a road), and so does a step along a river, if it is not diagonal. Entering a native settlement never costs more than one move, but a visit there (trading, speaking with the chief, founding a mission) ends the unit's turn.
 
 **The third-of-a-move rule.** A unit that has not moved yet this turn can always make its step, however rough the ground. A unit that has moved, and has too little left for the next square, may still make it: the chance is what it has left over what the step costs. Either way its turn is then over.
 

@@ -118,7 +118,7 @@ function professions(): string {
 /** Every modifier the Combat Analysis dialog can list, with when it applies and how much. */
 function combatModifiers(): string {
   const half = `+${100 / COMBAT.halfBonus}%`;
-  const quarters = (q: number): string => `+${25 * q}%`;
+  const quarters = (q: number): string => `+${DEFENSE_STEP_PERCENT * q}%`;
   const ground = [...new Set(TERRAIN_IDS.filter((t) => !TERRAIN[t].water).map((t) => TERRAIN[t].defense).filter((d) => d > 0))].sort((a, b) => a - b);
   const groundRange = `+${DEFENSE_STEP_PERCENT}% for each point of the square's defence (${quarters(ground[0] ?? 0)} to ${quarters(ground[ground.length - 1] ?? 0)})`;
   const s = COMBAT.settledQuarters;
