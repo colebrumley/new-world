@@ -1423,7 +1423,7 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [ ] **R-1034 Manual: Gallery of the game's art** — docs/specs/player-manual-wiki.md, item W12, size S.
 - [x] **R-1035 Colony drag ghost and verdict** — docs/specs/drag-feedback.md, item W1, size M.
 - [x] **R-1036 Map drag piece and blocked marker** — docs/specs/drag-feedback.md, item W2, size S.
-- [ ] **R-1037 Shrink the manual's screenshots to palette PNGs** — docs/specs/player-manual-wiki.md, item W13, size S.
+- [x] **R-1037 Shrink the manual's screenshots to palette PNGs** — docs/specs/player-manual-wiki.md, item W13, size S.
 
 ---
 

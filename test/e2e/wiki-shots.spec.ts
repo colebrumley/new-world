@@ -1,4 +1,6 @@
+import { writeFile } from 'node:fs/promises';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import sharp from 'sharp';
 import { STARTING_BUILDINGS } from '../../src/engine/data/colony';
 import { saveGame } from '../../src/engine/save';
 import type { Colonist, GameState, Settlement } from '../../src/engine/state';
@@ -17,10 +19,20 @@ import { field, setSail, settled, startNewGame } from './helpers';
 // and commit what changed under wiki/images/screens/. test/unit/wiki/screens.test.ts holds the list
 // of pictures and checks each is there at 1280 x 800. Every page is opened with `still`, which
 // freezes the blink and the water, and each picture is taken once the frame has settled.
+//
+// Each picture is written as a palette PNG (R-1037): the parchment and the antialiased text give a
+// screen four to seven thousand colours, which a 24-bit PNG keeps at half a megabyte or more.
+// sharp's quantiser (libimagequant) maps them to at most 256. `colours` alone only sets the bit
+// depth, so `quality` is what holds the folder under the 5 MB the screens test allows; without
+// dithering the text and the ruled lines stay crisp. The quantiser is deterministic: the same
+// screen gives the same bytes.
 
 test.skip(!process.env['WIKI_SHOTS'], 'set WIKI_SHOTS=1 to write the screenshots for the wiki');
 
 const OUT = 'wiki/images/screens';
+
+/** The palette PNG every screenshot is written as. */
+const PALETTE = { palette: true, colours: 256, quality: 75, dither: 0, effort: 10, compressionLevel: 9 } as const;
 
 /** Quiet options: no adviser lines in the log, no shimmer on the water. */
 async function quiet(page: Page): Promise<void> {
@@ -46,7 +58,8 @@ async function shoot(page: Page, name: string, { parked = true }: { parked?: boo
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await settled(page);
   // (CSS transitions, such as the title painting's fade, are finished first)
-  await page.screenshot({ path: `${OUT}/${name}.png`, animations: 'disabled' });
+  const shot = await page.screenshot({ animations: 'disabled' });
+  await writeFile(`${OUT}/${name}.png`, await sharp(shot).png(PALETTE).toBuffer());
 }
 
 /** Open the page with a prepared game in the autosave and load it from the title screen. */
