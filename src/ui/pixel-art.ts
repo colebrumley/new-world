@@ -176,7 +176,7 @@ const OPEN_ROW: Readonly<Partial<Record<TerrainId, TerrainId>>> = {
 export interface TileLook {
   readonly terrain: TerrainId;
   readonly river: 'none' | 'minor' | 'major';
-  /** Bits N=1, E=2, S=4, W=8: neighbours a river continues into (another river tile or water). */
+  /** Bits N=1, E=2, S=4, W=8: neighbours a river continues into (another river tile or water). 0 is drawn as all four; 16 is a pool alone, with no arm. */
   readonly riverMask: number;
   readonly road: boolean;
   /** Bits for the 8 neighbours clockwise from N (N=1, NE=2, E=4, SE=8, S=16, SW=32, W=64, NW=128) with a road. */
@@ -329,7 +329,7 @@ function rim(s: Sprite): void {
 /**
  * A river on a land square, drawn for the grid: one of sixteen pieces by the sides it runs on to, which are
  * five shapes turned (an end, a straight, a bend, a tee and a cross; a river that runs on to no side is the
- * cross). An arm from each side meets the others in a disc one cell wider than the body, which rounds a
+ * cross; one whose only ways on the viewer has not seen is a pool alone). An arm from each side meets the others in a disc one cell wider than the body, which rounds a
  * bend; an end has a pool there instead, and a straight has neither. The variant mirrors the winding of the
  * whole piece.
  */
@@ -337,7 +337,7 @@ function river(look: TileLook, grid: TileGrid): Sprite {
   const s = blank(grid);
   const { wide, sway, pool } = RIVER[grid];
   const w = wide[look.river === 'major' ? 1 : 0] as number;
-  const mask = look.riverMask & 15 || 15;
+  const mask = look.riverMask & 16 ? 0 : look.riverMask & 15 || 15;
   let arms = 0;
   for (let side = 0; side < 4; side++) {
     if (!(mask & (1 << side))) continue;
@@ -345,7 +345,7 @@ function river(look: TileLook, grid: TileGrid): Sprite {
     arms++;
   }
   // a straight piece takes no disc: there it would be a knot in both banks on every square of a long river
-  if (mask !== 5 && mask !== 10) pond(s, w, arms === 1 ? w + pool : w + 1);
+  if (mask !== 5 && mask !== 10) pond(s, w, arms <= 1 ? w + pool : w + 1);
   rim(s);
   return s;
 }
@@ -448,9 +448,11 @@ export function miniTileArt(look: TileLook): Sprite {
   box(s, 0, 0, 8, 8, MINI[look.terrain]);
   if (look.terrain === 'mountains') stamp(s, 2, 2, ['.ww.', 'wwdd'], { w: INK.white, d: INK.grey });
   if (look.river !== 'none') {
+    dot(s, 3, 3, INK.blue);
+    const mask = look.riverMask & 16 ? 0 : look.riverMask & 15 || 15;
     TOWARD.forEach(([dx, dy], side) => {
       // the middle cell is (3, 3), so the way south and east is a cell longer than the way north and west
-      if ((look.riverMask & 15 || 15) & (1 << side)) line(s, 3, 3, 3 + dx * (dx > 0 ? 4 : 3), 3 + dy * (dy > 0 ? 4 : 3), INK.blue);
+      if (mask & (1 << side)) line(s, 3, 3, 3 + dx * (dx > 0 ? 4 : 3), 3 + dy * (dy > 0 ? 4 : 3), INK.blue);
     });
   }
   if (look.road) box(s, 2, 4, 4, 1, INK.wood);

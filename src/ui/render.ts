@@ -58,15 +58,19 @@ function tileOf(map: GameMap, x: number, y: number): Tile | null {
 /**
  * The sides on which a river runs on: those whose neighbour has a river or is water. `shows` says which
  * neighbours may be read; one the viewer has not seen continues nothing, so that a river's piece tells
- * nothing of the square beyond it.
+ * nothing of the square beyond it. Where that leaves a river with no side to run on to, though it has one
+ * the viewer has not seen, the mask is 16: a pool alone, not the cross of a river that truly stands alone.
  */
 function riverMask(map: GameMap, x: number, y: number, shows: (x: number, y: number) => boolean = () => true): number {
   let mask = 0;
+  let unseen = false;
   N4.forEach(([dx, dy], i) => {
     const n = tileOf(map, x + dx, y + dy);
-    if (n && shows(x + dx, y + dy) && (n.river !== 'none' || isWater(n))) mask |= 1 << i;
+    if (!n || (n.river === 'none' && !isWater(n))) return;
+    if (shows(x + dx, y + dy)) mask |= 1 << i;
+    else unseen = true;
   });
-  return mask;
+  return mask === 0 && unseen ? 16 : mask;
 }
 
 function roadMask(map: GameMap, x: number, y: number): number {

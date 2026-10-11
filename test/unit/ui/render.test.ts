@@ -563,6 +563,20 @@ describe('the map renderer, against a plain pixel buffer', () => {
     }
   });
 
+  it('a river whose only way on the viewer has not seen is a pool alone, not the cross of a river that stands alone', () => {
+    const state = setTile(land(['.r.', '.r.']), 1, 1, { explored: 0 });
+    for (const grid of [32, 16, 8]) {
+      const made = drawn(state, grid);
+      const blues = wrong(made, grid, 1, 0, (cx, cy) => (cell(made, grid, 1, 0, cx, cy) === PALETTE[INK.blue] ? '' : cell(made, grid, 1, 0, cx, cy)));
+      expect(blues.length, `${grid}`).toBeGreaterThan(0);
+      for (const where of blues) for (const n of where.split(',').map(Number)) expect(n > 0 && n < grid - 1, `${grid} ${where}`).toBe(true);
+      if (grid === 8) expect(blues).toEqual(['3,3']);
+      // a river with no river or water beside it at all is still the cross
+      const lone = drawn(land(['.r.', '...']), grid);
+      expect([...Array(grid).keys()].some((cx) => cell(lone, grid, 1, 0, cx, grid - 1) === PALETTE[INK.blue]), `${grid}`).toBe(true);
+    }
+  });
+
   it('the colony screen\'s 64-pixel square holds the river of the 32 grid, each art pixel doubled', () => {
     for (const [glyph, wide] of [['r', 3], ['R', 5]] as const) {
       const tile = land([glyph]).map.tiles[0]!;
