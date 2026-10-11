@@ -307,6 +307,62 @@ describe('resource markers', () => {
       expect(crossed, `${grid}: the road crosses the marker`).toBeGreaterThan(0);
     }
   });
+
+  // R-1053. Silver lies only on mountains, whose rock and snow are its own greys and whites, so it is told from
+  // them by dark against light: bright metal in a mass of near-black rock, with ink where it meets the mountain.
+  describe('silver shows on the mountains it lies on', () => {
+    const luminance = (hex: string): number => 0.299 * parseInt(hex.slice(1, 3), 16) + 0.587 * parseInt(hex.slice(3, 5), 16) + 0.114 * parseInt(hex.slice(5, 7), 16);
+    const colourOf = (ch: string): string => RESOURCE_COLORS[RESOURCE_CODES.indexOf(ch)] as string;
+    const ink = [...RESOURCE_COLORS].sort((a, b) => luminance(a) - luminance(b))[0] as string;
+    const opaqueOf = (rows: readonly string[]): string[] => [...rows.join('')].filter((ch) => ch !== '.').map(colourOf);
+    /** The opaque cells 4-adjacent to a see-through cell, or on the edge of the picture. */
+    const rimOf = (rows: readonly string[]): string[] => {
+      const clear = (x: number, y: number): boolean => (rows[y]?.[x] ?? '.') === '.';
+      const rim: string[] = [];
+      rows.forEach((row, y) => [...row].forEach((ch, x) => {
+        if (ch !== '.' && (clear(x - 1, y) || clear(x + 1, y) || clear(x, y - 1) || clear(x, y + 1))) rim.push(colourOf(ch));
+      }));
+      return rim;
+    };
+    const share = (cells: readonly string[], test: (l: number) => boolean): number => cells.filter((c) => test(luminance(c))).length / cells.length;
+    const silver = RESOURCE_ART.silverDeposit as readonly string[];
+
+    it('is mostly near-black and bright, with little of the mountains\' grey between', () => {
+      const cells = opaqueOf(silver);
+      expect(share(cells, (l) => l <= 60)).toBeGreaterThanOrEqual(0.35);
+      expect(share(cells, (l) => l >= 190)).toBeGreaterThanOrEqual(0.15);
+      expect(share(cells, (l) => l >= 70 && l <= 160)).toBeLessThanOrEqual(0.2);
+    });
+
+    it('is ringed by the folder\'s ink, and no bright cell is on its rim', () => {
+      const rim = rimOf(silver);
+      expect(rim.filter((c) => c === ink).length / rim.length).toBeGreaterThanOrEqual(0.9);
+      expect(rim.filter((c) => luminance(c) >= 190)).toEqual([]);
+      const small = rimOf(RESOURCE_ART_12.silverDeposit as readonly string[]);
+      expect(small.length).toBeGreaterThan(0);
+      expect(small.every((c) => c === ink)).toBe(true);
+    });
+
+    it('hardly a cell of it is the colour of the mountain cell it covers, on either grid and in either variant', () => {
+      for (const [draw, grid, art, size] of grids) {
+        const rows = art.silverDeposit as readonly string[];
+        const edge = (grid - size) / 2;
+        for (const variant of [0, 1]) {
+          const bare = draw(look({ terrain: 'mountains', variant }));
+          const marked = draw(look({ terrain: 'mountains', variant, resource: 'silverDeposit' }));
+          let [opaque, same] = [0, 0];
+          for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+              if (rows[y]?.[x] === '.') continue;
+              opaque++;
+              if (ART_COLORS[at(marked, x + edge, y + edge) - 1] === ART_COLORS[at(bare, x + edge, y + edge) - 1]) same++;
+            }
+          }
+          expect(same / opaque, `${grid}, variant ${variant}: ${same} of ${opaque}`).toBeLessThanOrEqual(0.05);
+        }
+      }
+    });
+  });
 });
 
 describe('pieces', () => {
