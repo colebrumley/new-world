@@ -177,14 +177,21 @@ describe('the lost-city seal', () => {
     }
   });
 
-  it('stands whole over a resource mark, under a road, and clear of the totem', () => {
+  it('stands whole beside a resource mark and over the trees, the river and the furrows, under a road, and clear of the totem', () => {
     for (const grid of [32, 16] as const) {
       const seal = rumorSealArt(grid);
+      // the resource's mark as it is drawn today keeps to its own corner, so this shows the two side by side, each whole
       for (const resource of RESOURCE_IDS) {
         const both = square(grid, { resource, rumor: true });
         for (const i of cellsOf(seal)) expect(both.cells[i], `${grid} ${resource}`).toBe(seal.cells[i]);
-        // and the resource's mark still shows beside it
-        expect(differ(both, square(grid, { rumor: true })), `${grid} ${resource}`).toBe(true);
+        expect(changed(square(grid, { rumor: true }), both), `${grid} ${resource}`).toEqual(changed(square(grid), square(grid, { resource })));
+      }
+      // what is drawn before it and does reach its quarter lies under it: trees, a river to the south and west, furrows
+      for (const under of [{ terrain: 'mixed' }, { river: 'major', riverMask: 12 }, { plowed: true }] as const satisfies readonly Partial<TileLook>[]) {
+        const reaches = changed(square(grid), square(grid, under)).filter((i) => seal.cells[i] !== 0);
+        expect(reaches.length, `${grid} ${JSON.stringify(under)}`).toBeGreaterThan(0);
+        const sealed = square(grid, { ...under, rumor: true });
+        for (const i of cellsOf(seal)) expect(sealed.cells[i], `${grid} ${JSON.stringify(under)}`).toBe(seal.cells[i]);
       }
       // a road runs over the seal: every cell of a road to the south-west is the road's, with the seal or without
       const road = { road: true, roadMask: 32 } as const;
