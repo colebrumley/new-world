@@ -77,7 +77,8 @@ builds one, what it loads, where it goes, and the answers given in the trade tal
 16 x 16 grids of palette indices for a tile, a unit, a colony, a settlement (nothing in it needs
 a canvas, so it is unit-tested as data). `tiles.ts` turns that art into small canvases, once
 each, and `render.ts` draws the visible squares and pieces from them scaled by whole numbers
-with smoothing off. Square sizes are multiples of 8 pixels (`view.ts`). The blink of the active
+with smoothing off, and writes each colony's name under its square in a 5 x 7 pixel face
+(`labelArt`, `labelText`) wherever a square is at least 32 pixels. Square sizes are multiples of 8 pixels (`view.ts`). The blink of the active
 unit, the water shimmer and the slide of a moving piece are driven from the frame loop in
 `app/game-screen.ts` (which also keeps the painted ground from one redraw to the next, repainting it only when the map, the view or the water changes, and draws the pieces over it) and counted in `data-ticks`, apart from the redraws the game asks for
 (`data-frames`); `?still` freezes them. See `docs/VISUAL_CHECKLIST.md`.
