@@ -494,6 +494,22 @@ describe('detailed terrain', () => {
     }
   });
 
+  it('a river runs over the trees, the hills and the mountains: every cell of its stroke shows, however full the canopy', () => {
+    for (const grid of [32, 16] as const) {
+      for (const river of ['minor', 'major'] as const) {
+        const stroke = overArt(look({ river, riverMask: 10 }), grid);
+        const cells = [...stroke.cells].map((c, i) => (c !== 0 ? i : -1)).filter((i) => i >= 0);
+        expect(cells.length).toBeGreaterThan(0);
+        for (const terrain of [...FORESTS, 'hills', 'mountains'] as const) {
+          for (let variant = 0; variant < 4; variant++) {
+            const over = overArt(look({ terrain, variant, river, riverMask: 10 }), grid);
+            for (const i of cells) expect(over.cells[i], `${grid} ${terrain} ${variant}`).toBe(INK.brightBlue + 1);
+          }
+        }
+      }
+    }
+  });
+
   it('a forest is told from its open row by what stands on it alone, on both grids and in every variant', () => {
     for (const grid of [32, 16] as const) {
       for (let variant = 0; variant < 4; variant++) {

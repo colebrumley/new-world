@@ -721,17 +721,17 @@ function feature(s: Sprite, look: TileLook): void {
 }
 
 /**
- * Everything that stands on a square's floor, see-through elsewhere: furrows and rivers; then the forest,
- * hills or mountains; then the resource marker, at its own size; the lost-city seal, drawn for the grid;
- * then the road and the totem. On the 32-pixel grid the strokes and the totem are the 16-pixel ones
+ * Everything that stands on a square's floor, see-through elsewhere: the forest, hills or mountains; then
+ * furrows and the river, which runs over the trees, since a canopy that fills its square would hide it; then
+ * the resource marker, at its own size; the lost-city seal, drawn for the grid; then the road and the totem. On the 32-pixel grid the strokes and the totem are the 16-pixel ones
  * enlarged. The forest or relief is the baked picture of the grid.
  */
 export function overArt(look: TileLook, grid: TileGrid): Sprite {
   if (grid === ART) {
     const s = blank();
+    feature(s, look);
     if (look.plowed) furrows(s);
     if (look.river !== 'none') river(s, look);
-    feature(s, look);
     if (look.resource) resource(s, look.resource);
     if (look.rumor) rumor(s);
     if (look.road) road(s, look);
@@ -739,11 +739,11 @@ export function overArt(look: TileLook, grid: TileGrid): Sprite {
     return s;
   }
   const s = blank(DETAIL);
+  feature(s, look);
   const under = blank();
   if (look.plowed) furrows(under);
   if (look.river !== 'none') river(under, look);
   enlarge(s, under);
-  feature(s, look);
   if (look.resource) resource(s, look.resource);
   if (look.rumor) rumor(s);
   const over = blank();
