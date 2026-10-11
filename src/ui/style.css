@@ -921,6 +921,25 @@ canvas.minimap {
 .colony-screen:is([data-holding='colonist'], [data-holding='unit']) :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row):hover,
 .colony-screen[data-holding='good'] .carrier:hover,
 .colony-screen[data-holding='cargo'] :is(.carrier, .colony-warehouse):hover { outline-style: solid; outline-width: 2px; background-color: var(--parchment-shade); }
+/* a drag (R-1035): the token lifted is dimmed where it stood, its ghost travels under the pointer, and the
+   place under it says what letting go would come to: taken (green), refused (red), or where it came from */
+.colony-screen .token-lifted { opacity: 0.4; }
+.colony-screen .drag-ghost {
+  position: fixed; z-index: 9; transform: translate(-50%, -50%); pointer-events: none;
+  background: var(--parchment-light); box-shadow: var(--lift);
+}
+.colony-screen .drag-ghost[data-verdict='bad'] { border: 2px solid var(--ink-bad); box-shadow: 0 0 0 2px var(--ink-bad), var(--lift); }
+/* (each rule has a :hover twin, and the weight of the rules above, so that it wins over them by coming later) */
+.colony-screen[data-holding] [data-drop][data-drop-state='ok'],
+.colony-screen[data-holding] [data-drop][data-drop-state='ok']:hover { outline: 2px solid var(--ink-good); outline-offset: -2px; background-color: var(--parchment-shade); }
+.colony-screen[data-holding] [data-drop][data-drop-state='bad'],
+.colony-screen[data-holding] [data-drop][data-drop-state='bad']:hover {
+  outline: 2px solid var(--ink-bad); outline-offset: -2px; cursor: not-allowed;
+  background-color: color-mix(in srgb, var(--ink-bad) 16%, var(--parchment-light));
+}
+.colony-screen[data-holding] [data-drop][data-drop-state='home'],
+.colony-screen[data-holding] [data-drop][data-drop-state='home']:hover { outline: 1px dashed var(--ink-good); outline-offset: -2px; }
+.colony-screen[data-holding] :is(.square, .building, .idle-row, .outside-row, .carrier)[data-drop-state='home']:hover { background-color: transparent; }
 
 /* --- title screen: a frontispiece (R-1012) --------------------------------------------------- */
 /* The wood the painting hangs on is the table's, darkened, while the title screen or a screen reached from it is up. */

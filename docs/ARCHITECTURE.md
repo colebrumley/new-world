@@ -88,7 +88,7 @@ view; `sidebar.ts` builds the information sidebar from a pure `sidebarModel`; `t
 which unit asks for orders next, `dialog.ts` is the pop-up question, `europe-model.ts` turns the
 player's side of Europe into plain data and `europe-screen.ts` draws it as a harbour (ships on the water and at the quay, the docks, the
 market's stalls, the doors of the offices), its parts made once and changes written into them. `colony-model.ts` turns a colony into the plain data its screen shows and
-`colony-screen.ts` draws that as DOM with drag-and-drop and the colony keys. `report.ts` shows an adviser's report built as plain data by a
+`colony-screen.ts` draws that as DOM with drag-and-drop and the colony keys. Its drag draws a ghost of the token under the pointer and lights the place under it green, red or as the place it came from, from `dropVerdict` in `colony-model.ts`, which asks the game's own validation what letting go there would come to. `report.ts` shows an adviser's report built as plain data by a
 function in `reports/` (so far the Continental Congress). `title.ts` and
 `customize.ts` are the opening screens. Panels and dialogs are plain DOM.
 

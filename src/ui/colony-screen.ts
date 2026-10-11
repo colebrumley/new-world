@@ -1,7 +1,8 @@
 // The colony screen (R-308): settlement view, area view, people, transport, warehouse and the
 // multi-function panel, all drawn from colonyView(). People, units and goods are moved by
 // dragging, by clicking them and then where they should go, or with the keyboard; clicking
-// someone already selected opens the jobs menu.
+// someone already selected opens the jobs menu. A thing being dragged travels under the pointer
+// as a ghost (R-1035), and the place under it is lit by what letting go there would come to.
 // It is drawn as a town plan (R-1013): every building is its picture with the people who work in
 // it standing on it, goods are their icons with a count, and the head of the sheet carries the
 // owner's flag and a bell gauge for the Sons of Liberty.
@@ -11,7 +12,7 @@ import type { Action } from '../engine/actions';
 import { COLONIST_ROLES } from '../engine/data/equipment';
 import type { GoodId } from '../engine/data/goods';
 import type { GameState, Job } from '../engine/state';
-import { colonyView, jobChoices, type ColonyView, type PersonView } from './colony-model';
+import { colonyView, dropVerdict, jobChoices, type ColonyView, type DropVerdict, type PersonView } from './colony-model';
 import { ask, askText } from './dialog';
 import { buildingArt, figureArt, flagArt, goodArt, type Sprite } from './pixel-art';
 import { inkOf } from './render';
@@ -31,6 +32,8 @@ type Tab = 'production' | 'units' | 'construction';
 const TABS: readonly Tab[] = ['production', 'units', 'construction'];
 const TAB_TITLES: Readonly<Record<Tab, string>> = { production: 'Production', units: 'Units', construction: 'Construction' };
 const TILE = 64;
+/** How far the pointer must travel with the button down before a press is a drag, in CSS pixels. */
+const DRAG_THRESHOLD = 4;
 /** How many screen pixels an art pixel of a building is drawn at: three in a small town, two once there are more than this many buildings to fit on the plan. */
 const BUILDING_SCALE = 3;
 const CROWDED_SCALE = 2;
@@ -472,6 +475,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     if (!picked) selected = '';
     picked?.classList.add('token-selected');
     showHolding();
+    restoreDrag();
     root.append(el('p', 'colony-help', helpFor(picked?.querySelector('.token-label')?.textContent ?? '')), done);
     const again = focusKey ? root.querySelector<HTMLElement>(`[data-key="${focusKey}"]`) : null;
     (again ?? root.querySelector<HTMLElement>('.token') ?? root).focus();
@@ -494,22 +498,142 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
 
   // --- pointer: press, move, release ----------------------------------------------------------
 
-  let held: { source: string; x: number; y: number; moved: boolean; shift: boolean } | null = null;
+  /** A press on a token, and the drag it may become. */
+  interface Grip {
+    readonly source: string;
+    /** Where the button went down, and where the pointer was last seen. */
+    readonly x: number;
+    readonly y: number;
+    px: number;
+    py: number;
+    moved: boolean;
+    readonly shift: boolean;
+    /** The token pressed (a redraw mid-drag points this at its successor). */
+    from: HTMLElement;
+    /** The picture travelling under the pointer, once the press has become a drag. */
+    ghost: HTMLElement | null;
+    /** The place under the pointer that is marked now. */
+    over: HTMLElement | null;
+    /** Verdicts already worked out in this drag, by target: a field square's costs up to nine refusals and nine trial views. */
+    readonly verdicts: Map<string, DropVerdict>;
+  }
+  let held: Grip | null = null;
+  /** The pointer left the window with the button down: the release that may follow its return is nobody's click. */
+  let abandoned = false;
+
+  /** The ghost of a token: fresh art (a copied canvas would be blank) with the token's name and line. */
+  function makeGhost(grip: Grip): HTMLElement {
+    const [kind = '', id = '', extra = ''] = grip.source.split(':');
+    const ghost = el('div', `drag-ghost token token-${kind}`);
+    ghost.setAttribute('aria-hidden', 'true');
+    const art = kind === 'colonist' || kind === 'unit' ? figure(kind, id) : goodIcon(kind === 'cargo' ? extra : id);
+    if (art) ghost.append(art);
+    ghost.append(el('span', 'token-label', grip.from.querySelector('.token-label')?.textContent ?? ''));
+    const sub = grip.from.querySelector('.token-sub')?.textContent ?? '';
+    if (sub) ghost.append(el('span', 'token-sub', sub));
+    return ghost;
+  }
+
+  /** Moves the ghost to the pointer and marks the place under it, found as the release finds it. */
+  function aim(grip: Grip, x: number, y: number): void {
+    grip.px = x;
+    grip.py = y;
+    if (!grip.ghost) return;
+    grip.ghost.style.left = `${x}px`;
+    grip.ghost.style.top = `${y}px`;
+    const place = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-drop]') ?? null;
+    if (place === grip.over) return;
+    grip.over?.removeAttribute('data-drop-state');
+    grip.over = place;
+    const target = place?.dataset['drop'];
+    if (!place || !target) {
+      grip.ghost.removeAttribute('data-verdict');
+      return;
+    }
+    let verdict = grip.verdicts.get(target);
+    if (!verdict) {
+      verdict = dropVerdict(host.state(), colonyId, grip.source, target, host.refusal, jobForTarget);
+      grip.verdicts.set(target, verdict);
+    }
+    place.dataset['dropState'] = verdict;
+    // the ghost is marked only where it would be refused; over a place that takes it, or its own, it is plain
+    if (verdict === 'bad') grip.ghost.dataset['verdict'] = verdict;
+    else grip.ghost.removeAttribute('data-verdict');
+  }
+
+  /** Takes away the ghost and every mark of a drag. */
+  function endDrag(grip: Grip | null): void {
+    if (!grip) return;
+    grip.ghost?.remove();
+    grip.ghost = null;
+    grip.over?.removeAttribute('data-drop-state');
+    grip.over = null;
+    grip.from.classList.remove('token-lifted');
+  }
+
+  /** After a redraw in the middle of a drag (a refresh from the host): the ghost and the marks, which the redraw dropped, go back. */
+  function restoreDrag(): void {
+    const grip = held;
+    if (!grip?.ghost) return;
+    const from = root.querySelector<HTMLElement>(`[data-drag="${grip.source}"]`);
+    if (!from) {
+      // what was being dragged is no longer here
+      endDrag(grip);
+      held = null;
+      showHolding();
+      return;
+    }
+    grip.from = from;
+    from.classList.add('token-lifted');
+    root.append(grip.ghost);
+    // the places are new elements and the state may have changed under the drag: ask again
+    grip.over = null;
+    grip.verdicts.clear();
+    aim(grip, grip.px, grip.py);
+  }
+
   root.addEventListener('mousedown', (event) => {
     const from = (event.target as HTMLElement).closest<HTMLElement>('[data-drag]');
+    if (event.button === 0) abandoned = false;
     if (!from || event.button !== 0) return;
-    held = { source: from.dataset['drag'] ?? '', x: event.clientX, y: event.clientY, moved: false, shift: event.shiftKey };
+    endDrag(held);
+    held = { source: from.dataset['drag'] ?? '', x: event.clientX, y: event.clientY, px: event.clientX, py: event.clientY, moved: false, shift: event.shiftKey, from, ghost: null, over: null, verdicts: new Map() };
     focusKey = from.dataset['key'] ?? '';
     if (!held.source.startsWith('carrier:')) showHolding(held.source.split(':')[0]);
   });
   root.addEventListener('mousemove', (event) => {
-    if (held && Math.hypot(event.clientX - held.x, event.clientY - held.y) > 4) held.moved = true;
+    if (!held) return;
+    if (!held.moved && Math.hypot(event.clientX - held.x, event.clientY - held.y) > DRAG_THRESHOLD) {
+      held.moved = true;
+      // a ship or wagon train gets no ghost: dragging one does nothing
+      if (!held.source.startsWith('carrier:')) {
+        held.ghost = makeGhost(held);
+        held.from.classList.add('token-lifted');
+        root.append(held.ghost);
+      }
+    }
+    aim(held, event.clientX, event.clientY);
+  });
+  // The screen covers the whole game, so the pointer leaving it has left the window: the press is
+  // over, and so is the drag (a release out there never reaches us).
+  root.addEventListener('mouseleave', (event) => {
+    if (!held) return;
+    endDrag(held);
+    held = null;
+    abandoned = (event.buttons & 1) === 1;
+    showHolding();
   });
   root.addEventListener('mouseup', (event) => {
     const grip = held;
     held = null;
+    // the ghost and the marks go before anything the drop shows (a question, a message)
+    endDrag(grip);
     if (event.button !== 0) return;
     showHolding();
+    if (abandoned) {
+      abandoned = false;
+      return;
+    }
     if (!grip) {
       // a click on a place: whoever or whatever is selected goes there (a button there keeps its own click)
       const at = event.target as HTMLElement;

@@ -94,7 +94,7 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | X | Custom House exports | works |
 | F1 | Information | works |
 | Esc | Leave the colony | works |
-| Drag (Shift-drag for part) | Move people between squares, buildings and the gates; goods between warehouse and holds | works |
+| Drag (Shift-drag for part) | Move people between squares, buildings and the gates; goods between warehouse and holds. A ghost of the thing follows the pointer, red where it cannot go | works |
 | Click, then click a place | Select a colonist, unit or cargo, then send it to the square, building, hold or warehouse clicked | works |
 | Click the selected colonist or unit | Jobs menu / orders menu | works |
 
