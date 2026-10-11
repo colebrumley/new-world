@@ -19,7 +19,7 @@ Four advisers sign the reports. The Continental Congress, Foreign Affairs and th
 
 ### F1 Terrain Information
 
-<img src="images/art/portraits/advisers.png" width="64" alt="Your council of advisers"> What each kind of land is worth: for every terrain, the movement it costs, the defence bonus it gives and what a free colonist brings in from an unimproved square of it. Use it when choosing where to found a colony or what to put a colonist to work on. Experts, plowing, rivers, roads and special resources add to these yields; see [[The Map]].
+<img src="images/art/portraits/advisers.png" width="64" alt="Your council of advisers"> What each kind of land is worth: for every terrain, the movement it costs, the defence bonus it gives and the base figure of each good it yields. Use it to compare one kind of land with another when choosing where to found a colony or what to put a colonist to work on. The figures are the terrain's own, before anything is added: a colonist working the square brings in one more food than shown and twice the lumber, and experts, plowing, rivers, roads and special resources add more; see [[The Map]].
 
 ### F2 Religious Adviser
 

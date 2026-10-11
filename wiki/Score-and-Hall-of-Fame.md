@@ -16,7 +16,7 @@ Your score measures the colonies you leave behind: how many people live in them 
 | Rebel sentiment (as it stood at the Declaration, once that is made) | 1 per percentage point |
 | Each native settlement you destroyed | minus 1 (Discoverer) to minus 5 (Viceroy) |
 | Independence declared before 1780, and won | 2 for each year early |
-| Liberty bells rung after a foreign power intervened, independence won | 1 per 100 bells, at most 100 |
+| Liberty bells rung after a foreign power intervened in your war of independence | 1 per 100 bells, at most 100 |
 | Independence won: the whole is multiplied | x2 if no other power was independent first; x1.5 behind 1 power; x1.25 behind 2 powers; x1.125 behind 3 powers |
 
 <!-- /table -->
@@ -25,7 +25,7 @@ Colonists count wherever they are, in a colony or out on the map, as soldiers, p
 
 ## The Colonial Rating
 
-The score is the same on every level of difficulty; the rating is not. The score is multiplied by the level's rating factor and divided by a hundred to give the **weighted score**, and your **Colonial Rating** is half the weighted score, as a percentage. So the same colonies rate two and a half times higher on the hardest level than on the easiest.
+The score is counted the same way on every level of difficulty, apart from the price of a destroyed native settlement; the rating is not. The score is multiplied by the level's rating factor and divided by a hundred to give the **weighted score**, and your **Colonial Rating** is half the weighted score, as a percentage. So the same colonies rate two and a half times higher on the hardest level than on the easiest.
 
 <!-- table: score-rating -->
 
@@ -84,13 +84,13 @@ The game is scored once, when it ends. It ends:
 
 To retire, press **Shift-R**. The game asks first; if you say yes, it is scored as it stands and ends. A game ended by retiring cannot be played on.
 
-When the game ends in 1800 or 1850, you may play on after the scoring. The game will not be scored again, and the calendar will not stop it a second time.
+When the game ends in 1800 or 1850, you may play on after the scoring. The calendar will not stop the game a second time. If it later ends another way (you retire, or a war of independence is won or lost), it is scored again as it then stands, and that score goes to the Hall of Fame as well.
 
 ![The score at the end of a game, with the Hall of Fame beneath it](images/screens/game-over.png)
 
 ## The Hall of Fame
 
-Every finished game earns a line in the Hall of Fame: your leader and nation (marked a rebel if you declared independence and a liberator if you won it), the level, the date the game ended, the score, the rating and the honour. The ten best are kept, best rating first and then best score. A game is entered only once, even if you load it again after it has ended.
+Every finished game is put forward for the Hall of Fame: your leader and nation (marked a rebel if you declared independence and a liberator if you won it), the level, the date the game ended, the score, the rating and the honour. Only the ten best are kept, best rating first and then best score, so a game that rates below all ten leaves no line. The same ending is entered only once, even if you load the game again after it has ended.
 
 The Hall of Fame is shown beneath the score when a game ends, and from the title screen with **View Hall of Fame**.
 

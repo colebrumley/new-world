@@ -96,7 +96,7 @@ function score(): string {
       ['Rebel sentiment (as it stood at the Declaration, once that is made)', '1 per percentage point'],
       ['Each native settlement you destroyed', `minus 1 (${DIFFICULTY_NAMES[DIFFICULTIES[0]!]}) to minus ${levels} (${DIFFICULTY_NAMES[DIFFICULTIES[levels - 1]!]})`],
       [`Independence declared before ${SCORE.earlyBefore}, and won`, `${SCORE.earlyPerYear} for each year early`],
-      ['Liberty bells rung after a foreign power intervened, independence won', `1 per ${SCORE.bellsPerPoint} bells, at most ${SCORE.bellsCap}`],
+      ['Liberty bells rung after a foreign power intervened in your war of independence',`1 per ${SCORE.bellsPerPoint} bells, at most ${SCORE.bellsCap}`],
       ['Independence won: the whole is multiplied', independence.join('; ')],
     ],
   );
@@ -117,14 +117,14 @@ function scoreRating(): string {
 function honours(): string {
   // the level with the largest factor reaches every weighted score from some whole score
   const top = DIFFICULTIES.reduce((a, b) => (SCORE.difficultyFactor[DIFFICULTIES.indexOf(b)]! > SCORE.difficultyFactor[DIFFICULTIES.indexOf(a)]! ? b : a));
-  const least: number[] = [];
+  const least: { weighted: number; percent: number }[] = [];
   for (let s = 0; s < 100000 && least.length < HONOURS.length; s++) {
-    const { rank, weighted } = ratingOf(top, s);
-    if (rank !== null) for (let r = least.length; r <= rank; r++) least[r] = weighted;
+    const { rank, weighted, percent } = ratingOf(top, s);
+    if (rank !== null) for (let r = least.length; r <= rank; r++) least[r] = { weighted, percent };
   }
   return mdTable(
     ['Rank', 'Weighted score of at least', 'Colonial Rating of at least', 'Posterity names after you'],
-    HONOURS.map((honour, rank) => [rank + 1, least[rank] ?? '-', least[rank] === undefined ? '-' : `${Math.floor(least[rank] / 2)}%`, honour]),
+    HONOURS.map((honour, rank) => [rank + 1, least[rank]?.weighted ?? '-', least[rank] === undefined ? '-' : `${least[rank].percent}%`, honour]),
   );
 }
 
