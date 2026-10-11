@@ -155,6 +155,10 @@ export function voyageNotices(events: readonly GameEvent[], state: GameState, pl
   if (!player) return [];
   const out: string[] = [];
   for (const e of events) {
+    if (e.type === 'treasureCashed' && e.carrier === 'galleon' && e.player === playerId) {
+      out.push(`Our galleon has brought home a treasure of ${e.value} gold.`);
+      continue;
+    }
     if (e.type !== 'shipReachedEurope') continue;
     const ship = state.units[e.unitId];
     if (!ship || ship.owner !== playerId) continue;

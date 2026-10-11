@@ -44,7 +44,7 @@ About one turn in twenty-one, a Crown (your own, or one at peace with you) offer
 
 ### Treasure
 
-When you carry a treasure home in the King's ships, he keeps a share for the trouble: the larger of twice the tax rate and a fixed share that grows with the level, never more than nine tenths. With Hernan Cortes he keeps only the tax rate. After the Declaration a treasure is yours whole. Treasure trains are described in [[Units]].
+When a treasure train enters one of your colonies on the open sea, the Crown offers to carry it home in the King's galleon, but only while you own no galleon of your own (with Hernan Cortes it offers regardless). He keeps a share for the trouble: the larger of twice the tax rate and a fixed share that grows with the level, never more than nine tenths. With Hernan Cortes he keeps only the tax rate. Your own galleon carries a treasure to Europe for its whole value, with no share and no tax, paid the moment she makes port. After the Declaration agents buy a treasure in any of your colonies for its whole value. Treasure trains are described in [[Units]].
 
 ### The War of Succession
 

@@ -125,4 +125,18 @@ describe('voyage notices', () => {
     expect(colonyNotices(events, docked(), 'a', silent)).toEqual([]);
     expect(voyageNotices(events, docked(), 'a')).toEqual(['Our Caravel has reached London and awaits orders.']);
   });
+
+  it('a treasure our galleon brings home is logged after the ship arrives; one the Crown carries is not', () => {
+    const events: GameEvent[] = [
+      { type: 'shipReachedEurope', unitId: 'g1' },
+      { type: 'treasureCashed', player: 'a', unitId: 't1', value: 3000, fee: 0, carrier: 'galleon' },
+      { type: 'treasureCashed', player: 'a', unitId: 't2', value: 800, fee: 400, carrier: 'crown', colonyId: 'james' },
+      { type: 'treasureCashed', player: 'a', unitId: 't3', value: 900, fee: 0, carrier: 'agents', colonyId: 'james' },
+      { type: 'treasureCashed', player: 'b', unitId: 't4', value: 500, fee: 0, carrier: 'galleon' },
+    ];
+    expect(voyageNotices(events, docked(), 'a')).toEqual([
+      'Our Galleon has reached London and awaits orders.',
+      'Our galleon has brought home a treasure of 3000 gold.',
+    ]);
+  });
 });
