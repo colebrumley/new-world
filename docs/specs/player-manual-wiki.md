@@ -58,7 +58,7 @@ are fine in the manual, as they are in the game.
 | Surface | Who changes it | Order |
 |---|---|---|
 | `wiki/` folder layout, page names, `_Sidebar.md`, `_Footer.md`, stub pages, image folder names | W1 creates all of it | first |
-| `README.md` | W1 only | first |
+| `README.md` | W1 writes it; W5 adds the title-screen picture (owner's request after W1 merged) | first, then W5 |
 | `.github/workflows/wiki.yml` (publishing) | W1 only | first |
 | `test/unit/wiki/pages.test.ts` (link and image checker) | W1 creates; nobody else edits | first |
 | `wiki/images/art/**` (sprites) and `test/helpers/wiki/png.ts`, `test/unit/wiki/images.test.ts` | W2 creates; content items only read | second wave |
@@ -161,7 +161,8 @@ Acceptance:
   `public/manifest.webmanifest` is the model), a line with the link to play it
   (`https://colebrumley.github.io/new-world/`), and a line sending players to the wiki
   (`https://github.com/colebrumley/new-world/wiki`) for the user guide. Nothing else: no badges, no
-  install steps, no screenshots. Developer notes stay in `CLAUDE.md` and `docs/`.
+  install steps. Developer notes stay in `CLAUDE.md` and `docs/`. (W5 later adds one picture, the
+  title screen, once W4 has made it; see W5.)
 - `wiki/` holds `Home.md`, `_Sidebar.md`, `_Footer.md` and every page in "The pages". A stub page is
   its title's one-line summary and the line "This page is being written." (exactly that, so the
   checker can tell a stub). `Home.md` already carries the play link, a one-paragraph description and
@@ -373,7 +374,8 @@ Verify: `WIKI_SHOTS=1 npx playwright test test/e2e/wiki-shots.spec.ts` writes ev
 ### W5 — Home, Getting Started, Controls, Options, FAQ and Glossary (R-1027, size M, depends on: W1, W2, W3, W4)
 
 Files: `wiki/Home.md`, `wiki/Getting-Started.md`, `wiki/Controls.md`, `wiki/Help-and-Options.md`,
-`wiki/Tips-and-FAQ.md`, `wiki/Glossary.md`, `test/helpers/wiki/tables.ts` (add renderers).
+`wiki/Tips-and-FAQ.md`, `wiki/Glossary.md`, `test/helpers/wiki/tables.ts` (add renderers), `README.md`
+(the picture only).
 
 Sources: `src/ui/title.ts`, `src/ui/customize.ts`, `src/ui/power.ts`, `docs/NATION_SELECTION.md`,
 `src/engine/data/nations.ts`, `src/engine/difficulty.ts`, `src/ui/hints.ts`, `src/ui/options.ts`,
@@ -416,6 +418,11 @@ Acceptance:
   mission, convert, veteran, custom house, trade route, sea lane, hold, lot, and the rest found while
   writing), one or two sentences each, alphabetical, each linking to the page that explains it.
 - Every screenshot named above appears on the page that describes that screen.
+- **README picture** (the owner asked for the title screen "for flavor"): under the README's first
+  paragraph, the title screen from W4, as
+  `<img src="wiki/images/screens/title.png" width="640" alt="The title screen: ...">` (a path relative
+  to the repository root, since the README is read on GitHub, not on the wiki). Nothing else in the
+  README changes.
 
 Verify: `npm test -- test/unit/wiki`; `npm run check`; `npm run guard`.
 
