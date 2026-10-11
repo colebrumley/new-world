@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   CLIMATE_OPTIONS, DEFAULT_WORLD, LAND_FORM_OPTIONS, LAND_MASS_OPTIONS, MAP_HEIGHT, MAP_WIDTH, MAPGEN, TEMPERATURE_OPTIONS,
@@ -127,6 +128,13 @@ describe('generateWorld', () => {
       expect(seen, want).toContain(want);
     }
     expect([...seen].filter((s) => s.startsWith('res:')).length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('draws the same random maps as before (digest of every square for seeds 1 to 3)', () => {
+    const digests = [1, 2, 3].map((seed) =>
+      createHash('sha1').update(JSON.stringify(generateWorld(createRng(String(seed)).fork('world')).tiles)).digest('hex'),
+    );
+    expect(digests).toMatchSnapshot();
   });
 });
 
