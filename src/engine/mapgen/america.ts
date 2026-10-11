@@ -1,82 +1,116 @@
-// Builds the America scenario map (R-103): the hand-drawn coastline from data/america.ts with
-// terrain detail generated the same way as a random world, steered toward the real regions.
+// Builds the America scenario map (R-103) from the four authored charts in data/america.ts:
+// ground, relief, rivers and extras, one letter per playable square. Nothing is generated.
 import {
-  AMERICA_COAST, AMERICA_EQUATOR_ROW, AMERICA_FOREST, AMERICA_MOISTURE, AMERICA_STARTS, AMERICA_TRIBE_SITES, AMERICA_TRIBES,
+  AMERICA_CHARTS, AMERICA_EXTRAS_LEGEND, AMERICA_GROUND_LEGEND, AMERICA_RELIEF_LEGEND, AMERICA_RIVERS_LEGEND, AMERICA_STARTS,
 } from '../data/america';
-import { DEFAULT_WORLD, MAP_HEIGHT, MAP_WIDTH } from '../data/mapgen';
-import type { Rng } from '../rng';
+import { MAP_HEIGHT, MAP_WIDTH } from '../data/mapgen';
 import type { GameMap } from '../state';
-import { isWater, type Relief, type Tile } from '../tile';
-import { detailWorld } from './generate';
+import { makeTile, type Tile } from '../tile';
 
 /** Playable coordinate to bordered-grid coordinate. */
 export const toGrid = (p: readonly [number, number]): [number, number] => [p[0] + 1, p[1] + 1];
 
-function coastMask(): boolean[] {
-  const land = new Array<boolean>(MAP_WIDTH * MAP_HEIGHT).fill(false);
-  for (const [row, spans] of Object.entries(AMERICA_COAST)) {
-    for (const [x0, x1] of spans) {
-      for (let x = x0; x <= x1; x++) land[(Number(row) + 1) * MAP_WIDTH + x + 1] = true;
+/** The four charts of a map, each one string of letters per playable row. */
+export interface AmericaCharts {
+  readonly ground: readonly string[];
+  readonly relief: readonly string[];
+  readonly rivers: readonly string[];
+  readonly extras: readonly string[];
+}
+
+const CHART_NAMES = ['ground', 'relief', 'rivers', 'extras'] as const;
+const ROWS = MAP_HEIGHT - 2;
+const COLUMNS = MAP_WIDTH - 2;
+
+const LEGENDS = {
+  ground: AMERICA_GROUND_LEGEND,
+  relief: AMERICA_RELIEF_LEGEND,
+  rivers: AMERICA_RIVERS_LEGEND,
+  extras: AMERICA_EXTRAS_LEGEND,
+} as const;
+
+function checkChart(name: (typeof CHART_NAMES)[number], rows: readonly string[]): void {
+  const legend: Record<string, unknown> = LEGENDS[name];
+  for (let y = 0; y < ROWS; y++) {
+    const row = rows[y];
+    if (row === undefined) throw new RangeError(`${name} chart: row ${y} is missing (a chart has ${ROWS} rows)`);
+    if (row.length !== COLUMNS) throw new RangeError(`${name} chart: row ${y} has ${row.length} characters, not ${COLUMNS}`);
+    for (let x = 0; x < COLUMNS; x++) {
+      if (!Object.hasOwn(legend, row[x] as string)) throw new RangeError(`${name} chart: row ${y} holds '${row[x]}' at x ${x}, not in its legend`);
     }
   }
-  return land;
+  if (rows.length > ROWS) throw new RangeError(`${name} chart: row ${ROWS} is one too many (a chart has ${ROWS} rows)`);
 }
 
-function westEdge(row: number): number | null {
-  const spans = AMERICA_COAST[row];
-  return spans && spans[0] ? spans[0][0] : null;
-}
-
-// Mountain spines: the Andes down the west coast of the southern continent, the Rockies near
-// the western map edge, the Sierra Madre through Mexico, and the Appalachian hills.
-function americaRelief(gx: number, gy: number): Relief | null {
-  const x = gx - 1;
-  const y = gy - 1;
-  const west = westEdge(y);
-  if (west === null) return null;
-  if (y >= 36 && y <= 66) {
-    if (x - west <= 1) return 'mountains';
-    if (x - west === 2) return 'hills';
-  }
-  if (y >= 2 && y <= 19) {
-    if (x === 3) return 'mountains';
-    if (x === 2 || x === 4) return y % 3 === 0 ? 'mountains' : 'hills';
-  }
-  if (y >= 23 && y <= 31 && x - west === 2) return y % 2 === 0 ? 'mountains' : 'hills';
-  if (y >= 13 && y <= 20 && x === 27 - Math.floor((y - 13) / 2)) return 'hills';
-  return null;
-}
-
-type Box = readonly [number, number, number, number, number];
-
-const boxSum = (boxes: readonly Box[]) => (gx: number, gy: number): number => {
-  const x = gx - 1;
-  const y = gy - 1;
-  let delta = 0;
-  for (const [x0, y0, x1, y1, d] of boxes) if (x >= x0 && x <= x1 && y >= y0 && y <= y1) delta += d;
-  return delta;
-};
-
-export function americaMap(rng: Rng): GameMap {
-  const map = detailWorld(rng, coastMask(), DEFAULT_WORLD, {
-    equatorY: AMERICA_EQUATOR_ROW + 1,
-    moisture: boxSum(AMERICA_MOISTURE),
-    forest: boxSum(AMERICA_FOREST),
-    relief: americaRelief,
-  });
-  // Settlement sites must be habitable: level ground, no rumor underfoot.
-  const tiles = [...map.tiles];
-  for (const tribe of AMERICA_TRIBES) {
-    for (const site of AMERICA_TRIBE_SITES[tribe]) {
-      const [gx, gy] = toGrid(site);
-      const i = gy * MAP_WIDTH + gx;
-      const tile = tiles[i] as Tile;
-      if (isWater(tile)) continue;
-      const level = tile.relief === 'flat' && tile.base !== 'arctic';
-      tiles[i] = { ...tile, base: tile.base === 'arctic' ? 'tundra' : tile.base, relief: 'flat', rumor: false, resource: level ? tile.resource : null };
+/** Build a full map from four charts: they fill the playable area, the border ring is plain ocean. */
+export function readCharts(charts: AmericaCharts): GameMap {
+  for (const name of CHART_NAMES) checkChart(name, charts[name]);
+  const tiles: Tile[] = [];
+  for (let gy = 0; gy < MAP_HEIGHT; gy++) {
+    for (let gx = 0; gx < MAP_WIDTH; gx++) {
+      const x = gx - 1;
+      const y = gy - 1;
+      if (x < 0 || y < 0 || x >= COLUMNS || y >= ROWS) {
+        tiles.push(makeTile());
+        continue;
+      }
+      const letter = (name: (typeof CHART_NAMES)[number]): string => (charts[name][y] as string)[x] as string;
+      const ground = AMERICA_GROUND_LEGEND[letter('ground') as keyof typeof AMERICA_GROUND_LEGEND];
+      const extra = AMERICA_EXTRAS_LEGEND[letter('extras') as keyof typeof AMERICA_EXTRAS_LEGEND];
+      tiles.push(makeTile({
+        base: ground.base,
+        forest: ground.forest,
+        relief: AMERICA_RELIEF_LEGEND[letter('relief') as keyof typeof AMERICA_RELIEF_LEGEND],
+        river: AMERICA_RIVERS_LEGEND[letter('rivers') as keyof typeof AMERICA_RIVERS_LEGEND],
+        resource: extra === 'rumor' ? null : extra,
+        rumor: extra === 'rumor',
+      }));
     }
   }
-  return { ...map, tiles };
+  return { width: MAP_WIDTH, height: MAP_HEIGHT, tiles };
+}
+
+/** The America map, read from the authored charts; a fresh object on every call. */
+export function americaMap(): GameMap {
+  return readCharts(AMERICA_CHARTS);
+}
+
+function inverse(legend: Record<string, unknown>, key: (value: unknown) => string): Map<string, string> {
+  return new Map(Object.entries(legend).map(([letter, value]) => [key(value), letter]));
+}
+
+const GROUND_LETTER = inverse(AMERICA_GROUND_LEGEND, (v) => JSON.stringify(v));
+const RELIEF_LETTER = inverse(AMERICA_RELIEF_LEGEND, String);
+const RIVER_LETTER = inverse(AMERICA_RIVERS_LEGEND, String);
+const EXTRA_LETTER = inverse(AMERICA_EXTRAS_LEGEND, String);
+
+/** The charts of a map's playable area: the inverse of readCharts. Throws on a square no chart can say. */
+export function chartsOf(map: GameMap): { ground: string[]; relief: string[]; rivers: string[]; extras: string[] } {
+  const out = { ground: [] as string[], relief: [] as string[], rivers: [] as string[], extras: [] as string[] };
+  const pick = (table: Map<string, string>, key: string, where: string): string => {
+    const letter = table.get(key);
+    if (letter === undefined) throw new RangeError(`no chart letter for ${key} at ${where}`);
+    return letter;
+  };
+  for (let y = 1; y < map.height - 1; y++) {
+    let ground = '';
+    let relief = '';
+    let rivers = '';
+    let extras = '';
+    for (let x = 1; x < map.width - 1; x++) {
+      const t = map.tiles[y * map.width + x] as Tile;
+      const where = `${x - 1},${y - 1}`;
+      ground += pick(GROUND_LETTER, JSON.stringify({ base: t.base, forest: t.forest }), where);
+      relief += pick(RELIEF_LETTER, t.relief, where);
+      rivers += pick(RIVER_LETTER, t.river, where);
+      extras += pick(EXTRA_LETTER, t.rumor ? 'rumor' : String(t.resource), where);
+    }
+    out.ground.push(ground);
+    out.relief.push(relief);
+    out.rivers.push(rivers);
+    out.extras.push(extras);
+  }
+  return out;
 }
 
 /** Grid coordinates of each power's starting sea tile on the America map. */

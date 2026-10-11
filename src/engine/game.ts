@@ -114,7 +114,7 @@ export function createGame(options: NewGameOptions): GameState {
 
   let map =
     options.scenario === 'america'
-      ? americaMap(rng.fork('world'))
+      ? americaMap()
       : options.world
         ? generateWorld(rng.fork('world'), options.world)
         : placeholderMap(width, height);

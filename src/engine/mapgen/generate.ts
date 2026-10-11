@@ -192,20 +192,8 @@ export function generateWorld(rng: Rng, options: WorldOptions = DEFAULT_WORLD): 
   return detailWorld(rng, shapeLand(rng.fork('land'), options), options);
 }
 
-/** Regional steering for a hand-shaped map (the America scenario). */
-export interface WorldHints {
-  /** Row of the equator; the default is the middle of the map. */
-  readonly equatorY?: number;
-  /** Added to the 0..1 moisture of a tile. */
-  readonly moisture?: (x: number, y: number) => number;
-  /** Added to a tile's forest score (roughly 0..1.25); negative clears, positive plants. */
-  readonly forest?: (x: number, y: number) => number;
-  /** Forces hills or mountains on a land tile; null leaves it to chance. */
-  readonly relief?: (x: number, y: number) => Relief | null;
-}
-
 /** Turn a land mask (row-major, MAP_WIDTH x MAP_HEIGHT) into a full map. */
-export function detailWorld(rng: Rng, land: readonly boolean[], options: WorldOptions = DEFAULT_WORLD, hints: WorldHints = {}): GameMap {
+function detailWorld(rng: Rng, land: readonly boolean[], options: WorldOptions): GameMap {
 
   // Polar caps: a full row of ice at each end, ragged on the inside.
   const polar = rng.fork('polar');
@@ -222,7 +210,7 @@ export function detailWorld(rng: Rng, land: readonly boolean[], options: WorldOp
   const warmNoise = fractalNoise(climate, W, H, 9, 2);
   const wetNoise = fractalNoise(climate, W, H, 8, 3);
   const forestNoise = fractalNoise(climate, W, H, 5, 3);
-  const mid = hints.equatorY ?? (H - 1) / 2;
+  const mid = (H - 1) / 2;
   const span = Math.max(mid, H - 1 - mid);
 
   const base = new Array<BaseTerrain>(N).fill('ocean');
@@ -238,7 +226,7 @@ export function detailWorld(rng: Rng, land: readonly boolean[], options: WorldOp
     const latitude = Math.abs(y - mid) / span; // 0 at the equator, 1 at the far pole
     const warmth = 1 - latitude + (warmNoise(x, y) - 0.5) * 0.25 + MAPGEN.temperatureShift[options.temperature];
     // stretch the noise so the dry and wet ends of the scale are actually reached
-    const moisture = 0.5 + (wetNoise(x, y) - 0.5) * 1.8 + MAPGEN.moistureShift[options.climate] + (hints.moisture?.(x, y) ?? 0);
+    const moisture = 0.5 + (wetNoise(x, y) - 0.5) * 1.8 + MAPGEN.moistureShift[options.climate];
     moistureAt[i] = moisture;
     base[i] = pickBase(warmth, moisture);
   }
@@ -253,15 +241,6 @@ export function detailWorld(rng: Rng, land: readonly boolean[], options: WorldOp
   const hillTarget = Math.round(landTiles.length * MAPGEN.hillRatio);
   let mountains = 0;
   let hills = 0;
-  if (hints.relief) {
-    for (const i of landTiles) {
-      const forced = hints.relief(i % W, Math.floor(i / W));
-      if (!forced || forced === 'flat') continue;
-      relief[i] = forced;
-      if (forced === 'mountains') mountains++;
-      else hills++;
-    }
-  }
   for (let guard = 0; mountains < mountainTarget && guard < 400 && landTiles.length > 0; guard++) {
     let i = reliefRng.pick(landTiles);
     let dir = reliefRng.pick(N8);
@@ -296,8 +275,7 @@ export function detailWorld(rng: Rng, land: readonly boolean[], options: WorldOp
   // Forest: rank flat land by a blend of patch noise and moisture; the top share is wooded.
   const forest = new Array<boolean>(N).fill(false);
   const woodable = landTiles.filter((i) => relief[i] === 'flat');
-  const score = (i: number): number =>
-    forestNoise(i % W, Math.floor(i / W)) + 0.25 * (moistureAt[i] as number) + (hints.forest?.(i % W, Math.floor(i / W)) ?? 0);
+  const score = (i: number): number => forestNoise(i % W, Math.floor(i / W)) + 0.25 * (moistureAt[i] as number);
   const ranked = [...woodable].sort((a, b) => score(b) - score(a) || a - b);
   const forestShare = Math.min(0.9, Math.max(0.1, MAPGEN.forestRatio + MAPGEN.forestShift[options.climate]));
   for (const i of ranked.slice(0, Math.round(ranked.length * forestShare))) forest[i] = true;

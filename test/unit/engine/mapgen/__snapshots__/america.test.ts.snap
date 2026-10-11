@@ -1,5 +1,114 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`America map > keeps the legends 1`] = `
+{
+  "AMERICA_EXTRAS_LEGEND": {
+    ".": null,
+    "?": "rumor",
+    "b": "beaver",
+    "c": "primeCotton",
+    "e": "oreDeposit",
+    "f": "fishery",
+    "g": "game",
+    "l": "primeTimber",
+    "m": "minerals",
+    "o": "oasis",
+    "s": "primeSugar",
+    "t": "primeTobacco",
+    "v": "silverDeposit",
+    "w": "wheat",
+  },
+  "AMERICA_GROUND_LEGEND": {
+    "#": {
+      "base": "arctic",
+      "forest": false,
+    },
+    ".": {
+      "base": "ocean",
+      "forest": false,
+    },
+    "D": {
+      "base": "desert",
+      "forest": true,
+    },
+    "G": {
+      "base": "grassland",
+      "forest": true,
+    },
+    "M": {
+      "base": "marsh",
+      "forest": true,
+    },
+    "P": {
+      "base": "plains",
+      "forest": true,
+    },
+    "R": {
+      "base": "prairie",
+      "forest": true,
+    },
+    "S": {
+      "base": "savannah",
+      "forest": true,
+    },
+    "T": {
+      "base": "tundra",
+      "forest": true,
+    },
+    "W": {
+      "base": "swamp",
+      "forest": true,
+    },
+    "d": {
+      "base": "desert",
+      "forest": false,
+    },
+    "g": {
+      "base": "grassland",
+      "forest": false,
+    },
+    "m": {
+      "base": "marsh",
+      "forest": false,
+    },
+    "p": {
+      "base": "plains",
+      "forest": false,
+    },
+    "r": {
+      "base": "prairie",
+      "forest": false,
+    },
+    "s": {
+      "base": "savannah",
+      "forest": false,
+    },
+    "t": {
+      "base": "tundra",
+      "forest": false,
+    },
+    "w": {
+      "base": "swamp",
+      "forest": false,
+    },
+    "~": {
+      "base": "seaLane",
+      "forest": false,
+    },
+  },
+  "AMERICA_RELIEF_LEGEND": {
+    ".": "flat",
+    "A": "mountains",
+    "h": "hills",
+  },
+  "AMERICA_RIVERS_LEGEND": {
+    ".": "none",
+    "R": "major",
+    "r": "minor",
+  },
+}
+`;
+
 exports[`America map > matches the chart snapshot and is deterministic > extras 1`] = `
 "........................................................
 ....?....?..g.g.........................................

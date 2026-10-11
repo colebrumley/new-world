@@ -49,7 +49,11 @@ simulation asserts, `rng.ts` the seeded generator, `game.ts` new-game setup.
 ## `src/engine/mapgen/`
 The random New World generator: seeded value noise (`noise.ts`) and `generateWorld(rng, options)`
 (`generate.ts`), which shapes land, climate, relief, forest, rivers, sea lanes, resources and
-rumors, plus `worldStats` for tests and AI. Tunables live in `src/engine/data/mapgen.ts`.
+rumors, plus `worldStats` for tests and AI. Tunables live in `src/engine/data/mapgen.ts`. The
+America map is not generated: `america.ts` reads it from four authored charts in
+`src/engine/data/america.ts` (ground, relief, rivers, extras; one letter per playable square, with a
+legend per chart) through `readCharts`, and `chartsOf` turns any map back into charts.
+`settlements.ts` places the native settlements on either kind of map.
 
 ## `src/ai/`
 AI decision-makers. They read a `GameState` and return engine actions; they are held to the same

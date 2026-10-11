@@ -196,4 +196,4 @@ The map is 56 squares across and 70 down, with an edge of ice at the top and bot
 - **Temperature** (Cool, Temperate, Warm): shifts the whole map toward the cold or the hot kinds of ground.
 - **Climate** (Arid, Normal, Wet): shifts it toward the dry or the wet kinds of ground, and gives it less or more forest.
 
-**America** is one fixed coastline of the two American continents, drawn for this game, with mountains where the great ranges are and each native people near its own home. The ground within it is filled in the same way as a random map, steered toward the real regions, so it differs a little from game to game. Customize does not apply to it.
+**America** is one fixed coastline of the two American continents, drawn for this game, with mountains where the great ranges are and each native people near its own home. Every square of it, its ground, hills, rivers, resources and rumors, is fixed, the same in every game. Customize does not apply to it.

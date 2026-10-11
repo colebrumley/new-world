@@ -38,7 +38,7 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-102 | rumor count | land/45 clamped to 10..25, at least 3 tiles apart | backlog | low | |
 | R-103 | European start positions, America map | England 34,20 · France 39,10 · Spain 47,61 · Netherlands 50,33 (playable coords) | — | medium | backlog expected starts on the eastern Sea Lane; these are near shore. Pair-to-nation order is assumed |
 | R-103 | tribe settlement sites | the rule table's lists, 0-based playable coordinates | — | medium | 26,34 is listed under both Aztec and Tupi; kept for Aztec. Coordinate origin assumed 0-based (3,1 must clear the polar row) |
-| R-103 | coastline and terrain | hand-drawn spans in data/america.ts; detail generated | own work | n/a | drawn for this project (C1) |
+| R-103 | coastline and every square | four authored charts in data/america.ts (ground, relief, rivers, extras), the same map every game; nothing generated | own work | n/a | drawn for this project (C1); first transcribed from the earlier generated picture, which R-1050 redraws |
 | R-104 | sight radius | 1; scouts 2; Galleon, Privateer, Frigate 2 (Caravel, Merchantman, Man-O-War 1) | Revolution Now config/rcl/unit-type.rcl `visibility` | medium | backlog had all ships 2 |
 | R-104 | De Soto | +1 to every unit's sight | — | medium | whether scouts then reach 3 is unverified |
 | R-104 | foreign units visible | within 1 tile of one of your units | — | low | exact range assumed |
