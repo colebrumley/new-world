@@ -52,6 +52,11 @@ test('a first meeting: an answer for the menu is put once the treaty is signed',
   await expect(dialog.getByRole('button')).toHaveText(['Never mind']);
   await dialog.getByRole('button', { name: 'Never mind' }).click();
   await expect(dialog).toHaveCount(0);
+  // both answers went in: the treaty was signed, then the envoy was sent in peace, and the audience is over
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('new-world:autosave')!) as { log: { type: string; reply?: string }[]; state: { audience: unknown; players: { stance: Record<string, string> }[] } });
+  expect(saved.log.filter((a) => a.type === 'audienceReply').map((a) => a.reply)).toEqual(['yes', 'goInPeace']);
+  expect(saved.state.audience).toBeNull();
+  expect(saved.state.players[0]!.stance).toEqual({ france: 'peace' });
 });
 
 test('refusing the treaty asks nothing more', async ({ page }) => {
