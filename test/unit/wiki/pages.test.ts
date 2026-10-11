@@ -1,12 +1,13 @@
 // R-1023: the link and image checker for the player manual in wiki/ (published to the GitHub wiki by
 // .github/workflows/wiki.yml). Pages link to each other with the wiki's own form, [[Page]] or
 // [[Page#Section]]; images are paths relative to the wiki's root, under images/. Paintings are
-// copied in from art/ at publish time, so images/paintings/<rest> is looked for at art/<rest>.
+// copied in from art/ at publish time, so images/paintings/<folder>/<rest> is looked for at
+// art/<folder>/<rest>, for the folders the workflow copies (read from the workflow itself).
 //
 // REQUIRED lists, per page, the generated blocks and the pictures docs/specs/player-manual-wiki.md
 // names for it. A stub (a page holding the line "This page is being written.") is exempt; once a
 // page is written, every one of them must be on it.
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -14,6 +15,9 @@ const ROOT = join(__dirname, '../../..');
 const WIKI = join(ROOT, 'wiki');
 const STUB = 'This page is being written.';
 const CHROME = ['_Sidebar.md', '_Footer.md'];
+/** The folders of art/ the publish job copies to images/paintings/: its `for folder in ...` loop. */
+const PAINTINGS: readonly string[] =
+  readFileSync(join(ROOT, '.github/workflows/wiki.yml'), 'utf8').match(/^\s*for folder in ([\w ]+); do$/m)?.[1]?.split(' ') ?? [];
 
 const screen = (name: string): string => `images/screens/${name}.png`;
 const sprite = (path: string): string => `images/art/${path}.png`;
@@ -103,8 +107,13 @@ function problems(pages: ReadonlyMap<string, string>, exists: (path: string) => 
     }
     for (const path of images(text)) {
       const paintings = path.match(/^images\/paintings\/(.+)$/);
-      const onDisk = paintings ? `art/${paintings[1]}` : /^images\/./.test(path) ? `wiki/${path}` : undefined;
-      if (onDisk === undefined || path.includes('..') || !exists(onDisk)) found.push(`${file}: the image ${path} is not a file under wiki/images/ or art/`);
+      const copied = paintings !== null && PAINTINGS.includes(paintings[1]!.split('/')[0]!);
+      const onDisk = paintings ? (copied ? `art/${paintings[1]}` : undefined) : /^images\/./.test(path) ? `wiki/${path}` : undefined;
+      if (onDisk === undefined || path.includes('..') || !exists(onDisk)) found.push(`${file}: the image ${path} is not a file under wiki/images/ or a folder of art/ the workflow copies`);
+    }
+    if (!chrome && isStub(text)) {
+      const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+      if (lines.filter((l) => l === STUB).length !== 1 || lines[0] === STUB || lines[0]!.startsWith('#')) found.push(`${file}: a stub is a one-line summary, then the line "${STUB}" once`);
     }
     const opens = text.match(/<!--\s*table:\s*[\w-]+\s*-->/g)?.length ?? 0;
     const closes = text.match(/<!--\s*\/table\s*-->/g)?.length ?? 0;
@@ -123,7 +132,7 @@ function problems(pages: ReadonlyMap<string, string>, exists: (path: string) => 
 
 const readWiki = (): Map<string, string> =>
   new Map(readdirSync(WIKI).filter((f) => f.endsWith('.md')).sort().map((f) => [f, readFileSync(join(WIKI, f), 'utf8')]));
-const onDisk = (path: string): boolean => existsSync(join(ROOT, path));
+const onDisk = (path: string): boolean => existsSync(join(ROOT, path)) && statSync(join(ROOT, path)).isFile();
 
 describe('the wiki pages', () => {
   const pages = readWiki();
@@ -136,11 +145,14 @@ describe('the wiki pages', () => {
     expect(problems(pages, onDisk)).toEqual([]);
   });
 
-  it('stubs say so in one line, after a one-line summary', () => {
-    for (const [file, text] of pages) {
-      if (!isStub(text) || CHROME.includes(file)) continue;
-      expect(text.split('\n')[0]!.trim(), file).not.toBe('');
-    }
+  it('the paintings are the nine folders the workflow copies, each in art/', () => {
+    expect(PAINTINGS).toEqual(['units', 'places', 'features', 'floors', 'buildings', 'goods', 'portraits', 'title', 'chart']);
+    for (const folder of PAINTINGS) expect(existsSync(join(ROOT, 'art', folder)), folder).toBe(true);
+  });
+
+  it('a folder is not an image', () => {
+    expect(onDisk('art/units')).toBe(false);
+    expect(onDisk('art/title/frontispiece.png')).toBe(true);
   });
 });
 
@@ -168,6 +180,9 @@ describe('the checker', () => {
     ['a link to no page', (p: Map<string, string>) => p.set('Home.md', '[[Nowhere]]\n'), 'names no page'],
     ['a section the page lacks', (p: Map<string, string>) => p.set('Home.md', '[[The Map#Oceans]]\n'), 'names no ## or ### heading'],
     ['a sprite that is not there', (p: Map<string, string>) => p.set('Home.md', '![x](images/art/units/ghost.png)\n'), 'is not a file'],
+    ['a painting in a folder the workflow does not copy', (p: Map<string, string>) => p.set('Home.md', `<img src="images/paintings/elsewhere/colonist.png">\n\n${STUB}\n`), 'is not a file'],
+    ['a stub with no summary', (p: Map<string, string>) => p.set('Home.md', `${STUB}\n`), 'a stub is a one-line summary'],
+    ['a stub that says so twice', (p: Map<string, string>) => p.set('Home.md', `Welcome.\n\n${STUB}\n${STUB}\n`), 'a stub is a one-line summary'],
     ['a painting that is not there', (p: Map<string, string>) => p.set('Home.md', '<img src="images/paintings/units/ghost.png">\n'), 'is not a file'],
     ['an image outside images/', (p: Map<string, string>) => p.set('Home.md', '![x](https://example.com/x.png)\n'), 'is not a file'],
     ['an H1', (p: Map<string, string>) => p.set('Home.md', '# Home\n\nText.\n'), 'starts with an H1'],
