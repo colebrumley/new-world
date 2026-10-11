@@ -422,10 +422,10 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         if ((e.type === 'buildingCompleted' || e.type === 'unitBuilt') && session.state.colonies[e.colonyId]?.owner === me() && !finished.includes(e.colonyId)) finished.push(e.colonyId);
       }
     }
-    // the turn's questions come first; then the player is taken to each colony with a finished project
-    const business = turnEnded ? royalBusiness() : Promise.resolve();
-    const moved = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'foundColony' || action.type === 'endTurn' ? afterMoving(stepped.events) : Promise.resolve();
-    if (turnEnded) void Promise.all([business, moved]).then(visitFinished);
+    // the turn's questions come one after another (both ask for audiences); then the player is taken to each colony with a finished project
+    const moving = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'foundColony' || action.type === 'endTurn';
+    if (turnEnded) void royalBusiness().then(() => (moving ? afterMoving(stepped.events) : undefined)).then(visitFinished);
+    else if (moving) void afterMoving(stepped.events);
     if (session.state.over) void announceEnd();
     audio.play(cuesFor(stepped.events, session.state, me()), options);
     canvas.dataset['cues'] = audio.played.slice(-6).join(',');

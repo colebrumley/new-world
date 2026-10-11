@@ -612,7 +612,9 @@ test('a finished project takes the player to the colony to choose the next one',
   await page.keyboard.press('Escape');
   await expect(colony).toHaveCount(0);
   // the next turn has nothing finished, so nothing opens
+  const turn = Number(await page.locator('canvas.map').getAttribute('data-turn'));
   await page.keyboard.press('Enter');
-  await expect(field(page, 'log')).toContainText('Jamestown has completed its Docks.');
+  await expect(page.locator('canvas.map')).toHaveAttribute('data-turn', String(turn + 1));
+  await expect(field(page, 'log').locator('li', { hasText: 'completed' })).toHaveCount(1); // the Docks line alone
   await expect(colony).toHaveCount(0);
 });
