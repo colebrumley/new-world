@@ -15,10 +15,10 @@ import { RESOURCE_ART, RESOURCE_ART_12, RESOURCE_CODES, RESOURCE_COLORS, RESOURC
 import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, flagArt, goodArt, SEAL_GLYPHS, sealArt } from '../../../src/ui/pixel-art';
 import { CHART, CHART_MARK_KINDS } from '../../../src/ui/chart';
 import { CHART_ART, CHART_COLORS } from '../../../src/ui/chart-art';
-import { blendArt, COAST_MASKS, coastArt, EDGE_MASKS, floorArt, openOf, overArt, rotate, type TileGrid } from '../../../src/ui/pixel-art';
+import { blendArt, COAST_MASKS, coastArt, EDGE_MASKS, floorArt, joins, openOf, overArt, rotate, type TileGrid } from '../../../src/ui/pixel-art';
 import { activeFrameArt, ART, at, blank, blockedCursorArt, cursorArt, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, GROUND, halve, hasFigure, INK, LABEL_GLYPHS, labelArt, labelText, MINI, miniTileArt, PALETTE, pieceArt, rumorSealArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
 
-const look = (change: Partial<TileLook> = {}): TileLook => ({ terrain: 'plains', river: 'none', riverMask: 0, road: false, roadMask: 0, plowed: false, resource: null, rumor: false, totem: false, variant: 0, ...change });
+const look = (change: Partial<TileLook> = {}): TileLook => ({ terrain: 'plains', river: 'none', riverMask: 0, road: false, roadMask: 0, plowed: false, resource: null, rumor: false, totem: false, variant: 0, joinMask: 0, mouthMask: 0, ...change });
 const text = (s: Sprite): string => Array.from({ length: s.size }, (_, y) => Array.from({ length: s.size }, (_, x) => (at(s, x, y) === 0 ? '.' : (at(s, x, y) - 1).toString(32))).join('')).join('\n');
 const inks = (s: Sprite): Set<number> => new Set([...s.cells].filter((c) => c > 0).map((c) => c - 1));
 const differ = (a: Sprite, b: Sprite): boolean => text(a) !== text(b);
@@ -508,6 +508,84 @@ describe('detailed terrain', () => {
         }
       }
     }
+  });
+
+  it('a wood joins any wood but scrub, hills join hills and mountains mountains; open ground and water join nothing', () => {
+    for (const a of TERRAIN_IDS) {
+      for (const b of TERRAIN_IDS) {
+        const wood = (t: string): boolean => (FORESTS as readonly string[]).includes(t) && t !== 'scrub';
+        expect(joins(a, b), `${a} ${b}`).toBe((wood(a) && wood(b)) || ((a === 'hills' || a === 'mountains') && a === b));
+      }
+    }
+  });
+
+  it('a join is the feature once more, half a square toward that side, cut off at the edge and under the feature itself', () => {
+    for (const grid of [32, 16] as const) {
+      const half = grid / 2;
+      for (const terrain of ['mixed', 'boreal', 'hills', 'mountains'] as const) {
+        for (let variant = 0; variant < 4; variant++) {
+          const own = overArt(look({ terrain, variant }), grid);
+          [[0, -1], [1, 0], [0, 1], [-1, 0]].forEach(([dx, dy], side) => {
+            const made = overArt(look({ terrain, variant, joinMask: 1 << side }), grid);
+            for (let y = 0; y < grid; y++) {
+              for (let x = 0; x < grid; x++) {
+                const moved = at(own, x - (dx as number) * half, y - (dy as number) * half);
+                expect(at(made, x, y), `${grid} ${terrain} ${variant} side ${side} ${x},${y}`).toBe(at(own, x, y) !== 0 ? at(own, x, y) : moved);
+              }
+            }
+          });
+          // all four at once never uncover what one alone covers
+          const all = overArt(look({ terrain, variant, joinMask: 15 }), grid);
+          for (let side = 0; side < 4; side++) {
+            const one = overArt(look({ terrain, variant, joinMask: 1 << side }), grid);
+            for (let i = 0; i < one.cells.length; i++) if (one.cells[i] !== 0) expect(all.cells[i]).not.toBe(0);
+          }
+        }
+      }
+      // open ground has nothing to join with, whatever the mask says
+      expect(inks(overArt(look({ joinMask: 15 }), grid)).size).toBe(0);
+    }
+  });
+
+  it('what stands on a square is laid in order: joins, feature, furrows, river or mouths, marker, seal, road, totem', () => {
+    for (const grid of [32, 16] as const) {
+      const cellsOf = (s: Sprite): number[] => [...s.cells].map((c, i) => (c !== 0 ? i : -1)).filter((i) => i >= 0);
+      // the furrows show over a joined canopy, and the river over the furrows
+      const rows = overArt(look({ plowed: true }), grid);
+      const field = overArt(look({ terrain: 'mixed', joinMask: 15, plowed: true }), grid);
+      for (const i of cellsOf(rows)) expect(field.cells[i]).toBe(rows.cells[i]);
+      const stream = overArt(look({ river: 'major', riverMask: 15 }), grid);
+      const wet = overArt(look({ terrain: 'mixed', joinMask: 15, plowed: true, river: 'major', riverMask: 15 }), grid);
+      for (const i of cellsOf(stream)) expect(wet.cells[i]).toBe(INK.brightBlue + 1);
+      // a river's mouths lie under the marker, the marker under the seal, the seal under the road, the road under the totem
+      const mouth = overArt(look({ terrain: 'ocean', mouthMask: 15 | 240 }), grid);
+      expect(inks(mouth)).toEqual(new Set([INK.brightBlue]));
+      const fish = overArt(look({ terrain: 'ocean', resource: 'fishery' }), grid);
+      const both = overArt(look({ terrain: 'ocean', resource: 'fishery', mouthMask: 15 | 240 }), grid);
+      expect(cellsOf(fish).some((i) => mouth.cells[i] !== 0)).toBe(true);
+      for (const i of cellsOf(fish)) expect(both.cells[i]).toBe(fish.cells[i]);
+      for (const i of cellsOf(mouth)) if (fish.cells[i] === 0) expect(both.cells[i]).toBe(INK.brightBlue + 1);
+      const seal = overArt(look({ rumor: true }), grid);
+      const marked = overArt(look({ resource: 'wheat', rumor: true }), grid);
+      for (const i of cellsOf(seal)) expect(marked.cells[i]).toBe(seal.cells[i]);
+      const way = overArt(look({ road: true, roadMask: 255 }), grid);
+      const full = overArt(look({ terrain: 'mixed', joinMask: 15, plowed: true, river: 'major', riverMask: 15, resource: 'wheat', rumor: true, road: true, roadMask: 255, totem: true }), grid);
+      const pole = overArt(look({ totem: true }), grid);
+      for (const i of cellsOf(way)) if (pole.cells[i] === 0) expect(full.cells[i]).toBe(way.cells[i]);
+      for (const i of cellsOf(pole)) expect(full.cells[i]).toBe(pole.cells[i]);
+    }
+  });
+
+  it('a river mouth is narrower than the river it ends, on both grids, and the smallest zoom shows none', () => {
+    const blue = (s: Sprite): number => [...s.cells].filter((c) => c - 1 === INK.brightBlue).length;
+    expect(blue(overArt(look({ terrain: 'ocean', mouthMask: 2 }), 32))).toBe(16 * 2);
+    expect(blue(overArt(look({ terrain: 'ocean', mouthMask: 2 | 32 }), 32))).toBe(16 * 3);
+    expect(blue(overArt(look({ terrain: 'ocean', mouthMask: 4 }), 16))).toBe(8);
+    expect(blue(overArt(look({ terrain: 'ocean', mouthMask: 4 | 64 }), 16))).toBe(8 * 2);
+    // a major bit with no mouth on that side draws nothing
+    expect(blue(overArt(look({ terrain: 'ocean', mouthMask: 32 }), 32))).toBe(0);
+    expect(differ(miniTileArt(look({ terrain: 'ocean', mouthMask: 15 })), miniTileArt(look({ terrain: 'ocean' })))).toBe(false);
+    expect(differ(miniTileArt(look({ terrain: 'mixed', joinMask: 15 })), miniTileArt(look({ terrain: 'mixed' })))).toBe(false);
   });
 
   it('a forest is told from its open row by what stands on it alone, on both grids and in every variant', () => {

@@ -188,6 +188,13 @@ export interface TileLook {
   readonly totem: boolean;
   /** One of a few pattern variants so neighbouring tiles of one type do not look stamped. */
   readonly variant: number;
+  /** Bits N=1, E=2, S=4, W=8: orthogonal neighbours whose forest, hills or mountains this square's run on into (`joins`). */
+  readonly joinMask: number;
+  /**
+   * On a water square, bits N=1, E=2, S=4, W=8: orthogonal land neighbours whose river runs out into this
+   * square. The same four sides again as bits 16, 32, 64, 128 where that river is a major one.
+   */
+  readonly mouthMask: number;
 }
 
 function line(s: Sprite, x0: number, y0: number, x1: number, y1: number, ink: number, thick = 1): void {
@@ -267,6 +274,28 @@ function river(s: Sprite, look: TileLook): void {
     return;
   }
   for (const [ex, ey] of ends) line(s, 7, 7, ex, ey, INK.brightBlue, thick);
+}
+
+/** How wide a river's mouth is, in art pixels, and where across the square it starts: by grid, a minor river then a major one. */
+const MOUTH: Readonly<Record<16 | 32, readonly [readonly [number, number], readonly [number, number]]>> = {
+  16: [[1, 7], [2, 7]],
+  32: [[2, 15], [3, 14]],
+};
+
+/**
+ * The mouths of the rivers that run out into a water square: a stub from each such side to the middle of the
+ * square, narrower than the river on the land, drawn for the grid.
+ */
+function mouths(s: Sprite, mask: number): void {
+  const half = s.size / 2;
+  for (let side = 0; side < 4; side++) {
+    if (!(mask & (1 << side))) continue;
+    const [wide, from] = MOUTH[s.size as 16 | 32][mask & (16 << side) ? 1 : 0];
+    // north and west run from the edge to the middle; south and east from the middle to the edge
+    const along = side === 0 || side === 3 ? 0 : half;
+    if (side % 2 === 0) box(s, from, along, wide, half, INK.brightBlue);
+    else box(s, along, from, half, wide, INK.brightBlue);
+  }
 }
 
 function road(s: Sprite, look: TileLook): void {
@@ -720,18 +749,47 @@ function feature(s: Sprite, look: TileLook): void {
   else trees(s, look.terrain, rnd);
 }
 
+/** The forests whose canopies run into one another: every forest but scrub, which stands alone, low on bare ground. */
+const WOODS: ReadonlySet<TerrainId> = new Set<TerrainId>(['boreal', 'mixed', 'broadleaf', 'conifer', 'tropical', 'wetland', 'rain']);
+
+/** Whether what stands on one square runs on into what stands on the square beside it: a wood into any wood, hills into hills, mountains into mountains. */
+export const joins = (terrain: TerrainId, beside: TerrainId): boolean =>
+  WOODS.has(terrain) ? WOODS.has(beside) : (terrain === 'hills' || terrain === 'mountains') && beside === terrain;
+
+/** Which way a feature is moved to join the square beyond each side: north, east, south, west. */
+const TOWARD: readonly (readonly [number, number])[] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+
 /**
- * Everything that stands on a square's floor, see-through elsewhere: the forest, hills or mountains; then
- * furrows and the river, which runs over the trees, since a canopy that fills its square would hide it; then
- * the resource marker, at its own size; the lost-city seal, drawn for the grid; then the road and the totem. On the 32-pixel grid the strokes and the totem are the 16-pixel ones
- * enlarged. The forest or relief is the baked picture of the grid.
+ * The forest, hills or mountains of a square with its joins under it: for each side in `joinMask` the same
+ * picture once more, moved half a square toward that side and cut off at the square's edge, so that the
+ * canopy or the ridge runs on across the edge and no row of bare ground is left between two of a kind.
+ */
+function joined(s: Sprite, look: TileLook): void {
+  const own = blank(s.size);
+  feature(own, look);
+  const half = s.size / 2;
+  TOWARD.forEach(([dx, dy], side) => {
+    if (!(look.joinMask & (1 << side))) return;
+    for (let y = 0; y < s.size; y++) for (let x = 0; x < s.size; x++) if (at(own, x, y) !== 0) dot(s, x + dx * half, y + dy * half, at(own, x, y) - 1);
+  });
+  laid(s, own);
+}
+
+/**
+ * Everything that stands on a square's floor, see-through elsewhere, in this order: the joins (the forest,
+ * hills or mountains once more toward each neighbour of its kind); the forest, hills or mountains; furrows;
+ * the river, which runs over the trees, since a canopy that fills its square would hide it, or on a water
+ * square the mouths of the rivers beside it; the resource marker, at its own size; the lost-city seal,
+ * drawn for the grid; the road; the totem. On the 32-pixel grid the furrows, the river, the road and the
+ * totem are the 16-pixel ones enlarged. The forest or relief is the baked picture of the grid.
  */
 export function overArt(look: TileLook, grid: TileGrid): Sprite {
   if (grid === ART) {
     const s = blank();
-    feature(s, look);
+    joined(s, look);
     if (look.plowed) furrows(s);
     if (look.river !== 'none') river(s, look);
+    mouths(s, look.mouthMask);
     if (look.resource) resource(s, look.resource);
     if (look.rumor) rumor(s);
     if (look.road) road(s, look);
@@ -739,11 +797,12 @@ export function overArt(look: TileLook, grid: TileGrid): Sprite {
     return s;
   }
   const s = blank(DETAIL);
-  feature(s, look);
+  joined(s, look);
   const under = blank();
   if (look.plowed) furrows(under);
   if (look.river !== 'none') river(under, look);
   enlarge(s, under);
+  mouths(s, look.mouthMask);
   if (look.resource) resource(s, look.resource);
   if (look.rumor) rumor(s);
   const over = blank();

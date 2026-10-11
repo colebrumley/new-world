@@ -34,12 +34,16 @@ export function tileSprite(look: TileLook, size: number): Sprite {
 export function lookKey(look: TileLook, size: number): string {
   return [
     grade(size), look.terrain, look.river, look.riverMask, look.road ? look.roadMask : -1, look.plowed ? 1 : 0,
-    look.resource ?? '', look.rumor ? 1 : 0, look.totem ? 1 : 0, look.variant,
+    look.resource ?? '', look.rumor ? 1 : 0, look.totem ? 1 : 0, look.variant, look.joinMask, look.mouthMask,
   ].join('|');
 }
 
-/** What a tile looks like, optionally with forests and markers stripped ("Show Hidden Terrain"). */
-export function lookOf(tile: Tile, riverMask: number, roadMask: number, variant: number, hidden: boolean, totem = false): TileLook {
+/**
+ * What a tile looks like, optionally with forests and markers stripped ("Show Hidden Terrain"). `joinMask` and
+ * `mouthMask` say what of its neighbours shows on it (see `TileLook`); a square standing alone, as on the colony
+ * screen, has neither.
+ */
+export function lookOf(tile: Tile, riverMask: number, roadMask: number, variant: number, hidden: boolean, totem = false, joinMask = 0, mouthMask = 0): TileLook {
   const shown = hidden && tile.forest ? { ...tile, forest: false } : tile;
   return {
     terrain: terrainOf(shown),
@@ -52,6 +56,8 @@ export function lookOf(tile: Tile, riverMask: number, roadMask: number, variant:
     rumor: hidden ? false : tile.rumor,
     totem: !hidden && totem,
     variant,
+    joinMask,
+    mouthMask,
   };
 }
 
