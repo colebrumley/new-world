@@ -16,7 +16,8 @@ import {
 } from '../../../src/engine/data/terrain';
 import { jobTurns } from '../../../src/engine/pioneer';
 import { makeTile, type Tile } from '../../../src/engine/tile';
-import { depleteTile, depletionWeight, FREE_COLONIST, tileYield, type OutdoorWorker } from '../../../src/engine/yields';
+import { FREE_COLONIST, tileYield, type OutdoorWorker } from '../../../src/engine/yields';
+import { YIELD_RULES } from '../../../src/engine/data/yields';
 
 const cell = (value: string | number): string => String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 
@@ -69,15 +70,23 @@ function terrainKind(terrain: TerrainId): string {
   return terrain === 'arctic' ? 'ice' : terrain;
 }
 
+/** "4 Fish with 0 to 5 water neighbours, 2 Fish with 6 to 7, ...": one entry per band of the fish rule. */
+function fishByBand(tile: Tile): string {
+  const mins = YIELD_RULES.fishByWaterNeighbors.map(([min]) => min).sort((a, b) => a - b);
+  return mins.map((min, i) => {
+    const next = mins[i + 1];
+    const band = next === undefined ? (min === 8 ? 'all 8' : `${min} or more`) : next - 1 === min ? `${min}` : next - 2 === min ? `${min} or ${next - 1}` : `${min} to ${next - 1}`;
+    return `${yieldsOn(tile, min)} with ${band}${i === 0 ? ' of the 8 neighbours water' : ''}`;
+  }).join(', ');
+}
+
 function terrainTable(): string {
   return mdTable(
     ['', 'Terrain', 'Kind', 'Move cost', 'Defence', 'A free colonist gets', 'Cleared, it becomes'],
     TERRAIN_IDS.map((t) => {
       const def = TERRAIN[t];
       const tile = bareTile(t);
-      const fish = def.water
-        ? `${yieldsOn(tile, 0)} by the shore (five or fewer water neighbours), ${yieldsOn(tile, 6)} with six or seven, ${yieldsOn(tile, 8)} in open sea`
-        : yieldsOn(tile) || 'nothing';
+      const fish = def.water ? fishByBand(tile) : yieldsOn(tile) || 'nothing';
       const defence = defensePercent(t);
       return [
         img(`images/art/terrain/${t}.png`, def.name), def.name, terrainKind(t), def.moveCost, defence === 0 ? 'none' : `+${defence}%`, fish,
@@ -118,15 +127,11 @@ function resourceEffectText(r: ResourceId, bare: Tile): string {
 
 function resourceTable(): string {
   return mdTable(
-    ['', 'Resource', 'Found on', 'Adds', 'Runs out'],
+    ['', 'Resource', 'Found on', 'Adds'],
     RESOURCE_IDS.map((r) => {
       const terrains: readonly TerrainId[] = RESOURCE_TERRAINS[r];
       const bare = bareTile(terrains[0]!);
-      const tile = { ...bare, resource: r };
-      const worn = RAW_GOODS.filter((g) => depletionWeight(tile, g) > 0).map(rawGoodName);
-      const after = depleteTile(tile).resource;
-      const runsOut = worn.length === 0 ? 'no' : `yes, when mined for ${worn.join(' or ')}; then ${after ? `it becomes a ${RESOURCES[after].name}` : 'it is gone'}`;
-      return [img(`images/art/resources/${r}.png`, RESOURCES[r].name), RESOURCES[r].name, terrains.map((t) => TERRAIN[t].name).join(', '), resourceEffectText(r, bare), runsOut];
+      return [img(`images/art/resources/${r}.png`, RESOURCES[r].name), RESOURCES[r].name, terrains.map((t) => TERRAIN[t].name).join(', '), resourceEffectText(r, bare)];
     }),
   );
 }

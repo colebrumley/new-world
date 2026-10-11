@@ -44,7 +44,7 @@ Press V for view mode. A cursor takes the place of the active unit: the arrow ke
 
 ![A tooltip over a prairie with prime cotton](images/screens/map-tooltip.png)
 
-Rest the pointer on a square for a moment and a small slip describes it: the terrain's name; its resource and what that does; any river, road, plowing or rumor; what a free colonist would bring in working it; and its move cost and defence bonus. Move the pointer and the slip follows from square to square. Turn it off with the "Terrain tooltips" option (see [[Help and Options]]); it does not appear on a touch screen, over an unexplored square, or while a dialog is open. Right-click a square to open the encyclopedia at its terrain.
+Rest the pointer on a square for a moment and a small slip describes it: the terrain's name; its resource and what that does; any river, road, plowing or rumor; what a free colonist would bring in working it; and its move cost and defence bonus. Move the pointer and the slip follows from square to square. Turn it off with the "Terrain tooltips" option (see [[Help and Options]]); it does not appear on a touch screen, over an unexplored square, or while a dialog is open. Right-click a square to open the encyclopedia at its terrain, or at the unit standing on it.
 
 ## Terrain
 
@@ -73,8 +73,8 @@ The table gives what a free colonist (no expert, no bonuses) gets from a bare sq
 | ![Wetland Forest](images/art/terrain/wetland.png) | Wetland Forest | forested | 3 | +50% | 2 Food, 1 Tobacco, 2 Furs, 4 Lumber, 1 Ore | Marsh |
 | ![Rain Forest](images/art/terrain/rain.png) | Rain Forest | forested | 3 | +75% | 2 Food, 1 Sugar, 1 Furs, 4 Lumber, 1 Ore | Swamp |
 | ![Arctic](images/art/terrain/arctic.png) | Arctic | ice | 2 | none | nothing |  |
-| ![Ocean](images/art/terrain/ocean.png) | Ocean | water | 1 | none | 4 Fish by the shore (five or fewer water neighbours), 2 Fish with six or seven, 1 Fish in open sea |  |
-| ![Sea Lane](images/art/terrain/seaLane.png) | Sea Lane | water | 1 | none | 4 Fish by the shore (five or fewer water neighbours), 2 Fish with six or seven, 1 Fish in open sea |  |
+| ![Ocean](images/art/terrain/ocean.png) | Ocean | water | 1 | none | 4 Fish with 0 to 5 of the 8 neighbours water, 2 Fish with 6 or 7, 1 Fish with all 8 |  |
+| ![Sea Lane](images/art/terrain/seaLane.png) | Sea Lane | water | 1 | none | 4 Fish with 0 to 5 of the 8 neighbours water, 2 Fish with 6 or 7, 1 Fish with all 8 |  |
 | ![Mountains](images/art/terrain/mountains.png) | Mountains | mountains | 3 | +150% | 4 Ore |  |
 | ![Hills](images/art/terrain/hills.png) | Hills | hills | 2 | +100% | 2 Food, 4 Ore |  |
 
@@ -132,25 +132,25 @@ Some squares carry a special resource that makes them worth more. Each kind is f
 
 <!-- table: resources -->
 
-|  | Resource | Found on | Adds | Runs out |
-| :--- | :--- | :--- | :--- | :--- |
-| ![Depleted Mine](images/art/resources/depletedMine.png) | Depleted Mine | Mountains | no bonus, but the square's own silver is worked without a road: 1 Silver for a free colonist | no |
-| ![Oasis](images/art/resources/oasis.png) | Oasis | Desert, Scrub Forest | +2 Food (+4 for the expert) | no |
-| ![Wheat](images/art/resources/wheat.png) | Wheat | Plains | +2 Food (+4 for the expert) | no |
-| ![Prime Cotton](images/art/resources/primeCotton.png) | Prime Cotton | Prairie | doubles Cotton | no |
-| ![Prime Tobacco](images/art/resources/primeTobacco.png) | Prime Tobacco | Grassland | doubles Tobacco | no |
-| ![Prime Sugar](images/art/resources/primeSugar.png) | Prime Sugar | Savannah | doubles Sugar | no |
-| ![Minerals](images/art/resources/minerals.png) | Minerals | Tundra, Marsh, Swamp, Wetland Forest, Rain Forest | +3 Ore (+6 for the expert), +1 Silver (+2 for the expert) | yes, when mined for Ore or Silver; then it is gone |
-| ![Fishery](images/art/resources/fishery.png) | Fishery | Ocean | +3 Fish (+6 for the expert) | no |
-| ![Beaver](images/art/resources/beaver.png) | Beaver | Mixed Forest | +3 Furs (+6 for the expert) | no |
-| ![Game](images/art/resources/game.png) | Game | Boreal Forest, Broadleaf Forest | +2 Food (+4 for the expert), +2 Furs (+4 for the expert) | no |
-| ![Prime Timber](images/art/resources/primeTimber.png) | Prime Timber | Conifer Forest, Tropical Forest | +4 Lumber (+8 for the expert) | no |
-| ![Silver Deposit](images/art/resources/silverDeposit.png) | Silver Deposit | Mountains | +3 Silver (+5 for the expert) | yes, when mined for Silver; then it becomes a Depleted Mine |
-| ![Ore Deposit](images/art/resources/oreDeposit.png) | Ore Deposit | Hills | +2 Ore (+4 for the expert) | no |
+|  | Resource | Found on | Adds |
+| :--- | :--- | :--- | :--- |
+| ![Depleted Mine](images/art/resources/depletedMine.png) | Depleted Mine | Mountains | no bonus, but the square's own silver is worked without a road: 1 Silver for a free colonist |
+| ![Oasis](images/art/resources/oasis.png) | Oasis | Desert, Scrub Forest | +2 Food (+4 for the expert) |
+| ![Wheat](images/art/resources/wheat.png) | Wheat | Plains | +2 Food (+4 for the expert) |
+| ![Prime Cotton](images/art/resources/primeCotton.png) | Prime Cotton | Prairie | doubles Cotton |
+| ![Prime Tobacco](images/art/resources/primeTobacco.png) | Prime Tobacco | Grassland | doubles Tobacco |
+| ![Prime Sugar](images/art/resources/primeSugar.png) | Prime Sugar | Savannah | doubles Sugar |
+| ![Minerals](images/art/resources/minerals.png) | Minerals | Tundra, Marsh, Swamp, Wetland Forest, Rain Forest | +3 Ore (+6 for the expert), +1 Silver (+2 for the expert) |
+| ![Fishery](images/art/resources/fishery.png) | Fishery | Ocean | +3 Fish (+6 for the expert) |
+| ![Beaver](images/art/resources/beaver.png) | Beaver | Mixed Forest | +3 Furs (+6 for the expert) |
+| ![Game](images/art/resources/game.png) | Game | Boreal Forest, Broadleaf Forest | +2 Food (+4 for the expert), +2 Furs (+4 for the expert) |
+| ![Prime Timber](images/art/resources/primeTimber.png) | Prime Timber | Conifer Forest, Tropical Forest | +4 Lumber (+8 for the expert) |
+| ![Silver Deposit](images/art/resources/silverDeposit.png) | Silver Deposit | Mountains | +3 Silver (+5 for the expert) |
+| ![Ore Deposit](images/art/resources/oreDeposit.png) | Ore Deposit | Hills | +2 Ore (+4 for the expert) |
 
 <!-- /table -->
 
-Minerals and silver deposits wear out. Each turn a colony's ore and silver miners working them wear a little off, and on the harder levels it wears faster; when enough has worn away, every such deposit the colony is mining runs out at once.
+No resource runs out: a mine can be worked for the whole game. A Depleted Mine is found on the map as it is, an old silver working with nothing left of its own.
 
 ### The colony square
 
@@ -171,8 +171,10 @@ A rumor can turn out to be:
 - **Burial mounds**: you choose whether to dig. They may be empty, hold trinkets, or hold a treasure. If they are sacred to a nearby people, digging angers them whatever you find.
 - **Holy shrines** of a people you have met: disturbing them angers that people.
 - **A City of Cibola**: a treasure train. Found only on hills, mountains, desert or scrub forest, and only a few times in a game.
-- **The Fountain of Youth**: eight colonists come from Europe, free, and you pick them. Found only on grassland, savannah, marsh or swamp, wooded or not, and not among the first few rumors explored.
+- **The Fountain of Youth**: eight colonists come from Europe, free, and you pick them. Found only on grassland, savannah, marsh or swamp, wooded or not, and not among the first few rumors explored. After you declare independence it is a City of Cibola instead.
 - **The party vanishes**: the unit is lost. A scout is less likely to vanish, and a power with very few colonists and colonies never loses its party this way.
+
+A scout of a power with Hernando de Soto among its Founding Fathers is luckier: it can find the Fountain of Youth on any ground and at any time, and now and then a City of Cibola on any ground; and when its first look turns up nothing, shrines or a vanished party, it looks again.
 
 A random map has between ten and twenty-five rumors, more on a bigger land mass.
 
@@ -180,7 +182,7 @@ A random map has between ten and twenty-five rumors, more on a bigger land mass.
 
 ![Plains with a totem](images/art/terrain/plains-totem.png) Much of the land belongs to the native peoples: the squares around each settlement are its people's land. The sidebar names it ("Sioux land", for instance) when the square is in view, and the colony screen marks such squares with a totem.
 
-Once you have met a people, using their land costs something. Putting a colonist to work on a square of their land, or having a pioneer clear a forest or build a road there, brings a question: give up, pay their price (if you have the gold), or go ahead. Paying makes the square yours and settles the matter. Going ahead takes the square anyway and angers them, the more so the nearer it is to their settlement. A pioneer who finishes clearing, plowing or a road on their land without paying angers them as well. Plowing open land and founding a colony are not asked about: a colony takes its own square, and that angers them too. The price depends on the difficulty level, the people's own advancement, how far the square is from the settlement and how much land that people has sold already; a square with a resource costs twice as much. One Founding Father makes every people's land free to use. See [[Native Peoples]].
+Once you have met a people, using their land costs something. Putting a colonist to work on a square of their land, or having a pioneer clear a forest or build a road there, brings a question: give up, pay their price (if you have the gold), or go ahead. Paying makes the square yours and settles the matter. For a colonist, going ahead takes the square anyway and angers them, the more so the nearer it is to their settlement. For a pioneer, going ahead only lets the work go on: the square stays theirs, and they are angered when the clearing, plowing or road is finished. Plowing open land and founding a colony are not asked about: a colony takes its own square, and that angers them too. The price depends on the difficulty level, the people's own advancement, how far the square is from the settlement and how much land that people has sold already; a square with a resource costs twice as much. One Founding Father makes every people's land free to use. See [[Native Peoples]].
 
 ## How maps are made
 
