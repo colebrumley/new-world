@@ -12,7 +12,7 @@ import { attitude, isHostile } from '../engine/alarm';
 import { TRIBES, type TribeId } from '../engine/data/tribes';
 import { tribeOfOwner } from '../engine/settlements';
 import { isExploredBy, isWater, type Tile } from '../engine/tile';
-import { activeFrameArt, colonyArt, chartMarkArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, PALETTE, pieceArt, settlementArt, VELLUM, vellumArt, type InkId, type Sprite } from './pixel-art';
+import { activeFrameArt, colonyArt, chartMarkArt, blockedCursorArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, PALETTE, pieceArt, settlementArt, VELLUM, vellumArt, type InkId, type Sprite } from './pixel-art';
 import { chartGrid, DETAIL_FROM, drawArt, lookOf, TILE_VARIANTS, type TileCache } from './tiles';
 import { orderLetter, topUnit } from './unit-queue';
 import type { View } from './view';
@@ -80,7 +80,9 @@ export interface RenderExtras {
   /** Unit to outline as the active piece. */
   readonly activeUnitId?: string | null;
   /** Square to mark with the view / Go To cursor. */
-  readonly cursor?: { readonly x: number; readonly y: number } | null;
+  readonly cursor?: { readonly x: number; readonly y: number; readonly blocked?: boolean } | null;
+  /** A unit being dragged: its piece drawn once more, centred on this canvas pixel. */
+  readonly dragged?: { readonly unitId: string; readonly x: number; readonly y: number } | null;
   /** Whether the active unit's frame is lit just now (it blinks); lit when not given. */
   readonly blinkOn?: boolean;
   /** A unit drawn off its square by this much, in squares, while it slides there. */
@@ -182,7 +184,7 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
     if (large > 0) drawArt(ctx, cache.sprite(`detail|${key}`, () => detailed() ?? plain()), ox + x * t + (t - large) / 2, oy + y * t + t - large, large);
     else drawArt(ctx, art(key, plain), ox + x * t, oy + y * t, t);
   };
-  if (extras.cursor) drawArt(ctx, art('cursor', cursorArt), ox + extras.cursor.x * t, oy + extras.cursor.y * t, t);
+  if (extras.cursor) drawArt(ctx, extras.cursor.blocked ? art('cursor-blocked', blockedCursorArt) : art('cursor', cursorArt), ox + extras.cursor.x * t, oy + extras.cursor.y * t, t);
   if (view.showHidden) return;
   const colonySquares = new Set<number>();
   for (const colony of Object.values(state.colonies)) {
@@ -216,26 +218,33 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
     if (stack) stack.push(unit);
     else bySquare.set(key, [unit]);
   }
-  for (const stack of bySquare.values()) {
-    const unit = topUnit(stack, extras.activeUnitId ?? null);
-    if (!unit) continue;
-    // Inside a colony only the active piece is drawn, so the settlement itself stays visible.
-    if (colonySquares.has(unit.y * map.width + unit.x) && unit.id !== extras.activeUnitId) continue;
+  /** A unit's piece with its square's top-left corner at canvas pixel (px, py). */
+  const drawPiece = (unit: Unit, px: number, py: number, stacked: boolean): void => {
     const ink = inkOf(state, unit.owner);
     // A foreign ship shows how many of its holds are filled instead of its orders; native bands carry no plate.
     const foreignShip = unit.owner !== me && UNIT_TYPES[unit.type].domain === 'sea';
     const label = UNIT_TYPES[unit.type].native ? '' : foreignShip ? String(holdsUsed(state, unit)) : orderLetter(unit);
-    const stacked = stack.length > 1;
-    // a piece on the move is drawn part of the way there
-    const slide = extras.slide && extras.slide.unitId === unit.id ? extras.slide : null;
-    const px = ox + Math.round((unit.x + (slide?.dx ?? 0)) * t);
-    const py = oy + Math.round((unit.y + (slide?.dy ?? 0)) * t);
     const piece = { type: unit.type, color: ink, label, stacked };
     // a kind with a detailed figure is drawn from it once a square can hold it, as large as whole pixels allow, standing on the square's foot
     const large = hasFigure(unit.type) ? Math.floor(t / DETAIL) * DETAIL : 0;
     if (large > 0) drawArt(ctx, cache.sprite(`figure|${unit.type}|${ink}|${label}|${stacked ? 1 : 0}`, () => detailedPieceArt(piece) ?? pieceArt(piece)), px + (t - large) / 2, py + t - large, large);
     else drawArt(ctx, art(`piece|${unit.type}|${ink}|${label}|${stacked ? 1 : 0}`, () => pieceArt(piece)), px, py, t);
+  };
+  for (const stack of bySquare.values()) {
+    const unit = topUnit(stack, extras.activeUnitId ?? null);
+    if (!unit) continue;
+    // Inside a colony only the active piece is drawn, so the settlement itself stays visible.
+    if (colonySquares.has(unit.y * map.width + unit.x) && unit.id !== extras.activeUnitId) continue;
+    const stacked = stack.length > 1;
+    // a piece on the move is drawn part of the way there
+    const slide = extras.slide && extras.slide.unitId === unit.id ? extras.slide : null;
+    const px = ox + Math.round((unit.x + (slide?.dx ?? 0)) * t);
+    const py = oy + Math.round((unit.y + (slide?.dy ?? 0)) * t);
+    drawPiece(unit, px, py, stacked);
     // the piece awaiting orders blinks its frame
     if (unit.id === extras.activeUnitId && extras.blinkOn !== false) drawArt(ctx, art('active', activeFrameArt), px, py, t);
   }
+  // a piece being dragged follows the pointer, over everything else
+  const dragged = extras.dragged ? state.units[extras.dragged.unitId] : undefined;
+  if (dragged && extras.dragged) drawPiece(dragged, Math.round(extras.dragged.x - t / 2), Math.round(extras.dragged.y - t / 2), false);
 }

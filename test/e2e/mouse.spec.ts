@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { INK, PALETTE } from '../../src/ui/pixel-art';
 import { field, foundJamestown, settled, startNewGame } from './helpers';
 
 interface ViewData {
@@ -318,6 +319,77 @@ test('a drag orders the unit it began on, and is dropped if another has become t
   await page.mouse.move(box.x + to.x, box.y + to.y, { steps: 5 });
   await page.mouse.up();
   await expect(field(page, 'unit')).toHaveText('Pioneer');
+});
+
+test('a drag marks in red a square the unit cannot go to, and lets go of the mark on release', async ({ page }) => {
+  await page.goto('/?seed=7');
+  await startNewGame(page, 'america');
+  const canvas = page.locator('canvas.map');
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  const dialog = page.getByRole('dialog');
+  for (let step = 0; step < 12 && !(await dialog.isVisible()); step++) {
+    if ((await field(page, 'unit').textContent()) === 'No active unit') {
+      await command(page, 'endTurn').click();
+      await settled(page);
+    }
+    const at = await spot(page);
+    await clickSquare(page, canvas, at.x - 1, at.y);
+  }
+  await dialog.getByRole('button', { name: 'Make landfall' }).click();
+  await expect(field(page, 'unit')).toHaveText('Soldier');
+  const ship = await spot(page);
+  const box = (await canvas.boundingBox())!;
+  const aim = (): Promise<string | undefined> => canvas.evaluate((c) => (c as HTMLCanvasElement).dataset['aim']);
+  /** Which of the marker's two colours the top edge of a square is drawn in, as drawn on the canvas. */
+  const edge = (x: number, y: number): Promise<{ red: number; yellow: number }> =>
+    canvas.evaluate((el, [sx, sy, red, yellow]) => {
+      const c = el as HTMLCanvasElement;
+      const view = JSON.parse(c.dataset['view']!) as { originX: number; originY: number; tileSize: number };
+      const left = Math.round(((sx as number) - view.originX) * view.tileSize);
+      const top = Math.round(((sy as number) - view.originY) * view.tileSize);
+      const data = c.getContext('2d')!.getImageData(left + 1, top + 1, view.tileSize - 2, 1).data;
+      const hex = (i: number): string => `#${[data[i], data[i + 1], data[i + 2]].map((n) => n!.toString(16).padStart(2, '0')).join('')}`;
+      const seen = { red: 0, yellow: 0 };
+      for (let i = 0; i < data.length; i += 4) {
+        if (hex(i) === red) seen.red++;
+        if (hex(i) === yellow) seen.yellow++;
+      }
+      return seen;
+    }, [x, y, PALETTE[INK.red], PALETTE[INK.yellow]] as const);
+  const over = async (x: number, y: number): Promise<void> => {
+    const p = await pixel(canvas, x, y);
+    await page.mouse.move(box.x + p.x, box.y + p.y, { steps: 5 });
+    await settled(page);
+  };
+
+  // the soldier aboard may go ashore to the west, not into the sea to the east, nor two squares off
+  const from = await pixel(canvas, ship.x, ship.y);
+  await page.mouse.move(box.x + from.x, box.y + from.y);
+  await settled(page);
+  // the ship's square as it is drawn with no drag under way (the soldier aboard has no frame of its own)
+  const before = await edge(ship.x, ship.y);
+  await page.mouse.down();
+  await over(ship.x - 1, ship.y);
+  await expect.poll(aim).toBe(`${ship.x - 1},${ship.y},ok`);
+  expect((await edge(ship.x - 1, ship.y)).yellow).toBeGreaterThan(0);
+  expect((await edge(ship.x - 1, ship.y)).red).toBe(0);
+  await over(ship.x + 1, ship.y);
+  await expect.poll(aim).toBe(`${ship.x + 1},${ship.y},blocked`);
+  // the marker over the sea is drawn red, not yellow
+  expect((await edge(ship.x + 1, ship.y)).red).toBeGreaterThan(0);
+  expect((await edge(ship.x + 1, ship.y)).yellow).toBe(0);
+  await over(ship.x - 2, ship.y);
+  await expect.poll(aim).toBe(`${ship.x - 2},${ship.y},blocked`);
+  await over(ship.x, ship.y);
+  await expect.poll(aim).toBe(`${ship.x},${ship.y},ok`);
+  expect((await edge(ship.x, ship.y)).yellow).toBeGreaterThan(before.yellow);
+  await page.mouse.up();
+  await settled(page);
+  await expect.poll(aim).toBe('');
+  // letting go takes the marker away from the square it was let go on
+  expect(await edge(ship.x, ship.y)).toEqual(before);
+  await expect(field(page, 'unit')).toHaveText('Soldier');
+  await expect(field(page, 'location')).toHaveText(`(${ship.x}, ${ship.y})`);
 });
 
 test('at 1024x640 the sidebar keeps what the game says in sight', async ({ page }) => {
