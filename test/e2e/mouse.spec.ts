@@ -365,6 +365,9 @@ test('a drag marks in red a square the unit cannot go to, and lets go of the mar
   // the soldier aboard may go ashore to the west, not into the sea to the east, nor two squares off
   const from = await pixel(canvas, ship.x, ship.y);
   await page.mouse.move(box.x + from.x, box.y + from.y);
+  await settled(page);
+  // the ship's square as it is drawn with no drag under way (the soldier aboard has no frame of its own)
+  const before = await edge(ship.x, ship.y);
   await page.mouse.down();
   await over(ship.x - 1, ship.y);
   await expect.poll(aim).toBe(`${ship.x - 1},${ship.y},ok`);
@@ -379,10 +382,12 @@ test('a drag marks in red a square the unit cannot go to, and lets go of the mar
   await expect.poll(aim).toBe(`${ship.x - 2},${ship.y},blocked`);
   await over(ship.x, ship.y);
   await expect.poll(aim).toBe(`${ship.x},${ship.y},ok`);
+  expect((await edge(ship.x, ship.y)).yellow).toBeGreaterThan(before.yellow);
   await page.mouse.up();
   await settled(page);
   await expect.poll(aim).toBe('');
-  expect((await edge(ship.x + 1, ship.y)).red).toBe(0);
+  // letting go takes the marker away from the square it was let go on
+  expect(await edge(ship.x, ship.y)).toEqual(before);
   await expect(field(page, 'unit')).toHaveText('Soldier');
   await expect(field(page, 'location')).toHaveText(`(${ship.x}, ${ship.y})`);
 });
