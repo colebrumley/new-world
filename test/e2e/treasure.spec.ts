@@ -86,3 +86,21 @@ test('with a galleon of our own the Crown asks nothing, and the orders menu says
   await expect(page.locator('.colony-screen')).toContainText('the Crown will not carry treasure for a power with a galleon of its own');
   await expect(field(page, 'treasury')).toHaveText('0 gold');
 });
+
+test('with "End of turn" off, the turn still ends once the question about the last unit is answered', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('new-world:options', JSON.stringify({ endOfTurn: false })));
+  const state = crafted();
+  // one step, and the train is done for the turn
+  await load(page, { ...state, units: { ...state.units, gold: { ...state.units['gold']!, movesLeft: 3 } } });
+  const date = await field(page, 'date').textContent();
+  await page.keyboard.press('ArrowLeft');
+  await page.getByRole('dialog').getByRole('button', { name: 'Decline' }).click();
+  await expect(field(page, 'date')).not.toHaveText(date!);
+});
+
+test('a treasure sent to the colony with Go To is asked about when it arrives', async ({ page }) => {
+  await load(page, crafted());
+  await page.keyboard.press('g');
+  await page.getByRole('dialog').getByRole('button', { name: 'Jamestown' }).click();
+  await expect(page.getByRole('dialog')).toContainText('The Crown will carry this treasure');
+});
