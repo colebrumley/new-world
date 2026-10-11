@@ -98,6 +98,8 @@ describe('tutorial hints', () => {
   it('in Europe: the port, and buying less than a full load when gold is short', () => {
     expect(ids(patch(base(), { gold: 0 }), { where: 'europe' })).toEqual([17]);
     expect(ids(patch(base(), { gold: 50 }), { where: 'europe' })).toEqual([17, 18]);
+    // a treasury no cargo strains: every market good is priced and nothing is said (hammers, crosses and bells have no price to read)
+    expect(ids(patch(base(), { gold: 5000 }), { where: 'europe' })).toEqual([17]);
     expect(nextHint(base(), 'a', { where: 'europe' }, new Set())?.text).toContain('London');
   });
 

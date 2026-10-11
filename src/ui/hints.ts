@@ -1,7 +1,7 @@
 // Tutorial hints (R-1001): advice offered once each, at the moments a newcomer needs it.
 // Every sentence is our own.
 import { checkFound, coloniesOf } from '../engine/colony';
-import { GOOD_NAMES, type GoodId } from '../engine/data/goods';
+import { GOOD_IDS, GOOD_NAMES, type GoodId } from '../engine/data/goods';
 import { NATIONS } from '../engine/data/nations';
 import { UNSKILLED } from '../engine/data/professions';
 import { UNIT_TYPES } from '../engine/data/units';
@@ -110,7 +110,7 @@ export function nextHint(state: GameState, playerId: PlayerId, context: HintCont
     ? `This is ${port}. Colonists who come forward wait on the docks for a ship; you may also recruit or train more for gold. Each cargo shows two prices: what the port pays, and what it asks.` : null));
   when(18, () => {
     if (context.where !== 'europe') return null;
-    const dear = (Object.keys(GOOD_NAMES) as GoodId[]).some((g) => player.gold > 0 && player.gold < 100 * askPrice(state, playerId, g));
+    const dear = GOOD_IDS.some((g) => player.gold > 0 && player.gold < 100 * askPrice(state, playerId, g));
     return dear ? 'A full load is 100 units. When the treasury will not stretch to that, a smaller lot can be bought instead.' : null;
   });
 
