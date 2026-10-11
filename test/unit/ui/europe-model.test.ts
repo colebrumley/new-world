@@ -38,7 +38,7 @@ describe('europeView', () => {
     expect(v.expected).toEqual([{ id: 'in', type: 'caravel', label: 'Caravel', turns: 2 }]);
     expect(v.outbound).toEqual([{ id: 'out', type: 'galleon', label: 'Galleon', turns: 1 }]);
     expect(v.inPort).toHaveLength(1);
-    expect(v.inPort[0]).toMatchObject({ id: 'ship', label: 'Merchantman', holds: 4, used: 3, passengers: [{ id: 'rider', label: 'Free Colonist' }] });
+    expect(v.inPort[0]).toMatchObject({ id: 'ship', label: 'Merchantman', holds: 4, used: 3, repair: 0, passengers: [{ id: 'rider', label: 'Free Colonist' }] });
     expect(v.inPort[0]?.cargo.map((c) => [c.good, c.amount])).toEqual([['furs', 100], ['tools', 30]]);
     expect(v.docks.map((d) => [d.id, d.boarding])).toEqual([['man', true], ['idler', false]]);
     expect(europeView(s, 'nobody')).toBeNull();
@@ -114,6 +114,16 @@ describe('europeCall', () => {
     expect(europeCall(s, 'a')).toEqual({ state: 'port', note: 'Caravel in port' });
     s = sail(withUnit(s, { id: 'p2', type: 'merchantman', ...off }), 'p2', voyage('inEurope', 0));
     expect(europeCall(s, 'a')).toEqual({ state: 'port', note: '2 ships in port' });
+  });
+
+  it('marks a ship under repair as waiting, not in port, and says how long', () => {
+    let s = sail(withUnit(sea(), { id: 'hulk', type: 'frigate', ...off }), 'hulk', voyage('inEurope', 0));
+    s = { ...s, units: { ...s.units, hulk: { ...(s.units['hulk'] as Unit), repair: 3 } } };
+    expect(europeCall(s, 'a')).toEqual({ state: 'sea', note: 'Frigate under repair, 3 turns' });
+    s = sail(withUnit(s, { id: 'in', type: 'caravel', ...off }), 'in', voyage('toEurope', 1));
+    expect(europeCall(s, 'a')).toEqual({ state: 'sea', note: 'Caravel arrives in 1 turn; Frigate under repair, 3 turns' });
+    s = sail(withUnit(s, { id: 'sound', type: 'merchantman', ...off }), 'sound', voyage('inEurope', 0));
+    expect(europeCall(s, 'a')).toEqual({ state: 'port', note: 'Merchantman in port' });
   });
 
   it('is plain while Europe is closed to us, whatever ships remain off the map', () => {

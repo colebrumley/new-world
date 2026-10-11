@@ -18,6 +18,8 @@ export interface EuropeShip {
   readonly label: string;
   readonly holds: number;
   readonly used: number;
+  /** Turns of repair still needed before she can sail; 0 when sound. */
+  readonly repair: number;
   readonly cargo: readonly { readonly good: GoodId; readonly name: string; readonly amount: number }[];
   readonly passengers: readonly { readonly id: string; readonly type: UnitTypeId; readonly label: string }[];
 }
@@ -66,6 +68,7 @@ export function europeView(state: GameState, playerId: string): EuropeView | nul
       label: shipLabel(ship),
       holds: UNIT_TYPES[ship.type].holds,
       used: holdsUsed(state, ship),
+      repair: ship.repair,
       cargo: GOOD_IDS.filter((g) => (ship.cargo[g] ?? 0) > 0).map((g) => ({ good: g, name: GOOD_NAMES[g], amount: ship.cargo[g] ?? 0 })),
       passengers: mine.filter((u) => u.aboard === ship.id).map((u) => ({ id: u.id, type: u.type, label: unitLabel(u) })),
     })),
@@ -80,7 +83,10 @@ export function europeView(state: GameState, playerId: string): EuropeView | nul
   };
 }
 
-/** What the Europe button in the command bar shows: a ship in port, ships at sea, or nothing. */
+/**
+ * What the Europe button in the command bar shows: a ship in port ready to be dealt with, ships
+ * waiting (at sea, or lying under repair), or nothing.
+ */
 export interface EuropeCall {
   readonly state: 'none' | 'sea' | 'port';
   /** The tooltip's note after "Europe (E)", empty in the plain state. */
@@ -92,13 +98,17 @@ const turnsWord = (n: number): string => `${n} ${n === 1 ? 'turn' : 'turns'}`;
 export function europeCall(state: GameState, playerId: string): EuropeCall {
   if (!state.players.some((p) => p.id === playerId) || !checkEuropeOpen(state, playerId).ok) return { state: 'none', note: '' };
   const inPort = shipsInEurope(state, playerId);
-  if (inPort.length === 1) return { state: 'port', note: `${shipLabel(inPort[0] as Unit)} in port` };
-  if (inPort.length > 1) return { state: 'port', note: `${inPort.length} ships in port` };
+  const ready = inPort.filter((u) => u.repair === 0);
+  if (ready.length === 1) return { state: 'port', note: `${shipLabel(ready[0] as Unit)} in port` };
+  if (ready.length > 1) return { state: 'port', note: `${ready.length} ships in port` };
   const crossing = Object.values(state.units).filter((u) => u.owner === playerId && u.aboard === null && UNIT_TYPES[u.type].domain === 'sea'
     && (u.voyage?.phase === 'toEurope' || u.voyage?.phase === 'toNewWorld'));
-  if (crossing.length === 0) return { state: 'none', note: '' };
-  const note = crossing.map((u) => `${shipLabel(u)} ${u.voyage?.phase === 'toEurope' ? 'arrives' : 'returns'} in ${turnsWord(u.voyage?.turnsLeft ?? 0)}`).join('; ');
-  return { state: 'sea', note };
+  const notes = [
+    ...crossing.map((u) => `${shipLabel(u)} ${u.voyage?.phase === 'toEurope' ? 'arrives' : 'returns'} in ${turnsWord(u.voyage?.turnsLeft ?? 0)}`),
+    ...inPort.filter((u) => u.repair > 0).map((u) => `${shipLabel(u)} under repair, ${turnsWord(u.repair)}`),
+  ];
+  if (notes.length === 0) return { state: 'none', note: '' };
+  return { state: 'sea', note: notes.join('; ') };
 }
 
 const ROLE_LABEL: Readonly<Record<ColonistRole, string>> = {

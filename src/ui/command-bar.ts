@@ -76,7 +76,8 @@ export interface CommandBar {
   /**
    * Enable or disable the orders, according to whether a unit is waiting for them. While a Go To
    * destination is being picked the Go to button reads Cancel, and gives the targeting up. The
-   * Europe button shows whether a ship is in port or at sea, by its `data-europe` and its title.
+   * Europe button shows whether a ship in port is ready, or ships are at sea or under repair, by
+   * its `data-europe` and its title.
    */
   update(hasUnit: boolean, targeting: boolean, europe?: EuropeCall): void;
 }

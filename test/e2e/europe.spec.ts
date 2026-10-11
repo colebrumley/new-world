@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import { startNewGame } from './helpers';
+import { saveGame } from '../../src/engine/save';
+import { OFF_MAP } from '../../src/engine/state';
+import { withUnit, world } from '../helpers/world';
+import { field, startNewGame } from './helpers';
 
 async function start(page: Page, query: string): Promise<void> {
   await page.goto(`/?${query}`);
@@ -151,4 +154,26 @@ test('buys 100 tools and loads them; prices and treasury update on screen', asyn
   await expect(page.getByRole('dialog').last()).toContainText('Royal University');
   await page.keyboard.press('Escape');
   expect(errors).toEqual([]);
+});
+
+test('a ship under repair in Europe is shown so, cannot be told to sail, and does not light the Europe button as in port', async ({ page }) => {
+  // A frigate lying in Europe with three turns of repair to go, and a caravel at sea to be the active unit.
+  const rows = Array.from({ length: 6 }, (_, y) => (y === 0 || y === 5 ? '~'.repeat(10) : '~~......~~'));
+  let state = world({ rows, seed: 5, players: [{ id: 'p0', kind: 'human', nation: 'england' }] });
+  state = withUnit(state, { id: 'ship', owner: 'p0', type: 'caravel', profession: null, x: 0, y: 2 });
+  state = withUnit(state, { id: 'hulk', owner: 'p0', type: 'frigate', profession: null, x: OFF_MAP, y: OFF_MAP });
+  state = { ...state, units: { ...state.units, hulk: { ...state.units['hulk']!, repair: 3, voyage: { phase: 'inEurope', turnsLeft: 0, origin: [0, 2] } } } };
+  await page.addInitScript((text) => localStorage.setItem('new-world:autosave', text), saveGame({ options: { seed: 5 }, log: [], state }));
+  await page.goto('/');
+  await page.getByRole('menuitem', { name: 'Load Game' }).click();
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+
+  const button = page.getByRole('button', { name: /^Europe/ });
+  await expect(button).toHaveAttribute('data-europe', 'sea');
+  await expect(button).toHaveAttribute('title', 'Europe (E): Frigate under repair, 3 turns');
+  await page.keyboard.press('e');
+  const harbor = europe(page).getByRole('group', { name: 'In port' });
+  await expect(harbor).toContainText('Frigate (0/4 holds), under repair, 3 turns');
+  await expect(harbor).toContainText('Under repair, 3 turns');
+  await expect(harbor.getByRole('button', { name: 'Set sail' })).toHaveCount(0);
 });
