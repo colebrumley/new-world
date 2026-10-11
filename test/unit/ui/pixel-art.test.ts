@@ -15,7 +15,7 @@ import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, fla
 import { CHART, CHART_MARK_KINDS } from '../../../src/ui/chart';
 import { CHART_ART, CHART_COLORS } from '../../../src/ui/chart-art';
 import { blendArt, COAST_MASKS, coastArt, EDGE_MASKS, floorArt, openOf, overArt, rotate, type TileGrid } from '../../../src/ui/pixel-art';
-import { activeFrameArt, ART, at, blank, blockedCursorArt, cursorArt, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, GROUND, halve, hasFigure, INK, LABEL_GLYPHS, labelArt, labelText, MINI, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
+import { activeFrameArt, ART, at, blank, blockedCursorArt, cursorArt, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, GROUND, halve, hasFigure, INK, LABEL_GLYPHS, labelArt, labelText, MINI, miniTileArt, PALETTE, pieceArt, rumorSealArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
 
 const look = (change: Partial<TileLook> = {}): TileLook => ({ terrain: 'plains', river: 'none', riverMask: 0, road: false, roadMask: 0, plowed: false, resource: null, rumor: false, totem: false, variant: 0, ...change });
 const text = (s: Sprite): string => Array.from({ length: s.size }, (_, y) => Array.from({ length: s.size }, (_, x) => (at(s, x, y) === 0 ? '.' : (at(s, x, y) - 1).toString(32))).join('')).join('\n');
@@ -104,6 +104,120 @@ describe('terrain art', () => {
     expect(differ(plain, tileArt(look({ rumor: true })))).toBe(true);
     expect(differ(plain, tileArt(look({ totem: true })))).toBe(true);
     for (const resource of RESOURCE_IDS) expect(differ(plain, tileArt(look({ resource }))), resource).toBe(true);
+  });
+});
+
+describe('the lost-city seal', () => {
+  const square = (grid: ChartGrid, change: Partial<TileLook> = {}): Sprite => (grid === 32 ? detailedTileArt(look(change)) : grid === 16 ? tileArt(look(change)) : miniTileArt(look(change)));
+  const cellsOf = (s: Sprite): number[] => [...s.cells].flatMap((cell, i) => (cell === 0 ? [] : [i]));
+  const changed = (a: Sprite, b: Sprite): number[] => [...a.cells].flatMap((cell, i) => (cell === b.cells[i] ? [] : [i]));
+
+  it('marks a rumor at every grid, in gold: yellow, orange, wood, ink and white and nothing else', () => {
+    for (const grid of [32, 16, 8] as const) {
+      const seal = rumorSealArt(grid);
+      expect(seal.size).toBe(grid);
+      expect(differ(square(grid), square(grid, { rumor: true })), `${grid}`).toBe(true);
+      // the square with a rumor is the square without, with the seal laid over it
+      expect(changed(square(grid), square(grid, { rumor: true }))).toEqual(cellsOf(seal));
+      for (const i of cellsOf(seal)) expect(square(grid, { rumor: true }).cells[i]).toBe(seal.cells[i]);
+    }
+    for (const grid of [32, 16] as const) expect(inks(rumorSealArt(grid))).toEqual(new Set([INK.yellow, INK.orange, INK.wood, INK.ink, INK.white]));
+    // it stands on the floor: on open ground with nothing else, the over layer is the seal alone
+    for (const grid of [32, 16] as const) expect(text(overArt(look({ rumor: true }), grid))).toBe(text(rumorSealArt(grid)));
+    // at the smallest grid, a dot of two by two at (1, 5)
+    expect(text(rumorSealArt(8))).toBe(['........', '........', '........', '........', '........', '.ss.....', '.ss.....', '........'].join('\n').replaceAll('s', INK.yellow.toString(32)));
+  });
+
+  it('is round and fills the lower left quarter of the square on the 32 and 16 grids', () => {
+    for (const grid of [32, 16] as const) {
+      const seal = rumorSealArt(grid);
+      const half = grid / 2;
+      for (const i of cellsOf(seal)) {
+        expect(i % grid, `${grid}`).toBeLessThan(half);
+        expect(Math.floor(i / grid), `${grid}`).toBeGreaterThanOrEqual(half);
+      }
+      // each row is one unbroken run, centred; the middle rows span the quarter and the top and bottom are narrow
+      const widths = Array.from({ length: half }, (_, j) => {
+        const xs = Array.from({ length: half }, (_, x) => x).filter((x) => at(seal, x, half + j) !== 0);
+        expect(xs.length, `${grid} row ${j}`).toBe((xs.at(-1) as number) - (xs[0] as number) + 1);
+        expect((xs[0] as number) + (xs.at(-1) as number), `${grid} row ${j}`).toBe(half - 1);
+        return xs.length;
+      });
+      expect(widths[half / 2 - 1]).toBe(half);
+      expect(widths[half / 2]).toBe(half);
+      expect(Math.max(...widths)).toBe(half);
+      expect(widths[0] as number).toBeLessThan(8);
+      expect(widths[half - 1] as number).toBeLessThan(8);
+      expect(widths[0] as number).toBeLessThanOrEqual(half / 2);
+      expect(widths[half - 1] as number).toBeLessThanOrEqual(half / 2);
+      // it never widens toward the top or the bottom, and the rim is ink all the way round
+      for (let j = 1; j < half / 2; j++) expect(widths[j] as number).toBeGreaterThanOrEqual(widths[j - 1] as number);
+      for (let j = half / 2 + 1; j < half; j++) expect(widths[j] as number).toBeLessThanOrEqual(widths[j - 1] as number);
+      for (const i of cellsOf(seal)) {
+        const [x, y] = [i % grid, Math.floor(i / grid)];
+        if ([at(seal, x - 1, y), at(seal, x + 1, y), at(seal, x, y - 1), at(seal, x, y + 1)].includes(0)) expect(at(seal, x, y) - 1, `${grid} ${x},${y}`).toBe(INK.ink);
+      }
+    }
+    // the pyramid has three steps on the 32 grid and two on the 16: each run of wood wider than the one above
+    const steps = (grid: 32 | 16): number[] => {
+      const seal = rumorSealArt(grid);
+      const runs = Array.from({ length: grid }, (_, y) => Array.from({ length: grid }, (_, x) => x).filter((x) => at(seal, x, y) - 1 === INK.wood).length).filter((n) => n > 0);
+      return [...new Set(runs)];
+    };
+    expect(steps(32)).toEqual([2, 6, 10]);
+    expect(steps(16)).toEqual([2, 4]);
+    // the glint is at the upper left and the shade at the lower right
+    for (const grid of [32, 16] as const) {
+      const seal = rumorSealArt(grid);
+      const middle = (ink: number): [number, number] => {
+        const found = cellsOf(seal).filter((i) => (seal.cells[i] as number) - 1 === ink);
+        return [found.reduce((sum, i) => sum + (i % grid), 0) / found.length, found.reduce((sum, i) => sum + Math.floor(i / grid), 0) / found.length];
+      };
+      const centre = [grid / 4 - 0.5, (grid * 3) / 4 - 0.5] as const;
+      expect(middle(INK.white)[0]).toBeLessThan(centre[0]);
+      expect(middle(INK.white)[1]).toBeLessThan(centre[1]);
+      expect(middle(INK.orange)[0]).toBeGreaterThan(centre[0]);
+      expect(middle(INK.orange)[1]).toBeGreaterThan(centre[1]);
+    }
+  });
+
+  it('stands whole over the corner of a resource marker, the trees, the river and the furrows, under a road, and clear of the totem', () => {
+    for (const grid of [32, 16] as const) {
+      const seal = rumorSealArt(grid);
+      // every resource's marker reaches into the seal's quarter: there the seal is whole, and elsewhere the marker is
+      for (const resource of RESOURCE_IDS) {
+        const marker = changed(square(grid), square(grid, { resource }));
+        expect(marker.filter((i) => seal.cells[i] !== 0).length, `${grid} ${resource}`).toBeGreaterThan(0);
+        const both = square(grid, { resource, rumor: true });
+        for (const i of cellsOf(seal)) expect(both.cells[i], `${grid} ${resource}`).toBe(seal.cells[i]);
+        for (const i of marker) if (seal.cells[i] === 0) expect(both.cells[i], `${grid} ${resource}`).toBe(square(grid, { resource }).cells[i]);
+      }
+      // what is drawn before it and does reach its quarter lies under it: trees, a river to the south and west, furrows
+      for (const under of [{ terrain: 'mixed' }, { river: 'major', riverMask: 12 }, { plowed: true }] as const satisfies readonly Partial<TileLook>[]) {
+        const reaches = changed(square(grid), square(grid, under)).filter((i) => seal.cells[i] !== 0);
+        expect(reaches.length, `${grid} ${JSON.stringify(under)}`).toBeGreaterThan(0);
+        const sealed = square(grid, { ...under, rumor: true });
+        for (const i of cellsOf(seal)) expect(sealed.cells[i], `${grid} ${JSON.stringify(under)}`).toBe(seal.cells[i]);
+      }
+      // a road runs over the seal: every cell of a road to the south-west is the road's, with the seal or without
+      const road = { road: true, roadMask: 32 } as const;
+      const paved = changed(square(grid), square(grid, road));
+      expect(paved.some((i) => seal.cells[i] !== 0)).toBe(true);
+      for (const i of paved) expect(square(grid, { ...road, rumor: true }).cells[i]).toBe(square(grid, road).cells[i]);
+      // the totem stands in the upper left quarter and shares no cell with the seal
+      const totem = changed(square(grid), square(grid, { totem: true }));
+      expect(totem.length).toBeGreaterThan(0);
+      for (const i of totem) {
+        expect(seal.cells[i]).toBe(0);
+        expect(i % grid).toBeLessThan(grid / 2);
+        expect(Math.floor(i / grid)).toBeLessThan(grid / 2);
+        if (grid === 32) {
+          expect(i % grid).toBeGreaterThanOrEqual(4);
+          expect(i % grid).toBeLessThanOrEqual(13);
+        }
+      }
+      expect(changed(square(grid, { rumor: true }), square(grid, { rumor: true, totem: true }))).toEqual(totem);
+    }
   });
 });
 

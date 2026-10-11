@@ -291,13 +291,48 @@ function resource(s: Sprite, id: ResourceId): void {
   if (rows) stamp(s, (s.size - size) >> 1, (s.size - size) >> 1, rows, RESOURCE_KEY);
 }
 
-/** A Lost City Rumor: a broken arch of pale stone in the bottom left corner. */
-function rumor(s: Sprite): void {
-  stamp(s, 1, 9, ['kkkkk.', 'kpppk.', 'kpkpkk', 'kpkkpk', 'kpk.pk', 'kkk.kk'], { k: INK.ink, p: INK.parchment });
+const SEAL_KEY = { k: INK.ink, y: INK.yellow, o: INK.orange, w: INK.white, b: INK.wood } as const;
+/** The lost-city seal by grid: a round of gold with an ink rim, a glint at the upper left, shade at the lower right and a stepped pyramid pressed into it. */
+const RUMOR_SEAL: Readonly<Record<16 | 32, readonly string[]>> = {
+  32: [
+    '.....kkkkkk.....',
+    '...kkyyyyyykk...',
+    '..kywwyyyyyyyk..',
+    '.kwwyyyyyyyyyyk.',
+    '.kwyyyybbyyyyyk.',
+    'kyyyyyybbyyyyyok',
+    'kyyyybbbbbbyyook',
+    'kyyyybbbbbbyyook',
+    'kyybbbbbbbbbbook',
+    'kyybbbbbbbbbbook',
+    'kyyyyyyyyyyyoook',
+    '.kyyyyyyyyyoook.',
+    '.kyyyyyyyoooook.',
+    '..kyyyyooooook..',
+    '...kkooooookk...',
+    '.....kkkkkk.....',
+  ],
+  16: ['..kkkk..', '.kwyyyk.', 'kwyyyyok', 'kyybbyok', 'kybbbbok', 'kyyyyook', '.kyoook.', '..kkkk..'],
+};
+
+/**
+ * The mark of a Lost City Rumor, alone on a see-through square of the grid: a round gold seal filling the
+ * lower left quarter on the 32 and 16 grids, and a gold dot on the 8.
+ */
+export function rumorSealArt(grid: ChartGrid): Sprite {
+  const s = blank(grid);
+  if (grid === 8) box(s, 1, 5, 2, 2, INK.yellow);
+  else stamp(s, 0, grid / 2, RUMOR_SEAL[grid], SEAL_KEY);
+  return s;
 }
 
+function rumor(s: Sprite): void {
+  laid(s, rumorSealArt(s.size as ChartGrid));
+}
+
+/** A totem marking native land, in the upper left quarter. */
 function totem(s: Sprite): void {
-  stamp(s, 5, 3, ['.rrr.', 'yyyyy', '..w..', '.yyy.', '..w..', '..w..', '..w..', '..w..'], { r: INK.red, y: INK.yellow, w: INK.wood });
+  stamp(s, 2, 0, ['.rrr.', 'yyyyy', '..w..', '.yyy.', '..w..', '..w..', '..w..', '..w..'], { r: INK.red, y: INK.yellow, w: INK.wood });
 }
 
 /** The art for one whole map square on the 16-pixel grid: its floor with everything that stands on it. */
@@ -312,7 +347,7 @@ export function miniTileArt(look: TileLook): Sprite {
   if (look.terrain === 'mountains') stamp(s, 2, 2, ['.ww.', 'wwdd'], { w: INK.white, d: INK.grey });
   if (look.river !== 'none') box(s, 3, 3, 2, 2, INK.brightBlue);
   if (look.road) box(s, 2, 4, 4, 1, INK.wood);
-  if (look.rumor) box(s, 1, 5, 2, 2, INK.parchment);
+  if (look.rumor) rumor(s);
   return s;
 }
 
@@ -666,9 +701,9 @@ export function floorArt(grid: TileGrid, terrain: TerrainId, variant: number): S
 
 /**
  * Everything that stands on a square's floor, see-through elsewhere: furrows and rivers; then the forest,
- * hills or mountains; then the resource marker, at its own size; then roads and the marks. On the
- * 32-pixel grid the strokes and marks are the 16-pixel ones enlarged, and the forest or relief is the
- * baked picture.
+ * hills or mountains; then the resource marker, at its own size; the lost-city seal, drawn for the grid;
+ * then the road and the totem. On the 32-pixel grid the strokes and the totem are the 16-pixel ones
+ * enlarged, and the forest or relief is the baked picture.
  */
 export function overArt(look: TileLook, grid: TileGrid): Sprite {
   if (grid === ART) {
@@ -681,8 +716,8 @@ export function overArt(look: TileLook, grid: TileGrid): Sprite {
     if (look.terrain === 'hills' || look.terrain === 'mountains') relief(s, look.terrain, rnd);
     else trees(s, look.terrain, rnd);
     if (look.resource) resource(s, look.resource);
-    if (look.road) road(s, look);
     if (look.rumor) rumor(s);
+    if (look.road) road(s, look);
     if (look.totem) totem(s);
     return s;
   }
@@ -693,9 +728,9 @@ export function overArt(look: TileLook, grid: TileGrid): Sprite {
   enlarge(s, under);
   if (Object.hasOwn(FEATURE_ART, look.terrain)) stamp(s, 0, DETAIL - FEATURE_SIZE, turned(FEATURE_ART[look.terrain] as readonly string[], (look.variant & 1) === 1, false), FEATURE_KEY);
   if (look.resource) resource(s, look.resource);
+  if (look.rumor) rumor(s);
   const over = blank();
   if (look.road) road(over, look);
-  if (look.rumor) rumor(over);
   if (look.totem) totem(over);
   enlarge(s, over);
   return s;
