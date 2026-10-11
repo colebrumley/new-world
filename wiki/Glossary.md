@@ -100,7 +100,7 @@ The game's own words, in alphabetical order, each with the page that explains it
 
 **Trade route.** A list of colonies, and Europe for a ship, with what to load and unload at each. A ship or wagon train on a route runs it turn after turn by itself. See [[Colonies]].
 
-**Treasure train.** Gold found in a lost city or taken from a native settlement. It must be brought to one of your colonies, and the Crown keeps a share for carrying it home. See [[Units]].
+**Treasure train.** Gold found in a Lost City Rumour, in burial mounds, or among the ruins of a destroyed native settlement. It fills six holds, so only a Galleon can carry one. As the game stands, nothing pays a treasure out: neither your galleon nor the Crown can cash one yet. See [[Units]].
 
 **Tribute.** Goods demanded from a native settlement by an armed unit. It may be paid, refused or laughed at, and it raises their alarm. See [[Native Peoples]].
 
