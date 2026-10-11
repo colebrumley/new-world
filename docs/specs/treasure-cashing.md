@@ -1,6 +1,6 @@
 # Cashing treasure trains: spec for R-1038 to R-1039
 
-Written by `/plan` on 2026-10-10. Status: approved.
+Written by `/plan` on 2026-10-10. Status: built.
 
 **The request, in the owner's words:** "There is no way to send a treasure train without owning a
 galleon, I don't think. I can't find one." Reading the code showed it is worse: nothing cashes a

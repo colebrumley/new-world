@@ -11,7 +11,8 @@ import { landPrice } from '../engine/land';
 import type { Action } from '../engine/actions';
 import { COLONIST_ROLES } from '../engine/data/equipment';
 import type { GoodId } from '../engine/data/goods';
-import type { GameState, Job } from '../engine/state';
+import type { GameState, Job, Unit } from '../engine/state';
+import { checkCashTreasure, treasureQuote } from '../engine/royal';
 import { colonyView, dropVerdict, jobChoices, type ColonyView, type DropVerdict, type PersonView } from './colony-model';
 import { ask, askText } from './dialog';
 import { buildingArt, figureArt, flagArt, goodArt, type Sprite } from './pixel-art';
@@ -208,9 +209,30 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     render();
   }
 
+  /**
+   * The orders-menu line for cashing a treasure, or null when there is nothing to say. A treasure
+   * the Crown will not carry (we have a galleon, or no harbour) still gets a line naming why;
+   * picking it shows the refusal rather than leaving the player guessing.
+   */
+  function treasureEntry(state: GameState, unit: Unit): string | null {
+    const quote = treasureQuote(state, unit);
+    if (quote) return quote.carrier === 'agents' ? `Sell the treasure (${quote.value} gold)` : `Send the treasure home (keep ${quote.net} of ${quote.value} gold)`;
+    const check = checkCashTreasure(state, unit.owner, unit.id);
+    if (check.ok) return null;
+    if (check.code === 'treasureOwnGalleon') return 'Send the treasure home (not while we have a galleon)';
+    if (check.code === 'treasureNoPort') return 'Send the treasure home (no harbour here)';
+    return null;
+  }
+
   async function ordersMenu(unitId: string): Promise<void> {
-    const options: { label: string; action: Action }[] = [{ label: 'Join the colony', action: { type: 'joinColony', unitId } }];
-    const aboard = Boolean(host.state().units[unitId]?.aboard);
+    const unit = host.state().units[unitId];
+    const treasure = unit?.type === 'treasure';
+    const options: { label: string; action: Action }[] = treasure ? [] : [{ label: 'Join the colony', action: { type: 'joinColony', unitId } }];
+    if (unit && treasure) {
+      const label = treasureEntry(host.state(), unit);
+      if (label) options.push({ label, action: { type: 'cashTreasure', unitId } });
+    }
+    const aboard = Boolean(unit?.aboard);
     if (aboard) options.push({ label: 'Go ashore', action: { type: 'goAshore', unitId } });
     for (const role of aboard ? [] : COLONIST_ROLES) {
       const action: Action = { type: 'equip', unitId, role };

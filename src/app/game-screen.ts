@@ -21,6 +21,7 @@ import { analyseAttack } from '../engine/analysis';
 import { alliancePrice } from '../engine/diplomacy';
 import { askCombat } from '../ui/combat-analysis';
 import { portraitCanvas } from '../ui/portraits';
+import { checkCashTreasure, royalTransportCut, treasureQuote } from '../engine/royal';
 import { showReport, type Report } from '../ui/report';
 import { foreignAffairsReport } from '../ui/reports/foreign';
 import { scoreReport } from '../ui/reports/score';
@@ -422,22 +423,43 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         if ((e.type === 'buildingCompleted' || e.type === 'unitBuilt') && session.state.colonies[e.colonyId]?.owner === me() && !finished.includes(e.colonyId)) finished.push(e.colonyId);
       }
     }
-    // the turn's questions come one after another (both ask for audiences); then the player is taken to each colony with a finished project
+    // a treasure train that has just come into one of our colonies, by a move, a Go To or being put ashore there
+    const arrived = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'endTurn' || action.type === 'goAshore' ? treasuresArrived(before, session.state) : [];
     const moving = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'foundColony' || action.type === 'endTurn';
-    if (turnEnded) void royalBusiness().then(() => (moving ? afterMoving(stepped.events) : undefined)).then(visitFinished);
-    else if (moving) void afterMoving(stepped.events);
+    if (turnEnded) {
+      // the turn's questions come one after another (both ask for audiences); then the player is taken to each colony with a finished project
+      void royalBusiness().then(() => (moving ? afterMoving(stepped.events, arrived, false) : undefined)).then(visitFinished);
+    } else if (moving) {
+      void afterMoving(stepped.events, arrived, true);
+    } else if (arrived.length > 0) {
+      // put ashore from the colony screen: ask once that screen has redrawn and taken focus, so the question keeps it
+      queueMicrotask(() => void offerTreasures(arrived, false));
+    }
     if (session.state.over) void announceEnd();
     audio.play(cuesFor(stepped.events, session.state, me()), options);
     canvas.dataset['cues'] = audio.played.slice(-6).join(',');
     offerHint({ where: colonyScreen ? 'colony' : europeScreen ? 'europe' : 'map', activeUnitId: activeId, colonyId: canvas.dataset['colony'] || null });
     // with "End of turn" off, the turn ends by itself once the last unit has had its orders
-    if (!options.endOfTurn && !turnEnded && activeId === null && !colonyScreen && !europeScreen && !session.state.over && UNIT_ORDER_ACTIONS.has(action.type)) {
-      queueMicrotask(() => {
-        if (activeId === null && !session.state.over && !screen.querySelector('[role="dialog"]')) dispatch({ type: 'endTurn' });
-      });
-    }
+    // (a treasure's question comes first: afterMoving ends the turn once it is answered)
+    if (!turnEnded && arrived.length === 0 && UNIT_ORDER_ACTIONS.has(action.type)) queueMicrotask(endTurnIfDone);
     return true;
   };
+
+  /** With "End of turn" off, end the turn once the last unit has had its orders and nothing is being asked. */
+  const endTurnIfDone = (): void => {
+    if (options.endOfTurn || activeId !== null || colonyScreen || europeScreen || session.state.over || screen.querySelector('[role="dialog"]')) return;
+    dispatch({ type: 'endTurn' });
+  };
+
+  /** Treasure trains of ours that stand in one of our colonies now and did not before, and could be cashed there. */
+  const treasuresArrived = (before: GameState, after: GameState): UnitId[] =>
+    Object.values(after.units)
+      .filter((u) => u.owner === me() && u.type === 'treasure' && checkCashTreasure(after, me(), u.id).ok)
+      .filter((u) => {
+        const was = before.units[u.id];
+        return !was || was.x !== u.x || was.y !== u.y || was.aboard !== u.aboard;
+      })
+      .map((u) => u.id);
 
   /** Questions the turn has left for the player: a tax rise, an offer from the Crown, a choice of immigrant. */
   const royalBusiness = async (): Promise<void> => {
@@ -534,7 +556,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   };
 
   /** What moving about has turned up: a rumor explored, mounds to decide on, the Fountain's followers, a tribe met. */
-  const afterMoving = async (events: readonly GameEvent[]): Promise<void> => {
+  const afterMoving = async (events: readonly GameEvent[], treasures: readonly UnitId[] = [], byOrders = false): Promise<void> => {
     const mine = (): (typeof session.state.players)[number] | undefined => session.state.players.find((p) => p.id === me());
     for (const e of events) {
       if (e.type !== 'rumorExplored' || e.player !== me()) continue;
@@ -561,6 +583,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     }
     await greetTribes();
     await audiences();
+    if (treasures.length > 0) await offerTreasures(treasures, byOrders);
   };
 
   // --- combat: the analysis beforehand, a flash of the result, and a line in the log --------------
@@ -884,6 +907,30 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         if (events.some((e) => e.type === 'nativeHaggle' && !e.success)) await ask(screen, { text: 'They put their goods away and will sell us nothing.', choices: ['Continue'], escape: 0 });
       }
     }
+  };
+
+  /** A treasure train that has just entered one of our colonies: the Crown (or, after the Declaration, agents) may cash it. */
+  /** Put the question for each treasure in turn; then, if a unit's orders brought them, end the turn if that was all. */
+  const offerTreasures = async (unitIds: readonly UnitId[], byOrders: boolean): Promise<void> => {
+    for (const id of unitIds) await offerTreasure(id);
+    if (byOrders) endTurnIfDone();
+  };
+
+  const offerTreasure = async (unitId: UnitId): Promise<void> => {
+    const unit = session.state.units[unitId];
+    const player = session.state.players.find((p) => p.id === me());
+    if (!unit || !player || unit.type !== 'treasure' || !checkCashTreasure(session.state, player.id, unitId).ok) return;
+    const quote = treasureQuote(session.state, unit);
+    if (!quote) return;
+    const crown = quote.carrier === 'crown';
+    const text = crown
+      ? `The Crown will carry this treasure of ${quote.value} gold home to ${NATIONS[player.nation].homePort}. The King keeps ${quote.fee} gold (${royalTransportCut(session.state, player.id)} percent) for his trouble; we receive ${quote.net}.`
+      : `Agents will buy this treasure for ${quote.value} gold.`;
+    const pick = await ask(screen, { text, choices: ['Decline', 'Accept'], escape: 0, ...(crown ? { picture: portraitCanvas('king', 2) } : {}) });
+    if (pick !== 1 || !dispatch({ type: 'cashTreasure', unitId })) return;
+    colonyScreen?.refresh();
+    await ask(screen, { text: `The treasure is ours: ${quote.net} gold has been added to the treasury.`, choices: ['Continue'], escape: 0 });
+    settle();
   };
 
   /** One step for a unit, putting the question to the player when the move raises one. */
