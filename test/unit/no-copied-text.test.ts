@@ -1,15 +1,17 @@
-// Guards constraint C1: no prose from anyone else's game may appear in src/.
+// Guards constraint C1: no prose from anyone else's game may appear in src/ or in the player manual
+// in wiki/ (R-1023).
 //
 // The backlog asks for a maintained list of 40 sentences that must never appear. Committing
 // those sentences would itself break the constraint, so the list is kept as fingerprints: for
 // each sentence, a hash of its first eight words (lower-cased, punctuation dropped). The test
-// fingerprints every run of eight words in src/ the same way and fails if any matches.
+// fingerprints every run of eight words in src/ and wiki/ the same way and fails if any matches.
 //
 // Where a local folder of text to keep out is present (ref/orig, never committed, with the
 // files to read named one per line in ref/prose.txt), a second test checks every run of eight
 // words in them against src/, not just the forty.
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -31,8 +33,22 @@ const walk = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
   const path = join(dir, name);
   return statSync(path).isDirectory() ? walk(path) : [path];
 });
-const SRC = join(__dirname, '../../src');
-const sources = (): { file: string; words: string[] }[] => walk(SRC).filter((f) => /\.(ts|css|html)$/.test(f)).map((file) => ({ file, words: words(readFileSync(file, 'utf8')) }));
+const SCANNED = [join(__dirname, '../../src'), join(__dirname, '../../wiki')];
+/** The text files under some folders, as words: code, styles, pages and the manual's Markdown. */
+const sources = (roots: readonly string[] = SCANNED): { file: string; words: string[] }[] =>
+  roots.flatMap(walk).filter((f) => /\.(ts|css|html|md)$/.test(f)).map((file) => ({ file, words: words(readFileSync(file, 'utf8')) }));
+/** Every run of eight words under the folders whose fingerprint is one of those wanted. */
+const matches = (wanted: ReadonlySet<string>, roots?: readonly string[]): { found: string[]; runs: number } => {
+  const found: string[] = [];
+  let runs = 0;
+  for (const { file, words: all } of sources(roots)) {
+    for (let i = 0; i + RUN <= all.length; i++) {
+      runs++;
+      if (wanted.has(fingerprint(all.slice(i, i + RUN)))) found.push(`${file}: ${all.slice(i, i + RUN).join(' ')}`);
+    }
+  }
+  return { found, runs };
+};
 /** Runs made mostly of numbers are table rows, not prose. */
 const isProse = (run: readonly string[]): boolean => run.filter((w) => /^[a-z]+$/.test(w)).length >= RUN - 1;
 
@@ -43,18 +59,24 @@ describe('no copied text', () => {
     for (const f of FINGERPRINTS) expect(f).toMatch(/^[0-9a-f]{16}$/);
   });
 
-  it('none of them appears anywhere in src/', () => {
-    const wanted = new Set(FINGERPRINTS);
-    const found: string[] = [];
-    let runs = 0;
-    for (const { file, words: all } of sources()) {
-      for (let i = 0; i + RUN <= all.length; i++) {
-        runs++;
-        if (wanted.has(fingerprint(all.slice(i, i + RUN)))) found.push(`${file}: ${all.slice(i, i + RUN).join(' ')}`);
-      }
-    }
+  it('none of them appears anywhere in src/ or wiki/', () => {
+    const { found, runs } = matches(new Set(FINGERPRINTS));
     expect(runs).toBeGreaterThan(10000); // the scan really did read the sources
+    expect(sources().some(({ file }) => file.endsWith(join('wiki', 'Home.md')))).toBe(true); // and the manual
     expect(found).toEqual([]);
+  });
+
+  it('the scan reads Markdown, and catches a fingerprinted run in it', () => {
+    // the forty sentences are not committed, so the self-test fingerprints a run of its own
+    const dir = mkdtempSync(join(tmpdir(), 'no-copied-text-'));
+    try {
+      const run = 'a sentence that stands in for copied prose'; // eight words
+      writeFileSync(join(dir, 'Page.md'), `Some words first.\n\nA Sentence that stands in for copied prose.\n`);
+      const wanted = new Set([...FINGERPRINTS, fingerprint(words(run))]);
+      expect(matches(wanted, [dir]).found).toEqual([`${join(dir, 'Page.md')}: ${run}`]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   const REF = join(__dirname, '../../ref/orig');

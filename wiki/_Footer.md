@@ -1,0 +1,1 @@
+New World is free to play in the browser: [colebrumley.github.io/new-world](https://colebrumley.github.io/new-world/). The source of this manual is the [`wiki/` folder](https://github.com/colebrumley/new-world/tree/main/wiki) in the repository.

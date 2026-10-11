@@ -1,0 +1,106 @@
+# Checks the player manual in wiki/ on pull requests and pushes to main, and publishes it to the
+# repository's GitHub wiki on pushes to main (or by hand). The manual's pages are wiki/*.md; the
+# paintings in art/ are copied into the wiki at publish time, under images/paintings/, so they are
+# not kept twice in this repository. A change under wiki/ does not rebuild or redeploy the game
+# (deploy.yml does not watch it). Actions has no YAML anchors, so the push list is repeated below it.
+name: Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wiki/**'
+      - 'art/**'
+      - 'test/unit/wiki/**'
+      - 'test/helpers/wiki/**'
+      - '.github/workflows/wiki.yml'
+  pull_request:
+    paths:
+      - 'wiki/**'
+      - 'art/**'
+      - 'test/unit/wiki/**'
+      - 'test/helpers/wiki/**'
+      - '.github/workflows/wiki.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # the link and image checker, the generated blocks, the copied-text guard and the workflow lint
+      - run: npm test -- test/unit/wiki test/unit/no-copied-text test/unit/deploy
+
+  publish:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: check
+    runs-on: ubuntu-latest
+    concurrency:
+      group: wiki
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    env:
+      # a personal access token in WIKI_TOKEN is the fallback for when the workflow's token cannot
+      # write the wiki
+      WIKI_URL: https://x-access-token:${{ secrets.WIKI_TOKEN || github.token }}@github.com/${{ github.repository }}.wiki.git
+      NO_PAGES: >-
+        The wiki has no pages yet, so there is nothing to clone. GitHub makes the wiki's repository
+        when its first page is made in the browser: open the repository's Wiki tab, choose
+        "Create the first page", save it with any content, and re-run this workflow (it replaces
+        that page).
+      NO_WRITE: >-
+        The wiki refused this workflow's token (403): the token cannot write the wiki. The fallback
+        is a personal access token that can write this repository, kept in a repository secret named
+        WIKI_TOKEN; the workflow uses it when it is present. Add it and re-run this workflow.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clone the wiki
+        run: |
+          if ! git clone "$WIKI_URL" "$RUNNER_TEMP/wiki" 2> "$RUNNER_TEMP/clone.log"; then
+            cat "$RUNNER_TEMP/clone.log"
+            if grep -q '403' "$RUNNER_TEMP/clone.log"; then
+              echo "$NO_WRITE" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "$NO_PAGES" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            exit 1
+          fi
+      - name: Replace the wiki's pages with wiki/
+        run: |
+          find "$RUNNER_TEMP/wiki" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -R wiki/. "$RUNNER_TEMP/wiki/"
+      - name: Copy the paintings from art/
+        run: |
+          mkdir -p "$RUNNER_TEMP/wiki/images/paintings"
+          for folder in units places features floors buildings goods portraits title chart; do
+            cp -R "art/$folder" "$RUNNER_TEMP/wiki/images/paintings/$folder"
+          done
+      - name: Commit and push, if anything changed
+        working-directory: ${{ runner.temp }}/wiki
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if [ -z "$(git status --porcelain)" ]; then
+            echo 'The wiki already matches wiki/.'
+            exit 0
+          fi
+          git commit -q -m "Publish wiki/ from $GITHUB_REPOSITORY@$GITHUB_SHA"
+          if ! git push origin HEAD 2> "$RUNNER_TEMP/push.log"; then
+            cat "$RUNNER_TEMP/push.log"
+            if grep -q '403' "$RUNNER_TEMP/push.log"; then
+              echo "$NO_WRITE" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo 'Pushing to the wiki failed; the log above says why.' >> "$GITHUB_STEP_SUMMARY"
+            fi
+            exit 1
+          fi
