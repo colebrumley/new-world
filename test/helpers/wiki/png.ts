@@ -3,6 +3,9 @@
 // single IDAT. The reader refuses anything else; pngSize reads the IHDR of any PNG.
 import { deflateSync, inflateSync } from 'node:zlib';
 
+/** The most decoded bytes decodePng accepts (a 2048 x 2048 picture), so a bad file cannot inflate without bound. */
+const MAX_DECODED = (2048 * 4 + 1) * 2048;
+
 const SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
@@ -63,8 +66,10 @@ export function decodePng(buffer: Uint8Array): { width: number; height: number; 
     if (type === 'IEND') break;
     at += 12 + length;
   }
-  const raw = inflateSync(Buffer.concat(data));
   const stride = width * 4;
+  const expected = (stride + 1) * height;
+  if (expected > MAX_DECODED) throw new Error(`decodePng: ${width} x ${height} is larger than any picture this decoder reads`);
+  const raw = inflateSync(Buffer.concat(data), { maxOutputLength: expected });
   if (raw.length !== (stride + 1) * height) throw new Error('decodePng: wrong amount of image data');
   const rgba = new Uint8Array(stride * height);
   for (let y = 0; y < height; y++) {

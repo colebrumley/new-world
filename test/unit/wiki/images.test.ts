@@ -8,6 +8,7 @@
 // .png lies there that no id accounts for. With it, the files are written and stale ones removed.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
+import { crc32 } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { ABSTRACT_GOOD_IDS, GOOD_IDS } from '../../../src/engine/data/goods';
 import { BUILDING_IDS } from '../../../src/engine/data/buildings';
@@ -132,5 +133,10 @@ describe('the sprites in wiki/images/art', () => {
     const corrupt = Buffer.from(png);
     corrupt[29] = (corrupt[29] as number) ^ 1; // the IHDR's CRC
     expect(() => decodePng(corrupt)).toThrow(/CRC/);
+    const huge = Buffer.from(encodePng(1, 1, new Uint8Array(4)));
+    huge.writeUInt32BE(4096, 16); // an IHDR claiming a picture 4096 pixels square, with a good CRC
+    huge.writeUInt32BE(4096, 20);
+    huge.writeUInt32BE(crc32(huge.subarray(12, 29)), 29);
+    expect(() => decodePng(huge)).toThrow(/larger than/);
   });
 });
