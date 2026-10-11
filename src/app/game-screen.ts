@@ -48,7 +48,7 @@ import { MENU_CHOICES, REPORT_CHOICES, createCommandBar, type BarChoice } from '
 import { PINCH_STEP, WHEEL_LINE, WHEEL_STEP, dragBlocked, mapClick, mapCursor, mapDrag, pinchTravel, wheelStep, type PointerMode } from '../ui/pointer';
 import { editRoute } from '../ui/trade-routes';
 import { createTileCache } from '../ui/tiles';
-import { placeTooltip, slipUnits, tileTip, TOOLTIP_DELAY_MS } from '../ui/tile-tooltip';
+import { placeTooltip, slipUnits, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_UNIT_LIMIT } from '../ui/tile-tooltip';
 import { needsOrders, nextUnit } from '../ui/unit-queue';
 import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, viewCenter, zoomAt, zoomBy, type View } from '../ui/view';
 import { readHintsSeen, readOptions, writeAutosave, writeHintsSeen, writeOptions } from './storage';
@@ -274,17 +274,20 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       p.textContent = text;
       return [p];
     };
-    const lines = [
+    const build = (limit: number): HTMLElement[] => [
       ...line(tip.title, 'map-tooltip-title'), ...tip.features.flatMap((feature) => line(feature)), ...line(tip.yields, 'map-tooltip-yields'), ...line(tip.ground, 'map-tooltip-ground'),
       // with the pieces hidden (H) the map shows no unit, so the slip names none; a great stack is cut short
-      ...(view.showHidden ? [] : slipUnits(tip.units)).flatMap((unit) => [...line(unit.line, 'map-tooltip-unit'), ...line(unit.carried, 'map-tooltip-carried')]),
+      ...(view.showHidden ? [] : slipUnits(tip.units, limit)).flatMap((unit) => [...line(unit.line, 'map-tooltip-unit'), ...line(unit.carried, 'map-tooltip-carried')]),
     ];
+    const lines = build(TOOLTIP_UNIT_LIMIT);
     const said = lines.map((p) => p.textContent).join('\n');
     if (tipAt && tile.x === tipAt.x && tile.y === tipAt.y && said === tipSaid) return;
     tooltip.replaceChildren(...lines);
     tipSaid = said;
     tipAt = tile;
     tooltip.hidden = false;
+    // units with long loads may still stand taller than the map: name fewer of them until the slip fits
+    for (let limit = TOOLTIP_UNIT_LIMIT - 1; limit >= 1 && tooltip.offsetHeight > canvas.clientHeight; limit--) tooltip.replaceChildren(...build(limit));
     const at = placeTooltip(pointer, { width: tooltip.offsetWidth, height: tooltip.offsetHeight }, { width: canvas.clientWidth, height: canvas.clientHeight });
     tooltip.style.left = `${canvas.offsetLeft + at.x}px`;
     tooltip.style.top = `${canvas.offsetTop + at.y}px`;
