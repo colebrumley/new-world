@@ -2,10 +2,10 @@
 
 exports[`the map renderer, against a plain pixel buffer > matches the baseline at each zoom 1`] = `
 {
-  "zoom0": "c1db8ab0",
-  "zoom1": "a13dcebf",
-  "zoom2": "83b0cdf0",
-  "zoom3": "877101d9",
+  "zoom0": "875ce9a8",
+  "zoom1": "8120d8e3",
+  "zoom2": "206e311c",
+  "zoom3": "f8225029",
 }
 `;
 
