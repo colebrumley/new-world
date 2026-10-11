@@ -24,10 +24,24 @@ Work in a worktree of your own (CLAUDE.md, rule 1); the guard hook refuses commi
   tests that pin them, then decide what change answers it.
 - **Feature**: the same reading, plus the rule question. The order for any rule the game lacks or
   changes is in CLAUDE.md (the private notes under `ref/`, then the open-source projects
-  `docs/RULES.md` cites, then the owner). Where the request leaves a fork that changes what gets built,
-  ask the owner now, in one `AskUserQuestion` call with at most three questions, each with a
-  recommended option. Do not interview beyond that; for a large or vague feature, run the
-  `requirements` skill at tier small or medium instead.
+  `docs/RULES.md` cites, then the owner).
+
+Read the request as incomplete until the code says otherwise:
+
+- "Simple", "just" and "easy" mark what was left out. Find the part being skipped over.
+- Where two reasonable builds would both satisfy the words, that is a fork: name both, do not pick
+  silently.
+- A word that could mean two things ("ship", "in Europe", "the button") gets pinned to the type,
+  function or element it means in this code.
+- A change to what the game already does has a cost in what exists: saves made before it (the save
+  version), tests and snapshots that pin the old behaviour, a turn in progress. Say what happens to
+  each.
+
+Settle what reading can settle. Where a fork that changes what gets built is left, ask the owner
+now, in one `AskUserQuestion` call with at most three questions, each with a recommended option.
+Lead with the one most likely to make a worker build the wrong thing. Do not interview beyond that:
+a fork you settled yourself goes in the spec as the planner's choice, apart from the owner's
+decisions, with the alternative rejected.
 
 Say in the spec which rules came from where. Never name another game or say a rule or a look was
 taken from one, anywhere in the spec or the backlog line (CLAUDE.md, public-repo rule).
