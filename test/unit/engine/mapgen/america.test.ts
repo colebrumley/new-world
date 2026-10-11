@@ -11,25 +11,45 @@ import { isLand, isWater, terrainOf, type Tile } from '../../../../src/engine/ti
 const map = americaMap(createRng('america').fork('world'));
 const at = (m: GameMap, p: readonly [number, number]): Tile => m.tiles[p[1] * m.width + p[0]] as Tile;
 
-const GLYPH: Record<string, string> = {
-  ocean: ' ', seaLane: '~', arctic: '#', tundra: 't', desert: 'd', plains: 'p', prairie: 'r', grassland: 'g',
-  savannah: 's', marsh: 'm', swamp: 'w', boreal: 'T', scrub: 'D', mixed: 'P', broadleaf: 'R', conifer: 'G',
-  tropical: 'S', wetland: 'M', rain: 'W', hills: 'h', mountains: 'A',
+const GROUND: Record<string, string> = {
+  ocean: '.', seaLane: '~', arctic: '#', tundra: 't', desert: 'd', plains: 'p', prairie: 'r', grassland: 'g',
+  savannah: 's', marsh: 'm', swamp: 'w',
+};
+const RELIEF: Record<string, string> = { flat: '.', hills: 'h', mountains: 'A' };
+const RIVERS: Record<string, string> = { none: '.', minor: 'r', major: 'R' };
+const EXTRAS: Record<string, string> = {
+  oasis: 'o', wheat: 'w', primeCotton: 'c', primeTobacco: 't', primeSugar: 's', minerals: 'm', fishery: 'f',
+  beaver: 'b', game: 'g', primeTimber: 'l', silverDeposit: 'v', oreDeposit: 'e',
 };
 
-function ascii(m: GameMap): string {
-  const rows: string[] = [];
-  for (let y = 0; y < m.height; y++) {
-    let row = '';
-    for (let x = 0; x < m.width; x++) row += GLYPH[terrainOf(at(m, [x, y]))];
-    rows.push(row.replace(/\s+$/, ''));
+/** The four charts of a map's playable area, one character per square. */
+function chartsOf(m: GameMap): Record<'ground' | 'relief' | 'rivers' | 'extras', string[]> {
+  const out = { ground: [] as string[], relief: [] as string[], rivers: [] as string[], extras: [] as string[] };
+  for (let y = 1; y < m.height - 1; y++) {
+    let g = '';
+    let r = '';
+    let v = '';
+    let e = '';
+    for (let x = 1; x < m.width - 1; x++) {
+      const t = at(m, [x, y]);
+      const letter = GROUND[t.base] as string;
+      g += t.forest ? letter.toUpperCase() : letter;
+      r += RELIEF[t.relief];
+      v += RIVERS[t.river];
+      e += t.rumor ? '?' : t.resource ? EXTRAS[t.resource] : '.';
+    }
+    out.ground.push(g);
+    out.relief.push(r);
+    out.rivers.push(v);
+    out.extras.push(e);
   }
-  return rows.join('\n');
+  return out;
 }
 
 describe('America map', () => {
-  it('matches the terrain snapshot and is deterministic', () => {
-    expect(ascii(map)).toMatchSnapshot();
+  it('matches the chart snapshot and is deterministic', () => {
+    const charts = chartsOf(map);
+    for (const name of ['ground', 'relief', 'rivers', 'extras'] as const) expect(charts[name].join('\n')).toMatchSnapshot(name);
     expect(americaMap(createRng('america').fork('world'))).toEqual(map);
     expect([map.width, map.height]).toEqual([MAP_WIDTH, MAP_HEIGHT]);
   });
