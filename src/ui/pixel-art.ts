@@ -25,22 +25,22 @@ export const PALETTE = [
   '#c3c7cc', // 4 light grey
   '#8d8a84', // 5 grey
   '#5f5b57', // 6 dark grey
-  '#173d61', // 7 deep sea
-  '#1f4e79', // 8 sea
-  '#2b6398', // 9 wave
-  '#4d8dff', // 10 bright blue
+  '#141f6b', // 7 deep sea
+  '#1f2f8e', // 8 sea
+  '#3d58b0', // 9 wave
+  '#4a8fe8', // 10 bright blue
   '#e6edf2', // 11 ice
-  '#9aa58c', // 12 tundra
+  '#a8b08f', // 12 tundra
   '#d3bd7a', // 13 sand
-  '#b9b45a', // 14 plains
-  '#c9a857', // 15 prairie
-  '#7fae4e', // 16 grass
-  '#a3b548', // 17 savannah
-  '#6f9471', // 18 marsh
-  '#56765c', // 19 swamp
-  '#48902f', // 20 leaf
-  '#2a6642', // 21 forest
-  '#1c4a2e', // 22 deep forest
+  '#c2b268', // 14 plains
+  '#cfae5c', // 15 prairie
+  '#6cb43e', // 16 grass
+  '#a9bd4a', // 17 savannah
+  '#6a9c5e', // 18 marsh
+  '#4c7a4e', // 19 swamp
+  '#4f9f2c', // 20 leaf
+  '#2b7a28', // 21 forest
+  '#1a5a1e', // 22 deep forest
   '#a39262', // 23 hill
   '#7c6b45', // 24 earth
   '#6b4a2a', // 25 wood

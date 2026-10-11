@@ -8,11 +8,12 @@ import { RESOURCE_IDS } from '../../../src/engine/data/resources';
 import { TERRAIN_IDS } from '../../../src/engine/data/terrain';
 import { UNIT_TYPE_IDS } from '../../../src/engine/data/units';
 import { BUILDING_ART, BUILDING_SIZE } from '../../../src/ui/building-art';
+import { FLOOR_ART, FLOOR_CODES, FLOOR_COLORS } from '../../../src/ui/floor-art';
 import { GOODS_ART, GOODS_SIZE } from '../../../src/ui/goods-art';
 import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, flagArt, goodArt, SEAL_GLYPHS, sealArt } from '../../../src/ui/pixel-art';
 import { CHART, CHART_MARK_KINDS } from '../../../src/ui/chart';
 import { CHART_ART, CHART_COLORS } from '../../../src/ui/chart-art';
-import { activeFrameArt, ART, at, blank, blockedCursorArt, cursorArt, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, halve, hasFigure, INK, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
+import { activeFrameArt, ART, at, blank, blockedCursorArt, cursorArt, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, GROUND, halve, hasFigure, INK, MINI, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
 
 const look = (change: Partial<TileLook> = {}): TileLook => ({ terrain: 'plains', river: 'none', riverMask: 0, road: false, roadMask: 0, plowed: false, resource: null, rumor: false, totem: false, variant: 0, ...change });
 const text = (s: Sprite): string => Array.from({ length: s.size }, (_, y) => Array.from({ length: s.size }, (_, x) => (at(s, x, y) === 0 ? '.' : (at(s, x, y) - 1).toString(32))).join('')).join('\n');
@@ -25,6 +26,22 @@ describe('the palette', () => {
     expect(new Set(PALETTE).size).toBe(32);
     for (const hex of PALETTE) expect(hex).toMatch(/^#[0-9a-f]{6}$/);
     expect(Object.values(INK).sort((a, b) => a - b)).toEqual(Array.from({ length: 32 }, (_, i) => i));
+  });
+
+  it('is these thirty-two colours and no others: the baked art and every later picture are painted against them', () => {
+    expect(Object.fromEntries(Object.entries(INK).map(([name, ink]) => [name, PALETTE[ink]]))).toEqual({
+      void: '#0b0d12', ink: '#111111', white: '#f2f2f2', parchment: '#e9dfc4', lightGrey: '#c3c7cc', grey: '#8d8a84', darkGrey: '#5f5b57',
+      deepSea: '#141f6b', sea: '#1f2f8e', wave: '#3d58b0', brightBlue: '#4a8fe8',
+      ice: '#e6edf2', tundra: '#a8b08f', sand: '#d3bd7a', plains: '#c2b268', prairie: '#cfae5c', grass: '#6cb43e', savannah: '#a9bd4a',
+      marsh: '#6a9c5e', swamp: '#4c7a4e', leaf: '#4f9f2c', forest: '#2b7a28', deepForest: '#1a5a1e',
+      hill: '#a39262', earth: '#7c6b45', wood: '#6b4a2a',
+      red: '#c8322b', blue: '#2f5fc4', yellow: '#d9c23c', orange: '#d9812e', green: '#39c24a', purple: '#8a5fb5',
+    });
+    expect([...PALETTE]).toEqual([
+      '#0b0d12', '#111111', '#f2f2f2', '#e9dfc4', '#c3c7cc', '#8d8a84', '#5f5b57', '#141f6b', '#1f2f8e', '#3d58b0', '#4a8fe8',
+      '#e6edf2', '#a8b08f', '#d3bd7a', '#c2b268', '#cfae5c', '#6cb43e', '#a9bd4a', '#6a9c5e', '#4c7a4e', '#4f9f2c', '#2b7a28', '#1a5a1e',
+      '#a39262', '#7c6b45', '#6b4a2a', '#c8322b', '#2f5fc4', '#d9c23c', '#d9812e', '#39c24a', '#8a5fb5',
+    ]);
   });
 
   it('is the only source of colour for the map: the drawing code names no colours of its own', () => {
@@ -56,6 +73,14 @@ describe('terrain art', () => {
     expect(mini.size).toBeGreaterThanOrEqual(14);
     // sea and land never share a colour, and forest is never the colour of its open ground
     for (const [open, forest] of [['plains', 'mixed'], ['grassland', 'conifer'], ['tundra', 'boreal'], ['swamp', 'rain']] as const) expect(text(miniTileArt(look({ terrain: open })))).not.toBe(text(miniTileArt(look({ terrain: forest }))));
+  });
+
+  it('water is never the flat colour of any land, at the smallest zoom and on the minimap', () => {
+    const water = ['ocean', 'seaLane'] as const;
+    const land = TERRAIN_IDS.filter((t) => !(water as readonly string[]).includes(t));
+    expect(land).toHaveLength(TERRAIN_IDS.length - 2);
+    for (const sea of water) for (const t of land) expect(MINI[t], `${sea} and ${t}`).not.toBe(MINI[sea]);
+    expect(MINI.ocean).not.toBe(MINI.seaLane);
   });
 
   it('is the same every time, and varies a little from variant to variant', () => {
@@ -191,6 +216,17 @@ describe('detailed terrain', () => {
         expect(s.size).toBe(DETAIL);
         expect([...s.cells].every((c) => c >= 1), `${terrain} ${variant}`).toBe(true);
       }
+    }
+  });
+
+  it('every baked floor is mostly its terrain\'s ground colour, the one the far zooms and the minimap draw it in', () => {
+    expect(Object.keys(FLOOR_ART).length).toBeGreaterThanOrEqual(13);
+    for (const [name, rows] of Object.entries(FLOOR_ART)) {
+      expect(TERRAIN_IDS as readonly string[], name).toContain(name);
+      const count = new Map<string, number>();
+      for (const letter of rows.join('')) count.set(letter, (count.get(letter) ?? 0) + 1);
+      const [commonest] = [...count].sort((a, b) => b[1] - a[1])[0] as [string, number];
+      expect(FLOOR_COLORS[FLOOR_CODES.indexOf(commonest)], name).toBe(PALETTE[GROUND[name as keyof typeof GROUND]]);
     }
   });
 

@@ -15,7 +15,7 @@ same renderer in the unit suite.
 
 | # | Point | Checked by |
 |---|---|---|
-| 1 | Everything on the map is drawn in one palette of 32 colours (`PALETTE` in `src/ui/pixel-art.ts`). | unit: palette has 32 distinct entries; `render.ts`, `tiles.ts`, `minimap.ts` contain no colour literals. e2e: every canvas pixel at every zoom is a palette colour. |
+| 1 | Everything drawn in code is in one palette of 32 colours (`PALETTE` in `src/ui/pixel-art.ts`; the values and what each is for are in `docs/ART.md`). Every pixel on the canvas is a colour of that palette or of the baked pictures' own sets, which together are `ART_COLORS`, at most 255. | unit: the palette's 32 entries are distinct and pinned by value; `render.ts`, `tiles.ts`, `minimap.ts` contain no colour literals; `ART_COLORS` fits in a byte; every baked floor's commonest colour is its terrain's ground colour, and water is never the flat colour of any land. The reference canvas refuses a fill colour outside `PALETTE`. e2e: every canvas pixel at every zoom is a colour of `ART_COLORS`. |
 | 2 | One pixel grid: art is 16 x 16 to the square; squares are 64, 32, 16 or 8 pixels, so an art pixel is 4, 2, 1 or (halved art) 1 pixel. No smoothing. | unit: `tileSizeFor` gives multiples of 8; art is 16 x 16. e2e: no off-palette (blended) pixels. |
 | 3 | Every terrain can be told apart, open from wooded, hills and mountains by their shapes; rivers, roads, plowed fields, resources and rumors show. | unit: all terrain art distinct; features change the art. e2e sheet baseline. |
 | 4 | Terrain is readable at every zoom; at the smallest each terrain is one flat colour and forest is never the colour of its open ground. | unit: mini art; e2e: at least 8 colours on screen at zoom 0, 12 at the others. |
