@@ -13,6 +13,7 @@ import { GOODS_ART, GOODS_SIZE } from '../../../src/ui/goods-art';
 import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, flagArt, goodArt, SEAL_GLYPHS, sealArt } from '../../../src/ui/pixel-art';
 import { CHART, CHART_MARK_KINDS } from '../../../src/ui/chart';
 import { CHART_ART, CHART_COLORS } from '../../../src/ui/chart-art';
+import { blendArt, COAST_MASKS, coastArt, EDGE_MASKS, floorArt, openOf, overArt, rotate, type TileGrid } from '../../../src/ui/pixel-art';
 import { activeFrameArt, ART, at, blank, blockedCursorArt, cursorArt, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, GROUND, halve, hasFigure, INK, LABEL_GLYPHS, labelArt, labelText, MINI, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
 
 const look = (change: Partial<TileLook> = {}): TileLook => ({ terrain: 'plains', river: 'none', riverMask: 0, road: false, roadMask: 0, plowed: false, resource: null, rumor: false, totem: false, variant: 0, ...change });
@@ -258,6 +259,189 @@ describe('detailed terrain', () => {
     // a river is the bright blue of the plain art, each of its pixels four here
     const blue = (s: Sprite): number => [...s.cells].filter((c) => c - 1 === INK.brightBlue).length;
     expect(blue(detailedTileArt(look({ river: 'minor', riverMask: 5 })))).toBe(4 * blue(tileArt(look({ river: 'minor', riverMask: 5 }))));
+  });
+});
+
+describe('a square in layers: floor, blends, coasts and what stands on it (R-1041)', () => {
+  const GRIDS = [32, 16] as const satisfies readonly TileGrid[];
+  const whole = (l: TileLook, grid: TileGrid): Sprite => (grid === 32 ? detailedTileArt(l) : tileArt(l));
+  const rowsOf = (shape: readonly string[] | undefined): readonly string[] => shape as readonly string[];
+
+  it('splits every square into a floor that fills it and an over layer, and the two together are the whole square', () => {
+    const changes: Partial<TileLook>[] = [{}, { river: 'major', riverMask: 5 }, { road: true, roadMask: 68 }, { plowed: true }, { resource: 'wheat' }, { rumor: true }, { totem: true }];
+    for (const grid of GRIDS) {
+      for (const terrain of TERRAIN_IDS) {
+        for (let variant = 0; variant < 4; variant++) {
+          const floor = floorArt(grid, terrain, variant);
+          expect(floor.size).toBe(grid);
+          expect([...floor.cells].every((c) => c >= 1), `${terrain} ${variant}`).toBe(true);
+          // a forest's floor is the floor of its open row
+          expect(text(floor), terrain).toBe(text(floorArt(grid, openOf(terrain), variant)));
+          for (const change of changes) {
+            const l = look({ terrain, variant, ...change });
+            const over = overArt(l, grid);
+            const expected = floor.cells.map((cell, i) => (over.cells[i] !== 0 ? (over.cells[i] as number) : cell));
+            expect(Buffer.from(whole(l, grid).cells).equals(Buffer.from(expected)), `${grid} ${terrain} ${variant} ${JSON.stringify(change)}`).toBe(true);
+          }
+        }
+      }
+      // nothing stands on bare open ground or on water; a forest stands on its floor
+      for (const terrain of ['plains', 'ocean', 'seaLane', 'arctic'] as const) expect(inks(overArt(look({ terrain }), grid)).size, terrain).toBe(0);
+      expect(inks(overArt(look({ terrain: 'mixed' }), grid)).size).toBeGreaterThan(0);
+    }
+    expect(openOf('mixed')).toBe('plains');
+    expect(openOf('conifer')).toBe('grassland');
+    expect(openOf('hills')).toBe('hills');
+    expect(openOf('ocean')).toBe('ocean');
+  });
+
+  it('turns rows of text art a quarter turn clockwise', () => {
+    expect(rotate(['ab', 'cd'])).toEqual(['ca', 'db']);
+    expect(rotate(['abc', 'def', 'ghi'])).toEqual(['gda', 'heb', 'ifc']);
+    const north = rowsOf(EDGE_MASKS[32][0]);
+    expect(rotate(rotate(rotate(rotate(north))))).toEqual(north);
+    expect(rotate(north)).not.toEqual(north);
+  });
+
+  it('has one stencil per side, an uneven band along that edge, the other three the north one turned', () => {
+    /** How deep the band is under each cell of the top edge; nothing lies below it. */
+    const depths = (rows: readonly string[]): number[] =>
+      Array.from({ length: rows.length }, (_, x) => {
+        const column = rows.map((row) => row[x]).join('');
+        const depth = column.indexOf('.');
+        expect(column.slice(depth)).toBe('.'.repeat(rows.length - depth));
+        return depth;
+      });
+    const count = (list: readonly number[], n: number): number => list.filter((d) => d === n).length;
+    for (const grid of GRIDS) {
+      const masks = EDGE_MASKS[grid].map(rowsOf);
+      expect(masks).toHaveLength(4);
+      for (const mask of masks) {
+        expect(mask).toHaveLength(grid);
+        for (const row of mask) expect(row).toMatch(new RegExp(`^[#.]{${grid}}$`));
+      }
+      expect(masks[1]).toEqual(rotate(rowsOf(masks[0])));
+      expect(masks[2]).toEqual(rotate(rowsOf(masks[1])));
+      expect(masks[3]).toEqual(rotate(rowsOf(masks[2])));
+      // east lies along the right-hand edge, south along the bottom, west along the left
+      expect(rowsOf(masks[1]).every((row) => row.endsWith('##') && row.startsWith('.'))).toBe(true);
+      expect(rowsOf(masks[2])[grid - 1]).toBe('#'.repeat(grid));
+      expect(rowsOf(masks[3]).every((row) => row.startsWith('##') && row.endsWith('.'))).toBe(true);
+    }
+    const large = depths(rowsOf(EDGE_MASKS[32][0]));
+    expect(Math.min(...large)).toBe(2);
+    expect(Math.max(...large)).toBe(6);
+    expect(count(large, 2)).toBe(2);
+    expect(count(large, 6)).toBe(2);
+    expect(new Set(large).size).toBe(5);
+    expect(new Set(depths(rowsOf(EDGE_MASKS[16][0])))).toEqual(new Set([2, 3]));
+  });
+
+  it('a blend piece holds the neighbour\'s floor inside its side\'s stencil and nothing outside it', () => {
+    for (const grid of GRIDS) {
+      for (let side = 0; side < 4; side++) {
+        const piece = blendArt(grid, side, 'grassland', 3);
+        const floor = floorArt(grid, 'grassland', 3);
+        const mask = rowsOf(EDGE_MASKS[grid][side]);
+        for (let y = 0; y < grid; y++) for (let x = 0; x < grid; x++) expect(at(piece, x, y), `${grid} ${side} ${x},${y}`).toBe((mask[y] as string)[x] === '#' ? at(floor, x, y) : 0);
+      }
+      // a forest spills as its open row does
+      expect(text(blendArt(grid, 1, 'conifer', 2))).toBe(text(blendArt(grid, 1, 'grassland', 2)));
+      expect(differ(blendArt(grid, 0, 'grassland', 0), blendArt(grid, 0, 'plains', 0))).toBe(true);
+    }
+  });
+
+  it('has eight coast shapes for a quarter of a square on each grid, whose land meets across quarters and squares', () => {
+    const landCells = (rows: readonly string[]): number => rows.join('').split('.').length - 1;
+    /** How far the land reaches in from the west along a row, and down from the north along a column. */
+    const fromWest = (rows: readonly string[], y: number): number => `${rows[y] as string}#`.indexOf('#');
+    const fromNorth = (rows: readonly string[], x: number): number => [...rows, '#'.repeat(rows.length)].findIndex((row) => row[x] === '#');
+    for (const grid of GRIDS) {
+      const half = grid / 2;
+      const shapes = COAST_MASKS[grid].map(rowsOf);
+      expect(shapes).toHaveLength(8);
+      for (const shape of shapes) {
+        expect(shape).toHaveLength(half);
+        for (const row of shape) expect(row).toMatch(new RegExp(`^[#.]{${half}}$`));
+      }
+      const [none, west, corner, westCorner, north, both, northCorner, all] = shapes.map(rowsOf) as [readonly string[], readonly string[], readonly string[], readonly string[], readonly string[], readonly string[], readonly string[], readonly string[]];
+      expect(landCells(none)).toBe(0);
+      expect(both).toEqual(all);
+      // the corner alone is the smallest piece of land, and sits in the corner
+      expect((corner[0] as string)[0]).toBe('.');
+      for (const shape of [west, westCorner, north, both, northCorner]) expect(landCells(corner)).toBeLessThan(landCells(shape));
+      // land down the west side, along the north side, and round the inner corner; water in the middle of the square
+      for (let i = 0; i < half; i++) {
+        expect(fromWest(west, i), `west ${i}`).toBeGreaterThan(0);
+        expect(fromNorth(north, i), `north ${i}`).toBeGreaterThan(0);
+        expect(fromWest(both, i)).toBeGreaterThan(0);
+        expect(fromNorth(both, i)).toBeGreaterThan(0);
+        expect(fromWest(westCorner, i)).toBeGreaterThan(0);
+        expect(fromNorth(northCorner, i)).toBeGreaterThan(0);
+      }
+      for (const shape of shapes) expect((shape[half - 1] as string)[half - 1]).toBe('#');
+      // a side's land is one depth at the middle of the side, whichever shape draws it
+      const middle = fromWest(west, half - 1);
+      for (const shape of [westCorner, both]) expect(fromWest(shape, half - 1)).toBe(middle);
+      for (const shape of [north, northCorner, both]) expect(fromNorth(shape, half - 1)).toBe(middle);
+      // and one depth at the square's corner where a side ends or a lone corner begins; a side with its corner swells there
+      const end = fromWest(west, 0);
+      expect(fromNorth(north, 0)).toBe(end);
+      expect(fromWest(corner, 0)).toBe(end);
+      expect(fromNorth(corner, 0)).toBe(end);
+      expect(fromWest(westCorner, 0)).toBeGreaterThan(end);
+      expect(fromNorth(northCorner, 0)).toBe(fromWest(westCorner, 0));
+      // the edges are uneven
+      expect(new Set(Array.from({ length: half }, (_, i) => fromWest(west, i))).size).toBeGreaterThan(1);
+      expect(new Set(Array.from({ length: half }, (_, i) => fromNorth(north, i))).size).toBeGreaterThan(1);
+    }
+  });
+
+  it('a coast piece is the water\'s floor through its quarter\'s shape, with a line of shallows where it meets the land', () => {
+    const wave = INK.wave + 1;
+    for (const grid of GRIDS) {
+      const half = grid / 2;
+      const reach = grid / 16;
+      for (const water of ['ocean', 'seaLane'] as const) {
+        const floor = floorArt(grid, water, 1);
+        for (let quadrant = 0; quadrant < 4; quadrant++) {
+          const left = quadrant === 1 || quadrant === 2 ? half : 0;
+          const top = quadrant >= 2 ? half : 0;
+          for (let code = 0; code < 8; code++) {
+            let shape = rowsOf(COAST_MASKS[grid][code]);
+            for (let turn = 0; turn < quadrant; turn++) shape = rotate(shape);
+            const piece = coastArt(grid, water, quadrant, code, 1);
+            const land = (x: number, y: number): boolean => shape[y]?.[x] === '.';
+            let wrong = '';
+            for (let y = 0; y < grid; y++) {
+              for (let x = 0; x < grid; x++) {
+                const [qx, qy] = [x - left, y - top];
+                let expected = 0;
+                if (qx >= 0 && qy >= 0 && qx < half && qy < half && !land(qx, qy)) {
+                  let nearest = Infinity;
+                  for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (land(qx + dx, qy + dy)) nearest = Math.min(nearest, Math.max(Math.abs(dx), Math.abs(dy)));
+                  expected = nearest <= reach ? wave : at(floor, x, y);
+                }
+                if (at(piece, x, y) !== expected) wrong = `${x},${y}`;
+              }
+            }
+            expect(wrong, `${grid} ${water} quarter ${quadrant} code ${code}`).toBe('');
+          }
+          // with no land about, the quarter is the water alone
+          expect([...coastArt(grid, water, quadrant, 0, 1).cells].filter((c) => c !== 0)).toHaveLength(half * half);
+        }
+      }
+      // the water under the shape shimmers with the variant, as the open sea does
+      expect(differ(coastArt(grid, 'ocean', 0, 2, 0), coastArt(grid, 'ocean', 0, 2, 1))).toBe(true);
+      // land along the north of the north-west quarter is, turned once, land along the east of the north-east one
+      const northWest = coastArt(grid, 'ocean', 0, 4, 0);
+      const northEast = coastArt(grid, 'ocean', 1, 4, 0);
+      for (let i = 0; i < half; i++) {
+        expect(at(northWest, i, 0)).toBe(0);
+        expect(at(northEast, grid - 1, i)).toBe(0);
+      }
+      expect(at(northEast, half, half - 1)).not.toBe(0);
+    }
   });
 });
 

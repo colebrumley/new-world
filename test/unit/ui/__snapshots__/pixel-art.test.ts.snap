@@ -204,17 +204,17 @@ exports[`helpers > matches the art snapshot 1`] = `
 ...1rrrrrrrrr11.
 ...11111111111..
 ................",
-  "forest": "kgklggggkggggggg
-kgllgggglggglggg
-ggllmggllggllggg
+  "forest": "ggglgggggkggkggg
+ggllgggglggglgkg
+ggllmggllggllgkg
 glllmmgllmgllmgg
-gggpkglllmlllmmg
-ggggglggpglgpggg
-kgggllgggllggglg
-kgggllmggllmgllg
+gggpgglllmlllmmg
+ggggglgkpglgpggg
+ggggllgggllgkglg
+ggggllmggllmkllg
 ggglllmmlllmmllm
-ggggkpggggpglllm
-gglggggggggglgpg
+gggggpkgggpglllm
+gglgggkggggglgpg
 gllggggglggllggg
 gllmgggllggllmgg
 lllmmggllmlllmmg

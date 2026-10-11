@@ -3,7 +3,7 @@
 // art into a small canvas once and hands it out again, and draws it scaled without smoothing.
 import { terrainOf, type Tile } from '../engine/tile';
 import type { TerrainId } from '../engine/data/terrain';
-import { ART, DETAIL, detailedTileArt, GROUND, MINI, miniTileArt, PALETTE, tileArt, toRgba, type ChartGrid, type Sprite, type TileLook } from './pixel-art';
+import { ART, blendArt, coastArt, DETAIL, detailedTileArt, floorArt, GROUND, MINI, miniTileArt, overArt, PALETTE, tileArt, toRgba, type ChartGrid, type Sprite, type TileGrid, type TileLook } from './pixel-art';
 
 export type { TileLook } from './pixel-art';
 
@@ -25,7 +25,7 @@ const grade = (size: number): 's' | 'l' | 'd' => (size < DETAIL_FROM ? 's' : siz
 /** How many art pixels to the square the explorer's chart is drawn on, for a square of `size` pixels: the same three sets as the terrain. */
 export const chartGrid = (size: number): ChartGrid => (grade(size) === 's' ? 8 : grade(size) === 'd' ? DETAIL : ART);
 
-/** The art for a tile at a square of `size` pixels. */
+/** The art for a whole tile at a square of `size` pixels: its floor with everything that stands on it. */
 export function tileSprite(look: TileLook, size: number): Sprite {
   const g = grade(size);
   return g === 's' ? miniTileArt(look) : g === 'd' ? detailedTileArt(look) : tileArt(look);
@@ -77,19 +77,34 @@ export function drawArt(ctx: Ctx, art: CanvasImageSource, x: number, y: number, 
   ctx.drawImage(art, x, y, size, size);
 }
 
-/** Paint one tile at (0, 0) of the context, `size` pixels square. */
+/** Paint one whole tile at (0, 0) of the context, `size` pixels square: the square as it stands alone, with no neighbours to blend with (the colony screen). */
 export function paintTile(ctx: Ctx, size: number, look: TileLook): void {
   drawArt(ctx, spriteCanvas(tileSprite(look, size)), 0, 0, size);
 }
 
 export interface TileCache {
+  /** A whole tile: floor and all. The map draws it only at the smallest zoom; above that it draws the layers below. */
   get(look: TileLook, size: number): CanvasImageSource;
   /** Any other art, made once per key. */
   sprite(key: string, make: () => Sprite): CanvasImageSource;
   readonly size: number;
 }
 
-/** Cache of art as canvases. Tiles are keyed by their look; the art is the same at every size above the smallest. */
+/**
+ * The layers the map draws a square in above the smallest zoom, each made once per key (R-1041): the floor
+ * of an open terrain, a neighbour's floor spilling in through one side, one quarter of a coast's water,
+ * and whatever stands on the square. `grid` is 32 or 16 art pixels to the square, as `chartGrid` gives.
+ */
+export const floorLayer = (cache: TileCache, grid: TileGrid, open: TerrainId, variant: number): CanvasImageSource =>
+  cache.sprite(`floor|${grid}|${open}|${variant}`, () => floorArt(grid, open, variant));
+export const blendLayer = (cache: TileCache, grid: TileGrid, side: number, open: TerrainId, variant: number): CanvasImageSource =>
+  cache.sprite(`blend|${grid}|${side}|${open}|${variant}`, () => blendArt(grid, side, open, variant));
+export const coastLayer = (cache: TileCache, grid: TileGrid, water: TerrainId, quadrant: number, code: number, variant: number): CanvasImageSource =>
+  cache.sprite(`coast|${grid}|${water}|${quadrant}|${code}|${variant}`, () => coastArt(grid, water, quadrant, code, variant));
+/** The over layer is keyed as the whole square is: by everything in its look. */
+export const overLayer = (cache: TileCache, grid: TileGrid, look: TileLook): CanvasImageSource => cache.sprite(`over|${lookKey(look, grid)}`, () => overArt(look, grid));
+
+/** Cache of art as canvases. Whole tiles are keyed by their look; the art is the same at every size above the smallest. */
 export function createTileCache(): TileCache {
   let cache = new Map<string, HTMLCanvasElement>();
   const keep = (key: string, make: () => Sprite): HTMLCanvasElement => {
