@@ -463,7 +463,31 @@ describe('detailed terrain', () => {
     }
     const cover = (rows: readonly string[] | undefined): number => [...(rows as readonly string[]).join('')].filter((ch) => ch !== '.').length / (rows as readonly string[]).join('').length;
     for (const forest of FORESTS) expect(cover(FEATURE_ART[forest]), forest).toBeGreaterThanOrEqual(0.6);
-    for (const rise of ['hills', 'mountains']) expect(cover(FEATURE_ART[rise]), rise).toBeGreaterThanOrEqual(0.45);
+    expect(cover(FEATURE_ART.hills), 'hills').toBeGreaterThanOrEqual(0.45);
+    expect(cover(FEATURE_ART.mountains), 'mountains').toBeGreaterThanOrEqual(0.6);
+    expect(cover(FEATURE_ART_16.mountains), 'mountains 16').toBeGreaterThanOrEqual(0.55);
+  });
+
+  it('mountains are a snowy massif that fills its square: to the top, to both sides and along the foot, snow over its upper half and outlined in the dark', () => {
+    const rows = FEATURE_ART.mountains as readonly string[];
+    const solid = (x: number, y: number): boolean => (rows[y] as string)[x] !== '.';
+    const cells = [...Array(FEATURE_SIZE).keys()];
+    // the tips are in the first three rows, the foot stands along the bottom row, and the range reaches both sides in its lower half
+    expect(cells.findIndex((y) => cells.some((x) => solid(x, y)))).toBeLessThan(3);
+    expect(cells.filter((x) => solid(x, FEATURE_SIZE - 1)).length).toBeGreaterThanOrEqual(24);
+    for (const x of [0, FEATURE_SIZE - 1]) expect(cells.filter((y) => y >= FEATURE_SIZE / 2 && solid(x, y)).length, `column ${x}`).toBeGreaterThanOrEqual(8);
+    // snow is a cell with every channel at 200 or over, the outline one with every channel under 48
+    const channels = (ch: string): number[] => [1, 3, 5].map((i) => parseInt((FEATURE_COLORS[FEATURE_CODES.indexOf(ch)] as string).slice(i, i + 2), 16));
+    const share = (rows: readonly string[], is: (rgb: number[]) => boolean): number => [...rows.join('')].filter((ch) => ch !== '.' && is(channels(ch))).length / rows.join('').length;
+    expect(share(rows, (rgb) => rgb.every((n) => n >= 200))).toBeGreaterThanOrEqual(0.12);
+    expect(share(rows, (rgb) => rgb.every((n) => n < 48))).toBeGreaterThanOrEqual(0.08);
+    // and the snow lies on the upper faces, not at the foot: more of it in the upper half than the lower, and next to none in the bottom quarter
+    const snowy = (from: number, to: number): number => share(rows.slice(from, to), (rgb) => rgb.every((n) => n >= 200)) * (to - from) * FEATURE_SIZE;
+    expect(snowy(0, FEATURE_SIZE / 2)).toBeGreaterThan(snowy(FEATURE_SIZE / 2, FEATURE_SIZE));
+    expect(snowy((FEATURE_SIZE * 3) / 4, FEATURE_SIZE)).toBeLessThan(8);
+    expect(snowy(FEATURE_SIZE - 1, FEATURE_SIZE)).toBe(0);
+    // the hills beside them hold no snow, so the two reliefs are told apart by more than their shapes
+    expect(share(FEATURE_ART.hills as readonly string[], (rgb) => rgb.every((n) => n >= 200))).toBe(0);
   });
 
   it('the 16-pixel grid draws the baked ground and features, turned by the variant as the 32-pixel grid turns its own', () => {

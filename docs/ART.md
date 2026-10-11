@@ -54,7 +54,7 @@ painting, which is 8 to 5. The older pictures in `art/` are 1254 pixels square.
 | Folder | Subject | Baked as | Into |
 |---|---|---|---|
 | `art/floors` | The ground of each of the thirteen terrains that has a floor, named by its terrain id (`plains.png`, `seaLane.png`, ...): bare ground with a little texture, in one clearly dominant colour, filling the square. | 32 px, in the map palette alone, single cells kept (`specks`), then levelled so the commonest colour is exactly the terrain's palette colour; then a 16 px copy in the same colours, levelled the same way | `src/ui/floor-art.ts` (`FLOOR_ART`, `FLOOR_ART_16`) |
-| `art/features` | What stands on the ground: one picture for each of the eight forests, for hills and for mountains, named by its terrain id, cut out on magenta: a dense clump that fills its square, since a forest must cover at least six tenths of it and hills or mountains nearly half. It is baked once, as it stands: where two of a kind meet, the map draws the picture again half a square over (`joinMask`), so the wood or the ridge runs on. | 32 px, one palette of 32 for the folder; then a 16 px copy in the same colours (`--palette-name`) | `src/ui/feature-art.ts` (`FEATURE_ART`, `FEATURE_ART_16`) |
+| `art/features` | What stands on the ground: one picture for each of the eight forests, for hills and for mountains, named by its terrain id, cut out on magenta: a dense clump that fills its square, since a forest or mountains must cover at least six tenths of it and hills nearly half. Mountains are a massif that reaches both sides of the square and stands on its bottom edge ("What a mountain needs" below). It is baked once, as it stands: where two of a kind meet, the map draws the picture again half a square over (`joinMask`), so the wood or the ridge runs on. | 32 px, one palette of 32 for the folder; then a 16 px copy in the same colours (`--palette-name`) | `src/ui/feature-art.ts` (`FEATURE_ART`, `FEATURE_ART_16`) |
 | `art/resources` | One marker per special resource, named by its id in `src/engine/data/resources.ts`: a picture of the thing itself, cut out on magenta: one bold, compact silhouette with few parts, since it is shrunk further than anything else. | 24 px, one palette of 24 for the folder, the subject centred in its square with a twelfth of the square clear round it (`centre`), and the near-black outline colours folded into one ink (`one_ink`); then a 12 px copy in the same colours (`--palette-name`), with an outline of that ink drawn round it after shrinking, as the painted one is too thin to survive | `src/ui/resource-art.ts` (`RESOURCE_ART`, `RESOURCE_ART_12`) |
 | `art/places` | A colony at each state of its walls and a native settlement at each level of advancement, cut out on magenta, roofs in cyan. | 32 px, one palette of 24 for the folder | `src/ui/place-art.ts` |
 | `art/units` | One figure per unit type, named by its id, cut out on magenta. | 30 px, one palette of 32 for the folder | `src/ui/unit-art.ts` |
@@ -197,6 +197,35 @@ subject.
   bushes touching one another instead.
 - One run of five or six pictures takes about six minutes; five runs side by side take no longer.
 
+### What a mountain needs (learned in R-1048)
+
+- **Mountains with character, not a row of points.** The first subject asked for "four tall, sharp, triangular
+  peaks standing side by side": it came back as four equal spikes, and a range of them read as a fence. The one
+  kept asks for "a charming, whimsical storybook mountain massif: three big, chunky mountains of clearly
+  different heights and widths huddled together and overlapping", the tallest a little left of the middle with
+  a crooked summit, a broad-shouldered one overlapping it, a stout one in front; "mountains, not spikes or
+  cones: each has broad sloping shoulders, a craggy stepped ridge line, a notch or a ledge or two, and big
+  simple facets of rock".
+- **Filling the square to both sides and along the foot.** Say that the massif spans the full width of the
+  image, touches the left and right edges in its lower half, stands on the bottom edge from corner to corner,
+  and that only magenta shows above the summits. The map draws the picture again half a square toward each
+  mountain beside it, under the picture itself (`joinMask`), so the copies stand in the gaps between the
+  summits and the range runs on; a clump with ground round it leaves a row of floor at every edge.
+- **Snow like icing over the upper half of each mountain**, in white `#f2f2f2` with its shaded side in light
+  grey `#c3c7cc`, "its lower edge hanging down in a few big rounded drips and scallops, not a small cap". A cap
+  is two or three cells at 32 pixels and nothing at 16, and without snow mountains are grey hills. Rock below in
+  grey `#8d8a84` on the lit left faces and dark grey `#5f5b57` on the shaded right, and low rounded foothills
+  of earth `#7c6b45` along the foot.
+- **Ask for the outline heavier than it need be.** "About 40 pixels wide" came back about half that, which
+  is under a cell at 32 pixels and baked to a fiftieth of the square in ink: mountains with no line between
+  them. "A very heavy, bold dark outline, 50 pixels wide everywhere and never thinner than 40, as heavy as in
+  the attached picture of hills, from summit to foot" baked to a sixth of the square.
+- Run the prompt four times side by side and bake each: of four pictures from the one prompt, one had too
+  little snow to pass the tests and another only just enough. Look at a range of them on the map as well as at the square alone
+  (`docs/art/mountains-64.png` is such a range), since the joins double the summits. Send a picture back if the
+  mountains are spikes or cones, if the massif does not reach both sides, if the snow is a cap, or if the rock
+  has gradients. Attach `art/features/hills.png` and `art/features/boreal.png` as style references.
+
 ### Checking what comes back
 
 Look at every picture before baking it. Send a picture back (run its prompt again, alone) when it
@@ -281,8 +310,11 @@ should expect that, look at the result, and say so in its pull request.
 - Every floor's commonest colour is its terrain's `GROUND` colour and covers at least four tenths of
   it, at 32 pixels and at 16, and every colour of a floor is a colour of the palette (unit tests), so
   that the three nearest zooms agree with the farthest and with the minimap.
-- A forest is opaque over at least six tenths of its 32-pixel square, hills and mountains over at least
-  0.45 of theirs; the ten are distinct at 32 pixels and at 16; `FLOOR_COLORS` and `FEATURE_COLORS` hold
+- A forest is opaque over at least six tenths of its 32-pixel square, hills over at least 0.45 of theirs and
+  mountains over six tenths (0.55 at 16 pixels). The mountains' topmost cell is in the first three rows, their
+  bottom row holds at least 24 cells, and each outer column at least eight in the lower half; snow (every channel
+  at 200 or over) is at least 0.12 of the square and outline (every channel under 48) at least 0.08. The ten are
+  distinct at 32 pixels and at 16; `FLOOR_COLORS` and `FEATURE_COLORS` hold
   at most 32 colours each; and a 16-pixel copy uses no colour the 32-pixel picture does not (unit tests).
 - The title painting and the portraits use no colour outside the palette (their unit tests).
 - Every sprite is square and is drawn at a whole multiple of its grid, with no smoothing
