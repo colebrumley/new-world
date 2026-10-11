@@ -3,6 +3,8 @@
     git clone https://github.com/colebrumley/pixelforge && (cd pixelforge && uv sync)
     PIXELFORGE=pixelforge pixelforge/.venv/bin/python scripts/bake-art.py [folder ...]
 
+What a source picture must look like, how one is generated and what to update after a bake are in docs/ART.md.
+
 The pictures are shrunk by pixelforge (https://github.com/colebrumley/pixelforge); PIXELFORGE is the
 path to a checkout of it, and the script is run with that checkout's Python. With folder names
 (chart, units, places, features, floors, title, buildings, goods, portraits) only those are baked.
@@ -18,7 +20,7 @@ palette per folder, terrain in a few flat colours per picture), and written
 out as data: src/ui/unit-art.ts, place-art.ts, feature-art.ts, floor-art.ts, building-art.ts and
 goods-art.ts, which pixel-art.ts draws from. In a place or a building, whatever is painted cyan is
 given the owner's colour when it is drawn. A floor is shifted so that its commonest colour is the
-terrain's colour on the minimap.
+terrain's ground colour, which is read from PALETTE and GROUND in src/ui/pixel-art.ts.
 
 art/chart holds the explorer's chart the unexplored map is drawn as: the vellum floor, the compass
 rose and the chart's creatures, each at 32, 16 and 8 pixels to the square. They are drawn by
@@ -53,12 +55,37 @@ from PIL import Image
 CODES = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 OWNER = '*'
 ROOT = Path(__file__).resolve().parent.parent
-# The ground colour of each terrain that has a floor: GROUND in src/ui/pixel-art.ts, as colours.
-FLOOR_COLOURS = {
-    'ocean': '#1f4e79', 'seaLane': '#173d61', 'arctic': '#e6edf2', 'tundra': '#9aa58c', 'desert': '#d3bd7a', 'plains': '#b9b45a',
-    'prairie': '#c9a857', 'grassland': '#7fae4e', 'savannah': '#a3b548', 'marsh': '#6f9471', 'swamp': '#56765c', 'hills': '#a39262',
-    'mountains': '#8d8a84',
-}
+
+
+def map_palette() -> list[str]:
+    """The 32 colours of PALETTE in src/ui/pixel-art.ts."""
+    palette = re.findall(r"^  '(#[0-9a-f]{6})', // \d+ ", (ROOT / 'src/ui/pixel-art.ts').read_text(), re.M)
+    if len(palette) != 32:
+        raise SystemExit(f'expected the 32 colours of PALETTE in src/ui/pixel-art.ts, found {len(palette)}')
+    return palette
+
+
+def ground_colours() -> dict[str, str]:
+    """
+    The ground colour of every terrain: GROUND in src/ui/pixel-art.ts, each of its inks looked up in INK and then in
+    PALETTE there. Read from the source, so a floor can never be levelled to a colour the map does not draw.
+    """
+    source = (ROOT / 'src/ui/pixel-art.ts').read_text()
+    palette = map_palette()
+    tables = {}
+    for name in ('INK', 'GROUND'):
+        found = re.search(rf'^export const {name}\b[^=]*= \{{(.*?)^\}}', source, re.M | re.S)
+        if not found:
+            raise SystemExit(f'{name} not found in src/ui/pixel-art.ts')
+        tables[name] = found.group(1)
+    inks = {name: int(number) for name, number in re.findall(r'(\w+): (\d+)', tables['INK'])}
+    if sorted(inks.values()) != list(range(len(palette))):
+        raise SystemExit(f'expected INK in src/ui/pixel-art.ts to name each of the {len(palette)} palette entries once, found {len(inks)} names')
+    ground = re.findall(r'(\w+): INK\.(\w+)', tables['GROUND'])
+    unknown = sorted({ink for _, ink in ground if ink not in inks})
+    if not ground or unknown:
+        raise SystemExit('GROUND in src/ui/pixel-art.ts: ' + ('no entries' if not ground else 'no such ink as ' + ', '.join(unknown)))
+    return dict((terrain, palette[inks[ink]]) for terrain, ink in ground)
 
 
 def cut_out(path: Path) -> Image.Image:
@@ -106,7 +133,7 @@ def floor(path: Path) -> Image.Image:
     picture = Image.open(path).convert('RGB')
     trim = picture.width // 32
     rgb = np.array(picture.crop((trim, trim, picture.width - trim, picture.height - trim))).astype(int)
-    want = FLOOR_COLOURS[path.stem]
+    want = ground_colours()[path.stem]
     target = np.array([int(want[i:i + 2], 16) for i in (1, 3, 5)])
     coarse = (rgb // 8).reshape(-1, 3)
     values, counts = np.unique(coarse, axis=0, return_counts=True)
@@ -157,10 +184,11 @@ def bake(folder: str, size: int, palette: int, owner_key: bool = False, prepare=
 def level(colours: list[str], figures: dict[str, list[str]]) -> list[str]:
     """Give each floor's commonest colour exactly its terrain's colour, so the ground is one flat colour that matches the minimap."""
     colours = list(colours)
+    ground = ground_colours()
     for name, rows in figures.items():
         letters = ''.join(rows)
         base = max(set(letters), key=letters.count)
-        want = FLOOR_COLOURS[name]
+        want = ground[name]
         if want not in colours:
             colours.append(want)
         figures[name] = [row.replace(base, CODES[colours.index(want)]) for row in rows]
@@ -234,14 +262,6 @@ def write(path: str, title: str, prefix: str, size_name: str, size: int, colours
     lines += ['};', '']
     (ROOT / path).write_text('\n'.join(lines))
     print(f'{path}: {len(figures)} pictures, {len(colours)} colours')
-
-
-def map_palette() -> list[str]:
-    """The 32 colours of PALETTE in src/ui/pixel-art.ts."""
-    palette = re.findall(r"^  '(#[0-9a-f]{6})', // \d+ ", (ROOT / 'src/ui/pixel-art.ts').read_text(), re.M)
-    if len(palette) != 32:
-        raise SystemExit(f'expected the 32 colours of PALETTE in src/ui/pixel-art.ts, found {len(palette)}')
-    return palette
 
 
 # The colours of the map palette a portrait is not drawn in, by their numbers there: the void, and the greens and
