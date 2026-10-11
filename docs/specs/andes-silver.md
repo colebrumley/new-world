@@ -1,6 +1,6 @@
 # Silver in the Andes, and a marker that shows on mountains: spec for R-1052 to R-1053
 
-Written by `/plan` on 2026-10-11. Status: approved.
+Written by `/plan` on 2026-10-11. Status: built.
 
 **The request, in the owner's words:** there should be more silver in the Andes mountains on the
 America map. I only see one in all of South America?
