@@ -91,6 +91,7 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-303 | building table | hammers, tools x 10, min population, upkeep as the rule table | — | high | third column ("size") stored, unused; Fort 3, Drydock 4, shops 1, Fur Factory 6, Printing Press 52/20 |
 | R-303 | buy price | 13 per hammer + (tools price + 4) per tool, x2 with no hammers down | Revolution Now colony.rcl | high | resolves [VERIFY]; backlog guessed 10 per hammer. Bid vs ask for tools: medium |
 | R-303 | completion | hammers >= cost and tools in stock; hammer store reset to 0, no carry-over | — | high | |
+| R-303 | after completion | project stays selected; the colony is visited for a new choice; a project left on a finished building is reported when the store refills | — | high | |
 | R-303 | upkeep | not charged | — | high | resolves [VERIFY] in Appendix E |
 | R-303 | first project | Docks in a port colony, else Warehouse | — | high | |
 | R-303 | Docks vs Drydock siting | Docks: any water square; Drydock/Shipyard: open sea | — | high | |

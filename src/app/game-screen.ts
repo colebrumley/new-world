@@ -419,12 +419,18 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         if (e.type === 'nativeGift' && session.state.colonies[e.colonyId]?.owner === me()) say(`Natives brought a gift of ${e.amount} ${GOOD_NAMES[e.good]} to ${session.state.colonies[e.colonyId]?.name ?? 'our colony'}.`);
         if (e.type === 'convertJoined' && e.player === me()) say('A native convert has joined one of our colonies.');
       }
-      void royalBusiness();
+      for (const e of stepped.events) {
+        if ((e.type === 'buildingCompleted' || e.type === 'unitBuilt') && session.state.colonies[e.colonyId]?.owner === me() && !finished.includes(e.colonyId)) finished.push(e.colonyId);
+      }
     }
     // a treasure train that has just come into one of our colonies, by a move, a Go To or being put ashore there
     const arrived = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'endTurn' || action.type === 'goAshore' ? treasuresArrived(before, session.state) : [];
-    if (action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'foundColony' || action.type === 'endTurn') {
-      void afterMoving(stepped.events, arrived, !turnEnded);
+    const moving = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'foundColony' || action.type === 'endTurn';
+    if (turnEnded) {
+      // the turn's questions come one after another (both ask for audiences); then the player is taken to each colony with a finished project
+      void royalBusiness().then(() => (moving ? afterMoving(stepped.events, arrived, false) : undefined)).then(visitFinished);
+    } else if (moving) {
+      void afterMoving(stepped.events, arrived, true);
     } else if (arrived.length > 0) {
       // put ashore from the colony screen: ask once that screen has redrawn and taken focus, so the question keeps it
       queueMicrotask(() => void offerTreasures(arrived, false));
@@ -1012,7 +1018,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   };
 
   // --- the colony screen -------------------------------------------------------------------
-  let colonyScreen: { element: HTMLElement; refresh(): void } | null = null;
+  let colonyScreen: { element: HTMLElement; refresh(): void; chooseProject(): Promise<void> } | null = null;
   const closeColony = (): void => {
     colonyScreen?.element.remove();
     colonyScreen = null;
@@ -1020,6 +1026,20 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     settle();
     dirty = true;
     canvas.focus();
+    void visitFinished();
+  };
+  /** Colonies that finished a building or a unit this turn, still to be taken to for their next project. */
+  const finished: string[] = [];
+  /** Takes the player to the next colony whose project is finished, on the question of what to build now. */
+  const visitFinished = async (): Promise<void> => {
+    if (colonyScreen || europeScreen || session.state.over || screen.querySelector('[role="dialog"]')) return;
+    for (let next = finished.shift(); next !== undefined; next = finished.shift()) {
+      if (session.state.colonies[next]?.owner !== me()) continue;
+      openColony(next);
+      const opened = colonyScreen as { chooseProject(): Promise<void> } | null;
+      await opened?.chooseProject();
+      return;
+    }
   };
   const openColony = (colonyId: string): void => {
     if (colonyScreen || session.state.colonies[colonyId]?.owner !== me()) return;

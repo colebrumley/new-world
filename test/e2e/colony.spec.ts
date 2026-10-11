@@ -573,3 +573,48 @@ test('a large colony: every chain shows the picture of the link it has reached, 
   await expect(mill.locator('.slot-free')).toHaveCount(1);
   expect(errors).toEqual([]);
 });
+
+test('a finished project takes the player to the colony to choose the next one', async ({ page }) => {
+  const rows = Array.from({ length: 8 }, (_, y) => (y === 0 || y === 7 ? '~'.repeat(10) : '~~......~~'));
+  let state = world({ rows, seed: 5, players: [{ id: 'p0', kind: 'human', nation: 'england' }] });
+  // the Docks are a turn from done: the hammers are in, and the colony has food enough
+  state = withColony(state, { id: 'james', owner: 'p0', x: 2, y: 3, name: 'Jamestown', goods: { food: 100 }, hammers: 52, construction: { kind: 'building', id: 'docks' } });
+  state = withUnit(state, { id: 'gun', owner: 'p0', type: 'artillery', profession: null, x: 2, y: 3, orders: 'fortified' });
+  await page.addInitScript((text) => localStorage.setItem('new-world:autosave', text), saveGame({ options: { seed: 5 }, log: [], state }));
+  await page.goto('/');
+  await page.getByRole('menuitem', { name: 'Load Game' }).click();
+  await expect(field(page, 'unit')).toHaveText('No active unit');
+  await page.keyboard.press('Enter'); // end the turn
+
+  // the turn's questions come first: the Congress asks which Father to seek
+  const congress = page.getByRole('dialog').filter({ hasText: 'Founding Father' });
+  await expect(congress).toBeVisible();
+  const colony = page.locator('.colony-screen');
+  await expect(colony).toHaveCount(0);
+  await congress.getByRole('button').first().click();
+
+  // then the colony opens of itself on its construction view, asking what to build now
+  await expect(colony.getByRole('heading', { name: 'Jamestown' })).toBeVisible();
+  await expect(colony).toHaveAttribute('data-tab', 'construction');
+  const menu = page.getByRole('dialog').filter({ hasText: 'What shall the colony build?' }).last(); // the colony screen is a dialog too
+  await expect(menu).toBeVisible();
+  await expect(field(page, 'log')).toContainText('Jamestown has completed its Docks.');
+  // left as it was, the finished project is still selected and the panel says so
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  await expect(colony.locator('.construction-item')).toHaveText('Docks is built: choose the next project.');
+  await expect(colony.locator('.construction-progress')).toHaveText('Hammers stored: 0');
+  await expect(colony.locator('.building[data-building="docks"]')).toHaveCount(1);
+  // choosing again from the panel
+  await page.keyboard.press('c');
+  await menu.getByRole('button', { name: /^Warehouse/ }).click();
+  await expect(colony.locator('.construction-item')).toHaveText('Building: Warehouse');
+  await page.keyboard.press('Escape');
+  await expect(colony).toHaveCount(0);
+  // the next turn has nothing finished, so nothing opens
+  const turn = Number(await page.locator('canvas.map').getAttribute('data-turn'));
+  await page.keyboard.press('Enter');
+  await expect(page.locator('canvas.map')).toHaveAttribute('data-turn', String(turn + 1));
+  await expect(field(page, 'log').locator('li', { hasText: 'completed' })).toHaveCount(1); // the Docks line alone
+  await expect(colony).toHaveCount(0);
+});

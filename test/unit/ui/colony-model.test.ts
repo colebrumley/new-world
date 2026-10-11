@@ -84,11 +84,17 @@ describe('colonyView', () => {
   });
 
   it('describes the project, its progress, the price to buy it and what else could be built', () => {
-    expect(v.construction).toMatchObject({ item: 'Stable', hammers: 12, hammersNeeded: 64, tools: 0, toolsNeeded: 0, buyPrice: 52 * 13 });
+    expect(v.construction).toMatchObject({ item: 'Stable', hammers: 12, hammersNeeded: 64, tools: 0, toolsNeeded: 0, buyPrice: 52 * 13, built: false });
     const labels = v.construction.choices.map((c) => c.label);
     expect(labels).toContain('Stable (64 hammers)');
     expect(labels).toContain('Printing Press (52 hammers, 20 tools)');
     expect(labels).toContain('Wagon Train (40 hammers)');
+  });
+
+  it('marks a project the colony has already built, so the player is told to choose another', () => {
+    const s = town();
+    const done = { ...s, colonies: { ...s.colonies, col: { ...s.colonies['col']!, construction: { kind: 'building' as const, id: 'docks' as const }, hammers: 0 } } };
+    expect(colonyView(done, 'col')!.construction).toMatchObject({ item: 'Docks', built: true });
   });
 });
 

@@ -96,6 +96,11 @@ export function colonyNotices(events: readonly GameEvent[], state: GameState, pl
         if (name) out.push(`${name} has completed its ${BUILDINGS[e.building].name}.`);
         break;
       }
+      case 'alreadyHave': {
+        const name = mine(e.colonyId);
+        if (name) out.push(`${name} already has its ${BUILDINGS[e.building].name}: choose something else to build.`);
+        break;
+      }
       case 'unitBuilt': {
         const name = mine(e.colonyId);
         if (name) out.push(`${name} has built ${article(UNIT_TYPES[e.unitType].name)}.`);

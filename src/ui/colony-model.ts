@@ -89,6 +89,8 @@ export interface ColonyView {
     readonly tools: number;
     readonly toolsNeeded: number;
     readonly buyPrice: number | null;
+    /** The project is a building the colony already has: it is finished, and another should be chosen. */
+    readonly built: boolean;
     readonly choices: readonly { readonly item: BuildItem; readonly label: string }[];
   };
 }
@@ -196,6 +198,7 @@ export function colonyView(state: GameState, colonyId: string): ColonyView | nul
       tools: colony.goods.tools ?? 0,
       toolsNeeded: cost.tools,
       buyPrice: buyQuote(state, colony)?.price ?? null,
+      built: colony.construction?.kind === 'building' && colony.buildings.includes(colony.construction.id),
       choices: availableItems(state, colony).map((item) => ({ item, label: `${itemName(item)} (${itemCost(item).hammers} hammers${itemCost(item).tools ? `, ${itemCost(item).tools} tools` : ''})` })),
     },
   };

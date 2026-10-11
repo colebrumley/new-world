@@ -237,7 +237,9 @@ The first build item (Warehouse, or Docks in a port colony) is set by R-303.
   the cost and the tools are in stock, the tools are used, the item is built and the hammer
   store is set to 0 (no surplus is kept). Without the tools nothing happens (an AI colony is
   given them). A wagon train over the limit is not built and the hammers stay. The project
-  remains selected afterwards.
+  remains selected afterwards, and once the turn's questions are answered the player is taken
+  to the colony, on its construction view, to choose the next one. A colony left on a building
+  it already has reports it each time its hammer store reaches the cost again.
 - Buying: price = 13 x hammers still missing + (market price of tools + 4) x tools still
   missing, doubled if the hammer store is exactly 0. Buying fills the hammer store and adds the
   missing tools to stock; the item is then completed by the ordinary end-of-turn test.
