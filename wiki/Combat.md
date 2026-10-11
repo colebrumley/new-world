@@ -79,11 +79,11 @@ Only the Privateer, the Frigate and the Man-O-War can attack, and only at sea: a
 
 **Cargo.** Whatever the loser carried, the victor takes a hold at a time, the most valuable first, while it has room. The rest is lost, and so is everyone aboard. A victorious attacker moves onto the loser's square if nothing else is there.
 
-**Flags.** Privateers fly no flag: attacking with one does not start a war. Attacking with a frigate or a man-of-war is an act of war.
+**Flags.** Privateers fly no flag: a privateer may attack the ships of a power you are at peace with, and it does not start a war. The victim notes the piracy and may come to bear a grudge (see [[Other Powers]]). Attacking with a frigate or a man-of-war is an act of war.
 
-**Zones of patrol.** After each step a ship takes at sea, every warship next to it that belongs to a power it is not at peace with may hold it up, costing it part of its move: more for a man-of-war than a frigate, more for a frigate than a privateer. A nimble ship often slips past.
+**Zones of patrol.** After each step a ship takes at sea, every warship next to it that belongs to a power it is not at peace with may hold it up, costing it part of its move: more for a man-of-war than a frigate, more for a frigate than a privateer. Peace does not cover privateers: a privateer may hold up any other power's ship, and any power's warship may hold up a privateer. A nimble ship often slips past.
 
-**Fort fire.** A ship that ends a step beside an enemy colony with a fort loses part of its move, and beside a fortress it loses all of it. In its own turn a colony with a fort or a fortress fires on an enemy ship beside it, harder for a fortress and for each piece of artillery inside. A stockade does not fire.
+**Fort fire.** A ship that ends a step beside an enemy colony with a fort loses part of its move, and beside a fortress it loses all of it. In its own turn a colony with a fort or a fortress fires on an enemy ship beside it, harder for a fortress and for each piece of artillery inside. A stockade does not fire. To a privateer every other power's colony is an enemy's: its fort slows the privateer and fires on it even in peacetime.
 
 ## Fighting the natives
 
@@ -93,7 +93,7 @@ Braves fight back in three ways:
 
 - **In the open** they ambush: the ground helps the brave rather than your unit, unless your unit is fortified. A brave who beats a dragoon or scout takes its horses, and one who beats a soldier takes his muskets, if his people lack them.
 - **At a colony's gate** a brave may beg for food, bring a gift, or demand goods. Refuse a demand and the tribe grows angrier. A tribe that is angry enough attacks instead.
-- **In a raid.** A brave who beats a colony's defender raids it and goes home: it may carry off goods or gold, wreck a building or damage a ship. Walls make a raid likelier to come to nothing. Nobody is killed in a raid, but a colony of one colonist with nobody under arms is burned to the ground.
+- **In a raid.** A brave who beats a colony's defender raids it and goes home: it may carry off goods or gold, wreck a building or damage a ship. Walls make a raid likelier to come to nothing. The beaten defender fares as in any lost fight: a soldier loses his muskets, a dragoon his horses, artillery is damaged and damaged artillery is destroyed. With nobody under arms a colonist takes up the defence; if he loses, nobody is hurt but the colony is raided all the same, and a colony of one colonist is burned to the ground.
 
 A tribe pushed to the limit may also burn your missions among its people. All of this, and how to keep the peace, is on [[Native Peoples]].
 
