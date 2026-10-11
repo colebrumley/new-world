@@ -8,7 +8,7 @@ Each painting is on the left and the sprite it became is beside it, blown up wit
 
 | Painting | Sprite |
 | :---: | :---: |
-| <img src="images/paintings/title/frontispiece.png" width="320" alt="The painting behind the title screen"> | <img src="images/art/title/frontispiece.png" width="320" alt="The title picture as the game draws it"> |
+| <img src="images/paintings/title/frontispiece.png" width="160" alt="The painting behind the title screen"> | <img src="images/art/title/frontispiece.png" width="320" alt="The title picture as the game draws it"> |
 
 The painting that hangs behind the title screen, shrunk to 320 by 200 squares.
 
