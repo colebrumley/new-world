@@ -21,6 +21,7 @@ import { analyseAttack } from '../engine/analysis';
 import { alliancePrice } from '../engine/diplomacy';
 import { askCombat } from '../ui/combat-analysis';
 import { portraitCanvas } from '../ui/portraits';
+import { checkCashTreasure, royalTransportCut, treasureQuote } from '../engine/royal';
 import { showReport, type Report } from '../ui/report';
 import { foreignAffairsReport } from '../ui/reports/foreign';
 import { scoreReport } from '../ui/reports/score';
@@ -881,6 +882,23 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     }
   };
 
+  /** A treasure train that has just entered one of our colonies: the Crown (or, after the Declaration, agents) may cash it. */
+  const offerTreasure = async (unitId: UnitId): Promise<void> => {
+    const unit = session.state.units[unitId];
+    const player = session.state.players.find((p) => p.id === me());
+    if (!unit || !player || unit.type !== 'treasure' || !checkCashTreasure(session.state, player.id, unitId).ok) return;
+    const quote = treasureQuote(session.state, unit);
+    if (!quote) return;
+    const crown = quote.carrier === 'crown';
+    const text = crown
+      ? `The Crown will carry this treasure of ${quote.value} gold home to ${NATIONS[player.nation].homePort}. The King keeps ${quote.fee} gold (${royalTransportCut(session.state, player.id)} percent) for his trouble; we receive ${quote.net}.`
+      : `Agents will buy this treasure for ${quote.value} gold.`;
+    const pick = await ask(screen, { text, choices: ['Decline', 'Accept'], escape: 0, ...(crown ? { picture: portraitCanvas('king', 2) } : {}) });
+    if (pick !== 1 || !dispatch({ type: 'cashTreasure', unitId })) return;
+    await ask(screen, { text: `The treasure is ours: ${quote.net} gold has been added to the treasury.`, choices: ['Continue'], escape: 0 });
+    settle();
+  };
+
   /** One step for a unit, putting the question to the player when the move raises one. */
   const tryMove = async (unitId: UnitId, dx: number, dy: number): Promise<void> => {
     const move = { type: 'moveUnit', unitId, dx, dy } as const;
@@ -938,7 +956,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       return;
     }
     if (check.ok || (check.error.code !== 'needsSailChoice' && check.error.code !== 'needsLandfall')) {
-      dispatch(move);
+      if (dispatch(move)) await offerTreasure(unitId);
       followUnit();
       return;
     }

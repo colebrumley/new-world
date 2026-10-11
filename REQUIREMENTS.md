@@ -1425,7 +1425,7 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1036 Map drag piece and blocked marker** — docs/specs/drag-feedback.md, item W2, size S.
 - [x] **R-1037 Shrink the manual's screenshots to palette PNGs** — docs/specs/player-manual-wiki.md, item W13, size S.
 - [x] **R-1038 Engine: cash a treasure train** — docs/specs/treasure-cashing.md, item W1, size S.
-- [ ] **R-1039 Treasure: the Crown's question, orders menu, notice and manual** — docs/specs/treasure-cashing.md, item W2, size S.
+- [x] **R-1039 Treasure: the Crown's question, orders menu, notice and manual** — docs/specs/treasure-cashing.md, item W2, size S.
 
 ---
 
