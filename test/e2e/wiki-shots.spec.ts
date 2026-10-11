@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { STARTING_BUILDINGS } from '../../src/engine/data/colony';
 import { saveGame } from '../../src/engine/save';
 import type { Colonist, GameState, Settlement } from '../../src/engine/state';
 import { makeTile } from '../../src/engine/tile';
@@ -134,15 +135,16 @@ const village = (x: number, y: number): Settlement => ({ id: 'v1', tribe: 'sioux
 function largeColony(): GameState {
   const who = (id: string, job: Colonist['job'], profession: Colonist['profession'] = 'freeColonist'): Colonist => ({ id, profession, job, turns: 0 });
   let state = withColony(land(), {
-    id: 'james', owner: 'p0', x: 5, y: 6, name: 'Jamestown',
-    buildings: ['stockade', 'lumberMill', 'docks', 'schoolhouse', 'printingPress', 'church'],
+    // on the west coast, so that Docks can stand; the buildings every colony starts with, and six more
+    id: 'james', owner: 'p0', x: 2, y: 6, name: 'Jamestown',
+    buildings: [...STARTING_BUILDINGS, 'stockade', 'lumberMill', 'docks', 'schoolhouse', 'printingPress', 'church'],
     goods: { food: 100, lumber: 100, furs: 100 },
     construction: { kind: 'building', id: 'armory' }, hammers: 24,
     sol: { n: 4, d: 9 },
     colonists: [
       who('a', { kind: 'field', dx: 1, dy: -1, good: 'food' }, 'expertFarmer'),
-      who('b', { kind: 'field', dx: -1, dy: 0, good: 'lumber' }, 'expertLumberjack'),
-      who('c', { kind: 'field', dx: 1, dy: 1, good: 'food' }),
+      who('b', { kind: 'field', dx: 1, dy: 0, good: 'lumber' }, 'expertLumberjack'),
+      who('c', { kind: 'field', dx: 0, dy: -1, good: 'food' }),
       who('d', { kind: 'field', dx: 0, dy: 1, good: 'furs' }, 'expertFurTrapper'),
       who('e', { kind: 'work', trade: 'carpenter' }, 'masterCarpenter'),
       who('f', { kind: 'work', trade: 'carpenter' }),
@@ -151,7 +153,7 @@ function largeColony(): GameState {
     ],
   });
   state = withColony(state, { id: 'q', owner: 'fr', x: 16, y: 4, name: 'Quebec' });
-  state = withUnit(state, { id: 'guard', owner: 'p0', type: 'soldier', x: 5, y: 6, profession: 'veteranSoldier' });
+  state = withUnit(state, { id: 'guard', owner: 'p0', type: 'soldier', x: 2, y: 6, profession: 'veteranSoldier' });
   // a Congress at work, so its report has something to say
   const PEACE: Record<string, Record<string, 'peace' | 'war'>> = { p0: { fr: 'peace' }, fr: { p0: 'peace' } };
   // and the French met and at peace, so the foreign report has a stance to show
