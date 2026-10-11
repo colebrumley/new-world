@@ -1,6 +1,6 @@
 # Player manual on the GitHub wiki, and a README: spec for R-1023 to R-1034
 
-Written by `/plan` on 2026-10-10. Status: approved.
+Written by `/plan` on 2026-10-10. Status: built.
 
 **The request, in the owner's words:** Create comprehensive documentation and a readme for this
 project. Put the documentation in the GitHub wiki. It should be a user manual and should include
