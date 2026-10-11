@@ -73,7 +73,7 @@ The squares listed are the best for each raw good, with what a free colonist mak
 
 | Icon | Cargo | Raw or made | Made from | Made by | Made in |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| ![Food](images/art/goods/food.png) | Food | Raw | Land; water too once the colony has Docks (fish) | Expert Farmer, Expert Fisherman | A square: Plains 5, Savannah 4, Tundra 3 and 14 more; fish Ocean 4, Sea Lane 4 by the shore, less out at sea |
+| ![Food](images/art/goods/food.png) | Food | Raw | Land; water too once the colony has Docks (fish) | Expert Farmer, Expert Fisherman | A square: Plains 5, Savannah 4, Tundra 3 and 14 more; fish 4 with up to 5 water neighbours, 2 with 6 or 7 water neighbours, 1 with 8 water neighbours |
 | ![Sugar](images/art/goods/sugar.png) | Sugar | Raw | Land | Master Sugar Planter | A square: Savannah 3, Swamp 2, Tropical Forest 1 and 1 more |
 | ![Tobacco](images/art/goods/tobacco.png) | Tobacco | Raw | Land | Master Tobacco Planter | A square: Grassland 3, Marsh 2, Conifer Forest 1 and 1 more |
 | ![Cotton](images/art/goods/cotton.png) | Cotton | Raw | Land | Master Cotton Planter | A square: Prairie 3, Plains 2, Desert 1 and 3 more |
@@ -123,7 +123,7 @@ You are also told when a good passes another hundred, and when it fills the ware
 
 **The production bonus.** At 50% membership every worker in the colony, in the fields and in the buildings, has one added to what he makes, before an expert's or a building's doubling, so a worker whose output is doubled gains two. At 100% two are added. Teachers make nothing, so the bonus does not touch them. The bonus changes by one step a turn at most, and once at 100% the colony keeps the second step until membership falls below 95%. The centre square gets the bonus too. Each change is announced.
 
-**The Tory penalty.** Tories in a big colony make everyone less productive. Count the Tories (the population times the Tory share, rounded); for every 10 of them on Discoverer, 9 on Explorer, 8 on Conquistador, 7 on Governor or 6 on Viceroy, one is taken from every worker in the same way the bonus adds one, and the penalty is set against the bonus. A colony of five or fewer never has enough Tories to suffer, but a colony of twenty with no Sons of Liberty loses two or more from every worker. You are warned when a colony reaches the penalty.
+**The Tory penalty.** Tories in a big colony make everyone less productive. Count the Tories (the population times the Tory share, rounded); for every 10 of them on Discoverer, 9 on Explorer, 8 on Conquistador, 7 on Governor or 6 on Viceroy, one is taken from every worker, and the penalty is set against the bonus. In a building the loss comes before any doubling, as the bonus does; in the fields it comes off the finished figure. A colony of five or fewer never has enough Tories to suffer, but a colony of twenty with no Sons of Liberty loses two or more from every worker. You are warned when a colony reaches the penalty.
 
 Your nation's **rebel sentiment** is the membership of all your colonies together, weighted by their population.
 

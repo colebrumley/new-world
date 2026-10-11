@@ -7,7 +7,7 @@
 // from the rule tables, so the manual cannot disagree with the game. Content items add their own
 // renderers to TABLES.
 import { describeDifficulty, difficultyProfile } from '../../../src/engine/difficulty';
-import { DIFFICULTIES } from '../../../src/engine/data/yields';
+import { DIFFICULTIES, YIELD_RULES } from '../../../src/engine/data/yields';
 import { BUILDING_CHAINS, BUILDINGS, type BuildingChain, type BuildingId } from '../../../src/engine/data/buildings';
 import { COLONY_LIMITS } from '../../../src/engine/data/colony';
 import { COMBAT } from '../../../src/engine/data/combat';
@@ -105,13 +105,25 @@ function bestSquares(good: RawGood, shown = 3): string {
   return rows.length > shown ? `${head} and ${rows.length - shown} more` : head;
 }
 
+/** Fish on a bare Ocean square by how many of its eight neighbours are water: "fish 4 with up to 5 water neighbours, ...". */
+function fishByWater(): string {
+  const steps = [...YIELD_RULES.fishByWaterNeighbors].map(([min]) => min).sort((a, b) => a - b);
+  const parts = steps.map((min, i) => {
+    const max = (steps[i + 1] ?? 9) - 1;
+    const n = tileYield(bareTile('ocean'), 'fish', undefined, { waterNeighbors: min, hasDocks: true });
+    const span = min === 0 ? `up to ${max}` : min === max ? `${min}` : `${min} or ${max}`;
+    return `${n} with ${span} water neighbours`;
+  });
+  return `fish ${parts.join(', ')}`;
+}
+
 function goodsRow(good: GoodId | AbstractGoodId): (string | number)[] {
   const icon = img(`images/art/goods/${good}.png`, goodName(good));
   if ((RAW_GOODS as readonly string[]).includes(good)) {
     const raw = good as RawGood;
     if (raw === 'food') {
       return [icon, goodName(good), 'Raw', 'Land; water too once the colony has Docks (fish)', [...expertsFor('food'), ...expertsFor('fish')].join(', '),
-        `A square: ${bestSquares('food')}; fish ${bestSquares('fish', 2)} by the shore, less out at sea`];
+        `A square: ${bestSquares('food')}; ${fishByWater()}`];
     }
     return [icon, goodName(good), 'Raw', 'Land', expertsFor(raw).join(', '), `A square: ${bestSquares(raw)}`];
   }
