@@ -129,6 +129,8 @@ test('a treasure put ashore from a galleon in the colony screen is asked about t
   await colony.locator('.outside-row .row-title').click();
   const dialog = page.getByRole('dialog').filter({ hasText: 'The Crown will carry this treasure' });
   await expect(dialog).toBeVisible();
+  // the question has the keyboard, not the colony screen beneath it
+  await expect(dialog.getByRole('button', { name: 'Decline' })).toBeFocused();
   await dialog.getByRole('button', { name: 'Accept' }).click();
   await page.getByRole('dialog').filter({ hasText: 'added to the treasury' }).getByRole('button', { name: 'Continue' }).click();
   await expect(colony.locator('.token-unit', { hasText: 'Treasure' })).toHaveCount(0);
