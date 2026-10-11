@@ -112,7 +112,8 @@ function problems(pages: ReadonlyMap<string, string>, exists: (path: string) => 
       if (onDisk === undefined || path.includes('..') || !exists(onDisk)) found.push(`${file}: the image ${path} is not a file under wiki/images/ or a folder of art/ the workflow copies`);
     }
     if (!chrome && isStub(text)) {
-      const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+      // the summary is the first line a reader sees: HTML comments (the table markers among them) do not count
+      const lines = text.replace(/<!--[\s\S]*?-->/g, '').split('\n').map((l) => l.trim()).filter(Boolean);
       if (lines.filter((l) => l === STUB).length !== 1 || lines[0] === STUB || lines[0]!.startsWith('#')) found.push(`${file}: a stub is a one-line summary, then the line "${STUB}" once`);
     }
     const opens = text.match(/<!--\s*table:\s*[\w-]+\s*-->/g)?.length ?? 0;
@@ -164,7 +165,8 @@ describe('the checker', () => {
       ['Home.md', `Welcome. See [[The Map]].\n\n${STUB}\n`],
       ['The-Map.md', `The map.\n\n## Rivers and roads\n\n${STUB}\n`],
     ]);
-  const files = new Set(['wiki/images/art/units/soldier.png', 'art/units/colonist.png']);
+  // art/elsewhere/ exists, so only the workflow's folder list can turn its painting away
+  const files = new Set(['wiki/images/art/units/soldier.png', 'art/units/colonist.png', 'art/elsewhere/colonist.png']);
   const check = (edit: (pages: Map<string, string>) => void): string[] => {
     const pages = base();
     edit(pages);
@@ -182,6 +184,7 @@ describe('the checker', () => {
     ['a sprite that is not there', (p: Map<string, string>) => p.set('Home.md', '![x](images/art/units/ghost.png)\n'), 'is not a file'],
     ['a painting in a folder the workflow does not copy', (p: Map<string, string>) => p.set('Home.md', `<img src="images/paintings/elsewhere/colonist.png">\n\n${STUB}\n`), 'is not a file'],
     ['a stub with no summary', (p: Map<string, string>) => p.set('Home.md', `${STUB}\n`), 'a stub is a one-line summary'],
+    ['a stub whose summary is a comment', (p: Map<string, string>) => p.set('Home.md', `<!-- TODO -->\n${STUB}\n`), 'a stub is a one-line summary'],
     ['a stub that says so twice', (p: Map<string, string>) => p.set('Home.md', `Welcome.\n\n${STUB}\n${STUB}\n`), 'a stub is a one-line summary'],
     ['a painting that is not there', (p: Map<string, string>) => p.set('Home.md', '<img src="images/paintings/units/ghost.png">\n'), 'is not a file'],
     ['an image outside images/', (p: Map<string, string>) => p.set('Home.md', '![x](https://example.com/x.png)\n'), 'is not a file'],
