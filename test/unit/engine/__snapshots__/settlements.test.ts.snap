@@ -13,21 +13,6 @@ exports[`placement tables > match the snapshot 1`] = `
     "capitalTries": 12000,
     "cell": 5,
     "cellCore": 1,
-    "siteSpacing": [
-      {
-        "apart": 3,
-        "untilTry": 33,
-      },
-      {
-        "apart": 2,
-        "untilTry": 66,
-      },
-      {
-        "apart": 1,
-        "untilTry": 100,
-      },
-    ],
-    "siteTries": 100,
     "spreadTries": 2160,
     "westwardDivisor": 8,
   },

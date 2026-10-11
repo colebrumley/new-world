@@ -16,8 +16,8 @@
   "squares": [
     "-1,-1 square-free",
     "0,-1 square-free",
-    "1,-1 square-free",
-    "-1,0 square-worked",
+    "1,-1 square-worked",
+    "-1,0 square-free",
     "0,0 square-center",
     "1,0 square-free",
     "-1,1 square-free",

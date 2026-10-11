@@ -14,14 +14,14 @@ village peoples farm and live in longhouse villages; the two city peoples build 
 
 |  | People | How they live | People per settlement | Treasure | Most often teach | On the America map |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| ![Inca city](images/art/places/villageInca.png) | Incas | Civilized: cities | 9 (the capital up to 13) | Jewelled Relics | Expert Farmer, Expert Silver Miner, Expert Ore Miner | the mountains and coast of western South America; up to 5 settlements |
-| ![Aztec city](images/art/places/villageAztec.png) | Aztecs | Advanced: cities | 7 (the capital up to 10) | Gold Bars | Expert Farmer, Expert Fisherman, Master Sugar Planter | Mexico and Central America; up to 4 settlements |
-| ![Arawak village](images/art/places/villageLonghouse.png) | Arawaks | Agrarian: villages | 5 (the capital up to 7) | Bone Jewelry | Expert Fisherman, Expert Farmer, Master Sugar Planter | the Caribbean islands and the shores around them; up to 5 settlements |
-| ![Iroquois village](images/art/places/villageLonghouse.png) | Iroquois | Agrarian: villages | 5 (the capital up to 7) | Wood Carvings | Expert Farmer, Expert Ore Miner, Expert Fur Trapper | the north-east, from the Great Lakes to the Atlantic; up to 11 settlements |
-| ![Cherokee village](images/art/places/villageLonghouse.png) | Cherokee | Agrarian: villages | 5 (the capital up to 7) | Turquoise | Expert Farmer, Expert Fisherman, Master Cotton Planter | the south-east of North America; up to 4 settlements |
-| ![Apache camp](images/art/places/villageCamp.png) | Apache | Semi-Nomadic: camps | 3 (the capital up to 4) | Beads | Expert Fur Trapper, Expert Farmer, Seasoned Scout | the dry south-west of North America; up to 7 settlements |
-| ![Sioux camp](images/art/places/villageCamp.png) | Sioux | Semi-Nomadic: camps | 3 (the capital up to 4) | Beads | Expert Farmer, Master Cotton Planter, Expert Fur Trapper | the northern plains; up to 7 settlements |
-| ![Tupi camp](images/art/places/villageCamp.png) | Tupi | Semi-Nomadic: camps | 3 (the capital up to 4) | Gems | Master Sugar Planter, Expert Fur Trapper, Expert Farmer | the Amazon basin and the east of South America; up to 15 settlements |
+| ![Inca city](images/art/places/villageInca.png) | Incas | Civilized: cities | 9 (the capital up to 13) | Jewelled Relics | Expert Farmer, Expert Silver Miner, Expert Fisherman | the mountains and coast of western South America; 5 settlements |
+| ![Aztec city](images/art/places/villageAztec.png) | Aztecs | Advanced: cities | 7 (the capital up to 10) | Gold Bars | Expert Farmer, Expert Fisherman, Master Sugar Planter | Mexico and Central America; 4 settlements |
+| ![Arawak village](images/art/places/villageLonghouse.png) | Arawaks | Agrarian: villages | 5 (the capital up to 7) | Bone Jewelry | Expert Fisherman, Master Sugar Planter, Expert Farmer | the Caribbean islands and the shores around them; 5 settlements |
+| ![Iroquois village](images/art/places/villageLonghouse.png) | Iroquois | Agrarian: villages | 5 (the capital up to 7) | Wood Carvings | Expert Farmer, Expert Ore Miner, Expert Fur Trapper | the north-east, from the Great Lakes to the Atlantic; 11 settlements |
+| ![Cherokee village](images/art/places/villageLonghouse.png) | Cherokee | Agrarian: villages | 5 (the capital up to 7) | Turquoise | Expert Farmer, Expert Ore Miner, Master Sugar Planter | the south-east of North America; 4 settlements |
+| ![Apache camp](images/art/places/villageCamp.png) | Apache | Semi-Nomadic: camps | 3 (the capital up to 4) | Beads | Expert Farmer, Master Cotton Planter, Expert Fur Trapper | the dry south-west of North America; 7 settlements |
+| ![Sioux camp](images/art/places/villageCamp.png) | Sioux | Semi-Nomadic: camps | 3 (the capital up to 4) | Beads | Expert Farmer, Seasoned Scout, Expert Fur Trapper | the northern plains; 7 settlements |
+| ![Tupi camp](images/art/places/villageCamp.png) | Tupi | Semi-Nomadic: camps | 3 (the capital up to 4) | Gems | Master Sugar Planter, Expert Farmer, Expert Fur Trapper | the Amazon basin and the east of South America; 15 settlements |
 
 <!-- /table -->
 
