@@ -56,7 +56,7 @@ function sprite(s: Sprite | null): Picture {
 }
 
 const bare = (terrain: TerrainId): TileLook => ({
-  terrain, river: 'none', riverMask: 0, road: false, roadMask: 0, plowed: false, resource: null, rumor: false, totem: false, variant: 0,
+  terrain, river: 'none', riverMask: 0, road: false, roadMask: 0, plowed: false, resource: null, rumor: false, totem: false, variant: 0, joinMask: 0, mouthMask: 0,
 });
 
 /** Every picture the manual may use, by its path under wiki/images/art without the extension. */
