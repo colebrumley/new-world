@@ -48,7 +48,7 @@ Goods they lack, room to live, and to be left in peace. A chief will tell a scou
 
 ### When should I declare independence?
 
-You can once half your colonists support it (50% rebel sentiment). Before you do, make sure the colonies that will be attacked are well defended, with veteran soldiers, artillery and stout walls, and that the Sons of Liberty are strong in them. When the war starts, each colony at 50% membership or more turns some of its veteran soldiers and dragoons into Continental Army: at least one, more as membership climbs toward 100%, and never more than half the colony's population. The Continental Congress report (F3) shows the force the King will send. Declaring cuts you off from Europe, so stock up on muskets, horses and tools first. See [[The Crown and Independence]].
+You can once half your colonists support it (50% rebel sentiment). Before you do, make sure the colonies that will be attacked are well defended, with veteran soldiers, artillery and stout walls, and that the Sons of Liberty are strong in them. When the war starts, each colony at 50% membership or more turns some of its veteran soldiers and dragoons into Continental Army: more as membership climbs toward 100%, up to half the colony's population, and always at least one. The Continental Congress report (F3) shows the force the King will send. Declaring cuts you off from Europe, so stock up on muskets, horses and tools first. See [[The Crown and Independence]].
 
 ### Where do I report a bug?
 
