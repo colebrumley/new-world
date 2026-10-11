@@ -62,7 +62,7 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | Click on your unit | Make it the active unit, waking it if it has orders (a list if several stand there); in view mode this also returns to move mode | works |
 | Click beside the active unit | Move it one square; the pointer is an arrow showing which way | works |
 | Click the near edge of a colony or unit beside the active unit | Move onto that square (the near corner, for a diagonal) where the pointer is an arrow; the rest of the square opens the colony or picks the unit | works |
-| Drag from the active unit | Send it to the square where the button is let go: one step if adjacent, Go To if farther | works |
+| Drag from the active unit | Send it to the square where the button is let go: one step if adjacent, Go To if farther. Its piece follows the pointer; the marker turns red over a square it cannot go to | works |
 | Wheel / pinch | Zoom in / zoom out about the pointer (a pinch on a trackpad or a touch screen zooms the map, not the page) | works |
 | Ctrl/Cmd + Plus / Minus | Zoom in / zoom out: the browser's zoom keys zoom the map while it has the keyboard | works |
 | Sidebar buttons | Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel | works |

@@ -1,6 +1,9 @@
 // What the mouse means on the map: a click, a drag begun on the active unit, a turn of the wheel, a pinch.
 // Pure, so the rules can be tested without a browser.
+import { validateAction } from '../engine/actions';
+import { settlementAt } from '../engine/settlements';
 import { colonyAt, type GameState, type Unit, type UnitId } from '../engine/state';
+import { villageActions } from '../engine/village';
 
 export type PointerMode = 'move' | 'view' | 'goto';
 
@@ -94,6 +97,29 @@ export function mapDrag(active: Unit, tile: { x: number; y: number } | null): Ma
   const far = Math.max(Math.abs(dx), Math.abs(dy));
   if (far === 0) return { kind: 'none' };
   return far === 1 ? { kind: 'step', dx, dy } : { kind: 'goto', x: tile.x, y: tile.y };
+}
+
+/** Refusals of a step that the screen turns into a question instead: a landfall, the sail for Europe. */
+const ASKED: ReadonlySet<string> = new Set(['needsLandfall', 'needsSailChoice']);
+
+/**
+ * Whether letting go of a drag from the active unit over this square would be refused: the game's
+ * own validation of the step or the Go To the release would send. A step that would ask first (a
+ * native settlement only when it offers this unit something to do), or that the screen turns into
+ * an attack on the unit standing there, is not refused. Letting go on
+ * the unit's own square, or off the map, does nothing and is not refused either.
+ */
+export function dragBlocked(state: GameState, active: Unit, tile: { x: number; y: number } | null): boolean {
+  const drag = mapDrag(active, tile);
+  if (drag.kind === 'none') return false;
+  if (drag.kind === 'goto') return !validateAction(state, { type: 'goTo', unitId: active.id, x: drag.x, y: drag.y }).ok;
+  const check = validateAction(state, { type: 'moveUnit', unitId: active.id, dx: drag.dx, dy: drag.dy });
+  if (check.ok || ASKED.has(check.error.code)) return false;
+  if (check.error.code === 'settlement') {
+    const village = settlementAt(state, active.x + drag.dx, active.y + drag.dy);
+    return !village || villageActions(state, active, village).length === 0;
+  }
+  return !(check.error.code === 'occupied' && validateAction(state, { type: 'attack', unitId: active.id, dx: drag.dx, dy: drag.dy }).ok);
 }
 
 /**
