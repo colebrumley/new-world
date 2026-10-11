@@ -12,6 +12,9 @@ const COTTON = { x: 5, y: 4 }; // prairie with Prime Cotton
 const MINERALS = { x: 6, y: 4 }; // tundra with Minerals, next to it
 const POND = { x: 8, y: 4 }; // ocean with land all round it
 const UNSEEN = { x: 5, y: 5 }; // plains the player has not explored, below the cotton
+const SOLDIER = { x: 2, y: 9 }; // the player's unit under orders
+const WAGON = { x: 4, y: 7 }; // where the case about units puts a loaded wagon train of the player's
+const FRENCH = { x: 3, y: 9 }; // and a French soldier, next to the player's unit
 /** Longer than the wait, with room for a busy machine. */
 const RESTED = TOOLTIP_DELAY_MS + 250;
 
@@ -31,8 +34,13 @@ function land(): GameState {
   return withUnit(state, { id: 'u0', type: 'soldier', owner: 'p0', profession: null, x: 2, y: 9, orders: 'none' });
 }
 
-async function start(page: Page, query: string): Promise<{ canvas: Locator; tip: Locator; state: GameState }> {
-  const state = land();
+/** The same world with a loaded wagon train of the player's and a French soldier beside the player's unit. */
+function peopled(): GameState {
+  const state = withUnit(land(), { id: 'u1', type: 'wagonTrain', owner: 'p0', ...WAGON, orders: 'sentry', cargo: { tools: 100, furs: 40 } });
+  return withUnit(state, { id: 'f0', type: 'soldier', owner: 'fr', profession: 'veteranSoldier', ...FRENCH, orders: 'fortified' });
+}
+
+async function start(page: Page, query: string, state: GameState = land()): Promise<{ canvas: Locator; tip: Locator; state: GameState }> {
   await page.addInitScript(() => localStorage.setItem('new-world:options', JSON.stringify({ tutorialHints: false, waterShimmer: false })));
   await page.addInitScript((text) => {
     // (kept from one load of the page to the next, as an autosave is)
@@ -156,6 +164,42 @@ test('the pointer resting on a square brings up a slip that says what the square
   await expect(tip).toBeHidden();
   await page.waitForTimeout(RESTED);
   await expect(tip).toBeHidden();
+});
+
+test('the slip names the units the map shows on the square, under the ground', async ({ page }) => {
+  const { canvas, tip, state } = await start(page, '/?still', peopled());
+  const before = await drawn(canvas);
+
+  // one of the player's own, with what it carries
+  await moveTo(page, canvas, WAGON);
+  await expect(tip).toBeVisible({ timeout: RESTED });
+  await expect(tip.locator('.map-tooltip-unit')).toHaveText('Wagon Train · Moves 2 · Sentry');
+  await expect(tip.locator('.map-tooltip-carried')).toHaveText('Carrying 40 Furs, 100 Tools');
+  // last on the slip, under a rule that parts them from the ground
+  await expect(tip.locator('p').last()).toHaveClass('map-tooltip-carried');
+  await expect(tip.locator('.map-tooltip-ground + .map-tooltip-unit')).toHaveCount(1);
+  await expect(tip.locator('.map-tooltip-unit')).not.toHaveCSS('border-top-width', '0px');
+  await page.screenshot({ path: 'test-results/tooltip-unit.png' });
+
+  // the unit under orders: the sidebar's words for it
+  await moveTo(page, canvas, SOLDIER);
+  await expect(tip.locator('.map-tooltip-unit')).toHaveText('Soldier · Moves 1 · No orders', { timeout: TOOLTIP_DELAY_MS / 2 });
+  await expect(tip.locator('.map-tooltip-carried')).toHaveCount(0);
+
+  // another power's: whose and what kind, no more
+  await moveTo(page, canvas, FRENCH);
+  await expect(tip.locator('.map-tooltip-unit')).toHaveText('French Soldier', { timeout: TOOLTIP_DELAY_MS / 2 });
+  await expect(tip.locator('.map-tooltip-unit')).toHaveCount(1);
+  await expect(tip.locator('.map-tooltip-carried')).toHaveCount(0);
+
+  // a square with no unit reads as it always has
+  await moveTo(page, canvas, COTTON);
+  await expect(tip.locator('.map-tooltip-title')).toHaveText('Prairie', { timeout: TOOLTIP_DELAY_MS / 2 });
+  await expect(tip.locator('p')).toHaveCount(4);
+  expect(tileTip(state, COTTON.x, COTTON.y)!.units).toEqual([]);
+
+  // none of that drew the map again
+  expect(await drawn(canvas)).toBe(before);
 });
 
 test('near the right and bottom edges the slip turns to the other side of the pointer and stays on the map', async ({ page }) => {

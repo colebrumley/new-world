@@ -242,6 +242,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   let tipTimer = 0;
   /** The square the slip describes while it is up. */
   let tipAt: { x: number; y: number } | null = null;
+  /** What the slip says while it is up, to tell when the same square has something new to say. */
+  let tipSaid = '';
   /** Take the slip away and give up the wait: the next movement of the pointer starts it again. Never redraws the map. */
   const hideTip = (): void => {
     if (tipTimer) window.clearTimeout(tipTimer);
@@ -250,14 +252,17 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     tipAt = null;
     tooltip.hidden = true;
   };
-  /** Describe the square under the pointer on the slip, or take the slip away where there is nothing to say. Only the slip changes, and only when the square does. */
-  const showTip = (): void => {
-    tipTimer = 0;
+  /**
+   * Describe the square under the pointer on the slip, or take the slip away where there is nothing to say. Only the slip
+   * changes, and only when the square does; with `again` (each drawing of the map) also when the same square reads differently.
+   */
+  const showTip = (again = false): void => {
+    if (!again) tipTimer = 0;
     const tile = pointer && !drag ? screenToTile(view, session.state.map, pointer.x, pointer.y) : null;
-    if (tile && tipAt && tile.x === tipAt.x && tile.y === tipAt.y) return;
+    if (!again && tile && tipAt && tile.x === tipAt.x && tile.y === tipAt.y) return;
     // never with the option off, on a device that cannot hover, or under a question, a report or another screen
     const allowed = !stopped && options.terrainTooltips && window.matchMedia('(hover: hover)').matches && !screen.querySelector('[role="dialog"]');
-    const tip = tile && allowed ? tileTip(session.state, tile.x, tile.y, revealAll) : null;
+    const tip = tile && allowed ? tileTip(session.state, tile.x, tile.y, revealAll, activeId) : null;
     if (!pointer || !tile || !tip) {
       hideTip();
       return;
@@ -269,7 +274,14 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       p.textContent = text;
       return [p];
     };
-    tooltip.replaceChildren(...line(tip.title, 'map-tooltip-title'), ...tip.features.flatMap((feature) => line(feature)), ...line(tip.yields, 'map-tooltip-yields'), ...line(tip.ground, 'map-tooltip-ground'));
+    const lines = [
+      ...line(tip.title, 'map-tooltip-title'), ...tip.features.flatMap((feature) => line(feature)), ...line(tip.yields, 'map-tooltip-yields'), ...line(tip.ground, 'map-tooltip-ground'),
+      ...tip.units.flatMap((unit) => [...line(unit.line, 'map-tooltip-unit'), ...line(unit.carried, 'map-tooltip-carried')]),
+    ];
+    const said = lines.map((p) => p.textContent).join('\n');
+    if (tipAt && tile.x === tipAt.x && tile.y === tipAt.y && said === tipSaid) return;
+    tooltip.replaceChildren(...lines);
+    tipSaid = said;
     tipAt = tile;
     tooltip.hidden = false;
     const at = placeTooltip(pointer, { width: tooltip.offsetWidth, height: tooltip.offsetHeight }, { width: canvas.clientWidth, height: canvas.clientHeight });
@@ -283,7 +295,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       return;
     }
     if (tipTimer) window.clearTimeout(tipTimer);
-    tipTimer = window.setTimeout(showTip, TOOLTIP_DELAY_MS);
+    tipTimer = window.setTimeout(() => showTip(), TOOLTIP_DELAY_MS);
   };
   // a question, a report, the colony screen, Europe or the encyclopedia laid over the map takes the slip away
   const overMap = new MutationObserver(() => {
@@ -1734,6 +1746,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     const dragged = held && pointer ? { unitId: held.id, x: pointer.x, y: pointer.y } : null;
     // the unit under orders, or the view, may have changed under a pointer that has not moved
     showPointer();
+    // a slip that is up follows what now stands on its square; it never asks for this drawing
+    if (tipAt) showTip(true);
     shownBlink = blinkAt(time);
     shownWater = waterAt(time);
     if (unit && unit.x >= 0) lastSpot = { x: unit.x, y: unit.y };
