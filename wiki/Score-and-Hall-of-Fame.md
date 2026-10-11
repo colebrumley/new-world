@@ -25,7 +25,7 @@ Colonists count wherever they are, in a colony or out on the map, as soldiers, p
 
 ## The Colonial Rating
 
-The score is counted the same way on every level of difficulty, apart from the price of a destroyed native settlement; the rating is not. The score is multiplied by the level's rating factor and divided by a hundred to give the **weighted score**, and your **Colonial Rating** is half the weighted score, as a percentage. So the same colonies rate two and a half times higher on the hardest level than on the easiest.
+The score is counted the same way on every level of difficulty, apart from the price of a destroyed native settlement; the rating is not. The score is multiplied by the level's rating factor and divided by a hundred to give the **weighted score**, and your **Colonial Rating** is half the weighted score, as a percentage. Both are rounded down to whole numbers. So the same colonies rate two and a half times higher on the hardest level than on the easiest.
 
 <!-- table: score-rating -->
 
