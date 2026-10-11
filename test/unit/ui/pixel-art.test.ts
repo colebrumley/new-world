@@ -495,7 +495,7 @@ describe('detailed terrain', () => {
     }
   });
 
-  it('a river runs through a forest in a clearing and over the hills and the mountains: every cell of its body and of its rim shows', () => {
+  it('a river runs through a forest, cut back from its far bank, and over the hills and the mountains: every cell of its body and of its rim shows', () => {
     for (const grid of [32, 16] as const) {
       for (const river of ['minor', 'major'] as const) {
         const stroke = overArt(look({ river, riverMask: 10 }), grid);
@@ -505,20 +505,22 @@ describe('detailed terrain', () => {
             const bare = overArt(look({ variant, river, riverMask: 10 }), grid);
             const over = overArt(look({ terrain, variant, river, riverMask: 10 }), grid);
             for (let i = 0; i < bare.cells.length; i++) if (bare.cells[i] !== 0) expect(over.cells[i], `${grid} ${terrain} ${variant}`).toBe(bare.cells[i]);
-            // a forest is cut back from the water (two cells on the 32 grid, one on the 16) and shaded at the cut;
-            // the hills and the mountains are not: the river lies on them
+            // a forest is cut back from the far bank alone: no canopy within two cells straight above the water on
+            // the 32 grid (one on the 16), the trees just above the cut shaded, and every other cell as it was,
+            // so the trees on the near bank and to either side stand right up to the water; the hills and the
+            // mountains are not cut at all: the river lies on them
             const dry = overArt(look({ terrain, variant }), grid);
             const reach = grid === 32 ? 2 : 1;
             const wet = (x: number, y: number): boolean => at(bare, x, y) !== 0;
-            const near = (x: number, y: number, by: number): boolean => Array.from({ length: 2 * by + 1 }, (_, j) => j - by).some((dy) => Array.from({ length: 2 * by + 1 }, (_, j) => j - by).some((dx) => wet(x + dx, y + dy)));
+            const above = (x: number, y: number, by: number): boolean => Array.from({ length: by }, (_, j) => j + 1).some((dy) => wet(x, y + dy));
             let shaded = 0;
             for (let y = 0; y < grid; y++) {
               for (let x = 0; x < grid; x++) {
                 if (wet(x, y)) continue;
                 const where = `${grid} ${terrain} ${variant} (${x}, ${y})`;
                 if (!(FORESTS as readonly string[]).includes(terrain)) expect(at(over, x, y), where).toBe(at(dry, x, y));
-                else if (near(x, y, reach)) expect(at(over, x, y), where).toBe(0);
-                else if (!near(x, y, reach + 1)) expect(at(over, x, y), where).toBe(at(dry, x, y));
+                else if (above(x, y, reach)) expect(at(over, x, y), where).toBe(0);
+                else if (!above(x, y, reach + 1)) expect(at(over, x, y), where).toBe(at(dry, x, y));
                 else if (at(over, x, y) !== at(dry, x, y)) {
                   expect(at(over, x, y) - 1, where).toBe(INK.deepForest);
                   shaded++;

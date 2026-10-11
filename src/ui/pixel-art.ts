@@ -853,10 +853,11 @@ function joined(s: Sprite, look: TileLook): void {
 }
 
 /**
- * A river's way through a forest: the canopy is cut back from the water, so that the river runs through the
- * trees on open ground and not over their crowns. Every cell of the forest within `CLEARING` cells of the
- * river (body or rim, corners counted) is taken away, and the trees left standing at the cut are shaded, as
- * the foot of a wood is.
+ * A river's way through a forest: the canopy is cut back from the water's far bank alone, so that the river
+ * runs through the trees and not over their crowns. Every cell of the forest with river (body or rim) under
+ * it or within `CLEARING` cells straight below it is taken away, and the trees left standing above the cut
+ * are shaded, as the foot of a wood is. The trees on the near bank and to either side stand right up to the
+ * water, which is what makes the far bank read as lying behind it.
  */
 const CLEARING: Readonly<Record<TileGrid, number>> = { 32: 2, 16: 1 };
 function cleared(s: Sprite, water: Sprite): void {
@@ -865,23 +866,24 @@ function cleared(s: Sprite, water: Sprite): void {
   for (let y = 0; y < s.size; y++) {
     for (let x = 0; x < s.size; x++) {
       if (at(s, x, y) === 0) continue;
-      let near = false;
-      for (let dy = -reach; dy <= reach && !near; dy++) for (let dx = -reach; dx <= reach && !near; dx++) near = at(water, x + dx, y + dy) !== 0;
-      if (near) cut.push(y * s.size + x);
+      for (let dy = 0; dy <= reach; dy++) {
+        if (at(water, x, y + dy) === 0) continue;
+        cut.push(y * s.size + x);
+        break;
+      }
     }
   }
   for (const i of cut) s.cells[i] = 0;
-  const gone = new Set(cut);
   for (const i of cut) {
     const [x, y] = [i % s.size, Math.floor(i / s.size)];
-    for (const [dx, dy] of TOWARD) if (at(s, x + dx, y + dy) !== 0 && !gone.has((y + dy) * s.size + x + dx)) dot(s, x + dx, y + dy, INK.deepForest);
+    if (at(s, x, y - 1) !== 0) dot(s, x, y - 1, INK.deepForest);
   }
 }
 
 /**
  * Everything that stands on a square's floor, see-through elsewhere, in this order: the joins (the forest,
  * hills or mountains once more toward each neighbour of its kind); the forest, hills or mountains; furrows;
- * the river, which lies on hills and mountains and runs through a forest in a clearing cut for it, since a
+ * the river, which lies on hills and mountains and runs through a forest with the canopy cut back from its far bank, since a
  * canopy that fills its square would hide it, or on a water square the mouths of the rivers beside it; the resource marker, at its own size; the lost-city seal,
  * drawn for the grid; the road; the totem. The forest or relief is the baked picture of the grid, and the
  * river and the mouths are drawn for the grid, body and rim. On the 32-pixel grid the furrows, the road and
