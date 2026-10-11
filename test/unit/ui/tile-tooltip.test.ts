@@ -3,7 +3,7 @@ import { SIGHT } from '../../../src/engine/data/sight';
 import type { GameState, Unit } from '../../../src/engine/state';
 import { makeTile } from '../../../src/engine/tile';
 import { sidebarModel } from '../../../src/ui/sidebar';
-import { groundFeatures, placeTooltip, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_GAP } from '../../../src/ui/tile-tooltip';
+import { groundFeatures, placeTooltip, slipUnits, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_GAP, TOOLTIP_UNIT_LIMIT } from '../../../src/ui/tile-tooltip';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
 const land = () => world({ rows: ['.....', '.....', '.....'] });
@@ -174,6 +174,19 @@ describe('tileTip units', () => {
     s = setTile(s, 1, 1, { explored: 0b10 });
     expect(tileTip(s, 1, 1, false, 'u1')).toBeNull();
     expect(tileTip(s, -1, 0, false, 'u1')).toBeNull();
+  });
+});
+
+describe('slipUnits', () => {
+  const entries = (n: number) => Array.from({ length: n }, (_, i) => ({ line: `unit ${i}`, carried: i === 0 ? 'Carrying 100 Tools' : '' }));
+  it('keeps every entry up to the limit, and past it says how many more there are', () => {
+    expect(slipUnits(entries(TOOLTIP_UNIT_LIMIT))).toEqual(entries(TOOLTIP_UNIT_LIMIT));
+    expect(slipUnits([])).toEqual([]);
+    const cut = slipUnits(entries(50));
+    expect(cut).toHaveLength(TOOLTIP_UNIT_LIMIT);
+    expect(cut.slice(0, -1)).toEqual(entries(TOOLTIP_UNIT_LIMIT - 1));
+    expect(cut.at(-1)).toEqual({ line: `and ${50 - (TOOLTIP_UNIT_LIMIT - 1)} more`, carried: '' });
+    expect(slipUnits(entries(4), 3).map((u) => u.line)).toEqual(['unit 0', 'unit 1', 'and 2 more']);
   });
 });
 

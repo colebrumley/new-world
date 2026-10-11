@@ -41,6 +41,14 @@ export interface TileTip {
 export const TOOLTIP_DELAY_MS = 400;
 /** How far the slip stands from the pointer, in pixels, across and down. */
 export const TOOLTIP_GAP = 14;
+/** How many units the slip names before it says only how many more there are, so a great stack cannot outgrow the map. */
+export const TOOLTIP_UNIT_LIMIT = 8;
+
+/** The entries the slip has room for: all of them up to the limit, otherwise the first of them and "and 4 more". */
+export function slipUnits(units: readonly UnitTip[], limit: number = TOOLTIP_UNIT_LIMIT): readonly UnitTip[] {
+  if (units.length <= limit) return units;
+  return [...units.slice(0, limit - 1), { line: `and ${units.length - (limit - 1)} more`, carried: '' }];
+}
 
 /**
  * The slip's top-left corner in canvas pixels: right of and below the pointer, to its left where it

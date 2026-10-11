@@ -200,6 +200,14 @@ test('the slip names the units the map shows on the square, under the ground', a
 
   // none of that drew the map again
   expect(await drawn(canvas)).toBe(before);
+
+  // with the pieces hidden the map shows no unit there, and the slip names none
+  await page.keyboard.press('h');
+  await moveTo(page, canvas, COTTON);
+  await moveTo(page, canvas, WAGON);
+  await expect(tip.locator('.map-tooltip-title')).toHaveText('Plains', { timeout: RESTED });
+  await expect(tip.locator('.map-tooltip-unit')).toHaveCount(0);
+  await expect(tip.locator('p')).toHaveCount(3);
 });
 
 test('near the right and bottom edges the slip turns to the other side of the pointer and stays on the map', async ({ page }) => {
