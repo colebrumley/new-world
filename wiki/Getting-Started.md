@@ -7,7 +7,7 @@ How to start a new game, choose a power and a difficulty, and play your first tu
 The game opens on the title screen. It offers five choices:
 
 - **Start a Game in New World**: a new game on a new map, made up for this game.
-- **Start a Game in America**: a new game on a map of the Americas, from Newfoundland down through the Caribbean to Brazil, with the native peoples where they lived.
+- **Start a Game in America**: a new game on a map of the Americas, from Hudson Bay and Newfoundland down through the Caribbean to Cape Horn, with the native peoples where they lived.
 - **Customize New World**: set the kind of map you want first, then start.
 - **Load Game**: carry on a saved game. It is greyed out until there is a game to load. When there is only the game you were last playing, it goes straight back to it; otherwise it shows the save slots (see [[Help and Options]]).
 - **View Hall of Fame**: the ten best games finished in this browser (see [[Score and Hall of Fame]]).

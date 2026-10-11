@@ -1,5 +1,5 @@
 // Placing the native settlements on a new map (R-501). The America map uses the listed sites
-// with a little scatter; a random map gets eight well-separated capitals and then settlements
+// exactly; a random map gets eight well-separated capitals and then settlements
 // spreading out from them cell by cell.
 import { AMERICA_TRIBE_SITES } from '../data/america';
 import { SETTLEMENT_PLACEMENT as P, SETTLEMENT_TERRAIN, WESTERN_TRIBES } from '../data/settlements';
@@ -40,19 +40,17 @@ function toSettlements(sites: readonly Site[]): Settlement[] {
   }));
 }
 
-/** America: every listed site, shifted a little; the first of each tribe is its capital. Coordinates in the list are playable ones. */
-export function placeAmericaSettlements(map: GameMap, rng: Rng): Settlement[] {
+/**
+ * America: one settlement on every listed site, exactly there, in list order; the first of each
+ * tribe is its capital. The charts put settlement ground under every site and no two sites touch,
+ * so nothing is thrown, nothing is skipped and the map need not be read. Coordinates in the list
+ * are playable ones.
+ */
+export function placeAmericaSettlements(): Settlement[] {
   const sites: Site[] = [];
   for (const tribe of TRIBE_IDS) {
     AMERICA_TRIBE_SITES[tribe].forEach(([px, py], index) => {
-      for (let attempt = 0; attempt < P.siteTries; attempt++) {
-        const x = px + 1 + rng.int(-1, 1) + rng.int(-1, 1);
-        const y = py + 1 + rng.int(-1, 1) + rng.int(-1, 1);
-        const apart = (P.siteSpacing.find((s) => attempt < s.untilTry) ?? P.siteSpacing[P.siteSpacing.length - 1]!).apart;
-        if (!isSettlementGround(tileOf(map, x, y)) || nearest(sites, x, y).d <= apart) continue;
-        sites.push({ x, y, tribe, capital: index === 0 });
-        break;
-      }
+      sites.push({ x: px + 1, y: py + 1, tribe, capital: index === 0 });
     });
   }
   return toSettlements(sites);

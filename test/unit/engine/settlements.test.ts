@@ -28,30 +28,21 @@ describe('placement tables', () => {
 });
 
 describe('settlements on the America map', () => {
-  it('stand near every listed site, the first of each tribe being its capital', () => {
-    for (const seed of [1, 2, 3]) {
-      const s = america(seed);
-      const all = Object.values(s.settlements);
-      const listed = TRIBE_IDS.reduce((n, t) => n + AMERICA_TRIBE_SITES[t].length, 0);
-      // One map for every seed now, transcribed with some desert and swamp under listed sites: the
-      // random shift may lose six sites, three of one tribe, until R-1050 puts settlement ground there.
-      expect(all.length).toBeGreaterThanOrEqual(listed - 6);
-      expect(all.length).toBeLessThanOrEqual(Math.min(listed, MAX_SETTLEMENTS));
-      for (const tribe of TRIBE_IDS) {
-        const own = settlementsOf(s, tribe);
-        expect(own.length, tribe).toBeGreaterThanOrEqual(AMERICA_TRIBE_SITES[tribe].length - 3);
-        expect(own.filter((v) => v.capital), tribe).toHaveLength(1);
-        const [px, py] = AMERICA_TRIBE_SITES[tribe][0];
-        const capital = capitalOf(s, tribe) as Settlement;
-        expect(Math.max(Math.abs(capital.x - (px + 1)), Math.abs(capital.y - (py + 1)))).toBeLessThanOrEqual(2);
-      }
-      expect(checkInvariants(s)).toEqual([]);
+  it('stand exactly on every listed site, the first of each tribe its capital, the same for every seed', () => {
+    const [first, ...rest] = [1, 2, 3].map(america);
+    for (const s of rest) expect(s!.settlements).toEqual(first!.settlements);
+    const s = first as GameState;
+    const all = Object.values(s.settlements);
+    const listed = TRIBE_IDS.flatMap((tribe) => AMERICA_TRIBE_SITES[tribe].map(([x, y], i) => ({ tribe, x: x + 1, y: y + 1, capital: i === 0 })));
+    expect(all.map(({ tribe, x, y, capital }) => ({ tribe, x, y, capital }))).toEqual(listed);
+    for (const a of all) {
+      expect(isSettlementGround(s.map.tiles[a.y * s.map.width + a.x]), `${a.tribe} ${a.x},${a.y}`).toBe(true);
+      for (const b of all) if (a !== b) expect(Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)), `${a.id} ${b.id}`).toBeGreaterThan(1);
     }
-  });
-
-  it('is the same for the same seed and differs between seeds', () => {
-    expect(america(4).settlements).toEqual(america(4).settlements);
-    expect(america(4).settlements).not.toEqual(america(5).settlements);
+    for (const tribe of TRIBE_IDS) expect(settlementsOf(s, tribe).filter((v) => v.capital), tribe).toHaveLength(1);
+    // 26,34 is listed under both the Aztecs and the Tupi; it is kept for the Aztecs
+    expect(settlementAt(s, 27, 35)?.tribe).toBe('aztec');
+    expect(checkInvariants(s)).toEqual([]);
   });
 });
 

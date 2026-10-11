@@ -160,7 +160,7 @@ export function createGame(options: NewGameOptions): GameState {
 
   // the peoples already living there
   let settlements: Settlement[] = [];
-  if (options.scenario === 'america') settlements = placeAmericaSettlements(map, rng.fork('natives'));
+  if (options.scenario === 'america') settlements = placeAmericaSettlements();
   else if (options.world) settlements = placeRandomSettlements(map, rng.fork('natives'));
   map = markHomelands(map, settlements);
   const wary = rng.fork('alarm');

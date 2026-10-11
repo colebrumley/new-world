@@ -5,11 +5,6 @@ import type { OpenTerrain } from './terrain';
 export const SETTLEMENT_TERRAIN = ['tundra', 'plains', 'prairie', 'grassland', 'savannah', 'marsh'] as const satisfies readonly OpenTerrain[];
 
 export const SETTLEMENT_PLACEMENT = {
-  /** America: each listed site is tried this often, shifted by two throws of -1..1 on each axis... */
-  siteTries: 100,
-  /** ...and must be more than this far from every other settlement, the spacing relaxing as tries run out. */
-  siteSpacing: [{ untilTry: 33, apart: 3 }, { untilTry: 66, apart: 2 }, { untilTry: 100, apart: 1 }],
-
   /** Random maps are divided into cells of this size, one settlement to a cell. */
   cell: 5,
   /** Capitals keep clear of the map edges by this much (columns, rows). */

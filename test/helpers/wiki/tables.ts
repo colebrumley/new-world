@@ -482,7 +482,7 @@ function tribes(): string {
         `${start} (the ${CAPITAL_NAME.settlement.toLowerCase()} up to ${max})`,
         tribe.treasure,
         skills[id].slice(0, SKILLS_SHOWN).map((p) => PROFESSIONS[p].name).join(', '),
-        `${TRIBE_HOMES[id]}; up to ${AMERICA_TRIBE_SITES[id].length} settlements`,
+        `${TRIBE_HOMES[id]}; ${AMERICA_TRIBE_SITES[id].length} settlements`,
       ];
     }),
   );

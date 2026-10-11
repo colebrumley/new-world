@@ -8,6 +8,7 @@ import { RESOURCE_TERRAINS } from '../../../../src/engine/data/resources';
 import { createGame } from '../../../../src/engine/game';
 import { americaMap, americaStarts, chartsOf, readCharts, toGrid } from '../../../../src/engine/mapgen/america';
 import { worldStats } from '../../../../src/engine/mapgen/generate';
+import { isSettlementGround } from '../../../../src/engine/mapgen/settlements';
 import type { GameMap } from '../../../../src/engine/state';
 import { isLand, isWater, makeTile, terrainOf, type Tile } from '../../../../src/engine/tile';
 
@@ -29,6 +30,55 @@ const chebyshev = (a: readonly [number, number], b: readonly [number, number]): 
   Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 const SOLID = SQUARES.filter((p) => solid(square(p)));
 const toSolid = (p: readonly [number, number]): number => Math.min(...SOLID.map((q) => chebyshev(p, q)));
+const N8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]] as const;
+const around = ([x, y]: readonly [number, number]): [number, number][] =>
+  N8.map(([dx, dy]): [number, number] => [x + dx, y + dy]).filter(inside);
+
+/** Grow a set of squares from `start` over neighbours that `member` admits. */
+function flood(start: readonly (readonly [number, number])[], member: (p: readonly [number, number]) => boolean,
+  next: (p: readonly [number, number]) => [number, number][]): [number, number][] {
+  const out = start.map((p): [number, number] => [p[0], p[1]]);
+  const seen = new Set(out.map(key));
+  for (let i = 0; i < out.length; i++) {
+    for (const n of next(out[i] as [number, number])) {
+      if (!seen.has(key(n)) && member(n)) {
+        seen.add(key(n));
+        out.push(n);
+      }
+    }
+  }
+  return out;
+}
+
+/** The 8-connected water bodies of the playable area. */
+function waterBodies(): [number, number][][] {
+  const done = new Set<string>();
+  const bodies: [number, number][][] = [];
+  for (const p of SQUARES) {
+    if (done.has(key(p)) || !isWater(square(p))) continue;
+    const body = flood([p], (q) => isWater(square(q)), around);
+    for (const q of body) done.add(key(q));
+    bodies.push(body);
+  }
+  return bodies;
+}
+
+/** The main ocean: water joined to the plain-ocean border ring, so to any water square on the playable edge. */
+const OCEAN = new Set(flood(SQUARES.filter((p) => isWater(square(p)) && (p[0] === 0 || p[1] === 0 || p[0] === COLUMNS - 1 || p[1] === ROWS - 1)),
+  (q) => isWater(square(q)), around).map(key));
+
+/** Every river run of one kind: a 4-connected set of its squares, as large as it can be. */
+function runs(kind: 'minor' | 'major'): [number, number][][] {
+  const done = new Set<string>();
+  const out: [number, number][][] = [];
+  for (const p of SQUARES) {
+    if (done.has(key(p)) || square(p).river !== kind) continue;
+    const run = flood([p], (q) => square(q).river === kind, side);
+    for (const q of run) done.add(key(q));
+    out.push(run);
+  }
+  return out;
+}
 
 describe('America map', () => {
   it('matches the chart snapshot and is deterministic', () => {
@@ -94,7 +144,7 @@ describe('America map', () => {
     for (const a of rumors) for (const b of rumors) if (a !== b) expect(chebyshev(a, b), `${key(a)} ${key(b)}`).toBeGreaterThanOrEqual(3);
   });
 
-  it('runs every river at least two squares, and every one to the water but the transcribed stranded ones', () => {
+  it('runs every river at least two squares, and every square of it to the water', () => {
     const river = SQUARES.filter((p) => square(p).river !== 'none');
     const isRiver = new Set(river.map(key));
     // Runs of one kind, 4-connected.
@@ -126,19 +176,8 @@ describe('America map', () => {
         }
       }
     }
-    // The charts were transcribed from the old generated map, whose river walks could stall
-    // inland. These squares are kept as transcribed; R-1050 redraws the rivers and empties this list.
-    const STRANDED = [
-      '2,3', '3,3', '5,3', '6,3', '2,5', '3,5', '12,5', '13,5', '2,6', '5,6', '5,7', '16,9', '16,10', '7,11', '8,11',
-      '29,13', '15,14', '16,14', '20,14', '21,14', '29,14', '12,20', '12,21', '11,23', '12,23', '15,26', '15,27',
-      '31,41', '32,41', '29,44', '29,45', '39,45', '40,45', '50,46', '51,46', '32,47', '33,47', '49,47', '50,47',
-      '46,49', '47,49', '46,51', '47,51', '33,54', '33,55', '37,56', '38,56', '38,61', '39,61',
-    ];
-    expect(river.map(key).filter((k) => !reaches.has(k))).toEqual(STRANDED);
+    expect(river.map(key).filter((k) => !reaches.has(k))).toEqual([]);
   });
-
-  // Pending until R-1050 redraws the rivers: then STRANDED above is empty and this is that check.
-  it.todo('lets every river square walk over river squares to one beside water');
 
   it('marks Sea Lane exactly in the lane columns away from land', () => {
     const lane = (x: number): boolean => x < MAPGEN.westLaneColumns || x >= COLUMNS - MAPGEN.eastLaneColumns;
@@ -194,18 +233,123 @@ describe('America map', () => {
     expect(starts.netherlands[1]).toBeLessThan(starts.spain[1]);
   });
 
-  it('has the regional character: Andes, a dry south-west, a wet Amazon, cold north', () => {
+  it('has the regional character: a dry south-west, a wet Amazon, a cold north, wide seas', () => {
     const count = (x0: number, y0: number, x1: number, y1: number, pred: (t: Tile) => boolean): number => {
       let n = 0;
-      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (pred(at(map, toGrid([x, y])))) n++;
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (pred(square([x, y]))) n++;
       return n;
     };
-    expect(count(26, 36, 35, 66, (t) => t.relief === 'mountains')).toBeGreaterThan(40);
     const dry = (t: Tile): boolean => t.base === 'desert' || t.base === 'prairie';
     const wet = (t: Tile): boolean => t.base === 'swamp' || t.base === 'savannah' || t.base === 'marsh';
-    expect(count(4, 15, 17, 23, dry)).toBeGreaterThan(count(4, 15, 17, 23, wet) * 3);
-    expect(count(34, 37, 49, 47, wet)).toBeGreaterThan(count(34, 37, 49, 47, dry) * 3);
-    expect(count(0, 1, 20, 3, (t) => t.base === 'tundra')).toBeGreaterThan(20);
-    expect(count(0, 0, 55, 69, (t) => t.base === 'seaLane')).toBeGreaterThan(300);
+    expect(count(2, 15, 14, 24, dry)).toBeGreaterThanOrEqual(count(2, 15, 14, 24, wet) * 3);
+    expect(count(32, 38, 48, 48, wet)).toBeGreaterThanOrEqual(count(32, 38, 48, 48, dry) * 3);
+    expect(count(0, 1, 20, 3, (t) => t.base === 'tundra')).toBeGreaterThanOrEqual(20);
+    expect(count(0, 0, COLUMNS - 1, ROWS - 1, (t) => t.base === 'seaLane')).toBeGreaterThanOrEqual(300);
+    const stats = worldStats(map);
+    expect(stats.landMasses).toBeLessThanOrEqual(15);
+    expect(stats.landlocked).toBe(0);
+  });
+
+  it('lets a ship round Cape Horn on rows 60 to 68', () => {
+    const lane = (x: number, east: boolean): boolean => (east ? x >= COLUMNS - MAPGEN.eastLaneColumns : x < MAPGEN.westLaneColumns);
+    const rows = (p: readonly [number, number]): boolean => p[1] >= 60 && p[1] <= 68;
+    const start = SQUARES.filter((p) => rows(p) && lane(p[0], true) && square(p).base === 'seaLane');
+    const seen = new Set(start.map(key));
+    const queue = [...start];
+    while (queue.length > 0) {
+      const p = queue.shift() as [number, number];
+      for (const n of around(p)) {
+        if (rows(n) && isWater(square(n)) && !seen.has(key(n))) {
+          seen.add(key(n));
+          queue.push(n);
+        }
+      }
+    }
+    expect(SQUARES.some((p) => rows(p) && lane(p[0], false) && square(p).base === 'seaLane' && seen.has(key(p)))).toBe(true);
+  });
+
+  it('runs the Mississippi from the northern plains to the Gulf, with two tributaries', () => {
+    const gulf = (p: readonly [number, number]): boolean => p[0] >= 14 && p[0] <= 25 && p[1] >= 19 && p[1] <= 27 && OCEAN.has(key(p));
+    const mississippi = runs('major').find((run) => run.some((p) => side(p).some(gulf)));
+    expect(mississippi).toBeDefined();
+    const run = mississippi as [number, number][];
+    expect(Math.min(...run.map((p) => p[1]))).toBeLessThanOrEqual(8);
+    const inRun = new Set(run.map(key));
+    const tributaries = runs('minor').filter((minor) => minor.some((p) => side(p).some((n) => inRun.has(key(n)))));
+    expect(tributaries.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('has the Great Lakes, the St Lawrence and Hudson Bay', () => {
+    const lakes = waterBodies().filter((body) => !body.some((p) => OCEAN.has(key(p))));
+    const great = lakes.find((body) => body.every(([x, y]) => x >= 19 && x <= 27 && y >= 9 && y <= 13));
+    expect(great).toBeDefined();
+    const lake = great as [number, number][];
+    expect(lake.length).toBeGreaterThanOrEqual(4);
+    expect(lake.length).toBeLessThanOrEqual(12);
+    const inLake = new Set(lake.map(key));
+    const atlantic = (p: readonly [number, number]): boolean => p[0] >= 29 && p[1] >= 5 && p[1] <= 12 && OCEAN.has(key(p));
+    expect(runs('major').some((run) =>
+      run.some((p) => side(p).some((n) => inLake.has(key(n)))) && run.some((p) => side(p).some(atlantic)))).toBe(true);
+    expect(SQUARES.some(([x, y]) => x >= 20 && x <= 25 && y >= 2 && y <= 6 && OCEAN.has(key([x, y])))).toBe(true);
+    expect(worldStats(map).landlocked).toBe(0);
+  });
+
+  it('runs the Amazon from the Andes to the Atlantic and the Parana to the Plate', () => {
+    const atlantic = (p: readonly [number, number]): boolean => p[0] >= 43 && p[1] >= 38 && p[1] <= 42 && OCEAN.has(key(p));
+    expect(runs('major').some((run) => run.some((p) => p[0] <= 32) && run.some((p) => side(p).some(atlantic)))).toBe(true);
+    const plate = (p: readonly [number, number]): boolean => p[0] >= 41 && p[0] <= 44 && p[1] >= 57 && p[1] <= 60 && OCEAN.has(key(p));
+    expect(runs('major').some((run) => run.some((p) => side(p).some(plate)))).toBe(true);
+  });
+
+  it('keeps a Sea Lane on the west from row 30 and on the east on every row', () => {
+    const has = (y: number, x0: number, x1: number): boolean => {
+      for (let x = x0; x <= x1; x++) if (square([x, y]).base === 'seaLane') return true;
+      return false;
+    };
+    for (let y = 30; y <= 68; y++) expect(has(y, 0, MAPGEN.westLaneColumns - 1), `west ${y}`).toBe(true);
+    for (let y = 1; y <= 68; y++) expect(has(y, COLUMNS - MAPGEN.eastLaneColumns, COLUMNS - 1), `east ${y}`).toBe(true);
+  });
+
+  it('puts every listed site on settlement ground, none touching another, with mountains by the cities', () => {
+    const sites = AMERICA_TRIBES.flatMap((tribe) => AMERICA_TRIBE_SITES[tribe].map((p) => ({ tribe, p })));
+    for (const { tribe, p } of sites) expect(isSettlementGround(at(map, toGrid(p))), `${tribe} ${key(p)}`).toBe(true);
+    for (const a of sites) {
+      for (const b of sites) if (a !== b) expect(chebyshev(a.p, b.p), `${key(a.p)} ${key(b.p)}`).toBeGreaterThanOrEqual(2);
+    }
+    const mountainsNear = (p: readonly [number, number]): number =>
+      SQUARES.filter((q) => chebyshev(p, q) <= 2 && square(q).relief === 'mountains').length;
+    expect(Math.max(...AMERICA_TRIBE_SITES.inca.map(mountainsNear))).toBeGreaterThanOrEqual(3);
+    expect(Math.max(...AMERICA_TRIBE_SITES.aztec.map(mountainsNear))).toBeGreaterThanOrEqual(3);
+  });
+
+  it('runs the Andes down the whole Pacific coast of South America', () => {
+    for (let y = 36; y <= 66; y++) {
+      const west = Math.min(...SOLID.filter((p) => p[1] === y).map((p) => p[0]));
+      const ok = [0, 1, 2].some((dx) => inside([west + dx, y]) && square([west + dx, y]).relief === 'mountains');
+      expect(ok, `row ${y}, coast at ${west}`).toBe(true);
+    }
+  });
+
+  it('keeps the densities of resources, rumors, relief and forest near the generator', () => {
+    const land = SOLID.map(square);
+    const resources = land.filter((t) => t.resource !== null).length;
+    expect(resources / land.length).toBeGreaterThanOrEqual(0.05);
+    expect(resources / land.length).toBeLessThanOrEqual(0.09);
+    const nearWater = SQUARES.filter((p) => isWater(square(p)) && toSolid(p) <= 2);
+    const fisheries = nearWater.filter((p) => square(p).resource === 'fishery').length;
+    expect(fisheries / nearWater.length).toBeGreaterThanOrEqual(0.02);
+    expect(fisheries / nearWater.length).toBeLessThanOrEqual(0.05);
+    const rumors = SQUARES.filter((p) => square(p).rumor).length;
+    expect(rumors).toBeGreaterThanOrEqual(20);
+    expect(rumors).toBeLessThanOrEqual(25);
+    const share = (pred: (t: Tile) => boolean): number => land.filter(pred).length / land.length;
+    expect(share((t) => t.relief === 'mountains')).toBeGreaterThanOrEqual(0.03);
+    expect(share((t) => t.relief === 'mountains')).toBeLessThanOrEqual(0.06);
+    expect(share((t) => t.relief === 'hills')).toBeGreaterThanOrEqual(0.06);
+    expect(share((t) => t.relief === 'hills')).toBeLessThanOrEqual(0.12);
+    const flat = land.filter((t) => t.relief === 'flat');
+    const wooded = flat.filter((t) => t.forest).length / flat.length;
+    expect(wooded).toBeGreaterThanOrEqual(0.5);
+    expect(wooded).toBeLessThanOrEqual(0.7);
   });
 });

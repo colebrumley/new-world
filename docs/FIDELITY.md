@@ -38,7 +38,7 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-102 | rumor count | land/45 clamped to 10..25, at least 3 tiles apart | backlog | low | |
 | R-103 | European start positions, America map | England 34,20 · France 39,10 · Spain 47,61 · Netherlands 50,33 (playable coords) | — | medium | backlog expected starts on the eastern Sea Lane; these are near shore. Pair-to-nation order is assumed |
 | R-103 | tribe settlement sites | the rule table's lists, 0-based playable coordinates | — | medium | 26,34 is listed under both Aztec and Tupi; kept for Aztec. Coordinate origin assumed 0-based (3,1 must clear the polar row) |
-| R-103 | coastline and every square | four authored charts in data/america.ts (ground, relief, rivers, extras), the same map every game; nothing generated | own work | n/a | drawn for this project (C1); first transcribed from the earlier generated picture, which R-1050 redraws |
+| R-103 | coastline and every square | four authored charts in data/america.ts (ground, relief, rivers, extras), the same map every game; nothing generated | own work | n/a | drawn for this project (C1) after the real Americas around the listed sites and starts: Cape Horn open, the Mississippi, St Lawrence, Amazon and Paraná as major rivers, the Great Lakes and Titicaca as lakes |
 | R-104 | sight radius | 1; scouts 2; Galleon, Privateer, Frigate 2 (Caravel, Merchantman, Man-O-War 1) | Revolution Now config/rcl/unit-type.rcl `visibility` | medium | backlog had all ships 2 |
 | R-104 | De Soto | +1 to every unit's sight | — | medium | whether scouts then reach 3 is unverified |
 | R-104 | foreign units visible | within 1 tile of one of your units | — | low | exact range assumed |
@@ -166,7 +166,7 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-500 | alarm scale | tribal 0..100 with levels at 25 / 50 / 75; settlement marks 64 and 128 | — | high | the five attitude words are display only |
 | R-500 | starting alarm | 0..14 + 2 x level (human), capped at 20 on contact | — | high | Revolution Now uses a flat value |
 | R-500 | skills per tribe | not a table: computed per settlement from terrain | — | high | Appendix D column kept as a guide only |
-| R-501 | America placement | listed sites, jitter of two -1..1 throws per axis, spacing > 3 easing to 2 and 1, 100 tries | — | high | |
+| R-501 | America placement | one settlement exactly on each listed site, in list order, the first of each tribe its capital; no shift, no spacing check | — | high | simplified: the notes shift each site by two -1..1 throws per axis with a spacing that eases over 100 tries; dropped for the fixed map by the owner's decision. The charts put settlement ground under every site and no two sites touch |
 | R-501 | random placement | 8 capitals (distance 90 easing by 1 per 4 tries, city peoples westward), then cell-by-cell spread, 2160 attempts, cap 84 | — | high | grid is the map in 5 x 5 cells; the "never below 8" detail simplified to a floor of 8 |
 | R-501 | settlement and tribe records | fixed fields; skill, wants and wares computed | — | high | braves as units arrive with R-507 |
 | R-501 | same-land-mass test for land ownership | not applied | — | n/a | simplification |

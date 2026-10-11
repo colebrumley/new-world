@@ -547,11 +547,13 @@ rise is taken as accepted at the end of the turn.
 
 ### Settlements (R-501)
 
-- **America map.** Each tribe's listed sites are used in order, the first being its capital. A site
-  is tried up to 100 times, each time shifted by two throws of -1..1 on each axis. The tile must be
-  empty level ground of tundra, plains, prairie, grassland, savannah or marsh (wooded or not) and
-  more than 3 tiles from any other settlement; the spacing eases to 2 after 33 tries and 1 after
-  66.
+- **America map.** Every listed site holds a settlement of its tribe on exactly that tile, in list
+  order, the first of each tribe being its capital; nothing is thrown and no site is skipped. The
+  map is drawn so that every site is level ground of tundra, plains, prairie, grassland, savannah
+  or marsh (wooded or not), and no two sites touch, so settlements never stand side by side. The
+  site at 26,34 is listed for two peoples and is the Aztecs'. The private notes shift each site by
+  a small random amount and skip one that finds no room; this game drops the shift for its fixed
+  map (the owner's decision).
 - **Random map.** Capitals first, in tribe order: a random land tile away from the edges, not hills
   or mountains, in an empty 5 x 5 cell, far from every other settlement (the demanded distance
   starts at 90 and eases by one every four tries); the Inca and Aztec capitals are also held to
