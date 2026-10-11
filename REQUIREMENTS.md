@@ -1431,7 +1431,7 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [ ] **R-1042 Map art: terrain floors and features regenerated** — docs/specs/map-art-redesign.md, item W3, size L.
 - [ ] **R-1043 Map art: pictorial resource markers** — docs/specs/map-art-redesign.md, item W4, size M.
 - [ ] **R-1044 Map art: the lost-city seal** — docs/specs/map-art-redesign.md, item W5, size S.
-- [ ] **R-1045 Map art: colony names on the map** — docs/specs/map-art-redesign.md, item W6, size M.
+- [x] **R-1045 Map art: colony names on the map** — docs/specs/map-art-redesign.md, item W6, size M.
 - [ ] **R-1046 Map art: canopy and relief joins, river mouths, overlay order** — docs/specs/map-art-redesign.md, item W7, size M.
 
 ---

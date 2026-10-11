@@ -157,6 +157,74 @@ describe('the map renderer, against a plain pixel buffer', () => {
     expect(shotOf(chart(() => false))).toBe(shotOf(blankChart));
   });
 
+  // --- colony names (R-1045) ---
+  const named = (name: string): GameState => {
+    const s = scene();
+    return { ...s, colonies: { col: { ...s.colonies['col']!, name } } };
+  };
+  /** The pixels that differ between two renders, as [x, y, colour in the first]. */
+  const changed = (a: ReturnType<typeof referencePixels>, b: ReturnType<typeof referencePixels>): [number, number, string][] => {
+    const out: [number, number, string][] = [];
+    for (let i = 0; i < a.rgb.length; i += 3) {
+      if (a.rgb[i] === b.rgb[i] && a.rgb[i + 1] === b.rgb[i + 1] && a.rgb[i + 2] === b.rgb[i + 2]) continue;
+      out.push([(i / 3) % a.width, Math.floor(i / 3 / a.width), `#${[a.rgb[i], a.rgb[i + 1], a.rgb[i + 2]].map((n) => (n as number).toString(16).padStart(2, '0')).join('')}`]);
+    }
+    return out;
+  };
+
+  it('writes a colony\'s name under its square in white edged with ink, at the two nearest zooms only', () => {
+    for (const zoom of [3, 2]) {
+      const view = makeView(scene().map, 960, 768, 4, 2, { zoom });
+      const t = view.tileSize;
+      const fine = t / 32;
+      const left = Math.round((2 - view.originX) * t);
+      const top = Math.round((3 - view.originY) * t);
+      const cells = changed(shot(named('Jamestown'), 960, 768, zoom), shot(named(''), 960, 768, zoom));
+      expect(cells.length, `zoom ${zoom}`).toBeGreaterThan(0);
+      // all of it lies in the row of squares below the colony, from a little in from its left edge, and is white or ink
+      for (const [x, y, colour] of cells) {
+        expect(y >= top && y < top + 10 * fine, `zoom ${zoom}`).toBe(true);
+        expect(x >= left + 4 * fine && x < left + (4 + 8 * 7 + 10) * fine, `zoom ${zoom}`).toBe(true);
+        expect([hex(INK.white), hex(INK.ink)], `zoom ${zoom}`).toContain(colour);
+      }
+      const white = cells.filter(([, , colour]) => colour === hex(INK.white));
+      const first = (Math.min(...white.map(([x]) => x)) - left) / fine;
+      expect(first, `zoom ${zoom}`).toBeGreaterThanOrEqual(4);
+      expect(first, `zoom ${zoom}`).toBeLessThanOrEqual(6);
+      // the glyph's seven rows start one art pixel below the square's bottom edge
+      expect((Math.min(...white.map(([, y]) => y)) - top) / fine, `zoom ${zoom}`).toBe(1);
+      expect((Math.max(...white.map(([, y]) => y)) + 1 - top) / fine, `zoom ${zoom}`).toBe(8);
+    }
+    for (const zoom of [1, 0]) expect(changed(shot(named('Jamestown'), 960, 768, zoom), shot(named(''), 960, 768, zoom)), `zoom ${zoom}`).toEqual([]);
+    // an accented name is written in plain capitals
+    expect(fingerprint(shot(named('Québec'), 960, 768, 2).rgb)).toBe(fingerprint(shot(named('QUEBEC'), 960, 768, 2).rgb));
+    expect(fingerprint(shot(named('Québec'), 960, 768, 2).rgb)).not.toBe(fingerprint(shot(named('QUEBEK'), 960, 768, 2).rgb));
+    // hidden-terrain view draws no pieces and no names
+    const hidden = (name: string): string => fingerprint(referencePixels(named(name), makeView(scene().map, 960, 768, 4, 2, { zoom: 2, showHidden: true }), { activeUnitId: null, cursor: null }).rgb);
+    expect(hidden('Jamestown')).toBe(hidden(''));
+  });
+
+  it('clips a name at the canvas edge without moving it, and shows the name of a colony just outside the view', () => {
+    const land = (name: string, x: number, y: number): GameState => withColony(world({ rows: Array.from({ length: 6 }, () => '.'.repeat(8)), players: [{ id: 'a' }] }), { id: 'col', x, y, name });
+    const window = (width: number, height: number, originX: number, originY: number) => ({ width, height, zoom: 2, tileSize: 32, originX, originY, showHidden: false, revealAll: false });
+    const draw = (state: GameState, width: number, originX = 0, originY = 0): ReturnType<typeof referencePixels> => referencePixels(state, window(width, 96, originX, originY), { activeUnitId: null, cursor: null });
+    // a canvas a square and a half wide shows the start of the name exactly where a wide one does
+    const narrow = draw(land('Jamestown', 0, 0), 48);
+    const wide = draw(land('Jamestown', 0, 0), 256);
+    for (let y = 0; y < 96; y++) expect([...narrow.rgb.slice(y * 48 * 3, (y + 1) * 48 * 3)], `row ${y}`).toEqual([...wide.rgb.slice(y * 256 * 3, (y * 256 + 48) * 3)]);
+    expect(changed(narrow, draw(land('', 0, 0), 48)).length).toBeGreaterThan(0);
+    expect(changed(wide, draw(land('', 0, 0), 256)).some(([x]) => x >= 48)).toBe(true);
+    // a colony on the row just above the view hangs its name in the top row
+    const above = changed(draw(land('Jamestown', 2, 0), 256, 0, 1), draw(land('', 2, 0), 256, 0, 1));
+    expect(above.length).toBeGreaterThan(0);
+    for (const [x, y] of above) expect(y < 10 && x >= 64 + 4).toBe(true);
+    // one two rows above does not, and one left of the view still runs its name into it
+    expect(changed(draw(land('Jamestown', 2, 0), 256, 0, 2), draw(land('', 2, 0), 256, 0, 2))).toEqual([]);
+    const beside = changed(draw(land('A Very Long Name Here', 0, 0), 256, 3, 0), draw(land('', 0, 0), 256, 3, 0));
+    expect(beside.length).toBeGreaterThan(0);
+    for (const [x] of beside) expect(x).toBeLessThan(4 + 16 * 7 + 3 - 96);
+  });
+
   it('matches the baseline at each zoom', () => {
     expect(Object.fromEntries([3, 2, 1, 0].map((zoom) => [`zoom${zoom}`, fingerprint(shot(scene(), 960, 768, zoom).rgb)]))).toMatchSnapshot();
   });

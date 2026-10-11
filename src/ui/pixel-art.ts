@@ -556,6 +556,62 @@ const TAB_GLYPHS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
+ * The 5 x 7 upper-case face a colony's name is written in on the map: the letters, the digits, space, hyphen,
+ * apostrophe and full stop, and a question mark for anything else. The plates' glyphs are the same face.
+ */
+export const LABEL_GLYPHS: Readonly<Record<string, readonly string[]>> = {
+  ...TAB_GLYPHS,
+  A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'], B: ['####.', '#...#', '#...#', '####.', '#...#', '#...#', '####.'],
+  C: ['.###.', '#...#', '#....', '#....', '#....', '#...#', '.###.'], D: ['####.', '#...#', '#...#', '#...#', '#...#', '#...#', '####.'],
+  E: ['#####', '#....', '#....', '####.', '#....', '#....', '#####'], H: ['#...#', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+  I: ['.###.', '..#..', '..#..', '..#..', '..#..', '..#..', '.###.'], J: ['..###', '...#.', '...#.', '...#.', '...#.', '#..#.', '.##..'],
+  K: ['#...#', '#..#.', '#.#..', '##...', '#.#..', '#..#.', '#...#'], L: ['#....', '#....', '#....', '#....', '#....', '#....', '#####'],
+  M: ['#...#', '##.##', '#.#.#', '#.#.#', '#...#', '#...#', '#...#'], N: ['#...#', '##..#', '#.#.#', '#..##', '#...#', '#...#', '#...#'],
+  O: ['.###.', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'], Q: ['.###.', '#...#', '#...#', '#...#', '#.#.#', '#..#.', '.##.#'],
+  U: ['#...#', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'], V: ['#...#', '#...#', '#...#', '#...#', '#...#', '.#.#.', '..#..'],
+  W: ['#...#', '#...#', '#...#', '#.#.#', '#.#.#', '##.##', '#...#'], X: ['#...#', '#...#', '.#.#.', '..#..', '.#.#.', '#...#', '#...#'],
+  Y: ['#...#', '#...#', '.#.#.', '..#..', '..#..', '..#..', '..#..'], Z: ['#####', '....#', '...#.', '..#..', '.#...', '#....', '#####'],
+  ' ': ['.....', '.....', '.....', '.....', '.....', '.....', '.....'], '-': ['.....', '.....', '.....', '.###.', '.....', '.....', '.....'],
+  "'": ['..#..', '..#..', '.#...', '.....', '.....', '.....', '.....'], '.': ['.....', '.....', '.....', '.....', '.....', '.##..', '.##..'],
+};
+
+/** Art pixels to the square of one letter of a label, and from one letter of a name to the next. */
+export const LABEL_SIZE = 10;
+export const LABEL_STEP = 7;
+/** How many characters of a name are written. */
+export const LABEL_LENGTH = 16;
+
+/**
+ * One letter of a label: the glyph in white at (2, 1), and ink on every see-through cell beside it (its eight
+ * neighbours), so that it reads on sand as well as on sea. A character the face lacks is a question mark.
+ */
+export function labelArt(ch: string): Sprite {
+  const s = blank(LABEL_SIZE);
+  stamp(s, 2, 1, LABEL_GLYPHS[ch] ?? (LABEL_GLYPHS['?'] as readonly string[]), { '#': INK.white });
+  const white = INK.white + 1;
+  const edge: number[] = [];
+  for (let y = 0; y < s.size; y++) {
+    for (let x = 0; x < s.size; x++) {
+      if (at(s, x, y) !== 0) continue;
+      let beside = false;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (at(s, x + dx, y + dy) === white) beside = true;
+      if (beside) edge.push(y * s.size + x);
+    }
+  }
+  for (const i of edge) s.cells[i] = INK.ink + 1;
+  return s;
+}
+
+/**
+ * A name as the map writes it: in capitals, accents taken off (an accented letter is written plain; one that
+ * does not come apart, or anything else the face lacks, is a question mark), cut at sixteen characters.
+ */
+export function labelText(name: string): string {
+  const plain = name.normalize('NFD').replace(/\p{M}/gu, '').replace(/[‘’]/g, "'").toUpperCase();
+  return [...plain].slice(0, LABEL_LENGTH).map((ch) => (Object.hasOwn(LABEL_GLYPHS, ch) ? ch : '?')).join('');
+}
+
+/**
  * A unit drawn large: its figure standing on a base in its owner's colour. A unit under orders (or a ship
  * showing its holds) carries them in white on a dark tab at the foot of the base on the left, where it
  * hides least of the figure; a unit with none ('-') has no tab. Null for a kind that has no detailed figure.

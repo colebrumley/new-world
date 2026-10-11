@@ -13,7 +13,7 @@ import { GOODS_ART, GOODS_SIZE } from '../../../src/ui/goods-art';
 import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, flagArt, goodArt, SEAL_GLYPHS, sealArt } from '../../../src/ui/pixel-art';
 import { CHART, CHART_MARK_KINDS } from '../../../src/ui/chart';
 import { CHART_ART, CHART_COLORS } from '../../../src/ui/chart-art';
-import { activeFrameArt, ART, at, blank, blockedCursorArt, cursorArt, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, GROUND, halve, hasFigure, INK, MINI, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
+import { activeFrameArt, ART, at, blank, blockedCursorArt, cursorArt, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, GROUND, halve, hasFigure, INK, LABEL_GLYPHS, labelArt, labelText, MINI, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
 
 const look = (change: Partial<TileLook> = {}): TileLook => ({ terrain: 'plains', river: 'none', riverMask: 0, road: false, roadMask: 0, plowed: false, resource: null, rumor: false, totem: false, variant: 0, ...change });
 const text = (s: Sprite): string => Array.from({ length: s.size }, (_, y) => Array.from({ length: s.size }, (_, x) => (at(s, x, y) === 0 ? '.' : (at(s, x, y) - 1).toString(32))).join('')).join('\n');
@@ -389,6 +389,43 @@ describe('helpers', () => {
     const s = blank();
     write(s, 0, 0, '10', INK.white);
     expect(text(s).split('\n').slice(0, 5).map((row) => row.slice(0, 7))).toEqual(['.2..222', '22..2.2', '.2..2.2', '.2..2.2', '222.222']);
+  });
+
+  it('has a five-by-seven face for names on the map: capitals, digits, space, hyphen, apostrophe and full stop', () => {
+    const listed = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -\'.'];
+    for (const ch of [...listed, '?']) {
+      const rows = LABEL_GLYPHS[ch];
+      expect(rows, ch).toHaveLength(7);
+      for (const row of rows!) expect(row, ch).toMatch(/^[#.]{5}$/);
+    }
+    expect(new Set([...listed, '?'].map((ch) => LABEL_GLYPHS[ch]!.join('\n'))).size).toBe(listed.length + 1);
+    // a letter is the glyph in white at (2, 1) with ink on every empty cell that touches it, and nothing else
+    for (const ch of listed) {
+      const s = labelArt(ch);
+      expect(s.size).toBe(10);
+      const rows = LABEL_GLYPHS[ch]!;
+      const white = (x: number, y: number): boolean => rows[y - 1]?.[x - 2] === '#';
+      for (let y = 0; y < 10; y++) {
+        for (let x = 0; x < 10; x++) {
+          let beside = false;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (white(x + dx, y + dy)) beside = true;
+          expect(at(s, x, y), `${ch} at ${x}, ${y}`).toBe(white(x, y) ? INK.white + 1 : beside ? INK.ink + 1 : 0);
+        }
+      }
+    }
+    expect(inks(labelArt(' ')).size).toBe(0);
+    // an unknown character comes out as a question mark
+    expect(text(labelArt('%'))).toBe(text(labelArt('?')));
+    expect(differ(labelArt('?'), labelArt('A'))).toBe(true);
+  });
+
+  it('writes a name in plain capitals, sixteen characters at most', () => {
+    expect(labelText('Jamestown')).toBe('JAMESTOWN');
+    expect(labelText('Québec')).toBe('QUEBEC');
+    expect(labelText('São Luís-d’Été 2.')).toBe('SAO LUIS-D\'ETE 2');
+    expect(labelText('Fort St. George on the Hill')).toBe('FORT ST. GEORGE ');
+    expect(labelText('Ærø & Łódź')).toBe('?R? ? ?ODZ');
+    expect(labelText('')).toBe('');
   });
 
   it('halves art for the smallest zoom and turns it into bytes', () => {

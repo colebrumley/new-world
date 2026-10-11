@@ -4,8 +4,8 @@ exports[`the map renderer, against a plain pixel buffer > matches the baseline a
 {
   "zoom0": "29965740",
   "zoom1": "78996262",
-  "zoom2": "594df577",
-  "zoom3": "910e9b1d",
+  "zoom2": "50b2d51c",
+  "zoom3": "b128a961",
 }
 `;
 

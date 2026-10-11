@@ -211,7 +211,8 @@ export PIXELFORGE=$PWD/pixelforge PY=$PWD/pixelforge/.venv/bin/python
    the folder's `src/ui/*-art.ts`. Those files are never edited by hand.
 3. **Run it again** and check that nothing changed: `git diff --exit-code src/ui/<file>.ts` after a
    second bake must be empty. A bake is the same every time for one pixelforge commit.
-4. **Update the unit snapshots** that hold art: `npm test -- -u test/unit/ui/pixel-art.test.ts test/unit/ui/render.test.ts`.
+4. **Update the unit snapshots** that hold art: `npm test -- test/unit/ui/pixel-art.test.ts test/unit/ui/render.test.ts -u`
+   (the `-u` goes last: put first, it takes the file after it for its own and that file is not run).
 5. **Update the manual's sprites**: `UPDATE_FIXTURES=1 npm test -- test/unit/wiki` rewrites
    `wiki/images/art/`.
 6. **Make a contact sheet** and look at it: `$PY scripts/contact-sheet.py <folder> [scale]` tiles

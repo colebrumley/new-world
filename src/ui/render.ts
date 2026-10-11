@@ -12,7 +12,7 @@ import { attitude, isHostile } from '../engine/alarm';
 import { TRIBES, type TribeId } from '../engine/data/tribes';
 import { tribeOfOwner } from '../engine/settlements';
 import { isExploredBy, isWater, type Tile } from '../engine/tile';
-import { activeFrameArt, colonyArt, chartMarkArt, blockedCursorArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, PALETTE, pieceArt, settlementArt, VELLUM, vellumArt, type InkId, type Sprite } from './pixel-art';
+import { activeFrameArt, colonyArt, chartMarkArt, blockedCursorArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, LABEL_LENGTH, LABEL_SIZE, LABEL_STEP, labelArt, labelText, PALETTE, pieceArt, settlementArt, VELLUM, vellumArt, type InkId, type Sprite } from './pixel-art';
 import { chartGrid, DETAIL_FROM, drawArt, lookOf, TILE_VARIANTS, type TileCache } from './tiles';
 import { orderLetter, topUnit } from './unit-queue';
 import type { View } from './view';
@@ -99,6 +99,11 @@ export const MOOD_COLORS: readonly string[] = MOOD_INK.map((ink) => PALETTE[ink]
 /** The walls a colony may have, weakest first; its picture shows the strongest it has. */
 const FORT_LEVELS: readonly string[] = COLONY_LIMITS.fortifications;
 const BAND_INK = { minority: INK.white, majority: INK.green, unanimous: INK.brightBlue } as const;
+
+/** How far in from its square's left edge a colony's name starts, in art pixels of the 32 grid. */
+const LABEL_INSET = 4;
+/** How many squares to the right of its own a name of full length can reach. */
+const LABEL_REACH = Math.ceil((LABEL_INSET + LABEL_LENGTH * LABEL_STEP + LABEL_SIZE - LABEL_STEP) / DETAIL) - 1;
 
 export function render(ctx: CanvasRenderingContext2D, state: GameState, view: View, cache: TileCache, extras: RenderExtras = {}): void {
   renderGround(ctx, state, view, cache, extras.waterPhase ?? 0);
@@ -243,6 +248,19 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
     drawPiece(unit, px, py, stacked);
     // the piece awaiting orders blinks its frame
     if (unit.id === extras.activeUnitId && extras.blinkOn !== false) drawArt(ctx, art('active', activeFrameArt), px, py, t);
+  }
+  // each colony's name under its square, over the pieces: only where an art pixel of the 32 grid is a whole number of pixels
+  const fine = Math.floor(t / DETAIL);
+  if (fine > 0) {
+    for (const colony of Object.values(state.colonies)) {
+      // a name runs on to the right and hangs below, so a colony a little left of the view or just above it still shows
+      if (colony.x < x0 - LABEL_REACH || colony.x >= x1 || colony.y < y0 - 1 || colony.y >= y1) continue;
+      const tile = map.tiles[colony.y * map.width + colony.x];
+      if (!tile || !(view.revealAll || isExploredBy(tile, viewer))) continue;
+      [...labelText(colony.name)].forEach((ch, i) => {
+        drawArt(ctx, cache.sprite(`label|${ch}`, () => labelArt(ch)), ox + colony.x * t + (LABEL_INSET + i * LABEL_STEP) * fine, oy + (colony.y + 1) * t, LABEL_SIZE * fine);
+      });
+    }
   }
   // a piece being dragged follows the pointer, over everything else
   const dragged = extras.dragged ? state.units[extras.dragged.unitId] : undefined;

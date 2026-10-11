@@ -162,6 +162,53 @@ test('one of everything: terrain, features, every unit type, colonies and settle
   await page.screenshot({ path: 'test-results/visual-sheet.png' });
 });
 
+/** Three named colonies on different ground, one of them beside the sea and one with a piece under its name. */
+function named(): string {
+  const rows = Array.from({ length: 12 }, (_, y) => (y === 0 || y === 11 ? '~'.repeat(16) : `~${'.'.repeat(9)}~~~~~~`));
+  let state: GameState = world({ rows, seed: 5, players: [{ id: 'p0', kind: 'human' }, { id: 'fr', kind: 'ai', nation: 'france' }] });
+  const tiles = [...state.map.tiles];
+  for (let y = 1; y < 11; y++) for (let x = 1; x < 4; x++) tiles[y * 16 + x] = makeTile({ base: 'desert', explored: 0xff });
+  for (let y = 1; y < 11; y++) for (let x = 6; x < 8; x++) tiles[y * 16 + x] = makeTile({ base: 'grassland', forest: y > 5, explored: 0xff });
+  state = { ...state, map: { ...state.map, tiles } };
+  state = withColony(state, { id: 'c1', owner: 'p0', x: 2, y: 4, name: 'Jamestown' });
+  state = withColony(state, { id: 'c2', owner: 'fr', x: 6, y: 5, name: 'Québec' });
+  state = withColony(state, { id: 'c3', owner: 'p0', x: 9, y: 7, name: 'Fort St. George' });
+  state = withUnit(state, { id: 'u0', type: 'soldier', owner: 'p0', x: 3, y: 5 });
+  state = withUnit(state, { id: 'u1', type: 'caravel', owner: 'p0', profession: null, x: 11, y: 8 });
+  return saveGame({ options: { seed: 5 }, log: [], state });
+}
+
+test('each colony\'s name is written under it in pixel art at the two nearest zooms, and not below them', async ({ page }) => {
+  await quiet(page);
+  await page.addInitScript((text) => localStorage.setItem('new-world:autosave', text), named());
+  await page.goto('/?reveal&still');
+  await page.getByRole('menuitem', { name: 'Load Game' }).click();
+  const canvas = page.locator('canvas.map');
+  await expect(canvas).toHaveAttribute('data-view', /"zoom":3/);
+  const palette = new Set<string>(ART_COLORS);
+  const baselines: Record<string, string> = {};
+  for (const zoom of [3, 2, 1]) {
+    await expect(canvas).toHaveAttribute('data-view', new RegExp(`"zoom":${zoom}`));
+    await page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+    const seen = await survey(canvas);
+    // a name is art like the rest: nothing blended, and the canvas is what the reference says, pixel for pixel
+    expect(seen.colours.filter((c) => !palette.has(c)), `zoom ${zoom}`).toEqual([]);
+    const want = await expected(page, canvas);
+    expect(`${seen.width}x${seen.height} ${seen.fingerprint}`, `zoom ${zoom}`).toBe(`${want.size} ${want.fingerprint}`);
+    // without the names the picture is another one at the two nearest zooms and the same one below them
+    const saved = loadGame((await page.evaluate(() => localStorage.getItem('new-world:autosave')))!).state;
+    const bare = { ...saved, colonies: Object.fromEntries(Object.entries(saved.colonies).map(([id, colony]) => [id, { ...colony, name: '' }])) };
+    const view = JSON.parse((await canvas.getAttribute('data-view'))!) as View;
+    const active = (await canvas.getAttribute('data-active')) || null;
+    const unnamed = fingerprint(referencePixels(bare, view, { activeUnitId: active, cursor: null, blinkOn: true, waterPhase: 0, slide: null }).rgb);
+    expect(unnamed === want.fingerprint, `zoom ${zoom}`).toBe(zoom < 2);
+    baselines[`zoom${zoom}`] = `${want.size} ${want.fingerprint}`;
+    await page.screenshot({ path: `test-results/visual-names-zoom${zoom}.png` });
+    await page.keyboard.press('x');
+  }
+  expect(JSON.stringify(baselines, null, 2)).toMatchSnapshot('names-baselines.json');
+});
+
 test('the active unit\'s frame blinks, the sea shimmers if asked to, and neither happens with ?still', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('new-world:options', JSON.stringify({ tutorialHints: false })));
   await page.goto('/?seed=11');
