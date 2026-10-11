@@ -32,7 +32,7 @@ import type { TribeId } from './data/tribes';
 import { VILLAGE_ACTIONS, type VillageAction } from './data/village';
 import { answerTreaty, checkAnswerTreaty, checkVillageAction, contactAt, villageAction, type VillageErrorCode, type VillageEvent } from './village';
 import { answerBurial, canExplore, checkAnswerBurial, checkFountainPick, drinkFountain, exploreRumor, fountainPick, type RumorErrorCode, type RumorEvent } from './rumors';
-import { answerOffer, checkAnswerOffer, royalTurn, type RoyalErrorCode, type RoyalEvent } from './royal';
+import { answerOffer, cashTreasure, cashTreasuresAboard, checkAnswerOffer, checkCashTreasure, royalTurn, type RoyalErrorCode, type RoyalEvent } from './royal';
 import { checkSetExport, setExport, type CustomHouseErrorCode, type CustomHouseEvent } from './custom-house';
 import { colonyTurn, type EconomyEvent } from './economy';
 import { arriveByLot, checkChooseImmigrant, checkRecruit, chooseImmigrant, immigrationTurn, recruit, type ImmigrationEvent } from './immigration';
@@ -76,6 +76,8 @@ export type Action =
   | { readonly type: 'recruit'; readonly slot: number }
   /** Take or decline what the Crown has offered (a frigate for a tax, mercenaries for gold). */
   | { readonly type: 'answerOffer'; readonly accept: boolean }
+  /** Turn a treasure train standing in an own colony into gold: the Crown carries it home, or after the Declaration agents buy it. */
+  | { readonly type: 'cashTreasure'; readonly unitId: UnitId }
   /** Send a unit standing beside a native settlement in to do something there. */
   | { readonly type: 'enterSettlement'; readonly unitId: UnitId; readonly settlementId: string; readonly action: VillageAction; readonly target?: PlayerId; readonly good?: GoodId }
   /** Answer a native settlement in trade talks: take its price, haggle, give the cargo away, or leave. When buying, name the good. */
@@ -372,6 +374,10 @@ export function validateAction(state: GameState, action: Action): Validation {
       const check = checkAnswerOffer(state, currentPlayer(state).id, action.accept);
       return check.ok ? OK : fail(check.code, check.message);
     }
+    case 'cashTreasure': {
+      const check = checkCashTreasure(state, currentPlayer(state).id, action.unitId);
+      return check.ok ? OK : fail(check.code, check.message);
+    }
     case 'payBackTaxes': {
       const check = checkPayBackTaxes(state, currentPlayer(state).id, action.good);
       return check.ok ? OK : fail(check.code, check.message);
@@ -615,8 +621,15 @@ function europePhase(state: GameState, playerId: PlayerId, events: GameEvent[]):
   const taxed = taxEvent(priced, playerId, taxes);
   events.push(...taxes);
   const voyages: VoyageEvent[] = [];
-  const sailed = advanceVoyages(taxed, playerId, voyages);
-  events.push(...voyages);
+  let sailed = advanceVoyages(taxed, playerId, voyages);
+  // a treasure landed in Europe by the player's own ship pays at once, before the docks could show it
+  for (const e of voyages) {
+    events.push(e);
+    if (e.type !== 'shipReachedEurope') continue;
+    const cashed: RoyalEvent[] = [];
+    sailed = cashTreasuresAboard(sailed, playerId, e.unitId, cashed);
+    events.push(...cashed);
+  }
   const arrivals: ImmigrationEvent[] = [];
   const peopled = immigrationTurn(sailed, playerId, arrivals);
   events.push(...arrivals);
@@ -869,6 +882,10 @@ function applyCore(state: GameState, action: Action): ActionResult {
     case 'answerOffer': {
       const events: (RoyalEvent | TaxEvent | VoyageEvent)[] = [];
       return { state: answerOffer(state, currentPlayer(state).id, action.accept, events), events };
+    }
+    case 'cashTreasure': {
+      const events: RoyalEvent[] = [];
+      return { state: cashTreasure(state, currentPlayer(state).id, action.unitId, events), events };
     }
     case 'answerTax': {
       const events: TaxEvent[] = [];
@@ -1220,6 +1237,7 @@ export function listValidActions(state: GameState): Action[] {
       continue;
     }
     for (const extra of colonyOptions(state, unit)) if (validateAction(state, extra).ok) out.push(extra);
+    if (unit.type === 'treasure' && checkCashTreasure(state, me, unit.id).ok) out.push({ type: 'cashTreasure', unitId: unit.id });
     for (const settle of [{ type: 'foundColony', unitId: unit.id }, { type: 'joinColony', unitId: unit.id }] as const) {
       if (validateAction(state, settle).ok) out.push(settle);
     }

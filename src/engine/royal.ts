@@ -1,9 +1,10 @@
 // The Crown (R-406): the growing Expeditionary Force, a war in Europe with aid for the colonies,
-// the offer of a frigate, mercenaries for hire, the royal cut of a treasure, the War of
+// the offer of a frigate, mercenaries for hire, the cashing of treasure trains, the War of
 // Succession, and independence granted to rival powers. Rules in docs/RULES.md "Royal events".
 import { dateOfTurn } from './calendar';
 import { equipmentOf } from './cargo';
 import { coloniesOf } from './colony';
+import { isPortColony } from './construction';
 import { NATION_IDS, type NationId } from './data/nations';
 import { ROYAL, type RefUnit } from './data/royal';
 import { UNIT_TYPES, type UnitTypeId } from './data/units';
@@ -15,7 +16,7 @@ import { computerTreasury } from './fleet';
 import { rebelSentiment } from './liberty';
 import { fullMoves } from './movement';
 import { createRng } from './rng';
-import type { Colony, GameState, Goods, Player, PlayerId, RefForce, RoyalOffer, Unit } from './state';
+import { colonyAt, type Colony, type GameState, type Goods, type Player, type PlayerId, type RefForce, type RoyalOffer, type Unit, type UnitId } from './state';
 import { changeTax, type TaxEvent } from './tax';
 import { sailForNewWorld, type VoyageEvent } from './voyage';
 
@@ -29,7 +30,9 @@ export type RoyalEvent =
   /** The War of Succession ends: one power leaves the New World and another inherits what it had. */
   | { readonly type: 'succession'; readonly loser: PlayerId; readonly heir: PlayerId; readonly colonies: number; readonly units: number; readonly lost: Goods }
   | { readonly type: 'independenceTalk'; readonly player: PlayerId; readonly rebels: number; readonly rising: boolean }
-  | { readonly type: 'independenceGranted'; readonly player: PlayerId };
+  | { readonly type: 'independenceGranted'; readonly player: PlayerId }
+  /** A treasure train turned into gold: by the Crown's galleon for a fee, sold to agents after the Declaration, or landed in Europe by the player's own ship. */
+  | { readonly type: 'treasureCashed'; readonly player: PlayerId; readonly unitId: UnitId; readonly value: number; readonly fee: number; readonly carrier: 'crown' | 'agents' | 'galleon'; readonly colonyId?: string };
 
 const level = (state: GameState): number => DIFFICULTIES.indexOf(state.difficulty);
 const playerOf = (state: GameState, id: PlayerId): Player | undefined => state.players.find((p) => p.id === id);
@@ -198,7 +201,7 @@ export function mercenaryOffer(state: GameState, playerId: PlayerId, events: Roy
   return patch(after, playerId, { pendingOffer: offer });
 }
 
-export type RoyalErrorCode = 'noOfferPending' | 'cannotAfford';
+export type RoyalErrorCode = 'noOfferPending' | 'cannotAfford' | 'notTreasure' | 'notYourTreasure' | 'treasureNotInColony' | 'treasureNoPort' | 'treasureOwnGalleon';
 export type RoyalCheck = { readonly ok: true } | { readonly ok: false; readonly code: RoyalErrorCode; readonly message: string };
 
 export function checkAnswerOffer(state: GameState, playerId: PlayerId, accept: boolean): RoyalCheck {
@@ -257,6 +260,69 @@ export function royalTransportCut(state: GameState, playerId: PlayerId): number 
 export function royalTransport(state: GameState, playerId: PlayerId, value: number): { fee: number; net: number } {
   const fee = Math.trunc((value * royalTransportCut(state, playerId)) / 100);
   return { fee, net: value - fee };
+}
+
+export interface TreasureQuote {
+  readonly value: number;
+  readonly fee: number;
+  readonly net: number;
+  readonly carrier: 'crown' | 'agents';
+}
+
+/** Why a treasure standing where it stands cannot be cashed, or what it would pay. */
+function appraise(state: GameState, unit: Unit): { quote: TreasureQuote; colony: Colony } | { code: Exclude<RoyalErrorCode, 'noOfferPending' | 'cannotAfford' | 'notTreasure' | 'notYourTreasure'>; message: string } {
+  const colony = unit.aboard === null && unit.voyage === null ? colonyAt(state, unit.x, unit.y) : null;
+  if (!colony || colony.owner !== unit.owner) return { code: 'treasureNotInColony', message: 'the treasure must stand in one of your colonies' };
+  const owner = playerOf(state, unit.owner);
+  if (owner?.atWar) return { colony, quote: { value: unit.treasure, fee: 0, net: unit.treasure, carrier: 'agents' } };
+  if (!isPortColony(state, colony)) return { code: 'treasureNoPort', message: `${colony.name} has no harbour for the King's galleon` };
+  const cortes = owner?.fathers.includes('hernanCortes') ?? false;
+  if (!cortes && Object.values(state.units).some((u) => u.owner === unit.owner && u.type === 'galleon')) return { code: 'treasureOwnGalleon', message: 'the Crown will not carry treasure for a power with a galleon of its own' };
+  const { fee, net } = royalTransport(state, unit.owner, unit.treasure);
+  return { colony, quote: { value: unit.treasure, fee, net, carrier: 'crown' } };
+}
+
+/** What a treasure standing where it stands would pay its owner, or null when it cannot be cashed there. */
+export function treasureQuote(state: GameState, unit: Unit): TreasureQuote | null {
+  if (unit.type !== 'treasure') return null;
+  const found = appraise(state, unit);
+  return 'quote' in found ? found.quote : null;
+}
+
+export function checkCashTreasure(state: GameState, playerId: PlayerId, unitId: UnitId): RoyalCheck {
+  const unit = state.units[unitId];
+  if (!unit || unit.type !== 'treasure') return { ok: false, code: 'notTreasure', message: 'that is not a treasure train' };
+  if (unit.owner !== playerId) return { ok: false, code: 'notYourTreasure', message: 'that treasure is not yours' };
+  const found = appraise(state, unit);
+  return 'quote' in found ? { ok: true } : { ok: false, code: found.code, message: found.message };
+}
+
+/** Cash a treasure standing in an own colony: the Crown carries it home for its fee, or after the Declaration agents buy it whole. */
+export function cashTreasure(state: GameState, playerId: PlayerId, unitId: UnitId, events: RoyalEvent[]): GameState {
+  if (!checkCashTreasure(state, playerId, unitId).ok) return state;
+  const found = appraise(state, state.units[unitId] as Unit);
+  if (!('quote' in found)) return state;
+  const { quote, colony } = found;
+  const units = Object.fromEntries(Object.entries(state.units).filter(([id]) => id !== unitId));
+  const player = playerOf(state, playerId) as Player;
+  const paid = payCrown(patch({ ...state, units }, playerId, { gold: player.gold + quote.net }), playerId, quote.fee);
+  events.push({ type: 'treasureCashed', player: playerId, unitId, value: quote.value, fee: quote.fee, carrier: quote.carrier, colonyId: colony.id });
+  return paid;
+}
+
+/** A ship of the player's has made port in Europe: every treasure aboard pays its whole value, with no fee. */
+export function cashTreasuresAboard(state: GameState, playerId: PlayerId, shipId: UnitId, events: RoyalEvent[]): GameState {
+  const treasures = Object.values(state.units).filter((u) => u.aboard === shipId && u.owner === playerId && u.type === 'treasure');
+  if (treasures.length === 0) return state;
+  const gone = new Set(treasures.map((t) => t.id));
+  const units = Object.fromEntries(Object.entries(state.units).filter(([id]) => !gone.has(id)));
+  let gold = 0;
+  for (const t of treasures) {
+    gold += t.treasure;
+    events.push({ type: 'treasureCashed', player: playerId, unitId: t.id, value: t.treasure, fee: 0, carrier: 'galleon' });
+  }
+  const player = playerOf(state, playerId) as Player;
+  return patch({ ...state, units }, playerId, { gold: player.gold + gold });
 }
 
 // --- the War of Succession ---------------------------------------------------------------------------
