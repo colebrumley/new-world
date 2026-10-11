@@ -217,6 +217,8 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       if (host.refusal(action) === null) options.push({ label: role === 'colonist' ? 'Lay down equipment' : `Equip as ${role}`, action });
     }
     options.push({ label: 'Sentry', action: { type: 'setOrders', unitId, orders: 'sentry' } }, { label: 'Fortify', action: { type: 'setOrders', unitId, orders: 'fortify' } });
+    // a unit standing in a colony cannot be picked on the map, so its orders are lifted here
+    if (!aboard && host.state().units[unitId]?.orders !== 'none') options.push({ label: 'Clear orders', action: { type: 'setOrders', unitId, orders: 'none' } });
     const labels = [...options.map((o) => o.label), 'No change'];
     const pick = await ask(root, { text: 'Orders for this unit:', choices: labels, escape: labels.length - 1 });
     const chosen = options[pick];

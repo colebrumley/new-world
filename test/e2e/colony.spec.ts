@@ -317,6 +317,38 @@ test('a passenger on a docked ship can be picked in the colony and put ashore or
   await expect(colony.locator('.building[data-building="townHall"] .token')).toHaveCount(1);
 });
 
+test('a fortified unit in the colony can be given back its orders from the colony screen', async ({ page }) => {
+  const rows = Array.from({ length: 8 }, (_, y) => (y === 0 || y === 7 ? '~'.repeat(10) : '~~......~~'));
+  let state = world({ rows, seed: 5, players: [{ id: 'p0', kind: 'human', nation: 'england' }] });
+  state = withColony(state, { id: 'james', owner: 'p0', x: 4, y: 3, name: 'Jamestown' });
+  state = withUnit(state, { id: 'gun', owner: 'p0', type: 'artillery', profession: null, x: 4, y: 3, orders: 'fortified' });
+  state = withUnit(state, { id: 'hand', owner: 'p0', x: 4, y: 3 });
+  await page.addInitScript((text) => localStorage.setItem('new-world:autosave', text), saveGame({ options: { seed: 5 }, log: [], state }));
+  await page.goto('/');
+  await page.getByRole('menuitem', { name: 'Load Game' }).click();
+  await expect(field(page, 'unit')).toHaveText('Free Colonist');
+  await page.keyboard.press('v');
+  await page.keyboard.press('Enter');
+  const colony = page.locator('.colony-screen');
+  await expect(colony).toBeVisible();
+  const gun = colony.locator('.outside-row .token-unit', { hasText: 'Artillery' });
+  await gun.click();
+  await gun.click();
+  const dialog = page.getByRole('dialog').filter({ hasText: 'Orders for this unit' }).last(); // the colony screen is a dialog too
+  await expect(dialog.getByRole('button')).toHaveText(['Join the colony', 'Sentry', 'Fortify', 'Clear orders', 'No change']);
+  await dialog.getByRole('button', { name: 'Clear orders' }).click();
+  // with no orders there is nothing to clear, and the map asks the artillery for its move
+  await gun.click();
+  await expect(dialog.getByRole('button')).toHaveText(['Join the colony', 'Sentry', 'Fortify', 'No change']);
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(colony).toHaveCount(0);
+  await page.keyboard.press('Escape'); // out of view mode
+  await expect(field(page, 'unit')).toHaveText('Free Colonist');
+  await page.keyboard.press('w');
+  await expect(field(page, 'unit')).toHaveText('Artillery');
+});
+
 test('right-clicking in the colony opens the encyclopedia at that building, cargo or colonist', async ({ page }) => {
   await foundJamestown(page);
   const colony = page.getByRole('dialog', { name: 'Colony' });
