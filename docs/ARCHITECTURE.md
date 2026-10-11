@@ -162,7 +162,10 @@ the game's sprites blown up to `wiki/images/art/` by `test/unit/wiki/images.test
 encoder in `test/helpers/wiki/png.ts`), the reference tables between `<!-- table: name -->` and
 `<!-- /table -->` filled from the rule tables by `test/unit/wiki/tables.test.ts` (renderers in the
 `TABLES` registry of `test/helpers/wiki/tables.ts`), and screenshots at 1280 x 800 in
-`wiki/images/screens/` written by `test/e2e/wiki-shots.spec.ts`. Those tests fail when the art, a
+`wiki/images/screens/` written by `test/e2e/wiki-shots.spec.ts`, which passes each screenshot through
+the dev dependency `sharp` (libimagequant) to store it as a palette PNG of at most 256 colours, so the
+folder stays under the 5 MB that `test/unit/wiki/screens.test.ts` checks along with the indexed colour
+type. Those tests fail when the art, a
 rule table or a screen changes, and whoever changes it regenerates:
 `UPDATE_FIXTURES=1 npm test -- test/unit/wiki` for sprites and tables, and
 `WIKI_SHOTS=1 npx playwright test test/e2e/wiki-shots.spec.ts` for screenshots.
