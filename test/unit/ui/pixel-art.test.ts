@@ -565,6 +565,12 @@ describe('detailed terrain', () => {
       expect(cellsOf(fish).some((i) => mouth.cells[i] !== 0)).toBe(true);
       for (const i of cellsOf(fish)) expect(both.cells[i]).toBe(fish.cells[i]);
       for (const i of cellsOf(mouth)) if (fish.cells[i] === 0) expect(both.cells[i]).toBe(INK.brightBlue + 1);
+      // on land the marker stands over the river that crosses it
+      const wheat = overArt(look({ resource: 'wheat' }), grid);
+      const crossed = overArt(look({ resource: 'wheat', river: 'major', riverMask: 15 }), grid);
+      expect(cellsOf(wheat).some((i) => stream.cells[i] !== 0)).toBe(true);
+      for (const i of cellsOf(wheat)) expect(crossed.cells[i]).toBe(wheat.cells[i]);
+      for (const i of cellsOf(stream)) if (wheat.cells[i] === 0) expect(crossed.cells[i]).toBe(INK.brightBlue + 1);
       const seal = overArt(look({ rumor: true }), grid);
       const marked = overArt(look({ resource: 'wheat', rumor: true }), grid);
       for (const i of cellsOf(seal)) expect(marked.cells[i]).toBe(seal.cells[i]);
