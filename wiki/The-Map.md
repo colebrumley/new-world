@@ -134,7 +134,6 @@ Some squares carry a special resource that makes them worth more. Each kind is f
 
 |  | Resource | Found on | Adds |
 | :--- | :--- | :--- | :--- |
-| ![Depleted Mine](images/art/resources/depletedMine.png) | Depleted Mine | Mountains | no bonus, but the square's own silver is worked without a road: 1 Silver for a free colonist |
 | ![Oasis](images/art/resources/oasis.png) | Oasis | Desert, Scrub Forest | +2 Food (+4 for the expert) |
 | ![Wheat](images/art/resources/wheat.png) | Wheat | Plains | +2 Food (+4 for the expert) |
 | ![Prime Cotton](images/art/resources/primeCotton.png) | Prime Cotton | Prairie | doubles Cotton |
@@ -150,7 +149,7 @@ Some squares carry a special resource that makes them worth more. Each kind is f
 
 <!-- /table -->
 
-No resource runs out: a mine can be worked for the whole game. A Depleted Mine is found on the map as it is, an old silver working with nothing left of its own.
+No resource runs out: a mine can be worked for the whole game.
 
 ### The colony square
 
@@ -171,7 +170,7 @@ A rumor can turn out to be:
 - **Burial mounds**: you choose whether to dig. They may be empty, hold trinkets, or hold a treasure. If they are sacred to a nearby people, digging angers them whatever you find.
 - **Holy shrines** of a people you have met: disturbing them angers that people.
 - **A City of Cibola**: a treasure train. Found only on hills, mountains, desert or scrub forest, and only a few times in a game.
-- **The Fountain of Youth**: eight colonists come from Europe, free, and you pick them. Found only on grassland, savannah, marsh or swamp, wooded or not, and not among the first few rumors explored. After you declare independence it is a City of Cibola instead.
+- **The Fountain of Youth**: eight colonists come from Europe, free, and you pick them. Found only on grassland, savannah, marsh or swamp, wooded or not, and not among the first few rumors explored. After you declare independence it can only be a City of Cibola, on the ground and within the count a City of Cibola needs.
 - **The party vanishes**: the unit is lost. A scout is less likely to vanish, and a power with very few colonists and colonies never loses its party this way.
 
 A scout of a power with Hernando de Soto among its Founding Fathers is luckier: it can find the Fountain of Youth on any ground and at any time, and now and then a City of Cibola on any ground; and when its first look turns up nothing, shrines or a vanished party, it looks again.

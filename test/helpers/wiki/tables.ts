@@ -121,14 +121,14 @@ function resourceEffectText(r: ResourceId, bare: Tile): string {
     const gain = (w: OutdoorWorker): number => tileYield(tile, good, w) - tileYield(bare, good, w);
     return [`+${gain(FREE_COLONIST)} ${rawGoodName(good)} (+${gain({ ...FREE_COLONIST, expertGood: good })} for the expert)`];
   });
-  if (parts.length > 0) return parts.join(', ');
-  return `no bonus, but the square's own silver is worked without a road: ${tileYield(tile, 'silver')} Silver for a free colonist`;
+  return parts.join(', ');
 }
 
+/** Every resource a map can carry. The Depleted Mine is left out: no map places one and no deposit becomes one in play. */
 function resourceTable(): string {
   return mdTable(
     ['', 'Resource', 'Found on', 'Adds'],
-    RESOURCE_IDS.map((r) => {
+    RESOURCE_IDS.filter((r) => r !== 'depletedMine').map((r) => {
       const terrains: readonly TerrainId[] = RESOURCE_TERRAINS[r];
       const bare = bareTile(terrains[0]!);
       return [img(`images/art/resources/${r}.png`, RESOURCES[r].name), RESOURCES[r].name, terrains.map((t) => TERRAIN[t].name).join(', '), resourceEffectText(r, bare)];
