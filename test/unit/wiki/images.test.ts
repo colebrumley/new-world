@@ -129,5 +129,8 @@ describe('the sprites in wiki/images/art', () => {
     const png = encodePng(3, 2, rgba);
     expect(pngSize(png)).toEqual({ width: 3, height: 2 });
     expect(decodePng(png)).toEqual({ width: 3, height: 2, rgba });
+    const corrupt = Buffer.from(png);
+    corrupt[29] = (corrupt[29] as number) ^ 1; // the IHDR's CRC
+    expect(() => decodePng(corrupt)).toThrow(/CRC/);
   });
 });

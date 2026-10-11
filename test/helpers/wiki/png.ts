@@ -46,16 +46,19 @@ export function pngSize(buffer: Uint8Array): { width: number; height: number } {
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 }
 
-/** The pixels of a PNG written by encodePng (any number of IDAT chunks, but only filter 0 and 8-bit RGBA). */
+/** The pixels of a PNG written by encodePng (any number of IDAT chunks, but only filter 0 and 8-bit RGBA); throws on a bad chunk CRC. */
 export function decodePng(buffer: Uint8Array): { width: number; height: number; rgba: Uint8Array } {
   const bytes = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
   const { width, height } = pngSize(bytes);
   const header = bytes.subarray(24, 29);
   if (header[0] !== 8 || header[1] !== 6 || header[2] !== 0 || header[3] !== 0 || header[4] !== 0) throw new Error('decodePng: only 8-bit RGBA without interlace');
   const data: Buffer[] = [];
-  for (let at = 8; at < bytes.length; ) {
+  for (let at = 8; ; ) {
+    if (at + 12 > bytes.length) throw new Error('decodePng: no IEND');
     const length = bytes.readUInt32BE(at);
+    if (at + 12 + length > bytes.length) throw new Error('decodePng: a chunk runs past the end');
     const type = bytes.toString('latin1', at + 4, at + 8);
+    if (crc32(bytes.subarray(at + 4, at + 8 + length)) !== bytes.readUInt32BE(at + 8 + length)) throw new Error(`decodePng: bad CRC in ${type}`);
     if (type === 'IDAT') data.push(bytes.subarray(at + 8, at + 8 + length));
     if (type === 'IEND') break;
     at += 12 + length;
