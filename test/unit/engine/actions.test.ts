@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, InvalidActionError, listValidActions, validateAction, type Action } from '../../../src/engine/actions';
 import { createGame } from '../../../src/engine/game';
 import { createRng } from '../../../src/engine/rng';
-import type { GameState, Unit } from '../../../src/engine/state';
+import { checkInvariants } from '../../../src/engine/invariants';
+import { OFF_MAP, type GameState, type Unit } from '../../../src/engine/state';
 import { deepFreeze } from '../../helpers/freeze';
+import { withColony, withUnit as put, world } from '../../helpers/world';
 
 const TWO = [
   { id: 'a', name: 'A', kind: 'human' },
@@ -117,5 +119,45 @@ describe('applyAction', () => {
     for (const a of listValidActions(base)) expect(validateAction(base, a).ok).toBe(true);
     expect(listValidActions(base).filter((a) => a.type === 'moveUnit')).toHaveLength(8);
     expect(listValidActions(withUnit(base, { movesLeft: 0 }))).toEqual([{ type: 'endTurn' }, { type: 'foundColony', unitId: 'u1' }]);
+  });
+});
+
+describe('treasure landed in Europe', () => {
+  const ROWS = ['~~~~~', '~...~', '~~~~s'];
+  const VALUES: Record<string, number> = { t1: 1000, t2: 2500 };
+  const sailing = (treasure: boolean): GameState => {
+    let s = world({ rows: ROWS, players: [{ id: 'a' }, { id: 'b' }] });
+    for (const [ship, type] of [['g1', 'galleon'], ['g2', 'galleon'], ['m', 'merchantman']] as const) s = put(s, { id: ship, type, x: OFF_MAP, y: OFF_MAP });
+    if (treasure) for (const [t, ship] of [['t1', 'g1'], ['t2', 'g2']] as const) s = put(s, { id: t, type: 'treasure', x: OFF_MAP, y: OFF_MAP, aboard: ship });
+    const voyage = { phase: 'toEurope' as const, turnsLeft: 1, origin: [0, 1] as const };
+    return { ...s, units: Object.fromEntries(Object.values(s.units).map((u) => [u.id, { ...u, voyage, treasure: VALUES[u.id] ?? 0 }])) };
+  };
+  const nextTurn = (s: GameState): ReturnType<typeof applyAction> => applyAction(applyAction(s, { type: 'endTurn' }).state, { type: 'endTurn' });
+  const a = (s: GameState) => s.players[0] as GameState['players'][number];
+
+  it('pays every treasure aboard whole the moment its ship makes port, with no fee', () => {
+    const control = nextTurn(sailing(false));
+    const r = nextTurn(sailing(true));
+    expect(r.state.units['t1']).toBeUndefined();
+    expect(r.state.units['t2']).toBeUndefined();
+    expect(a(r.state).gold).toBe(a(control.state).gold + 3500);
+    expect(a(r.state).royalMoney).toBe(a(control.state).royalMoney);
+    for (const [t, ship] of [['t1', 'g1'], ['t2', 'g2']] as const) {
+      const i = r.events.findIndex((e) => e.type === 'shipReachedEurope' && e.unitId === ship);
+      expect(i).toBeGreaterThanOrEqual(0);
+      expect(r.events[i + 1]).toEqual({ type: 'treasureCashed', player: 'a', unitId: t, value: VALUES[t], fee: 0, carrier: 'galleon' });
+    }
+    expect(r.events.filter((e) => e.type === 'treasureCashed')).toHaveLength(2);
+    expect(r.state.units['m']).toEqual(control.state.units['m']);
+    expect(r.state.units['g1']?.voyage?.phase).toBe('inEurope');
+    expect(checkInvariants(r.state)).toEqual([]);
+  });
+
+  it('is listed among the valid actions only where it can be cashed', () => {
+    let s = world({ rows: ROWS, players: [{ id: 'a' }, { id: 'b' }] });
+    s = withColony(s, { id: 'port', owner: 'a', x: 1, y: 1 });
+    s = put(s, { id: 'here', type: 'treasure', x: 1, y: 1 });
+    s = put(s, { id: 'there', type: 'treasure', x: 3, y: 1 });
+    expect(listValidActions(s).filter((x) => x.type === 'cashTreasure')).toEqual([{ type: 'cashTreasure', unitId: 'here' }]);
   });
 });

@@ -6,8 +6,8 @@ import { docksOf } from '../../../src/engine/europe';
 import { checkInvariants } from '../../../src/engine/invariants';
 import { bidPrice } from '../../../src/engine/market';
 import {
-  foreignIndependence, frigateOffer, frigateWarranted, growRef, kingsWar, mercenaryOffer, militaryStrength, nextRefUnit, powerSize,
-  royalIncome, royalTransport, royalTransportCut, startingRef, succession, type RoyalEvent,
+  cashTreasure, cashTreasuresAboard, checkCashTreasure, foreignIndependence, frigateOffer, frigateWarranted, growRef, kingsWar, mercenaryOffer, militaryStrength, nextRefUnit, powerSize,
+  royalIncome, royalTransport, royalTransportCut, startingRef, succession, treasureQuote, type RoyalEvent,
 } from '../../../src/engine/royal';
 import type { Colony, Colonist, GameState, Player, Unit } from '../../../src/engine/state';
 import { withColony, withUnit, world } from '../../helpers/world';
@@ -260,6 +260,93 @@ describe('royal transport of treasure', () => {
     expect(royalTransportCut(cortes, 'a')).toBe(12);
     expect(royalTransport(cortes, 'a', 1000)).toEqual({ fee: 120, net: 880 });
     expect(royalTransportCut(patch(base(), 'a', { atWar: true }), 'a')).toBe(0);
+  });
+});
+
+describe('cashing a treasure train', () => {
+  // x: 0123456789 -- a port colony at (1,1), a lakeside one at (4,2), a landlocked one at (7,4)
+  const LAND = ['~~~~~~~~~~', '~........~', '~........~', '~...~....~', '~........~', '~........~', '~~~~~~~~~s'];
+  const VALUE = 4250;
+  const setup = (opts: { at?: [number, number]; fathers?: string[]; atWar?: boolean; owner?: string } = {}): GameState => {
+    let s = world({ rows: LAND, players: [{ id: 'a', fathers: opts.fathers ?? [], atWar: opts.atWar ?? false }, { id: 'b', kind: 'ai' }] });
+    s = withColony(s, { id: 'port', owner: 'a', x: 1, y: 1, name: 'Port' });
+    s = withColony(s, { id: 'lake', owner: 'a', x: 4, y: 2, name: 'Lake' });
+    s = withColony(s, { id: 'dry', owner: 'a', x: 7, y: 4, name: 'Dry' });
+    const [x, y] = opts.at ?? [1, 1];
+    s = withUnit(s, { id: 't', owner: opts.owner ?? 'a', type: 'treasure', x, y });
+    s = { ...s, units: { ...s.units, t: { ...(s.units['t'] as Unit), treasure: VALUE } } };
+    return patch(s, 'a', { gold: 100, royalMoney: 7 });
+  };
+  const galleon = (s: GameState, where: 'map' | 'europe' | 'sea'): GameState => {
+    const g = withUnit(s, { id: 'g', owner: 'a', type: 'galleon', x: 0, y: 0 });
+    const ship = g.units['g'] as Unit;
+    const voyage = where === 'map' ? null : { phase: where === 'europe' ? ('inEurope' as const) : ('toEurope' as const), turnsLeft: where === 'europe' ? 0 : 2, origin: [0, 0] as const };
+    return { ...g, units: { ...g.units, g: { ...ship, voyage, x: voyage ? -1 : 0, y: voyage ? -1 : 0 } } };
+  };
+
+  it('the Crown carries it from a port colony for its fee when the owner has no galleon', () => {
+    const s = setup();
+    const { fee, net } = royalTransport(s, 'a', VALUE);
+    expect(fee).toBeGreaterThan(0);
+    expect(treasureQuote(s, s.units['t'] as Unit)).toEqual({ value: VALUE, fee, net, carrier: 'crown' });
+    const r = applyAction(s, { type: 'cashTreasure', unitId: 't' });
+    expect(r.state.units['t']).toBeUndefined();
+    expect(player(r.state)).toMatchObject({ gold: 100 + net, royalMoney: 7 + fee });
+    expect(r.events).toEqual([{ type: 'treasureCashed', player: 'a', unitId: 't', value: VALUE, fee, carrier: 'crown', colonyId: 'port' }]);
+    expect(checkInvariants(r.state)).toEqual([]);
+  });
+
+  it('with Cortes the fee is the tax rate alone, and a galleon of his own does not stop the offer', () => {
+    const s = galleon(patch(setup({ fathers: ['hernanCortes'] }), 'a', { taxRate: 12 }), 'europe');
+    expect(code(s, { type: 'cashTreasure', unitId: 't' })).toBe('ok');
+    const r = applyAction(s, { type: 'cashTreasure', unitId: 't' });
+    expect(player(r.state)).toMatchObject({ gold: 100 + VALUE - 510, royalMoney: 7 + 510 });
+  });
+
+  it('is refused to an owner with a galleon anywhere, without Cortes', () => {
+    for (const where of ['map', 'europe', 'sea'] as const) {
+      const s = galleon(setup(), where);
+      expect(code(s, { type: 'cashTreasure', unitId: 't' })).toBe('treasureOwnGalleon');
+      expect(treasureQuote(s, s.units['t'] as Unit)).toBeNull();
+    }
+  });
+
+  it('needs open sea beside the colony before the Declaration; a lake does not count', () => {
+    for (const at of [[4, 2], [7, 4]] as [number, number][]) {
+      expect(code(setup({ at }), { type: 'cashTreasure', unitId: 't' })).toBe('treasureNoPort');
+      expect(code(setup({ at, atWar: true }), { type: 'cashTreasure', unitId: 't' })).toBe('ok');
+    }
+  });
+
+  it('after the Declaration agents buy it whole in any own colony, galleon or not', () => {
+    const s = galleon(setup({ at: [7, 4], atWar: true }), 'map');
+    expect(treasureQuote(s, s.units['t'] as Unit)).toEqual({ value: VALUE, fee: 0, net: VALUE, carrier: 'agents' });
+    const r = applyAction(s, { type: 'cashTreasure', unitId: 't' });
+    expect(player(r.state)).toMatchObject({ gold: 100 + VALUE, royalMoney: 7 });
+    expect(r.events).toEqual([{ type: 'treasureCashed', player: 'a', unitId: 't', value: VALUE, fee: 0, carrier: 'agents', colonyId: 'dry' }]);
+  });
+
+  it("refuses a treasure outside a colony, a rival power's, or a unit that is not a treasure, leaving the state alone", () => {
+    const outside = setup({ at: [2, 2] });
+    expect(code(outside, { type: 'cashTreasure', unitId: 't' })).toBe('treasureNotInColony');
+    expect(code(setup({ owner: 'b' }), { type: 'cashTreasure', unitId: 't' })).toBe('notYourTreasure');
+    expect(checkCashTreasure(setup({ owner: 'b' }), 'a', 't')).toMatchObject({ ok: false, code: 'notYourTreasure' });
+    const colonist = withUnit(setup(), { id: 'c', owner: 'a', x: 1, y: 1 });
+    expect(code(colonist, { type: 'cashTreasure', unitId: 'c' })).toBe('notTreasure');
+    expect(code(colonist, { type: 'cashTreasure', unitId: 'nobody' })).toBe('notTreasure');
+    expect(() => applyAction(outside, { type: 'cashTreasure', unitId: 't' })).toThrow();
+    expect(cashTreasure(outside, 'a', 't', [])).toBe(outside);
+  });
+
+  it('a ship that makes port in Europe pays every treasure aboard whole, and nothing for an empty ship', () => {
+    const s = galleon(setup({ at: [0, 0] }), 'europe');
+    const loaded = { ...s, units: { ...s.units, t: { ...(s.units['t'] as Unit), aboard: 'g', x: -1, y: -1, voyage: (s.units['g'] as Unit).voyage } } };
+    const events: RoyalEvent[] = [];
+    const r = cashTreasuresAboard(loaded, 'a', 'g', events);
+    expect(r.units['t']).toBeUndefined();
+    expect(player(r)).toMatchObject({ gold: 100 + VALUE, royalMoney: 7 });
+    expect(events).toEqual([{ type: 'treasureCashed', player: 'a', unitId: 't', value: VALUE, fee: 0, carrier: 'galleon' }]);
+    expect(cashTreasuresAboard(r, 'a', 'g', [])).toBe(r);
   });
 });
 

@@ -501,10 +501,17 @@ rise is taken as accepted at the end of the turn.
   offered one if a foreign frigate is within 5 squares of one of its colonies, or foreign warships
   are near more than three of them. A human who accepts pays 10 points of tax in the usual
   way (so a party may follow); the ship sails from Europe. A computer power gets it free.
-- **Treasure.** For carrying a treasure home the Crown keeps the larger of twice the tax rate and
-  50 + 5L percent, at most 90; with Cortes it keeps only the tax rate. After the Declaration the
-  treasure is cashed whole. The fee also goes into the royal purse (wired
-  when treasure trains exist).
+- **Treasure.** A treasure train is turned into gold in one of three ways.
+  - *The Crown's galleon.* Before the Declaration, a treasure standing in a colony of its owner
+    that touches open sea (a lake does not count) may be carried home by the Crown. The offer is
+    made only when the owner has no galleon anywhere (on the map, at sea or in Europe), or has
+    Cortes. The Crown keeps the larger of twice the tax rate and 50 + 5L percent, at most 90; with
+    Cortes it keeps only the tax rate. The rest goes to the treasury and the fee into the royal
+    purse.
+  - *Agents.* After the Declaration a treasure in any colony of its owner, by the sea or not, is
+    sold whole: no fee, and the royal purse gets nothing.
+  - *The owner's own ship.* A treasure aboard a ship of the player's pays its whole value, with no
+    fee and no tax, the moment the ship makes port in Europe.
 - **Mercenaries.** One turn in 21 before the Declaration a Crown is drawn at random; it must be the
   player's own or one at peace with the player. The band is 1-3 veteran dragoons, then on a coin
   toss either one more dragoon or artillery (one piece, or two on a second toss). Price =
