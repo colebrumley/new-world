@@ -295,7 +295,7 @@ canvas.minimap {
   background: var(--brass-light);
 }
 
-/* the Europe button: a brass plate while a ship lies in port, a wax mark while ships are at sea */
+/* the Europe button: a brass plate while a ship lies in port ready, a wax mark while ships are at sea or under repair */
 .command-bar [data-europe="port"] {
   background: var(--plate-brass);
 }
@@ -499,6 +499,7 @@ canvas.minimap {
 .ship-water { display: flex; justify-content: center; padding: 0 6px; }
 .ship-quay { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-end; align-content: flex-start; min-height: 58px; padding: 5px 6px 2px; background: var(--stone); border-top: 3px double var(--ink-rule); }
 .ship-orders { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px 6px 6px; background: var(--stone); }
+.ship-laid-up { align-self: center; padding: 0 4px; font-style: italic; }
 .europe-ship-active .token-carrier .token-label { border-color: var(--ink-active); color: var(--ink-active); box-shadow: 0 0 0 1px var(--ink-active); }
 .europe-ship-active .ship-quay { border-top-color: var(--ink-active); }
 /* a crate: boards with a lid, the good's mark on its side and the count chalked under it */

@@ -276,7 +276,8 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
       const box = el('div', `europe-ship${ship.id === shipId ? ' europe-ship-active' : ''}`);
       box.dataset['ship'] = ship.id;
       const water = el('div', 'ship-water');
-      water.append(token('token-carrier', `ship:${ship.id}`, picture('figure', ship.type, 'ship-art heads-east', BERTH_SCALE), `${ship.label} (${ship.used}/${ship.holds} holds)`, '', () => {
+      const laidUp = ship.repair > 0 ? `, under repair, ${ship.repair} ${ship.repair === 1 ? 'turn' : 'turns'}` : '';
+      water.append(token('token-carrier', `ship:${ship.id}`, picture('figure', ship.type, 'ship-art heads-east', BERTH_SCALE), `${ship.label} (${ship.used}/${ship.holds} holds)${laidUp}`, '', () => {
         shipId = ship.id;
         focusKey = `ship:${ship.id}`;
         render();
@@ -294,12 +295,15 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
           render();
         }));
       }
+      // A ship under repair lies at the quay but cannot sail: her berth says so where Set sail would be.
       const orders = el('div', 'ship-orders');
       orders.append(
-        button('Set sail', `sail:${ship.id}`, () => {
-          attempt({ type: 'sailFromEurope', unitId: ship.id });
-          render();
-        }),
+        ship.repair > 0
+          ? el('span', 'ship-laid-up', `Under repair, ${ship.repair} ${ship.repair === 1 ? 'turn' : 'turns'}`)
+          : button('Set sail', `sail:${ship.id}`, () => {
+            attempt({ type: 'sailFromEurope', unitId: ship.id });
+            render();
+          }),
         button('Sell all cargo', `unload:${ship.id}`, () => void unloadAll(ship.id)),
       );
       box.append(water, quay, orders);
