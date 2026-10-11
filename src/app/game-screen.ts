@@ -673,9 +673,22 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   /** Receive every envoy waiting, and see each audience through. */
   const audiences = async (): Promise<void> => {
     const mine = (): (typeof session.state.players)[number] | undefined => session.state.players.find((p) => p.id === me());
+    // the menu's answer when it was given along with the treaty: the question is not put twice
+    let chosen: number | null = null;
+    // what the talk has brought about, said once the next answer has gone in (sending one clears the notice)
+    const held: string[] = [];
+    const tell = (text: string): void => {
+      held.push(text);
+    };
+    const flush = (): void => {
+      if (held.length === 0) return;
+      say(held.join(' '));
+      held.length = 0;
+    };
     for (let guard = 0; guard < 40; guard++) {
       const talk = session.state.audience;
       if (!talk) {
+        chosen = null;
         const envoy = mine()?.audiencesDue[0];
         if (envoy === undefined || !dispatch({ type: 'holdAudience', with: envoy })) return;
         continue;
@@ -685,16 +698,26 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       let action: Action;
       if (talk.stage === 'menu') {
         const others = session.state.players.filter((p) => p.id !== talk.ai && p.id !== talk.human && !p.withdrawn);
-        const pick = await ask(screen, {
+        const pick = chosen ?? await ask(screen, {
           text: `${tone} There is peace between us. What have we to say?`,
           choices: ['Go in peace', 'Pull your forces back from our colonies', 'What are your lives worth to you?', 'Join us against an enemy'], escape: 0,
         });
+        chosen = null;
         if (pick === 3) {
           const names = [...others.map((p) => `Against the ${NATIONS[p.nation].adjective} (${alliancePrice(session.state, talk.human, p.id)} gold)`), 'Never mind'];
           const who = await ask(screen, { text: 'Against whom shall they take up arms?', choices: names, escape: names.length - 1 });
           const target = others[who]?.id;
           action = target === undefined ? { type: 'audienceReply', reply: 'goInPeace' } : { type: 'audienceReply', reply: 'alliance', target };
         } else action = { type: 'audienceReply', reply: (['goInPeace', 'withdraw', 'valueLives'] as const)[pick] ?? 'goInPeace' };
+      } else if (talk.stage === 'worthy') {
+        // a treaty is proposed: agreeing opens the menu, so its answers are offered here and the menu is not put as a second question
+        const pick = await ask(screen, {
+          text: `${tone} They propose a treaty of peace between our peoples.`,
+          choices: ['Agree, and go in peace', 'Agree, and ask them to pull their forces back from our colonies', 'Agree, and ask what their lives are worth to them', 'Agree, and ask them to join us against an enemy', 'Refuse'],
+          escape: 4,
+        });
+        chosen = pick === 4 ? null : pick;
+        action = { type: 'audienceReply', reply: chosen === null ? 'no' : 'yes' };
       } else if (talk.stage === 'withdraw') {
         const pick = await ask(screen, { text: `They will withdraw for ${talk.gold} gold.`, choices: [`Pay ${talk.gold} gold`, 'Threaten them', 'Let it be'], escape: 2 });
         action = { type: 'audienceReply', reply: (['pay', 'threaten', 'no'] as const)[pick] ?? 'no' };
@@ -703,7 +726,6 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
           piracy: `${tone} They complain that our privateers prey on their shipping, and ask that we call them home.`,
           sieges: `${tone} They object to our soldiers at the gates of their colonies, and ask that we withdraw them.`,
           tribute: `${tone} They demand ${talk.gold} gold as the price of peace.`,
-          worthy: `${tone} They propose a treaty of peace between our peoples.`,
           cash: `Rather than fight, they offer ${talk.gold} gold for peace.`,
         }[talk.stage];
         const pick = await ask(screen, { text, choices: ['Agree', 'Refuse'], escape: 1 });
@@ -712,16 +734,18 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       const check = validateAction(session.state, action);
       if (!check.ok) {
         say(check.error.message);
+        chosen = null;
         action = { type: 'audienceReply', reply: talk.stage === 'menu' ? 'goInPeace' : 'no' };
       }
       const events = stepSession(session, action).events;
       if (!dispatch(action)) return;
       for (const e of events) {
         if (e.type === 'warDeclared') await ask(screen, { text: `The ${NATIONS[session.state.players.find((p) => p.id === e.by)?.nation ?? 'england'].adjective} have declared war!`, choices: ['Continue'], escape: 0 });
-        if (e.type === 'treatySigned') say('A treaty of peace is signed.');
-        if (e.type === 'forcesWithdrawn') say(e.player === me() ? 'Our forces have been called home to Europe.' : 'They have withdrawn their forces.');
-        if (e.type === 'goldPaid' && e.to === me()) say(`They have paid us ${e.amount} gold.`);
+        if (e.type === 'treatySigned') tell('A treaty of peace is signed.');
+        if (e.type === 'forcesWithdrawn') tell(e.player === me() ? 'Our forces have been called home to Europe.' : 'They have withdrawn their forces.');
+        if (e.type === 'goldPaid' && e.to === me()) tell(`They have paid us ${e.amount} gold.`);
       }
+      if (chosen === null) flush();
     }
   };
 

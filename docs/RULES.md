@@ -1115,6 +1115,8 @@ computer power always digs.
   lesser of its hundreds of gold and its fear; if it is not afraid and came in anger, war); or pay
   it to make war on a third power or a tribe it has met (50 x a figure from the human's gold and
   the target's strength, kept between 10 and 200; the target power bears the human a grudge).
+  The app puts these four with the treaty's proposal when there is one ("Agree, and go in
+  peace", and so on, or "Refuse"), so that signing and the menu are one question, not two.
 - A talk that ends in peace binds the computer power for 2 x (6 - level) turns (half with
   Franklin).
 - **Acts of war.** Attacking a treaty partner's unit or colony breaks the treaty and leaves the
