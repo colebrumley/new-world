@@ -106,7 +106,8 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'europe', keys: 'Esc or E', action: 'Leave Europe' },
 ];
 
-const TITLES: Readonly<Record<KeyContext, string>> = { title: 'Choosing a power', map: 'Map', dialog: 'Pop-up questions', colony: 'Colony screen', europe: 'Europe screen' };
+/** Each context's heading, in the order docs/KEYS.md (and the manual's Controls page) lists them. */
+export const KEY_CONTEXT_TITLES: Readonly<Record<KeyContext, string>> = { title: 'Choosing a power', map: 'Map', dialog: 'Pop-up questions', colony: 'Colony screen', europe: 'Europe screen' };
 
 /** The text of docs/KEYS.md. */
 export function renderKeysDoc(): string {
@@ -117,7 +118,7 @@ export function renderKeysDoc(): string {
     'run `UPDATE_FIXTURES=1 npm test` after changing the table.',
   ];
   for (const context of ['title', 'map', 'dialog', 'colony', 'europe'] as const) {
-    lines.push('', `## ${TITLES[context]}`, '', '| Key | Action | Status |', '|---|---|---|');
+    lines.push('', `## ${KEY_CONTEXT_TITLES[context]}`, '', '| Key | Action | Status |', '|---|---|---|');
     for (const b of KEYMAP.filter((k) => k.context === context)) {
       lines.push(`| ${b.keys} | ${b.action} | ${b.arrivesWith ? `arrives with ${b.arrivesWith}` : 'works'} |`);
     }
