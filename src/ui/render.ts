@@ -11,9 +11,10 @@ import type { GameMap, GameState, Unit } from '../engine/state';
 import { attitude, isHostile } from '../engine/alarm';
 import { TRIBES, type TribeId } from '../engine/data/tribes';
 import { tribeOfOwner } from '../engine/settlements';
-import { isExploredBy, isWater, type Tile } from '../engine/tile';
-import { activeFrameArt, colonyArt, chartMarkArt, blockedCursorArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, LABEL_LENGTH, LABEL_SIZE, LABEL_STEP, labelArt, labelText, PALETTE, pieceArt, settlementArt, VELLUM, vellumArt, type InkId, type Sprite } from './pixel-art';
-import { chartGrid, DETAIL_FROM, drawArt, lookOf, TILE_VARIANTS, type TileCache } from './tiles';
+import type { TerrainId } from '../engine/data/terrain';
+import { isExploredBy, isWater, terrainOf, type Tile } from '../engine/tile';
+import { activeFrameArt, colonyArt, chartMarkArt, blockedCursorArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, LABEL_LENGTH, LABEL_SIZE, LABEL_STEP, labelArt, labelText, openOf, PALETTE, pieceArt, settlementArt, VELLUM, vellumArt, type InkId, type Sprite } from './pixel-art';
+import { blendLayer, chartGrid, coastLayer, DETAIL_FROM, drawArt, floorLayer, lookOf, overLayer, TILE_VARIANTS, type TileCache } from './tiles';
 import { orderLetter, topUnit } from './unit-queue';
 import type { View } from './view';
 
@@ -69,6 +70,35 @@ function roadMask(map: GameMap, x: number, y: number): number {
     if (tileOf(map, x + dx, y + dy)?.road) mask |= 1 << i;
   });
   return mask;
+}
+
+/** Which of its few patterns a square shows: fixed by where it is, so that neighbours of one kind do not look stamped. */
+const variantAt = (x: number, y: number): number => (x * 7 + y * 13) % TILE_VARIANTS;
+
+/** The neighbours a water square reads its land from, in order: west, south, east, north; then the corners, north-east first and clockwise. */
+const BESIDE: readonly (readonly [number, number])[] = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+const CORNERS: readonly (readonly [number, number])[] = [[1, -1], [1, 1], [-1, 1], [-1, -1]];
+
+const firstLand = (map: GameMap, x: number, y: number, around: readonly (readonly [number, number])[], shows: (x: number, y: number) => boolean): TerrainId | null => {
+  for (const [dx, dy] of around) {
+    const tile = tileOf(map, x + dx, y + dy);
+    if (tile && !isWater(tile) && shows(x + dx, y + dy)) return openOf(terrainOf(tile));
+  }
+  return null;
+};
+
+/**
+ * The land a water square stands beside: the open terrain of the first land among its four orthogonal
+ * neighbours, looking west, south, east, then north, or null if none of them is land. `shows` leaves out
+ * squares that are not to be read (those the viewer has not seen); with none given, every square is read.
+ */
+export function landBeside(map: GameMap, x: number, y: number, shows: (x: number, y: number) => boolean = () => true): TerrainId | null {
+  return firstLand(map, x, y, BESIDE, shows);
+}
+
+/** The land a coastal water square is painted as under its water: the land beside it, or failing that the first land at its corners. */
+function paintedAs(map: GameMap, x: number, y: number, shows: (x: number, y: number) => boolean): TerrainId | null {
+  return landBeside(map, x, y, shows) ?? firstLand(map, x, y, CORNERS, shows);
 }
 
 /** Index of the player whose knowledge the screen shows: the first human. */
@@ -136,6 +166,11 @@ export function renderGround(ctx: CanvasRenderingContext2D, state: GameState, vi
     const tile = tileOf(map, x, y);
     return tile !== null && !view.revealAll && !isExploredBy(tile, viewer);
   };
+  /** Whether a square is land the viewer has seen. */
+  const seenLand = (x: number, y: number): boolean => {
+    const tile = tileOf(map, x, y);
+    return tile !== null && !isWater(tile) && !unknown(x, y);
+  };
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
       const tile = map.tiles[y * map.width + x];
@@ -146,7 +181,7 @@ export function renderGround(ctx: CanvasRenderingContext2D, state: GameState, vi
         N8.forEach(([dx, dy], i) => {
           if (tileOf(map, x + dx, y + dy) && !unknown(x + dx, y + dy)) mask |= 1 << i;
         });
-        const variant = grid === 8 ? 0 : (x * 7 + y * 13) % TILE_VARIANTS;
+        const variant = grid === 8 ? 0 : variantAt(x, y);
         ctx.drawImage(cache.sprite(`vellum|${grid}|${variant}|${mask}`, () => vellumArt(grid, variant, mask)), ox + x * t, oy + y * t, t, t);
         continue;
       }
@@ -154,10 +189,44 @@ export function renderGround(ctx: CanvasRenderingContext2D, state: GameState, vi
         tile,
         tile.river === 'none' ? 0 : riverMask(map, x, y),
         tile.road ? roadMask(map, x, y) : 0,
-        (x * 7 + y * 13 + (isWater(tile) ? waterPhase : 0)) % TILE_VARIANTS,
+        (variantAt(x, y) + (isWater(tile) ? waterPhase : 0)) % TILE_VARIANTS,
         view.showHidden,
       );
-      ctx.drawImage(cache.get(look, t), ox + x * t, oy + y * t, t, t);
+      // at the smallest zoom a square is one flat picture
+      if (grid === 8) {
+        ctx.drawImage(cache.get(look, t), ox + x * t, oy + y * t, t, t);
+        continue;
+      }
+      const put = (art: CanvasImageSource): void => ctx.drawImage(art, ox + x * t, oy + y * t, t, t);
+      // a water square with land beside it carries the coast: it is painted as that land, and its water laid back over
+      let coast = 0;
+      if (isWater(tile)) {
+        N8.forEach(([dx, dy], i) => {
+          if (seenLand(x + dx, y + dy)) coast |= 1 << i;
+        });
+      }
+      const own = (coast === 0 ? null : paintedAs(map, x, y, seenLand)) ?? openOf(look.terrain);
+      put(floorLayer(cache, grid, own, coast === 0 ? look.variant : variantAt(x, y)));
+      // each orthogonal neighbour of another open terrain spills a little way in: north, east, south, west, later over earlier
+      N4.forEach(([dx, dy], side) => {
+        const nx = x + dx;
+        const ny = y + dy;
+        const beside = tileOf(map, nx, ny);
+        // what is off the map or not yet seen shows nothing of itself, and water beside water draws nothing
+        if (!beside || unknown(nx, ny) || (isWater(beside) && isWater(tile))) return;
+        // water never spills onto land: its side shows the land that water square is itself painted as
+        const other = isWater(beside) ? landBeside(map, nx, ny, seenLand) : openOf(terrainOf(beside));
+        if (other !== null && other !== own) put(blendLayer(cache, grid, side, other, variantAt(nx, ny)));
+      });
+      if (coast !== 0) {
+        for (let quadrant = 0; quadrant < 4; quadrant++) {
+          // the quarter's diagonal, the side clockwise from it, and the side before it
+          const diagonal = (7 + quadrant * 2) % 8;
+          const code = 4 * ((coast >> ((diagonal + 1) % 8)) & 1) + 2 * ((coast >> diagonal) & 1) + ((coast >> ((diagonal + 7) % 8)) & 1);
+          put(coastLayer(cache, grid, look.terrain, quadrant, code, look.variant));
+        }
+      }
+      put(overLayer(cache, grid, look));
     }
   }
   if (view.revealAll) return;

@@ -300,20 +300,9 @@ function totem(s: Sprite): void {
   stamp(s, 5, 3, ['.rrr.', 'yyyyy', '..w..', '.yyy.', '..w..', '..w..', '..w..', '..w..'], { r: INK.red, y: INK.yellow, w: INK.wood });
 }
 
-/** The art for one map square. */
+/** The art for one whole map square on the 16-pixel grid: its floor with everything that stands on it. */
 export function tileArt(look: TileLook): Sprite {
-  const s = blank();
-  const rnd = scatter(hash(`${look.terrain}:${look.variant}`));
-  ground(s, look.terrain, rnd);
-  if (look.plowed) furrows(s);
-  if (look.river !== 'none') river(s, look);
-  if (look.terrain === 'hills' || look.terrain === 'mountains') relief(s, look.terrain, rnd);
-  else trees(s, look.terrain, rnd);
-  if (look.resource) resource(s, look.resource);
-  if (look.road) road(s, look);
-  if (look.rumor) rumor(s);
-  if (look.totem) totem(s);
-  return s;
+  return laid(floorArt(ART, look.terrain, look.variant), overArt(look, ART));
 }
 
 /** The square at the smallest zoom: one flat colour, with a river or a road as a single stroke through it. */
@@ -645,17 +634,59 @@ function turned(rows: readonly string[], mirror: boolean, upend: boolean): reado
   return upend ? [...across].reverse() : across;
 }
 
+// --- a square in two layers, and the pieces that soften its edges (R-1041) ---------------------------
+
+/** The grids a square's layers are drawn on: the detailed one and the plain one. The smallest zoom stays flat. */
+export type TileGrid = 32 | 16;
+
+/** The open ground a terrain stands on: a forest's is the open terrain of its row, anything else is its own. */
+export const openOf = (terrain: TerrainId): TerrainId => OPEN_ROW[terrain] ?? terrain;
+
+/** One layer laid over another: every cell of `over` that is not see-through replaces the one beneath. */
+function laid(under: Sprite, over: Sprite): Sprite {
+  over.cells.forEach((cell, i) => {
+    if (cell !== 0) under.cells[i] = cell;
+  });
+  return under;
+}
+
 /**
- * The art for one map square on the 32-pixel grid: the ground of its terrain (a forest stands on the open
- * ground of its row), turned one of four ways by the variant; furrows and rivers; then the forest, hills or
- * mountains standing on it; then the resource marker, at its own size; then roads and the marks, which are
- * the 16-pixel ones enlarged.
+ * The floor of a square: the ground of its open terrain alone (a forest's is that of its row), filling the
+ * square. On the 32-pixel grid it is the baked texture turned one of four ways by the variant; on the
+ * 16-pixel grid the ground drawn in code, its speckles placed by the variant.
  */
-export function detailedTileArt(look: TileLook): Sprite {
+export function floorArt(grid: TileGrid, terrain: TerrainId, variant: number): Sprite {
+  const open = openOf(terrain);
+  const s = blank(grid);
+  if (grid === ART) ground(s, open, scatter(hash(`${open}:${variant}`)));
+  else if (Object.hasOwn(FLOOR_ART, open)) stamp(s, 0, DETAIL - FLOOR_SIZE, turned(FLOOR_ART[open] as readonly string[], (variant & 1) === 1, (variant & 2) === 2), FLOOR_KEY);
+  else box(s, 0, 0, DETAIL, DETAIL, GROUND[open]);
+  return s;
+}
+
+/**
+ * Everything that stands on a square's floor, see-through elsewhere: furrows and rivers; then the forest,
+ * hills or mountains; then the resource marker, at its own size; then roads and the marks. On the
+ * 32-pixel grid the strokes and marks are the 16-pixel ones enlarged, and the forest or relief is the
+ * baked picture.
+ */
+export function overArt(look: TileLook, grid: TileGrid): Sprite {
+  if (grid === ART) {
+    const s = blank();
+    const rnd = scatter(hash(`${look.terrain}:${look.variant}`));
+    // the trees and the relief stand where they stood when one run of numbers placed the ground's speckles first
+    ground(blank(), look.terrain, rnd);
+    if (look.plowed) furrows(s);
+    if (look.river !== 'none') river(s, look);
+    if (look.terrain === 'hills' || look.terrain === 'mountains') relief(s, look.terrain, rnd);
+    else trees(s, look.terrain, rnd);
+    if (look.resource) resource(s, look.resource);
+    if (look.road) road(s, look);
+    if (look.rumor) rumor(s);
+    if (look.totem) totem(s);
+    return s;
+  }
   const s = blank(DETAIL);
-  const open = OPEN_ROW[look.terrain] ?? look.terrain;
-  if (Object.hasOwn(FLOOR_ART, open)) stamp(s, 0, DETAIL - FLOOR_SIZE, turned(FLOOR_ART[open] as readonly string[], (look.variant & 1) === 1, (look.variant & 2) === 2), FLOOR_KEY);
-  else box(s, 0, 0, DETAIL, DETAIL, GROUND[look.terrain]);
   const under = blank();
   if (look.plowed) furrows(under);
   if (look.river !== 'none') river(under, look);
@@ -667,6 +698,146 @@ export function detailedTileArt(look: TileLook): Sprite {
   if (look.rumor) rumor(over);
   if (look.totem) totem(over);
   enlarge(s, over);
+  return s;
+}
+
+/**
+ * The art for one whole map square on the 32-pixel grid: the ground of its terrain (a forest stands on the
+ * open ground of its row), turned one of four ways by the variant, with everything that stands on it.
+ */
+export function detailedTileArt(look: TileLook): Sprite {
+  return laid(floorArt(DETAIL, look.terrain, look.variant), overArt(look, DETAIL));
+}
+
+/** Rows of text art turned a quarter turn clockwise: the top row becomes the right-hand column. */
+export function rotate(rows: readonly string[]): readonly string[] {
+  const n = rows.length;
+  return rows.map((_, y) => Array.from({ length: n }, (_, x) => (rows[n - 1 - x] as string)[y]).join(''));
+}
+
+/** Rows drawn for the top of a square, with the rows left out below them see-through. */
+const topped = (rows: readonly string[]): readonly string[] => {
+  const n = (rows[0] as string).length;
+  return [...rows, ...Array.from({ length: n - rows.length }, () => '.'.repeat(n))];
+};
+/** A shape for the north side, and the same turned for the east, the south and the west. */
+const fourWays = (north: readonly string[]): readonly (readonly string[])[] => {
+  const east = rotate(north);
+  const south = rotate(east);
+  return [north, east, south, rotate(south)];
+};
+
+/**
+ * The stencils a neighbouring ground spills in through, by grid and by side (north, east, south, west): a
+ * band along that edge with an uneven inner edge, three to five art pixels deep on the 32-pixel grid (six
+ * and two at two places each) and two to three on the 16-pixel grid. The north one is drawn here; the
+ * others are it turned.
+ */
+export const EDGE_MASKS: Readonly<Record<TileGrid, readonly (readonly string[])[]>> = {
+  32: fourWays(topped([
+    '################################',
+    '################################',
+    '############.#########.#########',
+    '..########.....######...######..',
+    '....####.........##.......###...',
+    '......#....................#....',
+  ])),
+  16: fourWays(topped([
+    '################',
+    '################',
+    '..###..##..###..',
+  ])),
+};
+
+/** A neighbour's floor where it spills into a square through one side's stencil; see-through everywhere else. */
+export function blendArt(grid: TileGrid, side: number, terrain: TerrainId, variant: number): Sprite {
+  const s = blank(grid);
+  const floor = floorArt(grid, terrain, variant);
+  (EDGE_MASKS[grid][side & 3] as readonly string[]).forEach((row, y) => {
+    for (let x = 0; x < grid; x++) if (row[x] === '#') s.cells[y * grid + x] = floor.cells[y * grid + x] as number;
+  });
+  return s;
+}
+
+/**
+ * The water of a coast, by grid: eight shapes for the north-west quarter of a water square, half the square
+ * across, `#` where the water lies and `.` where the land beneath shows. Which shape is the code
+ * 4 x north + 2 x north-west + west, each 1 where that neighbour is land: none (0) all water; the west
+ * alone (1) land down the west side; the corner alone (2) a small corner of land; the north alone (4) land
+ * along the north side; a side with the corner (3, 6) that side's land swelling toward the corner; both
+ * sides (5, 7) land round a rounded inner corner. The other quarters use these turned. Every side's land
+ * is one depth at the middle of the side and one at its end, so that quarters and squares meet.
+ */
+export const COAST_MASKS: Readonly<Record<TileGrid, readonly (readonly string[])[]>> = {
+  32: [
+    Array.from({ length: 16 }, () => '################'),
+    [
+      '....############', '....############', '.....###########', '.....###########', '....############', '...#############', '...#############', '....############',
+      '....############', '.....###########', '.....###########', '....############', '...#############', '...#############', '....############', '....############',
+    ],
+    [
+      '....############', '....############', '...#############', '..##############', '################', '################', '################', '################',
+      '################', '################', '################', '################', '################', '################', '################', '################',
+    ],
+    [
+      '......##########', '......##########', '......##########', '.....###########', '.....###########', '....############', '...#############', '...#############',
+      '....############', '....############', '.....###########', '.....###########', '....############', '...#############', '....############', '....############',
+    ],
+    [
+      '................', '................', '................', '.....##.....##..', '##..#####..#####', '################', '################', '################',
+      '################', '################', '################', '################', '################', '################', '################', '################',
+    ],
+    [
+      '................', '................', '................', '............##..', '...........#####', '.......#########', '......##########', '.....###########',
+      '....############', '.....###########', '.....###########', '....############', '...#############', '...#############', '....############', '....############',
+    ],
+    [
+      '................', '................', '................', '......##.....#..', '.....#####..####', '...#############', '################', '################',
+      '################', '################', '################', '################', '################', '################', '################', '################',
+    ],
+    [
+      '................', '................', '................', '............##..', '...........#####', '.......#########', '......##########', '.....###########',
+      '....############', '.....###########', '.....###########', '....############', '...#############', '...#############', '....############', '....############',
+    ],
+  ],
+  16: [
+    Array.from({ length: 8 }, () => '########'),
+    ['..######', '..######', '...#####', '..######', '..######', '...#####', '..######', '..######'],
+    ['..######', '.#######', '########', '########', '########', '########', '########', '########'],
+    ['...#####', '...#####', '...#####', '..######', '..######', '...#####', '..######', '..######'],
+    ['........', '........', '##.##.##', '########', '########', '########', '########', '########'],
+    ['........', '........', '...##.##', '..######', '..######', '...#####', '..######', '..######'],
+    ['........', '........', '...##.##', '########', '########', '########', '########', '########'],
+    ['........', '........', '...##.##', '..######', '..######', '...#####', '..######', '..######'],
+  ],
+};
+
+/**
+ * One quarter of a coastal water square (0 north-west, 1 north-east, 2 south-east, 3 south-west): the
+ * water's own floor, turned by the variant, wherever that quarter's shape has water, and see-through where
+ * the land beneath shows and in the other three quarters. The water nearest the land is the shallows: a
+ * line of `wave` one art pixel wide, two on the 32-pixel grid.
+ */
+export function coastArt(grid: TileGrid, water: TerrainId, quadrant: number, code: number, variant: number): Sprite {
+  const s = blank(grid);
+  const half = grid >> 1;
+  const quarter = quadrant & 3;
+  let shape = COAST_MASKS[grid][code & 7] as readonly string[];
+  for (let turn = 0; turn < quarter; turn++) shape = rotate(shape);
+  const floor = floorArt(grid, water, variant);
+  const reach = grid / ART;
+  const left = quarter === 1 || quarter === 2 ? half : 0;
+  const top = quarter >= 2 ? half : 0;
+  const land = (x: number, y: number): boolean => shape[y]?.[x] === '.';
+  for (let y = 0; y < half; y++) {
+    for (let x = 0; x < half; x++) {
+      if (land(x, y)) continue;
+      let shallow = false;
+      for (let dy = -reach; dy <= reach; dy++) for (let dx = -reach; dx <= reach; dx++) if (land(x + dx, y + dy)) shallow = true;
+      const i = (top + y) * grid + left + x;
+      s.cells[i] = shallow ? INK.wave + 1 : (floor.cells[i] as number);
+    }
+  }
   return s;
 }
 
