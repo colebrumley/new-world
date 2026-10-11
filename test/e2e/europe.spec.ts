@@ -118,6 +118,19 @@ test('buys 100 tools and loads them; prices and treasury update on screen', asyn
   await expect(screen.locator('.europe-gold')).toHaveText(`Treasury ${1000 - ask * 100 + bid * 100} gold`);
   await expect(harbor).toContainText('Caravel (0/2 holds)');
 
+  // An order larger than a hold is placed as one trade per hold, up to the room aboard.
+  await tools.focus();
+  await page.keyboard.press('+');
+  const order = page.getByRole('dialog').last();
+  await expect(order).toContainText('Buy how many tools? (up to 200)');
+  await expect(order.getByRole('textbox')).toHaveValue('200');
+  await page.keyboard.press('Enter');
+  await expect(screen.locator('[data-field="europe-monitor"]')).toHaveText(/^Bought 200 tools for \d+ gold$/);
+  await expect(harbor).toContainText('Caravel (2/2 holds)');
+  await expect(harbor.getByRole('button', { name: 'Tools 200' })).toBeVisible();
+  await harbor.getByRole('button', { name: 'Sell all cargo' }).click();
+  await expect(harbor).toContainText('Caravel (0/2 holds)');
+
   // Those on the docks have a menu of their own, and the offices open theirs.
   await docks.getByRole('button').first().click();
   await expect(page.getByRole('dialog').last()).toContainText('Board the ship in port now');
