@@ -1420,7 +1420,7 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [ ] **R-1031 Manual: Europe and Trade; The Crown and Independence** — docs/specs/player-manual-wiki.md, item W9, size M.
 - [ ] **R-1032 Manual: Native Peoples** — docs/specs/player-manual-wiki.md, item W10, size S.
 - [ ] **R-1033 Manual: Founding Fathers, Other Powers, Reports, Score** — docs/specs/player-manual-wiki.md, item W11, size M.
-- [ ] **R-1034 Manual: Gallery of the game's art** — docs/specs/player-manual-wiki.md, item W12, size S.
+- [x] **R-1034 Manual: Gallery of the game's art** — docs/specs/player-manual-wiki.md, item W12, size S.
 - [x] **R-1035 Colony drag ghost and verdict** — docs/specs/drag-feedback.md, item W1, size M.
 - [x] **R-1036 Map drag piece and blocked marker** — docs/specs/drag-feedback.md, item W2, size S.
 
