@@ -176,7 +176,7 @@ const OPEN_ROW: Readonly<Partial<Record<TerrainId, TerrainId>>> = {
 export interface TileLook {
   readonly terrain: TerrainId;
   readonly river: 'none' | 'minor' | 'major';
-  /** Bits N=1, E=2, S=4, W=8: neighbours a river continues into (another river tile or water). */
+  /** Bits N=1, E=2, S=4, W=8: neighbours a river continues into (another river tile or water). 0 is drawn as all four; 16 is a pool alone, with no arm. */
   readonly riverMask: number;
   readonly road: boolean;
   /** Bits for the 8 neighbours clockwise from N (N=1, NE=2, E=4, SE=8, S=16, SW=32, W=64, NW=128) with a road. */
@@ -263,39 +263,108 @@ function relief(s: Sprite, terrain: TerrainId, rnd: () => number): void {
   }
 }
 
-const SIDE: readonly (readonly [number, number])[] = [[7, 0], [15, 7], [7, 15], [0, 7]];
 const AROUND: readonly (readonly [number, number])[] = [[7, 0], [15, 0], [15, 7], [15, 15], [7, 15], [0, 15], [0, 7], [0, 0]];
 
-function river(s: Sprite, look: TileLook): void {
-  const thick = look.river === 'major' ? 3 : 2;
-  const ends = SIDE.filter((_, i) => look.riverMask & (1 << i));
-  if (ends.length === 0) {
-    box(s, 6, 6, 4, 4, INK.brightBlue);
-    return;
-  }
-  for (const [ex, ey] of ends) line(s, 7, 7, ex, ey, INK.brightBlue, thick);
-}
+/** Which way each side of a square lies from its middle: north, east, south, west. */
+const TOWARD: readonly (readonly [number, number])[] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
-/** How wide a river's mouth is, in art pixels, and where across the square it starts: by grid, a minor river then a major one. */
-const MOUTH: Readonly<Record<16 | 32, readonly [readonly [number, number], readonly [number, number]]>> = {
-  16: [[1, 7], [2, 7]],
-  32: [[2, 15], [3, 14]],
+/**
+ * How a river is drawn on each grid: how wide its body is in art pixels (a minor river, then a major one), how
+ * far an arm winds to one side of the straight way, and how much wider than the body the pool at a source or a
+ * mouth is.
+ */
+const RIVER: Readonly<Record<TileGrid, { readonly wide: readonly [number, number]; readonly sway: number; readonly pool: number }>> = {
+  32: { wide: [3, 5], sway: 2, pool: 4 },
+  16: { wide: [2, 3], sway: 1, pool: 2 },
 };
 
 /**
- * The mouths of the rivers that run out into a water square: a stub from each such side to the middle of the
- * square, narrower than the river on the land, drawn for the grid.
+ * The middle of a river's body across the square: the middle cell where the body is an odd number of cells
+ * wide, and the corner where the four middle cells meet where it is even, so that the body is centred on the
+ * same cells of every side.
  */
-function mouths(s: Sprite, mask: number): void {
-  const half = s.size / 2;
+const riverMiddle = (size: number, wide: number): number => (wide & 1 ? size / 2 - 1 : (size - 1) / 2);
+
+/**
+ * One arm of a river: the body from the middle of a side to the middle of the square, `wide` cells across.
+ * It winds: its centre line is pushed sideways by `sway · sin(π t)`, `t` running from 0 at the side to 1 at
+ * the middle, to the right of the way in (to the left when `flip` is set), rounded by whole cells, so that
+ * two opposite arms make an S and a piece turned a quarter turn is the piece for its sides turned. The push
+ * is nothing where the body meets the side, so that the arm crosses it on exactly the `wide` middle cells.
+ */
+function arm(s: Sprite, side: number, wide: number, sway: number, flip: boolean): void {
+  const [dx, dy] = TOWARD[side] as readonly [number, number];
+  const middle = riverMiddle(s.size, wide);
+  const half = (wide - 1) / 2;
+  // the steps over which the arm winds are those of the shorter way out (north and west), so every arm winds alike
+  const winds = middle - half;
+  const reach = (dx + dy > 0 ? s.size - 1 - middle : middle) - half;
+  for (let step = 0; step <= reach; step++) {
+    const push = Math.round(sway * Math.sin(Math.PI * Math.max(0, 1 - step / winds))) * (flip ? -1 : 1);
+    box(s, middle + step * dx + push * dy - half, middle + step * dy - push * dx - half, wide, wide, INK.blue);
+  }
+}
+
+/** A disc of river `across` cells wide about the middle of a body `wide` cells wide. */
+function pond(s: Sprite, wide: number, across: number): void {
+  const middle = riverMiddle(s.size, wide);
+  for (let y = 0; y < s.size; y++) for (let x = 0; x < s.size; x++) if ((x - middle) ** 2 + (y - middle) ** 2 <= (across / 2) ** 2) dot(s, x, y, INK.blue);
+}
+
+/**
+ * The broken pale rim along both banks: every cell that is not river, touches a river cell on one of its
+ * four sides and has `x + y` even. No two rim cells touch. The outermost cells of the square take none, so
+ * that a side holds the body's cells alone and two squares meet cell for cell.
+ */
+function rim(s: Sprite): void {
+  const body = INK.blue + 1;
+  for (let y = 1; y < s.size - 1; y++) {
+    for (let x = 1; x < s.size - 1; x++) {
+      if ((x + y) % 2 !== 0 || at(s, x, y) === body) continue;
+      if (at(s, x, y - 1) === body || at(s, x + 1, y) === body || at(s, x, y + 1) === body || at(s, x - 1, y) === body) dot(s, x, y, INK.brightBlue);
+    }
+  }
+}
+
+/**
+ * A river on a land square, drawn for the grid: one of sixteen pieces by the sides it runs on to, which are
+ * five shapes turned (an end, a straight, a bend, a tee and a cross; a river that runs on to no side is the
+ * cross; one whose only ways on the viewer has not seen is a pool alone). An arm from each side meets the others in a disc one cell wider than the body, which rounds a
+ * bend; an end has a pool there instead, and a straight has neither. The variant mirrors the winding of the
+ * whole piece.
+ */
+function river(look: TileLook, grid: TileGrid): Sprite {
+  const s = blank(grid);
+  const { wide, sway, pool } = RIVER[grid];
+  const w = wide[look.river === 'major' ? 1 : 0] as number;
+  const mask = look.riverMask & 16 ? 0 : look.riverMask & 15 || 15;
+  let arms = 0;
   for (let side = 0; side < 4; side++) {
     if (!(mask & (1 << side))) continue;
-    const [wide, from] = MOUTH[s.size as 16 | 32][mask & (16 << side) ? 1 : 0];
-    // north and west run from the edge to the middle; south and east from the middle to the edge
-    const along = side === 0 || side === 3 ? 0 : half;
-    if (side % 2 === 0) box(s, from, along, wide, half, INK.brightBlue);
-    else box(s, along, from, half, wide, INK.brightBlue);
+    arm(s, side, w, sway, (look.variant & 1) === 1);
+    arms++;
   }
+  // a straight piece takes no disc: there it would be a knot in both banks on every square of a long river
+  if (mask !== 5 && mask !== 10) pond(s, w, arms <= 1 ? w + pool : w + 1);
+  rim(s);
+  return s;
+}
+
+/**
+ * The mouths of the rivers that run out into a water square: for each such side the end of a river, in that
+ * river's width, from the side to a pool in the middle of the square, rimmed as on land (foam on the sea).
+ */
+function mouths(mask: number, variant: number, grid: TileGrid): Sprite {
+  const s = blank(grid);
+  const { wide, sway, pool } = RIVER[grid];
+  for (let side = 0; side < 4; side++) {
+    if (!(mask & (1 << side))) continue;
+    const w = wide[mask & (16 << side) ? 1 : 0] as number;
+    arm(s, side, w, sway, (variant & 1) === 1);
+    pond(s, w, w + pool);
+  }
+  rim(s);
+  return s;
 }
 
 function road(s: Sprite, look: TileLook): void {
@@ -369,12 +438,23 @@ export function tileArt(look: TileLook): Sprite {
   return laid(floorArt(ART, look.terrain, look.variant), overArt(look, ART));
 }
 
-/** The square at the smallest zoom: one flat colour, with a river or a road as a single stroke through it. */
+/**
+ * The square at the smallest zoom: one flat colour, with a road as a single stroke through it and a river as a
+ * line one cell wide from the middle cell to the middle of each side it runs on to (all four where it runs on
+ * to none). No rim and no mouths at this size.
+ */
 export function miniTileArt(look: TileLook): Sprite {
   const s = blank(8);
   box(s, 0, 0, 8, 8, MINI[look.terrain]);
   if (look.terrain === 'mountains') stamp(s, 2, 2, ['.ww.', 'wwdd'], { w: INK.white, d: INK.grey });
-  if (look.river !== 'none') box(s, 3, 3, 2, 2, INK.brightBlue);
+  if (look.river !== 'none') {
+    dot(s, 3, 3, INK.blue);
+    const mask = look.riverMask & 16 ? 0 : look.riverMask & 15 || 15;
+    TOWARD.forEach(([dx, dy], side) => {
+      // the middle cell is (3, 3), so the way south and east is a cell longer than the way north and west
+      if (mask & (1 << side)) line(s, 3, 3, 3 + dx * (dx > 0 ? 4 : 3), 3 + dy * (dy > 0 ? 4 : 3), INK.blue);
+    });
+  }
   if (look.road) box(s, 2, 4, 4, 1, INK.wood);
   if (look.rumor) rumor(s);
   return s;
@@ -756,9 +836,6 @@ const WOODS: ReadonlySet<TerrainId> = new Set<TerrainId>(['boreal', 'mixed', 'br
 export const joins = (terrain: TerrainId, beside: TerrainId): boolean =>
   WOODS.has(terrain) ? WOODS.has(beside) : (terrain === 'hills' || terrain === 'mountains') && beside === terrain;
 
-/** Which way a feature is moved to join the square beyond each side: north, east, south, west. */
-const TOWARD: readonly (readonly [number, number])[] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
-
 /**
  * The forest, hills or mountains of a square with its joins under it: for each side in `joinMask` the same
  * picture once more, moved half a square toward that side and cut off at the square's edge, so that the
@@ -776,39 +853,60 @@ function joined(s: Sprite, look: TileLook): void {
 }
 
 /**
+ * A river's way through a forest: the canopy is cut back from the water's far bank alone, so that the river
+ * runs through the trees and not over their crowns. Every cell of the forest with river (body or rim) under
+ * it or within `CLEARING` cells straight below it is taken away, and the trees left standing above the cut
+ * are shaded, as the foot of a wood is. The trees on the near bank and to either side stand right up to the
+ * water, which is what makes the far bank read as lying behind it.
+ */
+const CLEARING: Readonly<Record<TileGrid, number>> = { 32: 2, 16: 1 };
+function cleared(s: Sprite, water: Sprite): void {
+  const reach = CLEARING[s.size as TileGrid];
+  const cut: number[] = [];
+  for (let y = 0; y < s.size; y++) {
+    for (let x = 0; x < s.size; x++) {
+      if (at(s, x, y) === 0) continue;
+      for (let dy = 0; dy <= reach; dy++) {
+        if (at(water, x, y + dy) === 0) continue;
+        cut.push(y * s.size + x);
+        break;
+      }
+    }
+  }
+  for (const i of cut) s.cells[i] = 0;
+  for (const i of cut) {
+    const [x, y] = [i % s.size, Math.floor(i / s.size)];
+    if (at(s, x, y - 1) !== 0) dot(s, x, y - 1, INK.deepForest);
+  }
+}
+
+/**
  * Everything that stands on a square's floor, see-through elsewhere, in this order: the joins (the forest,
  * hills or mountains once more toward each neighbour of its kind); the forest, hills or mountains; furrows;
- * the river, which runs over the trees, since a canopy that fills its square would hide it, or on a water
- * square the mouths of the rivers beside it; the resource marker, at its own size; the lost-city seal,
- * drawn for the grid; the road; the totem. On the 32-pixel grid the furrows, the river, the road and the
- * totem are the 16-pixel ones enlarged. The forest or relief is the baked picture of the grid.
+ * the river, which lies on hills and mountains and runs through a forest with the canopy cut back from its far bank, since a
+ * canopy that fills its square would hide it, or on a water square the mouths of the rivers beside it; the resource marker, at its own size; the lost-city seal,
+ * drawn for the grid; the road; the totem. The forest or relief is the baked picture of the grid, and the
+ * river and the mouths are drawn for the grid, body and rim. On the 32-pixel grid the furrows, the road and
+ * the totem are the 16-pixel ones enlarged.
  */
 export function overArt(look: TileLook, grid: TileGrid): Sprite {
-  if (grid === ART) {
-    const s = blank();
-    joined(s, look);
-    if (look.plowed) furrows(s);
-    if (look.river !== 'none') river(s, look);
-    mouths(s, look.mouthMask);
-    if (look.resource) resource(s, look.resource);
-    if (look.rumor) rumor(s);
-    if (look.road) road(s, look);
-    if (look.totem) totem(s);
-    return s;
-  }
-  const s = blank(DETAIL);
+  const s = blank(grid);
   joined(s, look);
-  const under = blank();
+  const under = grid === ART ? s : blank();
   if (look.plowed) furrows(under);
-  if (look.river !== 'none') river(under, look);
-  enlarge(s, under);
-  mouths(s, look.mouthMask);
+  if (under !== s) enlarge(s, under);
+  if (look.river !== 'none') {
+    const water = river(look, grid);
+    if (Object.hasOwn(OPEN_ROW, look.terrain)) cleared(s, water);
+    laid(s, water);
+  }
+  if (look.mouthMask & 15) laid(s, mouths(look.mouthMask, look.variant, grid));
   if (look.resource) resource(s, look.resource);
   if (look.rumor) rumor(s);
-  const over = blank();
+  const over = grid === ART ? s : blank();
   if (look.road) road(over, look);
   if (look.totem) totem(over);
-  enlarge(s, over);
+  if (over !== s) enlarge(s, over);
   return s;
 }
 

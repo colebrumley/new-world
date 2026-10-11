@@ -492,9 +492,13 @@ describe('the map renderer, against a plain pixel buffer', () => {
     }
   });
 
-  it('draws the mouth of a river on the water it runs out into: a stub from that side to the middle', () => {
-    const blue = PALETTE[INK.brightBlue] as string;
-    const count = (made: ReturnType<typeof referencePixels>, grid: number, x: number, y: number): number => wrong(made, grid, x, y, () => blue).length;
+  it('draws the mouth of a river on the water it runs out into: the end of that river, from that side to a pool in the middle', () => {
+    const blue = PALETTE[INK.blue] as string;
+    const pale = PALETTE[INK.brightBlue] as string;
+    const river = (colour: string): boolean => colour === blue || colour === pale;
+    /** How wide the body is, the first cell of a side it crosses on, and how wide the pool is: by grid, a minor river then a major one. */
+    const SHAPE = { 32: [[3, 14, 7], [5, 13, 9]], 16: [[2, 7, 4], [3, 6, 5]] } as const;
+    const widest: Record<string, number> = {};
     for (const [glyph, major] of [['r', false], ['R', true]] as const) {
       const state = land([`~${glyph}`, '~.']);
       // the river square's own mask points west at the water (and nowhere else: the square under it has no river)
@@ -503,38 +507,100 @@ describe('the map renderer, against a plain pixel buffer', () => {
       expect(mouthMask(state.map, 1, 0)).toBe(0);
       for (const grid of GRIDS) {
         const made = drawn(state, grid);
-        const wide = grid === 32 ? (major ? 3 : 2) : major ? 2 : 1;
-        // every column from the east edge to the middle holds that many blue cells, in the rows about the middle; the west half holds none
-        for (let cx = 0; cx < grid; cx++) {
-          const rows = [...Array(grid).keys()].filter((cy) => cell(made, grid, 0, 0, cx, cy) === blue);
-          expect(rows.length, `${glyph} ${grid} column ${cx}`).toBe(cx >= grid / 2 ? wide : 0);
-          if (rows.length > 0) {
-            expect(rows[0], `${glyph} ${grid} column ${cx}`).toBeGreaterThanOrEqual(grid / 2 - 2);
-            expect(rows[rows.length - 1], `${glyph} ${grid} column ${cx}`).toBeLessThanOrEqual(grid / 2);
-          }
-        }
-        // the stub lies inside the river's own stroke where they meet, and the water under the plains square has none
-        const stroke = [...Array(grid).keys()].filter((cy) => cell(made, grid, 1, 0, 0, cy) === blue);
-        for (let cy = 0; cy < grid; cy++) if (cell(made, grid, 0, 0, grid - 1, cy) === blue) expect(stroke, `${glyph} ${grid}`).toContain(cy);
-        expect(count(made, grid, 0, 1), `${glyph} ${grid}`).toBe(grid * grid);
+        const [wide, from, pool] = SHAPE[grid][major ? 1 : 0] as readonly [number, number, number];
+        const middle = grid / 2 - 1;
+        const column = (cx: number, is: (colour: string) => boolean): number[] => [...Array(grid).keys()].filter((cy) => is(cell(made, grid, 0, 0, cx, cy)));
+        // the east edge holds the river's cells of body, centred, and nothing else of the river
+        expect(column(grid - 1, river), `${glyph} ${grid}`).toEqual(Array.from({ length: wide }, (_, i) => from + i));
+        expect(column(grid - 1, (c) => c === pale), `${glyph} ${grid}`).toEqual([]);
+        // the body runs from there to the middle of the square without a break, and widens there into the pool
+        for (let cx = middle; cx < grid; cx++) expect(column(cx, (c) => c === blue).length, `${glyph} ${grid} column ${cx}`).toBeGreaterThanOrEqual(wide);
+        expect(column(middle, (c) => c === blue).length, `${glyph} ${grid}`).toBe(pool);
+        widest[`${glyph}${grid}`] = pool;
+        // nothing of it lies west of the pool and its rim: the west quarter of the square is bare water
+        for (let cx = 0; cx < grid; cx++) if (column(cx, river).length > 0) expect(cx, `${glyph} ${grid}`).toBeGreaterThanOrEqual(middle - Math.ceil(pool / 2) - 1);
+        for (let cx = 0; cx < grid / 4; cx++) expect(column(cx, river), `${glyph} ${grid} column ${cx}`).toEqual([]);
+        // it has a rim (foam on the sea)
+        expect(wrong(made, grid, 0, 0, () => pale).length, `${glyph} ${grid}`).toBeLessThan(grid * grid);
+        // where the mouth meets the land square's own piece every edge cell of one is an edge cell of the other
+        const stroke = [...Array(grid).keys()].filter((cy) => river(cell(made, grid, 1, 0, 0, cy)));
+        expect(stroke, `${glyph} ${grid}`).toEqual(column(grid - 1, river));
+        // the water under the plains square has none
+        for (let cx = 0; cx < grid; cx++) for (let cy = 0; cy < grid; cy++) expect(river(cell(made, grid, 0, 1, cx, cy)), `${glyph} ${grid}`).toBe(false);
         // the mouth is the over layer's: the square is otherwise what it is without the river beside it
         const dry = drawn(setTile(state, 1, 0, { river: 'none' }), grid);
         for (const where of wrong(made, grid, 0, 0, (cx, cy) => cell(dry, grid, 0, 0, cx, cy))) {
           const [cx, cy] = where.split(',').map(Number) as [number, number];
-          expect(cell(made, grid, 0, 0, cx, cy), `${glyph} ${grid} ${where}`).toBe(blue);
+          expect(river(cell(made, grid, 0, 0, cx, cy)), `${glyph} ${grid} ${where}`).toBe(true);
         }
       }
     }
-    // each side has its own stub; a river the viewer has not seen has no mouth; the smallest zoom draws none
+    // the major river's mouth is wider than the minor's
+    for (const grid of GRIDS) expect(widest[`R${grid}`]).toBeGreaterThan(widest[`r${grid}`] as number);
+    // each side has its own mouth; a river the viewer has not seen has no mouth; the smallest zoom draws none
     const ringed = land(['.r.', 'r~R', '.R.']);
     expect(mouthMask(ringed.map, 1, 1)).toBe(1 | 2 | 4 | 8 | 32 | 64);
     expect(mouthMask(ringed.map, 1, 1, (x) => x !== 1)).toBe(2 | 8 | 32);
     const hidden = setTile(land(['~r', '~.']), 1, 0, { explored: 0 });
-    for (const grid of GRIDS) expect(wrong(drawn(hidden, grid), grid, 0, 0, () => blue).length).toBe(grid * grid);
+    for (const grid of GRIDS) {
+      const made = drawn(hidden, grid);
+      for (let cx = 0; cx < grid; cx++) for (let cy = 0; cy < grid; cy++) expect(river(cell(made, grid, 0, 0, cx, cy))).toBe(false);
+    }
+    // the ringed water has all four, each in its own river's width where it crosses the side
+    for (const grid of GRIDS) {
+      const all = overArt(lookAt(ringed, 1, 1, 0, mouthMask(ringed.map, 1, 1)), grid);
+      const [minor, major] = SHAPE[grid];
+      const side = (cells: readonly number[]): number[] => cells.flatMap((c, i) => (c - 1 === INK.blue ? [i] : []));
+      const span = ([wide, from]: readonly number[]): number[] => Array.from({ length: wide as number }, (_, i) => (from as number) + i);
+      const line = [...Array(grid).keys()];
+      expect(side(line.map((i) => at(all, i, 0)))).toEqual(span(minor));
+      expect(side(line.map((i) => at(all, grid - 1, i)))).toEqual(span(major));
+      expect(side(line.map((i) => at(all, i, grid - 1)))).toEqual(span(major));
+      expect(side(line.map((i) => at(all, 0, i)))).toEqual(span(minor));
+    }
     const north = overArt(lookAt(ringed, 1, 1, 0, 1), 32);
-    for (let cy = 0; cy < 32; cy++) expect([...Array(32).keys()].filter((cx) => at(north, cx, cy) !== 0), `row ${cy}`).toEqual(cy < 16 ? [15, 16] : []);
-    const west = overArt(lookAt(ringed, 1, 1, 0, 8 | 128), 16);
-    for (let cx = 0; cx < 16; cx++) expect([...Array(16).keys()].filter((cy) => at(west, cx, cy) !== 0), `column ${cx}`).toEqual(cx < 8 ? [7, 8] : []);
+    for (let cy = 22; cy < 32; cy++) expect([...Array(32).keys()].filter((cx) => at(north, cx, cy) !== 0), `row ${cy}`).toEqual([]);
+    // the smallest zoom draws the river on its own square and nothing on the water
+    const far = drawn(land(['~r', '~.']), 8);
+    expect(wrong(far, 8, 1, 0, () => blue).length).toBeLessThan(64);
+    for (let cx = 0; cx < 8; cx++) for (let cy = 0; cy < 8; cy++) expect(river(cell(far, 8, 0, 0, cx, cy))).toBe(false);
+  });
+
+  it('a river does not run on toward a square the viewer has not seen, at any zoom', () => {
+    const state = land(['rr', 'r.']);
+    const unseen = setTile(state, 0, 1, { explored: 0 });
+    for (const grid of [32, 16, 8]) {
+      const south = (made: ReturnType<typeof referencePixels>): number => [...Array(grid).keys()].filter((cx) => cell(made, grid, 0, 0, cx, grid - 1) === PALETTE[INK.blue]).length;
+      const east = (made: ReturnType<typeof referencePixels>): number => [...Array(grid).keys()].filter((cy) => cell(made, grid, 0, 0, grid - 1, cy) === PALETTE[INK.blue]).length;
+      expect(south(drawn(state, grid)), `${grid}`).toBeGreaterThan(0);
+      expect(south(drawn(unseen, grid)), `${grid}`).toBe(0);
+      expect(east(drawn(unseen, grid)), `${grid}`).toBe(east(drawn(state, grid)));
+      expect(east(drawn(unseen, grid)), `${grid}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('a river whose only way on the viewer has not seen is a pool alone, not the cross of a river that stands alone', () => {
+    const state = setTile(land(['.r.', '.r.']), 1, 1, { explored: 0 });
+    for (const grid of [32, 16, 8]) {
+      const made = drawn(state, grid);
+      const blues = wrong(made, grid, 1, 0, (cx, cy) => (cell(made, grid, 1, 0, cx, cy) === PALETTE[INK.blue] ? '' : cell(made, grid, 1, 0, cx, cy)));
+      expect(blues.length, `${grid}`).toBeGreaterThan(0);
+      for (const where of blues) for (const n of where.split(',').map(Number)) expect(n > 0 && n < grid - 1, `${grid} ${where}`).toBe(true);
+      if (grid === 8) expect(blues).toEqual(['3,3']);
+      // a river with no river or water beside it at all is still the cross
+      const lone = drawn(land(['.r.', '...']), grid);
+      expect([...Array(grid).keys()].some((cx) => cell(lone, grid, 1, 0, cx, grid - 1) === PALETTE[INK.blue]), `${grid}`).toBe(true);
+    }
+  });
+
+  it('the colony screen\'s 64-pixel square holds the river of the 32 grid, each art pixel doubled', () => {
+    for (const [glyph, wide] of [['r', 3], ['R', 5]] as const) {
+      const tile = land([glyph]).map.tiles[0]!;
+      const big = tileSprite(lookOf(tile, 5, 0, 0, false, true), 64);
+      expect(big.size).toBe(32);
+      expect([...big.cells]).toEqual([...tileSprite(lookOf(tile, 5, 0, 0, false, true), 32).cells]);
+      expect([...Array(32).keys()].filter((cx) => at(big, cx, 0) - 1 === INK.blue).length).toBe(wide);
+    }
   });
 
   it('keys the over layer by both masks, and leaves a square that stands alone as it was', () => {

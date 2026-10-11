@@ -96,9 +96,10 @@ describe('terrain art', () => {
 
   it('shows rivers, roads, plowing, resources, rumors and totems', () => {
     const plain = tileArt(look());
+    expect(inks(tileArt(look({ river: 'minor', riverMask: 5 })))).toContain(INK.blue);
     expect(inks(tileArt(look({ river: 'minor', riverMask: 5 })))).toContain(INK.brightBlue);
-    const minor = [...tileArt(look({ river: 'minor', riverMask: 5 })).cells].filter((c) => c - 1 === INK.brightBlue).length;
-    const major = [...tileArt(look({ river: 'major', riverMask: 5 })).cells].filter((c) => c - 1 === INK.brightBlue).length;
+    const minor = [...tileArt(look({ river: 'minor', riverMask: 5 })).cells].filter((c) => c - 1 === INK.blue).length;
+    const major = [...tileArt(look({ river: 'major', riverMask: 5 })).cells].filter((c) => c - 1 === INK.blue).length;
     expect(major).toBeGreaterThan(minor);
     expect(differ(tileArt(look({ river: 'minor', riverMask: 5 })), tileArt(look({ river: 'minor', riverMask: 10 })))).toBe(true);
     expect(inks(tileArt(look({ road: true, roadMask: 0b01000100 })))).toContain(INK.wood);
@@ -518,16 +519,39 @@ describe('detailed terrain', () => {
     }
   });
 
-  it('a river runs over the trees, the hills and the mountains: every cell of its stroke shows, however full the canopy', () => {
+  it('a river runs through a forest, cut back from its far bank, and over the hills and the mountains: every cell of its body and of its rim shows', () => {
     for (const grid of [32, 16] as const) {
       for (const river of ['minor', 'major'] as const) {
         const stroke = overArt(look({ river, riverMask: 10 }), grid);
-        const cells = [...stroke.cells].map((c, i) => (c !== 0 ? i : -1)).filter((i) => i >= 0);
-        expect(cells.length).toBeGreaterThan(0);
+        expect(inks(stroke)).toEqual(new Set([INK.blue, INK.brightBlue]));
         for (const terrain of [...FORESTS, 'hills', 'mountains'] as const) {
           for (let variant = 0; variant < 4; variant++) {
+            const bare = overArt(look({ variant, river, riverMask: 10 }), grid);
             const over = overArt(look({ terrain, variant, river, riverMask: 10 }), grid);
-            for (const i of cells) expect(over.cells[i], `${grid} ${terrain} ${variant}`).toBe(INK.brightBlue + 1);
+            for (let i = 0; i < bare.cells.length; i++) if (bare.cells[i] !== 0) expect(over.cells[i], `${grid} ${terrain} ${variant}`).toBe(bare.cells[i]);
+            // a forest is cut back from the far bank alone: no canopy within two cells straight above the water on
+            // the 32 grid (one on the 16), the trees just above the cut shaded, and every other cell as it was,
+            // so the trees on the near bank and to either side stand right up to the water; the hills and the
+            // mountains are not cut at all: the river lies on them
+            const dry = overArt(look({ terrain, variant }), grid);
+            const reach = grid === 32 ? 2 : 1;
+            const wet = (x: number, y: number): boolean => at(bare, x, y) !== 0;
+            const above = (x: number, y: number, by: number): boolean => Array.from({ length: by }, (_, j) => j + 1).some((dy) => wet(x, y + dy));
+            let shaded = 0;
+            for (let y = 0; y < grid; y++) {
+              for (let x = 0; x < grid; x++) {
+                if (wet(x, y)) continue;
+                const where = `${grid} ${terrain} ${variant} (${x}, ${y})`;
+                if (!(FORESTS as readonly string[]).includes(terrain)) expect(at(over, x, y), where).toBe(at(dry, x, y));
+                else if (above(x, y, reach)) expect(at(over, x, y), where).toBe(0);
+                else if (!above(x, y, reach + 1)) expect(at(over, x, y), where).toBe(at(dry, x, y));
+                else if (at(over, x, y) !== at(dry, x, y)) {
+                  expect(at(over, x, y) - 1, where).toBe(INK.deepForest);
+                  shaded++;
+                }
+              }
+            }
+            if ((FORESTS as readonly string[]).includes(terrain)) expect(shaded, `${grid} ${terrain} ${variant}`).toBeGreaterThan(0);
           }
         }
       }
@@ -580,21 +604,21 @@ describe('detailed terrain', () => {
       for (const i of cellsOf(rows)) expect(field.cells[i]).toBe(rows.cells[i]);
       const stream = overArt(look({ river: 'major', riverMask: 15 }), grid);
       const wet = overArt(look({ terrain: 'mixed', joinMask: 15, plowed: true, river: 'major', riverMask: 15 }), grid);
-      for (const i of cellsOf(stream)) expect(wet.cells[i]).toBe(INK.brightBlue + 1);
+      for (const i of cellsOf(stream)) expect(wet.cells[i]).toBe(stream.cells[i]);
       // a river's mouths lie under the marker, the marker under the seal, the seal under the road, the road under the totem
       const mouth = overArt(look({ terrain: 'ocean', mouthMask: 15 | 240 }), grid);
-      expect(inks(mouth)).toEqual(new Set([INK.brightBlue]));
+      expect(inks(mouth)).toEqual(new Set([INK.blue, INK.brightBlue]));
       const fish = overArt(look({ terrain: 'ocean', resource: 'fishery' }), grid);
       const both = overArt(look({ terrain: 'ocean', resource: 'fishery', mouthMask: 15 | 240 }), grid);
       expect(cellsOf(fish).some((i) => mouth.cells[i] !== 0)).toBe(true);
       for (const i of cellsOf(fish)) expect(both.cells[i]).toBe(fish.cells[i]);
-      for (const i of cellsOf(mouth)) if (fish.cells[i] === 0) expect(both.cells[i]).toBe(INK.brightBlue + 1);
+      for (const i of cellsOf(mouth)) if (fish.cells[i] === 0) expect(both.cells[i]).toBe(mouth.cells[i]);
       // on land the marker stands over the river that crosses it
       const wheat = overArt(look({ resource: 'wheat' }), grid);
       const crossed = overArt(look({ resource: 'wheat', river: 'major', riverMask: 15 }), grid);
       expect(cellsOf(wheat).some((i) => stream.cells[i] !== 0)).toBe(true);
       for (const i of cellsOf(wheat)) expect(crossed.cells[i]).toBe(wheat.cells[i]);
-      for (const i of cellsOf(stream)) if (wheat.cells[i] === 0) expect(crossed.cells[i]).toBe(INK.brightBlue + 1);
+      for (const i of cellsOf(stream)) if (wheat.cells[i] === 0) expect(crossed.cells[i]).toBe(stream.cells[i]);
       const seal = overArt(look({ rumor: true }), grid);
       const marked = overArt(look({ resource: 'wheat', rumor: true }), grid);
       for (const i of cellsOf(seal)) expect(marked.cells[i]).toBe(seal.cells[i]);
@@ -606,14 +630,22 @@ describe('detailed terrain', () => {
     }
   });
 
-  it('a river mouth is narrower than the river it ends, on both grids, and the smallest zoom shows none', () => {
-    const blue = (s: Sprite): number => [...s.cells].filter((c) => c - 1 === INK.brightBlue).length;
-    expect(blue(overArt(look({ terrain: 'ocean', mouthMask: 2 }), 32))).toBe(16 * 2);
-    expect(blue(overArt(look({ terrain: 'ocean', mouthMask: 2 | 32 }), 32))).toBe(16 * 3);
-    expect(blue(overArt(look({ terrain: 'ocean', mouthMask: 4 }), 16))).toBe(8);
-    expect(blue(overArt(look({ terrain: 'ocean', mouthMask: 4 | 64 }), 16))).toBe(8 * 2);
-    // a major bit with no mouth on that side draws nothing
-    expect(blue(overArt(look({ terrain: 'ocean', mouthMask: 32 }), 32))).toBe(0);
+  it('a river mouth is the end of its river on the water, in that river\'s width, on both grids, and the smallest zoom shows none', () => {
+    const blue = (s: Sprite): number => [...s.cells].filter((c) => c - 1 === INK.blue).length;
+    for (const grid of [32, 16] as const) {
+      for (let side = 0; side < 4; side++) {
+        // the body of a mouth is the body of the end piece that runs on to that side, minor and major
+        for (const [river, major] of [['minor', 0], ['major', 16 << side]] as const) {
+          const mouth = overArt(look({ terrain: 'ocean', mouthMask: (1 << side) | major }), grid);
+          const end = overArt(look({ river, riverMask: 1 << side }), grid);
+          expect(text(mouth), `${grid} ${side} ${river}`).toBe(text(end));
+        }
+        expect(blue(overArt(look({ terrain: 'ocean', mouthMask: (1 << side) | (16 << side) }), grid))).toBeGreaterThan(blue(overArt(look({ terrain: 'ocean', mouthMask: 1 << side }), grid)));
+      }
+      // a major bit with no mouth on that side draws nothing
+      expect(blue(overArt(look({ terrain: 'ocean', mouthMask: 32 }), grid))).toBe(0);
+      expect(inks(overArt(look({ terrain: 'ocean', mouthMask: 32 }), grid)).size).toBe(0);
+    }
     expect(differ(miniTileArt(look({ terrain: 'ocean', mouthMask: 15 })), miniTileArt(look({ terrain: 'ocean' })))).toBe(false);
     expect(differ(miniTileArt(look({ terrain: 'mixed', joinMask: 15 })), miniTileArt(look({ terrain: 'mixed' })))).toBe(false);
   });
@@ -651,15 +683,191 @@ describe('detailed terrain', () => {
     expect(trees.filter((i) => upended.cells[i] === wood.cells[i]).length).toBeGreaterThan(trees.length * 0.9);
   });
 
-  it('shows rivers, roads, plowing, resources, rumors and totems as the plain art does, enlarged', () => {
+  it('shows rivers, roads, plowing, resources, rumors and totems as the plain art does, the river drawn for its own grid', () => {
     const plain = detailedTileArt(look());
     const changes: Partial<TileLook>[] = [{ river: 'minor', riverMask: 5 }, { river: 'major', riverMask: 5 }, { road: true, roadMask: 68 }, { plowed: true }, { resource: 'wheat' }, { rumor: true }, { totem: true }];
     const seen = new Set([text(plain)]);
     for (const change of changes) seen.add(text(detailedTileArt(look(change))));
     expect(seen.size).toBe(changes.length + 1);
-    // a river is the bright blue of the plain art, each of its pixels four here
-    const blue = (s: Sprite): number => [...s.cells].filter((c) => c - 1 === INK.brightBlue).length;
-    expect(blue(detailedTileArt(look({ river: 'minor', riverMask: 5 })))).toBe(4 * blue(tileArt(look({ river: 'minor', riverMask: 5 }))));
+    // a river is not the plain art's enlarged: a minor one crosses the side on three cells here and on two there
+    const across = (s: Sprite): number => Array.from({ length: s.size }, (_, x) => at(s, x, 0)).filter((c) => c - 1 === INK.blue).length;
+    expect(across(detailedTileArt(look({ river: 'minor', riverMask: 5 })))).toBe(3);
+    expect(across(tileArt(look({ river: 'minor', riverMask: 5 })))).toBe(2);
+  });
+});
+
+describe('rivers by their neighbours (R-1047)', () => {
+  const GRIDS = [32, 16] as const satisfies readonly TileGrid[];
+  const KINDS = ['minor', 'major'] as const;
+  /** How wide the body is, and the first cell of a side it crosses on: by grid, a minor river then a major one. */
+  const CROSSING = { 32: { minor: [3, 14], major: [5, 13] }, 16: { minor: [2, 7], major: [3, 6] } } as const;
+  const MASKS = Array.from({ length: 16 }, (_, mask) => mask);
+  const piece = (grid: TileGrid, river: 'minor' | 'major', riverMask: number, variant = 0): Sprite => overArt(look({ river, riverMask, variant }), grid);
+  const cells = (s: Sprite, ink: number): string[] => [...s.cells].flatMap((c, i) => (c - 1 === ink ? [`${i % s.size},${Math.floor(i / s.size)}`] : []));
+  /** The cells of a side, from its left or top end: north, east, south, west. */
+  const edge = (s: Sprite, side: number): number[] =>
+    Array.from({ length: s.size }, (_, i) => (side === 0 ? at(s, i, 0) : side === 1 ? at(s, s.size - 1, i) : side === 2 ? at(s, i, s.size - 1) : at(s, 0, i)) - 1);
+  /** The middle of the body across the square: the middle cell for an odd width, the middle of the square for an even one. */
+  const middle = (grid: number, wide: number): number => (wide % 2 ? grid / 2 - 1 : (grid - 1) / 2);
+  const turnMask = (mask: number): number => ((mask << 1) | (mask >> 3)) & 15;
+
+  it('crosses each side it runs on to on exactly the middle cells of its width, and no other side', () => {
+    for (const grid of GRIDS) {
+      for (const river of KINDS) {
+        const [wide, from] = CROSSING[grid][river];
+        for (const mask of MASKS) {
+          for (const variant of [0, 1]) {
+            const s = piece(grid, river, mask, variant);
+            for (let side = 0; side < 4; side++) {
+              const row = edge(s, side);
+              const on = ((mask || 15) & (1 << side)) !== 0;
+              const want = row.map((_, i) => (on && i >= from && i < from + wide ? INK.blue : -1));
+              expect(row.map((c) => (c === INK.blue || c === INK.brightBlue ? c : -1)), `${grid} ${river} ${mask} ${variant} side ${side}`).toEqual(want);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it('a river that runs on to no side is the cross, and a major river is wider than a minor one', () => {
+    for (const grid of GRIDS) {
+      for (const river of KINDS) expect(text(piece(grid, river, 0))).toBe(text(piece(grid, river, 15)));
+      for (const mask of MASKS) expect(cells(piece(grid, 'major', mask), INK.blue).length, `${grid} ${mask}`).toBeGreaterThan(cells(piece(grid, 'minor', mask), INK.blue).length);
+    }
+  });
+
+  it('the sixteen pieces are five shapes turned: a mask turned one side clockwise is its piece turned a quarter turn about the middle of the body', () => {
+    for (const grid of GRIDS) {
+      for (const river of KINDS) {
+        const m = middle(grid, CROSSING[grid][river][0]);
+        const inside = (n: number): boolean => n >= 0 && n < grid;
+        for (const mask of MASKS.slice(1)) {
+          // a quarter turn clockwise about (m, m) takes (x, y) to (2m - y, x); an odd body is centred on the
+          // middle cell, so the last row and column have nowhere to turn to and are left out on both sides
+          const turned = cells(piece(grid, river, mask), INK.blue)
+            .map((c) => c.split(',').map(Number) as [number, number])
+            .filter(([, y]) => inside(2 * m - y))
+            .map(([x, y]) => `${2 * m - y},${x}`);
+          const want = cells(piece(grid, river, turnMask(mask)), INK.blue).filter((c) => inside(2 * m - Number(c.split(',')[0])));
+          expect(turned.sort(), `${grid} ${river} ${mask}`).toEqual(want.sort());
+        }
+      }
+    }
+  });
+
+  it('the variant mirrors the winding: a piece whose sides are the same left and right is its other variant mirrored', () => {
+    for (const grid of GRIDS) {
+      for (const river of KINDS) {
+        const m = middle(grid, CROSSING[grid][river][0]);
+        const inside = (n: number): boolean => n >= 0 && n < grid;
+        for (const mask of [1, 4, 5, 10, 15]) {
+          const mirrored = cells(piece(grid, river, mask, 0), INK.blue)
+            .map((c) => c.split(',').map(Number) as [number, number])
+            .filter(([x]) => inside(2 * m - x))
+            .map(([x, y]) => `${2 * m - x},${y}`);
+          const want = cells(piece(grid, river, mask, 1), INK.blue).filter((c) => inside(2 * m - Number(c.split(',')[0])));
+          expect(mirrored.sort(), `${grid} ${river} ${mask}`).toEqual(want.sort());
+          // and it does wind: the two variants are not the same piece
+          expect(text(piece(grid, river, mask, 0))).not.toBe(text(piece(grid, river, mask, 1)));
+          // only the first bit of the variant counts
+          expect(text(piece(grid, river, mask, 2))).toBe(text(piece(grid, river, mask, 0)));
+        }
+      }
+    }
+  });
+
+  it('opposite arms make an S: a straight river leans one way above the middle and the other way below it', () => {
+    for (const grid of GRIDS) {
+      for (const river of KINDS) {
+        const [wide, from] = CROSSING[grid][river];
+        const s = piece(grid, river, 5);
+        const columns = (rows: readonly number[]): number[] => rows.flatMap((y) => Array.from({ length: grid }, (_, x) => x).filter((x) => at(s, x, y) - 1 === INK.blue));
+        const upper = columns(Array.from({ length: grid / 2 - 2 }, (_, y) => y));
+        const lower = columns(Array.from({ length: grid / 2 - 2 }, (_, y) => grid - 1 - y));
+        // the arm from the north leans west and never east of the crossing; the arm from the south the other way
+        expect(Math.min(...upper), `${grid} ${river}`).toBeLessThan(from);
+        expect(Math.max(...upper), `${grid} ${river}`).toBe(from + wide - 1);
+        expect(Math.max(...lower), `${grid} ${river}`).toBeGreaterThan(from + wide - 1);
+        expect(Math.min(...lower), `${grid} ${river}`).toBe(from);
+      }
+    }
+  });
+
+  it('has a broken pale rim along both banks: beside the body, never on it, no two rim cells touching', () => {
+    for (const grid of GRIDS) {
+      for (const river of KINDS) {
+        for (const mask of MASKS) {
+          const s = piece(grid, river, mask);
+          expect(inks(s)).toEqual(new Set([INK.blue, INK.brightBlue]));
+          for (let y = 0; y < grid; y++) {
+            for (let x = 0; x < grid; x++) {
+              if (at(s, x, y) - 1 !== INK.brightBlue) continue;
+              const beside = [at(s, x, y - 1), at(s, x + 1, y), at(s, x, y + 1), at(s, x - 1, y)].map((c) => c - 1);
+              expect(beside, `${grid} ${river} ${mask} (${x}, ${y})`).toContain(INK.blue);
+              expect(beside, `${grid} ${river} ${mask} (${x}, ${y})`).not.toContain(INK.brightBlue);
+            }
+          }
+        }
+        // on a straight piece at least a third of the cells beside the body on each bank are rim (the two
+        // outermost rows aside, which take no rim so that the side holds the body alone)
+        for (const mask of [5, 10]) {
+          const s = piece(grid, river, mask);
+          const along = (x: number, y: number): readonly [number, number] => (mask === 5 ? [x, y] : [y, x]);
+          for (const bank of [-1, 1]) {
+            let beside = 0;
+            let pale = 0;
+            for (let y = 1; y < grid - 1; y++) {
+              const body = Array.from({ length: grid }, (_, x) => x).filter((x) => at(s, ...along(x, y)) - 1 === INK.blue);
+              const x = bank < 0 ? Math.min(...body) - 1 : Math.max(...body) + 1;
+              beside++;
+              if (at(s, ...along(x, y)) - 1 === INK.brightBlue) pale++;
+            }
+            expect(beside).toBe(grid - 2);
+            expect(pale * 3, `${grid} ${river} ${mask} bank ${bank}`).toBeGreaterThanOrEqual(beside);
+          }
+        }
+      }
+    }
+  });
+
+  it('an end has a pool in the middle of the square, and nothing on the sides it does not run on to', () => {
+    for (const grid of GRIDS) {
+      // the middle ten cells each way
+      const within = (s: Sprite): number => cells(s, INK.blue).filter((c) => c.split(',').every((n) => Number(n) >= grid / 2 - 5 && Number(n) < grid / 2 + 5)).length;
+      /** How many cells of body lie across the middle of the square, measured across an arm that runs up or sideways. */
+      const across = (s: Sprite, upright: boolean): number => Array.from({ length: grid }, (_, i) => (upright ? at(s, i, grid / 2 - 1) : at(s, grid / 2 - 1, i))).filter((c) => c - 1 === INK.blue).length;
+      for (const river of KINDS) {
+        const wide = CROSSING[grid][river][0];
+        for (const mask of [1, 2, 4, 8]) {
+          const s = piece(grid, river, mask);
+          // the pool holds more water than a river running straight through: counted on the 32 grid, where the
+          // middle ten cells are a third of the square, and measured across the middle on both
+          if (grid === 32) for (const straight of [5, 10]) expect(within(s), `${grid} ${river} ${mask}`).toBeGreaterThan(within(piece(grid, river, straight)));
+          const upright = mask === 1 || mask === 4;
+          expect(across(s, upright), `${grid} ${river} ${mask}`).toBe(wide + (grid === 32 ? 4 : 2));
+          expect(across(piece(grid, river, upright ? 5 : 10), upright), `${grid} ${river} ${mask}`).toBeLessThan(across(s, upright));
+          for (let side = 0; side < 4; side++) if (!(mask & (1 << side))) expect(edge(s, side).filter((c) => c === INK.blue || c === INK.brightBlue)).toEqual([]);
+        }
+      }
+    }
+  });
+
+  it('at the smallest zoom is a line of single cells from the middle cell to the middle of each side it runs on to', () => {
+    const ENDS = [[3, 0], [7, 3], [3, 7], [0, 3]] as const;
+    for (const river of KINDS) {
+      for (const mask of MASKS) {
+        const want = new Set<string>();
+        ENDS.forEach(([ex, ey], side) => {
+          if (!((mask || 15) & (1 << side))) return;
+          for (let x = Math.min(3, ex); x <= Math.max(3, ex); x++) for (let y = Math.min(3, ey); y <= Math.max(3, ey); y++) want.add(`${x},${y}`);
+        });
+        const s = miniTileArt(look({ river, riverMask: mask }));
+        expect(cells(s, INK.blue).sort(), `${river} ${mask}`).toEqual([...want].sort());
+        expect(cells(s, INK.brightBlue)).toEqual([]);
+      }
+    }
+    expect(text(miniTileArt(look({ river: 'minor', riverMask: 0 })))).toBe(text(miniTileArt(look({ river: 'minor', riverMask: 15 }))));
   });
 });
 
