@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Colonist, GameState } from '../../../src/engine/state';
-import { colonyView, jobChoices } from '../../../src/ui/colony-model';
+import type { Action } from '../../../src/engine/actions';
+import type { Colonist, GameState, Job } from '../../../src/engine/state';
+import { colonyView, dropVerdict, homeOf, jobChoices } from '../../../src/ui/colony-model';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~', '~.f..~', '~~.g.~', '~....~', '~~~~~~'];
@@ -135,3 +136,135 @@ describe('Custom House in the view', () => {
   });
 });
 
+
+describe('drop verdicts', () => {
+  function port(): GameState {
+    let s = withColony(world({ rows: ROWS }), {
+      id: 'col', x: 2, y: 2, name: 'Plymouth', buildings: HOUSES, goods: { furs: 40, muskets: 0 },
+      colonists: [who('a', { kind: 'field', dx: -1, dy: -1, good: 'food' }), who('b', { kind: 'work', trade: 'statesman' }), who('c', { kind: 'idle' })],
+    });
+    s = withUnit(s, { id: 'ship', type: 'galleon', x: 2, y: 2, cargo: { furs: 100 } });
+    s = withUnit(s, { id: 'p', x: 2, y: 2, aboard: 'ship' });
+    s = withUnit(s, { id: 'wagon', type: 'wagonTrain', x: 2, y: 2 });
+    s = withUnit(s, { id: 'sol', type: 'soldier', x: 2, y: 2, profession: 'veteranSoldier' });
+    return s;
+  }
+
+  /** A refusal that writes down what it was asked and says no to one type of action; a jobFor that
+   *  reads a place as a job the plain way and finds nothing to raise on the square at 1,1. */
+  function probes(state: GameState, refused: Action['type'] | null = null) {
+    const asked: Action[] = [];
+    const refusal = (action: Action): string | null => {
+      asked.push(action);
+      return action.type === refused ? 'No.' : null;
+    };
+    const jobFor = (target: string): Job | null => {
+      const [kind, rest] = target.split(':');
+      if (kind === 'idle') return { kind: 'idle' };
+      if (kind === 'trade') return { kind: 'work', trade: rest as Extract<Job, { kind: 'work' }>['trade'] };
+      if (kind !== 'field' || rest === '1,1') return null;
+      const [dx, dy] = rest!.split(',').map(Number) as [number, number];
+      return { kind: 'field', dx, dy, good: 'food' };
+    };
+    const verdict = (source: string, target: string) => dropVerdict(state, 'col', source, target, refusal, jobFor);
+    /** The verdict, and the one action asked about to reach it (null if none was). */
+    const one = (source: string, target: string) => {
+      asked.length = 0;
+      const v = verdict(source, target);
+      expect(asked.length).toBeLessThanOrEqual(1);
+      return [v, asked[0] ?? null] as const;
+    };
+    return { asked, verdict, one };
+  }
+
+  it('says where each kind of token stands now', () => {
+    const s = port();
+    const home = (source: string) => homeOf(s, 'col', source);
+    expect(home('colonist:a')).toBe('field:-1,-1');
+    expect(home('colonist:b')).toBe('trade:statesman');
+    expect(home('colonist:c')).toBe('idle');
+    expect(home('unit:p')).toBe('carrier:ship');
+    expect(home('unit:sol')).toBe('outside');
+    expect(home('good:furs')).toBe('warehouse');
+    expect(home('cargo:ship:furs')).toBe('carrier:ship');
+    expect(home('carrier:ship')).toBeNull();
+    expect(home('colonist:ghost')).toBeNull();
+    expect(home('unit:ghost')).toBeNull();
+  });
+
+  it('calls the place a token came from its home, and asks the game nothing', () => {
+    const { asked, verdict } = probes(port());
+    for (const [source, target] of [
+      ['colonist:a', 'field:-1,-1'], ['colonist:b', 'trade:statesman'], ['colonist:c', 'idle'], ['unit:p', 'carrier:ship'],
+      ['unit:sol', 'outside'], ['good:furs', 'warehouse'], ['cargo:ship:furs', 'carrier:ship'],
+    ] as const) expect(verdict(source, target), `${source} on ${target}`).toBe('home');
+    expect(asked).toEqual([]);
+  });
+
+  it('asks whether a colonist may leave, or take the job the place means', () => {
+    const { one } = probes(port());
+    expect(one('colonist:a', 'outside')).toEqual(['ok', { type: 'leaveColony', colonyId: 'col', colonistId: 'a' }]);
+    expect(one('colonist:a', 'idle')).toEqual(['ok', { type: 'assignJob', colonyId: 'col', colonistId: 'a', job: { kind: 'idle' } }]);
+    expect(one('colonist:c', 'trade:statesman')).toEqual(['ok', { type: 'assignJob', colonyId: 'col', colonistId: 'c', job: { kind: 'work', trade: 'statesman' } }]);
+    expect(one('colonist:c', 'field:0,-1')).toEqual(['ok', { type: 'assignJob', colonyId: 'col', colonistId: 'c', job: { kind: 'field', dx: 0, dy: -1, good: 'food' } }]);
+    // a square where nothing can be raised, and the places that are not for people, without asking
+    expect(one('colonist:c', 'field:1,1')).toEqual(['bad', null]);
+    expect(one('colonist:c', 'warehouse')).toEqual(['bad', null]);
+    expect(one('colonist:c', 'carrier:ship')).toEqual(['bad', null]);
+
+    const strict = probes(port(), 'assignJob');
+    expect(strict.one('colonist:c', 'trade:statesman')[0]).toBe('bad');
+    expect(strict.one('colonist:c', 'field:0,-1')[0]).toBe('bad');
+    expect(strict.one('colonist:a', 'outside')[0]).toBe('ok');
+    expect(probes(port(), 'leaveColony').one('colonist:a', 'outside')[0]).toBe('bad');
+  });
+
+  it('allows a colonist onto native land without asking, since the drop offers to buy it or take it', () => {
+    const { one } = probes(setTile(port(), 3, 2, { homeland: 'sioux' }), 'assignJob');
+    expect(one('colonist:c', 'field:1,0')).toEqual(['ok', null]);
+  });
+
+  it('asks whether a unit may join, or step ashore, and refuses it the warehouse and the holds', () => {
+    const { one } = probes(port());
+    expect(one('unit:sol', 'warehouse')).toEqual(['bad', null]);
+    expect(one('unit:sol', 'carrier:ship')).toEqual(['bad', null]);
+    expect(one('unit:p', 'carrier:wagon')).toEqual(['bad', null]);
+    expect(one('unit:p', 'warehouse')).toEqual(['bad', null]);
+    expect(one('unit:p', 'outside')).toEqual(['ok', { type: 'goAshore', unitId: 'p' }]);
+    for (const target of ['idle', 'trade:statesman', 'field:0,-1', 'field:1,1']) expect(one('unit:sol', target), target).toEqual(['ok', { type: 'joinColony', unitId: 'sol' }]);
+    expect(one('unit:p', 'idle')).toEqual(['ok', { type: 'joinColony', unitId: 'p' }]);
+    expect(probes(port(), 'goAshore').one('unit:p', 'outside')[0]).toBe('bad');
+    expect(probes(port(), 'joinColony').one('unit:sol', 'trade:statesman')[0]).toBe('bad');
+  });
+
+  it('asks whether a hold takes what a plain drop would load, and sends a good nowhere else', () => {
+    const { one } = probes(port());
+    expect(one('good:furs', 'carrier:wagon')).toEqual(['ok', { type: 'loadCargo', unitId: 'wagon', good: 'furs', amount: 40 }]);
+    expect(one('good:muskets', 'carrier:wagon')).toEqual(['bad', null]); // none to load
+    for (const target of ['trade:statesman', 'field:0,-1', 'idle', 'outside']) expect(one('good:furs', target), target).toEqual(['bad', null]);
+    expect(probes(port(), 'loadCargo').one('good:furs', 'carrier:ship')[0]).toBe('bad');
+    // more than a hold of it in the warehouse: a plain drop loads one hold
+    const s = port();
+    const rich = { ...s, colonies: { col: { ...s.colonies['col']!, goods: { furs: 250 } } } };
+    expect(probes(rich).one('good:furs', 'carrier:wagon')[1]).toMatchObject({ amount: 100 });
+  });
+
+  it('asks whether a lot may be unloaded or moved to another hold, whole, and sends it nowhere else', () => {
+    const { one } = probes(port());
+    expect(one('cargo:ship:furs', 'warehouse')).toEqual(['ok', { type: 'unloadCargo', unitId: 'ship', good: 'furs', amount: 100 }]);
+    expect(one('cargo:ship:furs', 'carrier:wagon')).toEqual(['ok', { type: 'transferCargo', unitId: 'ship', toId: 'wagon', good: 'furs', amount: 100 }]);
+    for (const target of ['trade:statesman', 'field:0,-1', 'idle', 'outside']) expect(one('cargo:ship:furs', target), target).toEqual(['bad', null]);
+    // a lot that is not aboard moves nothing
+    expect(one('cargo:ship:muskets', 'warehouse')).toEqual(['bad', null]);
+    expect(one('cargo:ship:muskets', 'carrier:wagon')).toEqual(['bad', null]);
+    expect(probes(port(), 'unloadCargo').one('cargo:ship:furs', 'warehouse')[0]).toBe('bad');
+    expect(probes(port(), 'transferCargo').one('cargo:ship:furs', 'carrier:wagon')[0]).toBe('bad');
+  });
+
+  it('refuses a carrier token everywhere, and a token of no known kind', () => {
+    const { one } = probes(port());
+    expect(one('carrier:ship', 'warehouse')).toEqual(['bad', null]);
+    expect(one('carrier:ship', 'carrier:wagon')).toEqual(['bad', null]);
+    expect(one('nothing:x', 'idle')).toEqual(['bad', null]);
+  });
+});

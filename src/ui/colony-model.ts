@@ -1,10 +1,11 @@
 // Everything the colony screen shows, worked out from the game state as plain data so it can
 // be tested without a browser and rendered without further rule knowledge.
+import type { Action } from '../engine/actions';
 import { hasCustomHouse } from '../engine/custom-house';
 import { holdsFree, holdsUsed } from '../engine/cargo';
 import { availableItems, buyQuote, itemCost, itemName } from '../engine/construction';
 import { BUILDING_CHAINS, BUILDINGS, chainLevel, type BuildingChain, type BuildingId } from '../engine/data/buildings';
-import { GOOD_IDS, GOOD_NAMES, type GoodId } from '../engine/data/goods';
+import { GOOD_IDS, GOOD_NAMES, HOLD_CAPACITY, type GoodId } from '../engine/data/goods';
 import type { NationId } from '../engine/data/nations';
 import { TRADE_IDS, TRADES, type TradeId } from '../engine/data/production';
 import { RAW_GOODS, type RawGood } from '../engine/data/terrain';
@@ -13,7 +14,7 @@ import { colonyProduction, indoorOutput, tradeCapacity, workersIn, type AnyGood 
 import { centerOutput, fieldOutput, jobOptions, squareStatus, workerAt, type SquareStatus } from '../engine/jobs';
 import { solPercent, solProductionTerm } from '../engine/liberty';
 import { warehouseCapacity } from '../engine/pioneer';
-import { hasFather, type BuildItem, type Colonist, type Colony, type GameState, type Unit } from '../engine/state';
+import { hasFather, type BuildItem, type Colonist, type Colony, type GameState, type Job, type Unit } from '../engine/state';
 import { PROFESSIONS } from '../engine/data/professions';
 import { unitLabel } from './sidebar';
 
@@ -238,4 +239,81 @@ export function jobChoices(state: GameState, colonyId: string, colonistId: strin
 /** Free holds on a carrier, for the screen's hints. */
 export function carrierRoom(state: GameState, unit: Unit): number {
   return holdsFree(state, unit);
+}
+
+// --- what a drop would come to (R-1035) -----------------------------------------------------
+
+/** What letting go here would do: the game takes it, the game refuses it, or it is where it already stands. */
+export type DropVerdict = 'ok' | 'bad' | 'home';
+
+/** The place a token stands in now, as a drop target ("field:1,0", "trade:statesman", "idle",
+ *  "outside", "carrier:<id>", "warehouse"); null for a carrier token. */
+export function homeOf(state: GameState, colonyId: string, source: string): string | null {
+  const [kind, id] = source.split(':');
+  if (kind === 'colonist') {
+    const job = state.colonies[colonyId]?.colonists.find((c) => c.id === id)?.job;
+    if (!job) return null;
+    if (job.kind === 'field') return `field:${job.dx},${job.dy}`;
+    return job.kind === 'work' ? `trade:${job.trade}` : 'idle';
+  }
+  if (kind === 'unit') {
+    const unit = state.units[id ?? ''];
+    if (!unit) return null;
+    return unit.aboard ? `carrier:${unit.aboard}` : 'outside';
+  }
+  if (kind === 'good') return 'warehouse';
+  if (kind === 'cargo') return `carrier:${id}`;
+  return null;
+}
+
+/** What dropping `source` on `target` would come to, mirroring the colony screen's drop().
+ *  `source` and `target` are the screen's data-drag and data-drop strings; `refusal` is the game's
+ *  own validation and `jobFor` the screen's reading of a place as a job. */
+export function dropVerdict(
+  state: GameState, colonyId: string, source: string, target: string,
+  refusal: (action: Action) => string | null,
+  jobFor: (target: string, colonistId: string) => Job | null,
+): DropVerdict {
+  if (target === homeOf(state, colonyId, source)) return 'home';
+  const probe = (action: Action): DropVerdict => (refusal(action) === null ? 'ok' : 'bad');
+  const [kind, id = '', extra] = source.split(':');
+  const colony = state.colonies[colonyId];
+  const carrier = target.startsWith('carrier:') ? target.slice('carrier:'.length) : null;
+
+  if (kind === 'colonist') {
+    if (target === 'outside') return probe({ type: 'leaveColony', colonyId, colonistId: id });
+    const field = target.startsWith('field:');
+    if (!field && target !== 'idle' && !target.startsWith('trade:')) return 'bad';
+    if (field && colony) {
+      const [dx, dy] = target.slice('field:'.length).split(',').map(Number) as [number, number];
+      // the drop asks to buy the square or take it, so it is a place they may be sent
+      if (squareStatus(state, colony, dx, dy) === 'nativeLand') return 'ok';
+    }
+    const job = jobFor(target, id);
+    return job ? probe({ type: 'assignJob', colonyId, colonistId: id, job }) : 'bad';
+  }
+  if (kind === 'unit') {
+    // the drop ignores a unit let go on the warehouse or a hold
+    if (target === 'warehouse' || carrier !== null) return 'bad';
+    if (target === 'outside') return state.units[id]?.aboard ? probe({ type: 'goAshore', unitId: id }) : 'bad';
+    // Only joining is asked about: the job taken after it cannot be probed without a trial state
+    // in which the unit is already a colonist, so a square that offers them nothing is still green.
+    return probe({ type: 'joinColony', unitId: id });
+  }
+  // Goods and cargo are probed with the amount a plain (non-Shift) drop moves, so a hold with room
+  // for less than that shows red though a Shift-drop could load part of it.
+  if (kind === 'good') {
+    if (carrier === null) return 'bad';
+    const have = colony?.goods[id as GoodId] ?? 0;
+    return have > 0 ? probe({ type: 'loadCargo', unitId: carrier, good: id as GoodId, amount: Math.min(have, HOLD_CAPACITY) }) : 'bad';
+  }
+  if (kind === 'cargo' && extra) {
+    const good = extra as GoodId;
+    const amount = state.units[id]?.cargo[good] ?? 0;
+    // an empty lot moves nothing wherever it is let go
+    if (amount <= 0) return 'bad';
+    if (target === 'warehouse') return probe({ type: 'unloadCargo', unitId: id, good, amount });
+    if (carrier !== null) return probe({ type: 'transferCargo', unitId: id, toId: carrier, good, amount });
+  }
+  return 'bad';
 }

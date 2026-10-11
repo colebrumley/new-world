@@ -79,6 +79,128 @@ test('dragging a colonist from a field to a building changes production', async 
   await expect(bells).toHaveText('+4');
 });
 
+test('a dragged token travels under the pointer as a ghost, red over a place that refuses it', async ({ page }) => {
+  await foundJamestown(page);
+  const colony = page.locator('.colony-screen');
+  const ghost = colony.locator('.drag-ghost');
+  const townHall = colony.locator('.building[data-building="townHall"]');
+  const warehouse = colony.locator('[data-region="warehouse"]');
+  const farmer = colony.locator('.square .token');
+  const centre = async (of: ReturnType<typeof colony.locator>) => {
+    const box = (await of.boundingBox())!;
+    return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
+  };
+  const from = await centre(farmer);
+  const hall = await centre(townHall);
+  const heading = await centre(warehouse.locator('h3'));
+
+  // a press and a tremble is not a drag
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 2, from.y);
+  await expect(ghost).toHaveCount(0);
+  await expect(colony.locator('.token-lifted')).toHaveCount(0);
+
+  // over a place that takes him: one ghost with his picture and name, the place lit, he dimmed where he stood
+  await page.mouse.move(hall.x, hall.y, { steps: 4 });
+  await expect(ghost).toHaveCount(1);
+  await expect(ghost).toHaveClass(/\btoken-colonist\b/);
+  await expect(ghost).toHaveAttribute('aria-hidden', 'true');
+  await expect(ghost.locator('canvas.token-figure')).toHaveCount(1);
+  await expect(ghost.locator('.token-label')).toHaveText((await farmer.locator('.token-label').textContent())!);
+  await expect(ghost).not.toHaveAttribute('data-verdict');
+  await expect(townHall).toHaveAttribute('data-drop-state', 'ok');
+  await expect(farmer).toHaveClass(/\btoken-lifted\b/);
+  // it is under the pointer, and the pointer still finds the place through it
+  const at = await centre(ghost);
+  expect(Math.abs(at.x - hall.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(at.y - hall.y)).toBeLessThanOrEqual(1);
+  expect(await ghost.evaluate((g) => getComputedStyle(g).pointerEvents)).toBe('none');
+  expect(await townHall.evaluate((b) => getComputedStyle(b).outlineStyle)).toBe('solid');
+
+  // over a place that refuses him: the ghost and the place go red, and the last place is let go
+  await page.mouse.move(heading.x, heading.y, { steps: 4 });
+  await expect(ghost).toHaveAttribute('data-verdict', 'bad');
+  await expect(warehouse).toHaveAttribute('data-drop-state', 'bad');
+  await expect(townHall).not.toHaveAttribute('data-drop-state');
+  expect(await warehouse.evaluate((w) => getComputedStyle(w).cursor)).toBe('not-allowed');
+  expect(await ghost.evaluate((g) => getComputedStyle(g).borderTopWidth)).toBe('2px');
+  await page.screenshot({ path: 'test-results/colony-drag-refused.png' });
+
+  // over the square he came from: nothing is refused, and it keeps its dashed line
+  await page.mouse.move(from.x, from.y, { steps: 4 });
+  const home = colony.locator('.square', { has: page.locator('.token') });
+  await expect(home).toHaveAttribute('data-drop-state', 'home');
+  await expect(ghost).not.toHaveAttribute('data-verdict');
+  await expect(warehouse).not.toHaveAttribute('data-drop-state');
+  expect(await home.evaluate((sq) => getComputedStyle(sq).outlineStyle)).toBe('dashed');
+
+  // over no place at all: a plain ghost and no mark
+  const title = await centre(colony.locator('.colony-header h2'));
+  await page.mouse.move(title.x, title.y, { steps: 4 });
+  await expect(ghost).toHaveCount(1);
+  await expect(ghost).not.toHaveAttribute('data-verdict');
+  await expect(colony.locator('[data-drop-state]')).toHaveCount(0);
+
+  // the pointer leaving the window ends the drag, and the release after it comes back does nothing
+  await page.mouse.move(hall.x, hall.y, { steps: 4 });
+  await expect(townHall).toHaveAttribute('data-drop-state', 'ok');
+  await colony.dispatchEvent('mouseleave', { buttons: 1 });
+  await expect(ghost).toHaveCount(0);
+  await expect(colony.locator('[data-drop-state]')).toHaveCount(0);
+  await expect(colony.locator('.token-lifted')).toHaveCount(0);
+  await page.mouse.up();
+  await expect(colony.locator('.square .token')).toHaveCount(1);
+  await expect(townHall.locator('.token')).toHaveCount(0);
+
+  // a redraw between the press and the drag (N hides the numbers): the token now on screen is the one dimmed
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.keyboard.press('n');
+  await expect(colony).toHaveClass(/\bhide-numbers\b/);
+  await page.mouse.move(hall.x, hall.y, { steps: 4 });
+  await expect(colony.locator('.square .token.token-lifted')).toHaveCount(1);
+  // and a place scrolled under the still pointer is marked without a move
+  await expect(townHall).toHaveAttribute('data-drop-state', 'ok');
+  // (a building that is no place to work is laid out after the others, so the next one slides under the pointer)
+  await townHall.evaluate((b) => b.removeAttribute('data-drop'));
+  // (a real scroll does not bubble, so neither does this one: only a listener that captures hears it)
+  await colony.locator('[data-region="settlement"]').dispatchEvent('scroll', { bubbles: false });
+  await expect(townHall).not.toHaveAttribute('data-drop-state');
+  await expect(colony.locator('.building[data-drop-state="ok"]')).toHaveCount(1);
+  await colony.dispatchEvent('mouseleave', { buttons: 1 });
+  await page.mouse.up();
+  await page.keyboard.press('n');
+  await expect(colony).not.toHaveClass(/\bhide-numbers\b/);
+
+  // letting go over the warehouse: the ghost and the marks are gone, he has not moved, and the game says why
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(heading.x, heading.y, { steps: 4 });
+  await expect(ghost).toHaveAttribute('data-verdict', 'bad');
+  await page.mouse.up();
+  await expect(ghost).toHaveCount(0);
+  await expect(colony.locator('[data-drop-state]')).toHaveCount(0);
+  await expect(colony.locator('.token-lifted')).toHaveCount(0);
+  await expect(colony.locator('.square .token')).toHaveCount(1);
+  await expect(colony.locator('.colony-message')).toHaveText('Nothing can be produced there.');
+
+  // a good has nowhere to go but a hold: over a building it is red, and letting go moves nothing
+  const muskets = colony.locator('.token-good', { hasText: 'Muskets' });
+  const crate = await centre(muskets);
+  await page.mouse.move(crate.x, crate.y);
+  await page.mouse.down();
+  await page.mouse.move(hall.x, hall.y, { steps: 4 });
+  await expect(ghost).toHaveClass(/\btoken-good\b/);
+  await expect(ghost.locator('canvas.good-art')).toHaveCount(1);
+  await expect(ghost).toHaveAttribute('data-verdict', 'bad');
+  await expect(townHall).toHaveAttribute('data-drop-state', 'bad');
+  await page.mouse.up();
+  await expect(ghost).toHaveCount(0);
+  await expect(colony.locator('[data-drop-state]')).toHaveCount(0);
+  await expect(muskets).toContainText('50');
+});
+
 test('the colony lies over the whole game, and a click on a colonist then on a place moves them', async ({ page }) => {
   await foundJamestown(page);
   const colony = page.locator('.colony-screen');
