@@ -293,13 +293,55 @@ function resource(s: Sprite, id: ResourceId): void {
   stamp(s, 10, 1, mined ? ['..k..', '.kck.', 'kccck', '.kck.', '..k..'] : ['.kkk.', 'kccck', 'kccck', 'kccck', '.kkk.'], { k: INK.ink, c: RESOURCE_INK[id] });
 }
 
-/** A Lost City Rumor: a broken arch of pale stone in the bottom left corner. */
-function rumor(s: Sprite): void {
-  stamp(s, 1, 9, ['kkkkk.', 'kpppk.', 'kpkpkk', 'kpkkpk', 'kpk.pk', 'kkk.kk'], { k: INK.ink, p: INK.parchment });
+const SEAL_KEY = { k: INK.ink, y: INK.yellow, o: INK.orange, w: INK.white, b: INK.wood } as const;
+/** The lost-city seal by grid: a round of gold with an ink rim, a glint at the upper left, shade at the lower right and a stepped pyramid pressed into it. */
+const RUMOR_SEAL: Readonly<Record<16 | 32, readonly string[]>> = {
+  32: [
+    '.....kkkkkk.....',
+    '...kkyyyyyykk...',
+    '..kywwyyyyyyyk..',
+    '.kwwyyyyyyyyyyk.',
+    '.kwyyyybbyyyyyk.',
+    'kyyyyyybbyyyyyok',
+    'kyyyybbbbbbyyook',
+    'kyyyybbbbbbyyook',
+    'kyybbbbbbbbbbook',
+    'kyybbbbbbbbbbook',
+    'kyyyyyyyyyyyoook',
+    '.kyyyyyyyyyoook.',
+    '.kyyyyyyyoooook.',
+    '..kyyyyooooook..',
+    '...kkooooookk...',
+    '.....kkkkkk.....',
+  ],
+  16: ['..kkkk..', '.kwyyyk.', 'kwyyyyok', 'kyybbyok', 'kybbbbok', 'kyyyyook', '.kyoook.', '..kkkk..'],
+};
+
+/**
+ * The mark of a Lost City Rumor, alone on a see-through square of the grid: a round gold seal filling the
+ * lower left quarter on the 32 and 16 grids, and a gold dot on the 8.
+ */
+export function rumorSealArt(grid: ChartGrid): Sprite {
+  const s = blank(grid);
+  if (grid === 8) box(s, 1, 5, 2, 2, INK.yellow);
+  else stamp(s, 0, grid / 2, RUMOR_SEAL[grid], SEAL_KEY);
+  return s;
 }
 
+/** Lay one sprite over another of the same size, its see-through cells left alone. */
+function lay(s: Sprite, layer: Sprite): void {
+  layer.cells.forEach((cell, i) => {
+    if (cell !== 0) s.cells[i] = cell;
+  });
+}
+
+function rumor(s: Sprite): void {
+  lay(s, rumorSealArt(s.size as ChartGrid));
+}
+
+/** A totem marking native land, in the upper left quarter. */
 function totem(s: Sprite): void {
-  stamp(s, 5, 3, ['.rrr.', 'yyyyy', '..w..', '.yyy.', '..w..', '..w..', '..w..', '..w..'], { r: INK.red, y: INK.yellow, w: INK.wood });
+  stamp(s, 2, 0, ['.rrr.', 'yyyyy', '..w..', '.yyy.', '..w..', '..w..', '..w..', '..w..'], { r: INK.red, y: INK.yellow, w: INK.wood });
 }
 
 /** The art for one map square. */
@@ -311,9 +353,9 @@ export function tileArt(look: TileLook): Sprite {
   if (look.river !== 'none') river(s, look);
   if (look.terrain === 'hills' || look.terrain === 'mountains') relief(s, look.terrain, rnd);
   else trees(s, look.terrain, rnd);
-  if (look.road) road(s, look);
   if (look.resource) resource(s, look.resource);
   if (look.rumor) rumor(s);
+  if (look.road) road(s, look);
   if (look.totem) totem(s);
   return s;
 }
@@ -325,7 +367,7 @@ export function miniTileArt(look: TileLook): Sprite {
   if (look.terrain === 'mountains') stamp(s, 2, 2, ['.ww.', 'wwdd'], { w: INK.white, d: INK.grey });
   if (look.river !== 'none') box(s, 3, 3, 2, 2, INK.brightBlue);
   if (look.road) box(s, 2, 4, 4, 1, INK.wood);
-  if (look.rumor) box(s, 1, 5, 2, 2, INK.parchment);
+  if (look.rumor) rumor(s);
   return s;
 }
 
@@ -645,7 +687,8 @@ function turned(rows: readonly string[], mirror: boolean, upend: boolean): reado
 /**
  * The art for one map square on the 32-pixel grid: the ground of its terrain (a forest stands on the open
  * ground of its row), turned one of four ways by the variant; furrows and rivers; then the forest, hills or
- * mountains standing on it; then roads and the marks, which are the 16-pixel ones enlarged.
+ * mountains standing on it; then the resource mark (the 16-pixel one enlarged), the lost-city seal drawn
+ * for this grid, and the road and the totem enlarged over them.
  */
 export function detailedTileArt(look: TileLook): Sprite {
   const s = blank(DETAIL);
@@ -657,10 +700,12 @@ export function detailedTileArt(look: TileLook): Sprite {
   if (look.river !== 'none') river(under, look);
   enlarge(s, under);
   if (Object.hasOwn(FEATURE_ART, look.terrain)) stamp(s, 0, DETAIL - FEATURE_SIZE, turned(FEATURE_ART[look.terrain] as readonly string[], (look.variant & 1) === 1, false), FEATURE_KEY);
+  const marker = blank();
+  if (look.resource) resource(marker, look.resource);
+  enlarge(s, marker);
+  if (look.rumor) rumor(s);
   const over = blank();
   if (look.road) road(over, look);
-  if (look.resource) resource(over, look.resource);
-  if (look.rumor) rumor(over);
   if (look.totem) totem(over);
   enlarge(s, over);
   return s;

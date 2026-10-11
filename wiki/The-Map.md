@@ -157,7 +157,7 @@ The square a colony stands on is worked by the colony itself, with no colonist, 
 
 ## Lost City Rumors
 
-![Plains with a rumor](images/art/terrain/plains-rumor.png) A small marker on open ground is a Lost City Rumor. Move a unit onto it to find out what it is; the rumor is gone afterwards. A scout does better than other units, and a seasoned scout better still.
+![Plains with a rumor](images/art/terrain/plains-rumor.png) A round gold seal in the corner of a square is a Lost City Rumor. Move a unit onto it to find out what it is; the rumor is gone afterwards. A scout does better than other units, and a seasoned scout better still.
 
 ![A rumor explored](images/screens/rumor.png)
 
