@@ -670,6 +670,13 @@ export function cursorArt(): Sprite {
   return s;
 }
 
+/** The cursor over a square the dragged unit cannot go to: the same frame in red. */
+export function blockedCursorArt(): Sprite {
+  const s = blank();
+  frame(s, 0, 0, ART, ART, INK.red);
+  return s;
+}
+
 /** A colony: a gabled house under the owner's roof, with the population on a dark plate in the colour of its loyalties. */
 export function colonyArt(color: InkId, population: number, numberInk: InkId): Sprite {
   const s = blank();

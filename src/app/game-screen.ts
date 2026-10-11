@@ -44,7 +44,7 @@ import { minimapLayout, minimapToTile, renderMinimap } from '../ui/minimap';
 import { viewerIndex, renderGround, renderPieces } from '../ui/render';
 import { createSidebar, formatMoves, sidebarModel, unitLabel } from '../ui/sidebar';
 import { MENU_CHOICES, REPORT_CHOICES, createCommandBar, type BarChoice } from '../ui/command-bar';
-import { PINCH_STEP, WHEEL_LINE, WHEEL_STEP, mapClick, mapCursor, mapDrag, pinchTravel, wheelStep, type PointerMode } from '../ui/pointer';
+import { PINCH_STEP, WHEEL_LINE, WHEEL_STEP, dragBlocked, mapClick, mapCursor, mapDrag, pinchTravel, wheelStep, type PointerMode } from '../ui/pointer';
 import { editRoute } from '../ui/trade-routes';
 import { createTileCache } from '../ui/tiles';
 import { placeTooltip, tileTip, TOOLTIP_DELAY_MS } from '../ui/tile-tooltip';
@@ -230,6 +230,10 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   let drag: { x: number; y: number; moved: boolean; aim: boolean; unitId: UnitId | null } | null = null;
   /** The square an aimed drag is over. */
   let aimAt: { x: number; y: number } | null = null;
+  /** Whether letting go over `aimAt` would be refused: worked out once for each square the aim moves to, and again when the game changes under it. */
+  let aimBlocked = false;
+  /** The game `aimBlocked` was worked out for; null when it is to be worked out again. */
+  let aimJudged: GameState | null = null;
   let wheelKept = 0;
   let wheelAt = 0;
   let lastTime = 0;
@@ -1374,12 +1378,28 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       const held = drag.unitId === activeId && mode === 'move' ? tile : null;
       if (held?.x !== aimAt?.x || held?.y !== aimAt?.y) {
         aimAt = held;
+        aimJudged = null;
+        judgeAim();
         dirty = true;
       }
     } else if (!drag && mode === 'goto' && tile && (tile.x !== cursor?.x || tile.y !== cursor.y)) {
       cursor = tile;
       dirty = true;
     }
+  };
+
+  /** Work out again whether letting go over the aimed square would be refused, if the square or the game has changed since. */
+  const judgeAim = (): void => {
+    if (aimJudged === session.state) return;
+    const unit = activeUnit();
+    aimBlocked = aimAt !== null && unit !== null && dragBlocked(session.state, unit, aimAt);
+    aimJudged = session.state;
+  };
+
+  /** The active unit while a drag begun on it is under way, as the release would take it: its piece follows the pointer. */
+  const draggedNow = (): Unit | null => {
+    const unit = activeUnit();
+    return drag?.aim && drag.moved && pointer && unit && unit.id === drag.unitId && mode === 'move' ? unit : null;
   };
 
   /** What a click at a canvas pixel would ask for, or null off the map. */
@@ -1425,6 +1445,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     if (drag.aim) {
       drag.moved = true;
       retarget();
+      // the piece being dragged follows the pointer within a square too
+      if (draggedNow()) dirty = true;
       return;
     }
     drag = { x: p.x, y: p.y, moved: true, aim: false, unitId: null };
@@ -1435,6 +1457,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     const { moved, aim, unitId } = drag;
     drag = null;
     aimAt = null;
+    aimBlocked = false;
     dirty = true;
     const p = local(event, canvas);
     const tile = screenToTile(view, session.state.map, p.x, p.y);
@@ -1586,9 +1609,10 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   canvas.addEventListener('mouseleave', () => {
     hideTip();
     pointer = null;
+    if (aimAt || draggedNow()) dirty = true;
     drag = null;
-    if (aimAt) dirty = true;
     aimAt = null;
+    aimBlocked = false;
   });
 
   sidebar.minimap.addEventListener('click', (event) => {
@@ -1613,7 +1637,11 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
 
   const draw = (time = performance.now()): void => {
     const unit = activeUnit();
-    const showCursor = aimAt ?? (mode !== 'move' ? cursor : null);
+    const held = draggedNow();
+    // a move made with the button held (a key) changes what the release would do
+    if (aimAt) judgeAim();
+    const showCursor = aimAt ? { ...aimAt, blocked: aimBlocked } : mode !== 'move' ? cursor : null;
+    const dragged = held && pointer ? { unitId: held.id, x: pointer.x, y: pointer.y } : null;
     // the unit under orders, or the view, may have changed under a pointer that has not moved
     showPointer();
     shownBlink = blinkAt(time);
@@ -1632,7 +1660,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     }
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(ground, 0, 0, view.width, view.height);
-    renderPieces(ctx, session.state, view, cache, { activeUnitId: unit?.id ?? null, cursor: showCursor, blinkOn: shownBlink, waterPhase: shownWater, slide: slideAt(time) });
+    renderPieces(ctx, session.state, view, cache, { activeUnitId: unit?.id ?? null, cursor: showCursor, dragged, blinkOn: shownBlink, waterPhase: shownWater, slide: slideAt(time) });
     renderMinimap(miniCtx, session.state, view, sidebar.minimap.clientWidth, sidebar.minimap.clientHeight, unit?.id ?? null);
     const focus = mode !== 'move' || !unit || unit.x < 0 ? cursor : { x: unit.x, y: unit.y };
     const status = notice || (unit ? '' : 'End of turn. Press Enter.');
@@ -1657,6 +1685,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       canvas.dataset['frames'] = String(frames);
       canvas.dataset['turn'] = String(session.state.turn);
       canvas.dataset['view'] = JSON.stringify(view);
+      canvas.dataset['aim'] = aimAt ? `${aimAt.x},${aimAt.y},${aimBlocked ? 'blocked' : 'ok'}` : '';
       canvas.dataset['hidden'] = String(view.showHidden);
       canvas.dataset['mode'] = mode;
       canvas.dataset['active'] = activeId ?? '';
