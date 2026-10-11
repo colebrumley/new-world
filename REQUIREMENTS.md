@@ -1434,7 +1434,7 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1045 Map art: colony names on the map** — docs/specs/map-art-redesign.md, item W6, size M.
 - [x] **R-1046 Map art: canopy and relief joins, river mouths, overlay order** — docs/specs/map-art-redesign.md, item W7, size M.
 - [ ] **R-1047 Rivers by their neighbours: sixteen winding, rimmed pieces and their mouths** — docs/specs/rivers-and-mountains.md, item W1, size M.
-- [ ] **R-1048 Mountains regenerated as a ridge of snow-capped peaks** — docs/specs/rivers-and-mountains.md, item W2, size M.
+- [x] **R-1048 Mountains regenerated as a ridge of snow-capped peaks** — docs/specs/rivers-and-mountains.md, item W2, size M.
 
 ---
 
