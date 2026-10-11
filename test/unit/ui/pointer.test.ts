@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Unit } from '../../../src/engine/state';
+import type { Settlement, Unit } from '../../../src/engine/state';
+import { villageActions } from '../../../src/engine/village';
 import { PINCH_STEP, STEP_RIM, WHEEL_STEP, dragBlocked, mapClick, mapCursor, mapDrag, pinchTravel, unitsToPick, wheelStep } from '../../../src/ui/pointer';
 import { withColony, withUnit, world } from '../../helpers/world';
 
@@ -192,5 +193,22 @@ describe('a drag held over a square', () => {
     expect(dragBlocked(s, ship, { x: 2, y: 2 })).toBe(false);
     const empty = withUnit(world({ rows: LAKE }), { id: 'ship', type: 'caravel', x: 3, y: 2 });
     expect(dragBlocked(empty, unit(empty, 'ship'), { x: 2, y: 2 })).toBe(true);
+  });
+
+  it('is refused at a native settlement only when it offers the unit nothing to do', () => {
+    const village: Settlement = { id: 'v', tribe: 'sioux', x: 2, y: 3, capital: false, population: 3, growth: 0, taught: false, tributePaid: false, alarm: { a: 0 }, mission: null, scouted: [], lastBought: null, lastSold: null, haggleMemory: null };
+    const s = { ...boarded(), settlements: { v: village } };
+    const ship = unit(s, 'ship');
+    // a people we have met will trade with the ship: the release asks what to do
+    expect(villageActions(s, ship, village).length).toBeGreaterThan(0);
+    expect(dragBlocked(s, ship, { x: 2, y: 3 })).toBe(false);
+    // a people never met on land will not deal with a ship: letting go there only brings a refusal
+    const unmet = { ...s, tribes: { ...s.tribes, sioux: { ...s.tribes.sioux!, met: [] } } };
+    expect(villageActions(unmet, ship, village)).toEqual([]);
+    expect(dragBlocked(unmet, ship, { x: 2, y: 3 })).toBe(true);
+    // a soldier on land beside it may always attack it, so the square is never refused
+    const walker = withUnit(s, { id: 'walker', type: 'soldier', x: 2, y: 2 });
+    expect(villageActions(walker, unit(walker, 'walker'), village)).toContain('attack');
+    expect(dragBlocked(walker, unit(walker, 'walker'), { x: 2, y: 3 })).toBe(false);
   });
 });

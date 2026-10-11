@@ -230,8 +230,10 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   let drag: { x: number; y: number; moved: boolean; aim: boolean; unitId: UnitId | null } | null = null;
   /** The square an aimed drag is over. */
   let aimAt: { x: number; y: number } | null = null;
-  /** Whether letting go over `aimAt` would be refused: worked out once each time the aim moves to another square. */
+  /** Whether letting go over `aimAt` would be refused: worked out once for each square the aim moves to, and again when the game changes under it. */
   let aimBlocked = false;
+  /** The game `aimBlocked` was worked out for; null when it is to be worked out again. */
+  let aimJudged: GameState | null = null;
   let wheelKept = 0;
   let wheelAt = 0;
   let lastTime = 0;
@@ -1376,14 +1378,22 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       const held = drag.unitId === activeId && mode === 'move' ? tile : null;
       if (held?.x !== aimAt?.x || held?.y !== aimAt?.y) {
         aimAt = held;
-        const unit = activeUnit();
-        aimBlocked = held !== null && unit !== null && dragBlocked(session.state, unit, held);
+        aimJudged = null;
+        judgeAim();
         dirty = true;
       }
     } else if (!drag && mode === 'goto' && tile && (tile.x !== cursor?.x || tile.y !== cursor.y)) {
       cursor = tile;
       dirty = true;
     }
+  };
+
+  /** Work out again whether letting go over the aimed square would be refused, if the square or the game has changed since. */
+  const judgeAim = (): void => {
+    if (aimJudged === session.state) return;
+    const unit = activeUnit();
+    aimBlocked = aimAt !== null && unit !== null && dragBlocked(session.state, unit, aimAt);
+    aimJudged = session.state;
   };
 
   /** The active unit while a drag begun on it is under way, as the release would take it: its piece follows the pointer. */
@@ -1628,6 +1638,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   const draw = (time = performance.now()): void => {
     const unit = activeUnit();
     const held = draggedNow();
+    // a move made with the button held (a key) changes what the release would do
+    if (aimAt) judgeAim();
     const showCursor = aimAt ? { ...aimAt, blocked: aimBlocked } : mode !== 'move' ? cursor : null;
     const dragged = held && pointer ? { unitId: held.id, x: pointer.x, y: pointer.y } : null;
     // the unit under orders, or the view, may have changed under a pointer that has not moved
