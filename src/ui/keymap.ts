@@ -69,7 +69,7 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'map', keys: 'Click on your unit', action: 'Make it the active unit, waking it if it has orders (a list if several stand there); in view mode this also returns to move mode' },
   { context: 'map', keys: 'Click beside the active unit', action: 'Move it one square; the pointer is an arrow showing which way' },
   { context: 'map', keys: 'Click the near edge of a colony or unit beside the active unit', action: 'Move onto that square (the near corner, for a diagonal) where the pointer is an arrow; the rest of the square opens the colony or picks the unit' },
-  { context: 'map', keys: 'Drag from the active unit', action: 'Send it to the square where the button is let go: one step if adjacent, Go To if farther' },
+  { context: 'map', keys: 'Drag from the active unit', action: 'Send it to the square where the button is let go: one step if adjacent, Go To if farther. Its piece follows the pointer; the marker turns red over a square it cannot go to' },
   { context: 'map', keys: 'Wheel / pinch', action: 'Zoom in / zoom out about the pointer (a pinch on a trackpad or a touch screen zooms the map, not the page)' },
   { context: 'map', keys: 'Ctrl/Cmd + Plus / Minus', action: 'Zoom in / zoom out: the browser\'s zoom keys zoom the map while it has the keyboard' },
   { context: 'map', keys: 'Sidebar buttons', action: 'Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel' },

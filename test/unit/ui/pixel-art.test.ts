@@ -12,7 +12,7 @@ import { GOODS_ART, GOODS_SIZE } from '../../../src/ui/goods-art';
 import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, flagArt, goodArt, SEAL_GLYPHS, sealArt } from '../../../src/ui/pixel-art';
 import { CHART, CHART_MARK_KINDS } from '../../../src/ui/chart';
 import { CHART_ART, CHART_COLORS } from '../../../src/ui/chart-art';
-import { activeFrameArt, ART, at, blank, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, halve, hasFigure, INK, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
+import { activeFrameArt, ART, at, blank, blockedCursorArt, cursorArt, chartMarkArt, colonyArt, COLONY_LOOKS, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, detailedTileArt, halve, hasFigure, INK, miniTileArt, PALETTE, pieceArt, settlementArt, tileArt, toRgba, VELLUM, vellumArt, VILLAGE_LOOKS, write, type ChartGrid, type Sprite, type TileLook } from '../../../src/ui/pixel-art';
 
 const look = (change: Partial<TileLook> = {}): TileLook => ({ terrain: 'plains', river: 'none', riverMask: 0, road: false, roadMask: 0, plowed: false, resource: null, rumor: false, totem: false, variant: 0, ...change });
 const text = (s: Sprite): string => Array.from({ length: s.size }, (_, y) => Array.from({ length: s.size }, (_, x) => (at(s, x, y) === 0 ? '.' : (at(s, x, y) - 1).toString(32))).join('')).join('\n');
@@ -108,6 +108,14 @@ describe('pieces', () => {
     // the active frame runs round the edge and leaves the middle alone
     expect(at(activeFrameArt(), 0, 7) - 1).toBe(INK.white);
     expect(at(activeFrameArt(), 7, 7)).toBe(0);
+    // the destination marker is yellow, and red over a square the dragged unit cannot go to
+    expect(at(cursorArt(), 0, 7) - 1).toBe(INK.yellow);
+    expect(at(cursorArt(), ART - 1, 3) - 1).toBe(INK.yellow);
+    expect(at(cursorArt(), 7, 7)).toBe(0);
+    expect(at(blockedCursorArt(), 0, 7) - 1).toBe(INK.red);
+    expect(at(blockedCursorArt(), ART - 1, 3) - 1).toBe(INK.red);
+    expect(at(blockedCursorArt(), 7, 0) - 1).toBe(INK.red);
+    expect(at(blockedCursorArt(), 7, 7)).toBe(0);
   });
 });
 

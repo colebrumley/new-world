@@ -320,6 +320,50 @@ test('a drag orders the unit it began on, and is dropped if another has become t
   await expect(field(page, 'unit')).toHaveText('Pioneer');
 });
 
+test('a drag marks in red a square the unit cannot go to, and lets go of the mark on release', async ({ page }) => {
+  await page.goto('/?seed=7');
+  await startNewGame(page, 'america');
+  const canvas = page.locator('canvas.map');
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  const dialog = page.getByRole('dialog');
+  for (let step = 0; step < 12 && !(await dialog.isVisible()); step++) {
+    if ((await field(page, 'unit').textContent()) === 'No active unit') {
+      await command(page, 'endTurn').click();
+      await settled(page);
+    }
+    const at = await spot(page);
+    await clickSquare(page, canvas, at.x - 1, at.y);
+  }
+  await dialog.getByRole('button', { name: 'Make landfall' }).click();
+  await expect(field(page, 'unit')).toHaveText('Soldier');
+  const ship = await spot(page);
+  const box = (await canvas.boundingBox())!;
+  const aim = (): Promise<string | undefined> => canvas.evaluate((c) => (c as HTMLCanvasElement).dataset['aim']);
+  const over = async (x: number, y: number): Promise<void> => {
+    const p = await pixel(canvas, x, y);
+    await page.mouse.move(box.x + p.x, box.y + p.y, { steps: 5 });
+    await settled(page);
+  };
+
+  // the soldier aboard may go ashore to the west, not into the sea to the east, nor two squares off
+  const from = await pixel(canvas, ship.x, ship.y);
+  await page.mouse.move(box.x + from.x, box.y + from.y);
+  await page.mouse.down();
+  await over(ship.x - 1, ship.y);
+  await expect.poll(aim).toBe(`${ship.x - 1},${ship.y},ok`);
+  await over(ship.x + 1, ship.y);
+  await expect.poll(aim).toBe(`${ship.x + 1},${ship.y},blocked`);
+  await over(ship.x - 2, ship.y);
+  await expect.poll(aim).toBe(`${ship.x - 2},${ship.y},blocked`);
+  await over(ship.x, ship.y);
+  await expect.poll(aim).toBe(`${ship.x},${ship.y},ok`);
+  await page.mouse.up();
+  await settled(page);
+  await expect.poll(aim).toBe('');
+  await expect(field(page, 'unit')).toHaveText('Soldier');
+  await expect(field(page, 'location')).toHaveText(`(${ship.x}, ${ship.y})`);
+});
+
 test('at 1024x640 the sidebar keeps what the game says in sight', async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 640 });
   await page.goto('/?seed=7');

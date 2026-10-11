@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Unit } from '../../../src/engine/state';
-import { PINCH_STEP, STEP_RIM, WHEEL_STEP, mapClick, mapCursor, mapDrag, pinchTravel, unitsToPick, wheelStep } from '../../../src/ui/pointer';
+import { PINCH_STEP, STEP_RIM, WHEEL_STEP, dragBlocked, mapClick, mapCursor, mapDrag, pinchTravel, unitsToPick, wheelStep } from '../../../src/ui/pointer';
 import { withColony, withUnit, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~~', '~.....~', '~.....~', '~.....~', '~~~~~~~'];
@@ -161,5 +161,36 @@ describe('a pinch', () => {
     expect(wheelStep(0, pinchTravel(1.2), PINCH_STEP).step).toBe(0);
     expect(pinchTravel(0)).toBe(0);
     expect(pinchTravel(Infinity)).toBe(0);
+  });
+});
+
+describe('a drag held over a square', () => {
+  // land to the west, an inlet of the sea to the east: a ship at (3,2) with a soldier aboard
+  const LAKE = ['~~~~~~~~', '~......~', '~..~~~~~', '~......~', '~~~~~~~~'];
+  const boarded = (): ReturnType<typeof world> => {
+    let s = world({ rows: LAKE });
+    s = withUnit(s, { id: 'ship', type: 'caravel', x: 3, y: 2 });
+    return withUnit(s, { id: 'rider', type: 'soldier', x: 3, y: 2, aboard: 'ship' });
+  };
+
+  it('is refused for a soldier aboard anywhere but the land beside the ship', () => {
+    const s = boarded();
+    const rider = unit(s, 'rider');
+    expect(dragBlocked(s, rider, { x: 2, y: 2 })).toBe(false);
+    expect(dragBlocked(s, rider, { x: 4, y: 2 })).toBe(true);
+    expect(dragBlocked(s, rider, { x: 1, y: 2 })).toBe(true);
+    expect(dragBlocked(s, rider, { x: 3, y: 2 })).toBe(false);
+    expect(dragBlocked(s, rider, null)).toBe(false);
+  });
+
+  it('is refused for the ship on land, not on water it can reach', () => {
+    const s = boarded();
+    const ship = unit(s, 'ship');
+    expect(dragBlocked(s, ship, { x: 1, y: 2 })).toBe(true);
+    expect(dragBlocked(s, ship, { x: 5, y: 2 })).toBe(false);
+    // beside the land she asks whether to make landfall, which is not a refusal; empty, she cannot go
+    expect(dragBlocked(s, ship, { x: 2, y: 2 })).toBe(false);
+    const empty = withUnit(world({ rows: LAKE }), { id: 'ship', type: 'caravel', x: 3, y: 2 });
+    expect(dragBlocked(empty, unit(empty, 'ship'), { x: 2, y: 2 })).toBe(true);
   });
 });
