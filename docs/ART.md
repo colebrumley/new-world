@@ -53,8 +53,8 @@ painting, which is 8 to 5. The older pictures in `art/` are 1254 pixels square.
 
 | Folder | Subject | Baked as | Into |
 |---|---|---|---|
-| `art/floors` | The ground of each of the thirteen terrains that has a floor, named by its terrain id (`plains.png`, `seaLane.png`, ...): bare ground with a little texture, in one clearly dominant colour, filling the square. | 32 px, three colours a picture, then levelled so the commonest colour is exactly the terrain's palette colour | `src/ui/floor-art.ts` |
-| `art/features` | What stands on the ground: one picture for each of the eight forests, for hills and for mountains, named by its terrain id, cut out on magenta. | 32 px, five colours a picture | `src/ui/feature-art.ts` |
+| `art/floors` | The ground of each of the thirteen terrains that has a floor, named by its terrain id (`plains.png`, `seaLane.png`, ...): bare ground with a little texture, in one clearly dominant colour, filling the square. | 32 px, in the map palette alone, single cells kept (`specks`), then levelled so the commonest colour is exactly the terrain's palette colour; then a 16 px copy in the same colours, levelled the same way | `src/ui/floor-art.ts` (`FLOOR_ART`, `FLOOR_ART_16`) |
+| `art/features` | What stands on the ground: one picture for each of the eight forests, for hills and for mountains, named by its terrain id, cut out on magenta: a dense clump that fills its square, since a forest must cover at least six tenths of it and hills or mountains nearly half. | 32 px, one palette of 32 for the folder; then a 16 px copy in the same colours (`--palette-name`) | `src/ui/feature-art.ts` (`FEATURE_ART`, `FEATURE_ART_16`) |
 | `art/resources` | One marker per special resource, named by its id in `src/engine/data/resources.ts`: a picture of the thing itself, cut out on magenta: one bold, compact silhouette with few parts, since it is shrunk further than anything else. | 24 px, one palette of 24 for the folder, the subject centred in its square with a twelfth of the square clear round it (`centre`), and the near-black outline colours folded into one ink (`one_ink`); then a 12 px copy in the same colours (`--palette-name`), with an outline of that ink drawn round it after shrinking, as the painted one is too thin to survive | `src/ui/resource-art.ts` (`RESOURCE_ART`, `RESOURCE_ART_12`) |
 | `art/places` | A colony at each state of its walls and a native settlement at each level of advancement, cut out on magenta, roofs in cyan. | 32 px, one palette of 24 for the folder | `src/ui/place-art.ts` |
 | `art/units` | One figure per unit type, named by its id, cut out on magenta. | 30 px, one palette of 32 for the folder | `src/ui/unit-art.ts` |
@@ -177,6 +177,26 @@ colour areas with a dark outline about 40 pixels wide round the subject and betw
 parts; light from the upper left; no gradients, no grain, no text; no pink or magenta in the
 subject.
 
+### What a floor and a forest need (learned in R-1042)
+
+- **A floor's marks must be chunky.** One cell of a 32-pixel floor is 32 pixels of the source and one cell
+  of the 16-pixel copy is 64, and a mark narrower than a cell is averaged into the ground and lost. Ask for
+  no mark thinner than 70 pixels, most 90 to 180 across, twenty-five to thirty of them covering about a
+  quarter of the image. Fourteen to twenty marks of 60 to 130 pixels came out nine tenths bare at 32 pixels
+  and almost flat at 16. The sea is the exception: six or seven crests, so that it stays a flat deep blue.
+- **Name the palette's own colours for a floor's marks**, with their hex values. The floors are baked in
+  the map palette and no other colour, so a mark painted in a palette colour keeps it, and one painted in
+  a shade between two of them goes to whichever is nearer (blue water on green ground leaves a cell or two
+  of grey round a pool).
+- **A mark needs contrast with its ground.** Sand on prairie gold, or two tones of one tuft, fold into the
+  ground; of two prairie pictures the one with fewer, plainer tufts in a darker brown kept more.
+- **A forest is asked for as a clump, not as trees**: "a dense, compact clump that fills the image almost
+  from edge to edge, roughly square in outline, in two overlapping rows", with the number of trees given
+  (six to eight) and the two or three colours of the crowns. Do not ask for ground under it: a patch of
+  sand under scrub came back with an outline round it and read as a framed tile; the scrub is a thicket of
+  bushes touching one another instead.
+- One run of five or six pictures takes about six minutes; five runs side by side take no longer.
+
 ### Checking what comes back
 
 Look at every picture before baking it. Send a picture back (run its prompt again, alone) when it
@@ -238,11 +258,10 @@ differently, which changes every cell of a baked file without anything being wro
 of an untouched folder differs from what is committed, check the commit first; when the commit
 has moved on, say so in the pull request and update this line.
 
-Only `floor-art.ts`, `title-art.ts`, `portrait-art.ts` and `resource-art.ts` have been baked at that commit so far.
-`unit-art.ts`, `place-art.ts`, `feature-art.ts`, `building-art.ts` and `goods-art.ts` were baked
+Only `floor-art.ts`, `feature-art.ts`, `title-art.ts`, `portrait-art.ts` and `resource-art.ts` have been baked at that commit so far.
+`unit-art.ts`, `place-art.ts`, `building-art.ts` and `goods-art.ts` were baked
 before this line was kept, and baking those folders again at this commit changes every one of them
-with no change to their sources (the features, for one, come out in 50 colours of their own where
-the committed file has 46, which counts against `ART_COLORS`). An item that re-bakes one of them
+with no change to their sources. An item that re-bakes one of them
 should expect that, look at the result, and say so in its pull request.
 
 ## What a baked picture may hold
@@ -256,8 +275,12 @@ should expect that, look at the result, and say so in its pull request.
   the thirteen are distinct at 24 pixels and at 12, and the 12-pixel copies use no colour the
   24-pixel ones do not (a unit test). A marker is judged at its baked size, not at its source size:
   thin stalks, veins and joints turn to noise at 24 pixels, so ask for few, large parts.
-- Every floor's commonest colour is its terrain's `GROUND` colour (a unit test), so that the two
-  nearest zooms agree with the far ones and with the minimap.
+- Every floor's commonest colour is its terrain's `GROUND` colour and covers at least four tenths of
+  it, at 32 pixels and at 16, and every colour of a floor is a colour of the palette (unit tests), so
+  that the three nearest zooms agree with the farthest and with the minimap.
+- A forest is opaque over at least six tenths of its 32-pixel square, hills and mountains over at least
+  0.45 of theirs; the ten are distinct at 32 pixels and at 16; `FLOOR_COLORS` and `FEATURE_COLORS` hold
+  at most 32 colours each; and a 16-pixel copy uses no colour the 32-pixel picture does not (unit tests).
 - The title painting and the portraits use no colour outside the palette (their unit tests).
 - Every sprite is square and is drawn at a whole multiple of its grid, with no smoothing
   (`test/helpers/reference-canvas.ts` refuses anything else).

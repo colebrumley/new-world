@@ -8,7 +8,8 @@ import { RESOURCE_IDS } from '../../../src/engine/data/resources';
 import { TERRAIN_IDS } from '../../../src/engine/data/terrain';
 import { UNIT_TYPE_IDS } from '../../../src/engine/data/units';
 import { BUILDING_ART, BUILDING_SIZE } from '../../../src/ui/building-art';
-import { FLOOR_ART, FLOOR_CODES, FLOOR_COLORS } from '../../../src/ui/floor-art';
+import { FEATURE_ART, FEATURE_ART_16, FEATURE_CODES, FEATURE_COLORS, FEATURE_SIZE, FEATURE_SIZE_16 } from '../../../src/ui/feature-art';
+import { FLOOR_ART, FLOOR_ART_16, FLOOR_CODES, FLOOR_COLORS, FLOOR_SIZE, FLOOR_SIZE_16 } from '../../../src/ui/floor-art';
 import { GOODS_ART, GOODS_SIZE } from '../../../src/ui/goods-art';
 import { RESOURCE_ART, RESOURCE_ART_12, RESOURCE_CODES, RESOURCE_COLORS, RESOURCE_SIZE, RESOURCE_SIZE_12 } from '../../../src/ui/resource-art';
 import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, flagArt, goodArt, SEAL_GLYPHS, sealArt } from '../../../src/ui/pixel-art';
@@ -60,7 +61,7 @@ describe('terrain art', () => {
       for (let variant = 0; variant < 4; variant++) {
         const s = tileArt(look({ terrain, variant }));
         expect(s.size).toBe(ART);
-        expect([...s.cells].every((c) => c >= 1 && c <= 32), terrain).toBe(true);
+        expect([...s.cells].every((c) => c >= 1 && c <= ART_COLORS.length), terrain).toBe(true);
       }
       const mini = miniTileArt(look({ terrain }));
       expect(mini.size).toBe(8);
@@ -69,8 +70,10 @@ describe('terrain art', () => {
   });
 
   it('every terrain can be told from every other, at full size and at the smallest zoom apart from open and wooded ground of one colour', () => {
-    const full = new Map(TERRAIN_IDS.map((t) => [t, text(tileArt(look({ terrain: t })))]));
-    expect(new Set(full.values()).size).toBe(TERRAIN_IDS.length);
+    for (let variant = 0; variant < 4; variant++) {
+      const full = new Map(TERRAIN_IDS.map((t) => [t, text(tileArt(look({ terrain: t, variant })))]));
+      expect(new Set(full.values()).size, `variant ${variant}`).toBe(TERRAIN_IDS.length);
+    }
     const mini = new Set(TERRAIN_IDS.map((t) => text(miniTileArt(look({ terrain: t })))));
     expect(mini.size).toBeGreaterThanOrEqual(14);
     // sea and land never share a colour, and forest is never the colour of its open ground
@@ -419,14 +422,89 @@ describe('detailed terrain', () => {
     }
   });
 
-  it('every baked floor is mostly its terrain\'s ground colour, the one the far zooms and the minimap draw it in', () => {
-    expect(Object.keys(FLOOR_ART).length).toBeGreaterThanOrEqual(13);
-    for (const [name, rows] of Object.entries(FLOOR_ART)) {
-      expect(TERRAIN_IDS as readonly string[], name).toContain(name);
-      const count = new Map<string, number>();
-      for (const letter of rows.join('')) count.set(letter, (count.get(letter) ?? 0) + 1);
-      const [commonest] = [...count].sort((a, b) => b[1] - a[1])[0] as [string, number];
-      expect(FLOOR_COLORS[FLOOR_CODES.indexOf(commonest)], name).toBe(PALETTE[GROUND[name as keyof typeof GROUND]]);
+  const FORESTS = ['boreal', 'conifer', 'mixed', 'broadleaf', 'tropical', 'wetland', 'rain', 'scrub'] as const;
+  const FLOORS = ['arctic', 'tundra', 'desert', 'plains', 'prairie', 'grassland', 'savannah', 'marsh', 'swamp', 'hills', 'mountains', 'ocean', 'seaLane'] as const;
+
+  it('every baked floor is mostly its terrain\'s ground colour, the one the far zooms and the minimap draw it in, at 32 pixels and at 16', () => {
+    expect(FLOOR_COLORS.length).toBeLessThanOrEqual(32);
+    // the floors are baked in the map palette itself, so the ground is the palette's colours at every zoom
+    for (const colour of FLOOR_COLORS) expect(PALETTE as readonly string[], colour).toContain(colour);
+    expect([FLOOR_SIZE, FLOOR_SIZE_16]).toEqual([32, 16]);
+    const letters = FLOOR_CODES.slice(0, FLOOR_COLORS.length);
+    for (const [art, size] of [[FLOOR_ART, FLOOR_SIZE], [FLOOR_ART_16, FLOOR_SIZE_16]] as const) {
+      expect(Object.keys(art).sort()).toEqual([...FLOORS].sort());
+      for (const [name, rows] of Object.entries(art)) {
+        expect(rows.length, name).toBe(size);
+        // every cell is a colour of the 32-pixel bake: a floor has no see-through cell, and the copy no colour of its own
+        for (const row of rows) expect(row.length === size && [...row].every((ch) => letters.includes(ch)), `${name} ${size}: ${row}`).toBe(true);
+        const count = new Map<string, number>();
+        for (const letter of rows.join('')) count.set(letter, (count.get(letter) ?? 0) + 1);
+        const [commonest, cells] = [...count].sort((a, b) => b[1] - a[1])[0] as [string, number];
+        expect(FLOOR_COLORS[FLOOR_CODES.indexOf(commonest)], `${name} ${size}`).toBe(PALETTE[GROUND[name as keyof typeof GROUND]]);
+        expect(cells, `${name} ${size}`).toBeGreaterThanOrEqual(0.4 * size * size);
+        // and it is textured: not the one colour alone
+        expect(count.size, `${name} ${size}`).toBeGreaterThan(1);
+      }
+    }
+  });
+
+  it('there is a picture of each forest, of hills and of mountains at 32 pixels and at 16, every one its own, filling most of its square', () => {
+    expect(FEATURE_COLORS.length).toBeLessThanOrEqual(32);
+    expect([FEATURE_SIZE, FEATURE_SIZE_16]).toEqual([32, 16]);
+    const letters = FEATURE_CODES.slice(0, FEATURE_COLORS.length);
+    for (const [art, size] of [[FEATURE_ART, FEATURE_SIZE], [FEATURE_ART_16, FEATURE_SIZE_16]] as const) {
+      expect(Object.keys(art).sort()).toEqual([...FORESTS, 'hills', 'mountains'].sort());
+      expect(new Set(Object.values(art).map((rows) => rows.join('\n'))).size).toBe(10);
+      for (const [name, rows] of Object.entries(art)) {
+        expect(rows.length, name).toBe(size);
+        // a see-through cell or a colour of the 32-pixel bake, and nothing else
+        for (const row of rows) expect(row.length === size && [...row].every((ch) => ch === '.' || letters.includes(ch)), `${name} ${size}: ${row}`).toBe(true);
+      }
+    }
+    const cover = (rows: readonly string[] | undefined): number => [...(rows as readonly string[]).join('')].filter((ch) => ch !== '.').length / (rows as readonly string[]).join('').length;
+    for (const forest of FORESTS) expect(cover(FEATURE_ART[forest]), forest).toBeGreaterThanOrEqual(0.6);
+    for (const rise of ['hills', 'mountains']) expect(cover(FEATURE_ART[rise]), rise).toBeGreaterThanOrEqual(0.45);
+  });
+
+  it('the 16-pixel grid draws the baked ground and features, turned by the variant as the 32-pixel grid turns its own', () => {
+    for (const open of FLOORS) {
+      const rows = FLOOR_ART_16[open] as readonly string[];
+      const [a, b, c, d] = [0, 1, 2, 3].map((variant) => floorArt(16, open, variant)) as [Sprite, Sprite, Sprite, Sprite];
+      for (let y = 0; y < ART; y++) {
+        for (let x = 0; x < ART; x++) {
+          expect(ART_COLORS[at(a, x, y) - 1], `${open} ${x},${y}`).toBe(FLOOR_COLORS[FLOOR_CODES.indexOf((rows[y] as string)[x] as string)]);
+          expect(at(b, x, y)).toBe(at(a, ART - 1 - x, y));
+          expect(at(c, x, y)).toBe(at(a, x, ART - 1 - y));
+          expect(at(d, x, y)).toBe(at(a, ART - 1 - x, ART - 1 - y));
+        }
+      }
+    }
+    for (const terrain of [...FORESTS, 'hills', 'mountains'] as const) {
+      const rows = FEATURE_ART_16[terrain] as readonly string[];
+      const [a, b, c] = [0, 1, 2].map((variant) => overArt(look({ terrain, variant }), 16)) as [Sprite, Sprite, Sprite];
+      for (let y = 0; y < ART; y++) {
+        for (let x = 0; x < ART; x++) {
+          // the picture's own cells and no others; mirrored by the variant, never turned upside down
+          expect(at(a, x, y) !== 0, `${terrain} ${x},${y}`).toBe((rows[y] as string)[x] !== '.');
+          if (at(a, x, y) !== 0) expect(ART_COLORS[at(a, x, y) - 1], `${terrain} ${x},${y}`).toBe(FEATURE_COLORS[FEATURE_CODES.indexOf((rows[y] as string)[x] as string)]);
+          expect(at(b, x, y)).toBe(at(a, ART - 1 - x, y));
+          expect(at(c, x, y)).toBe(at(a, x, y));
+        }
+      }
+    }
+  });
+
+  it('a forest is told from its open row by what stands on it alone, on both grids and in every variant', () => {
+    for (const grid of [32, 16] as const) {
+      for (let variant = 0; variant < 4; variant++) {
+        const overs = FORESTS.map((terrain) => overArt(look({ terrain, variant }), grid));
+        // each forest's picture is its own, and covers a good part of the square its open row leaves bare
+        expect(new Set(overs.map(text)).size, `${grid} ${variant}`).toBe(FORESTS.length);
+        FORESTS.forEach((terrain, i) => {
+          expect(inks(overArt(look({ terrain: openOf(terrain), variant }), grid)).size, terrain).toBe(0);
+          expect([...(overs[i] as Sprite).cells].filter((c) => c !== 0).length, `${grid} ${terrain}`).toBeGreaterThanOrEqual(0.5 * grid * grid);
+        });
+      }
     }
   });
 

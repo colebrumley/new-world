@@ -10,8 +10,8 @@ import type { UnitTypeId } from '../engine/data/units';
 import { BUILDING_ART, BUILDING_CODES, BUILDING_COLORS, BUILDING_SIZE } from './building-art';
 import { CHART_ART, CHART_CODES, CHART_COLORS } from './chart-art';
 import type { ChartMarkKind } from './chart';
-import { FEATURE_ART, FEATURE_CODES, FEATURE_COLORS, FEATURE_SIZE } from './feature-art';
-import { FLOOR_ART, FLOOR_CODES, FLOOR_COLORS, FLOOR_SIZE } from './floor-art';
+import { FEATURE_ART, FEATURE_ART_16, FEATURE_CODES, FEATURE_COLORS, FEATURE_SIZE, FEATURE_SIZE_16 } from './feature-art';
+import { FLOOR_ART, FLOOR_ART_16, FLOOR_CODES, FLOOR_COLORS, FLOOR_SIZE, FLOOR_SIZE_16 } from './floor-art';
 import { GOODS_ART, GOODS_CODES, GOODS_COLORS, GOODS_SIZE } from './goods-art';
 import { PLACE_ART, PLACE_CODES, PLACE_COLORS, PLACE_SIZE } from './place-art';
 import { RESOURCE_ART, RESOURCE_ART_12, RESOURCE_CODES, RESOURCE_COLORS, RESOURCE_SIZE, RESOURCE_SIZE_12 } from './resource-art';
@@ -687,34 +687,51 @@ function laid(under: Sprite, over: Sprite): Sprite {
 
 /**
  * The floor of a square: the ground of its open terrain alone (a forest's is that of its row), filling the
- * square. On the 32-pixel grid it is the baked texture turned one of four ways by the variant; on the
- * 16-pixel grid the ground drawn in code, its speckles placed by the variant.
+ * square. It is the baked texture of the grid, the 16-pixel one a smaller copy of the 32-pixel one in the same
+ * colours, turned one of four ways by the variant. A terrain with no baked texture has the ground drawn in
+ * code on the 16-pixel grid, its speckles placed by the variant, and one flat colour on the 32-pixel grid.
  */
 export function floorArt(grid: TileGrid, terrain: TerrainId, variant: number): Sprite {
   const open = openOf(terrain);
   const s = blank(grid);
-  if (grid === ART) ground(s, open, scatter(hash(`${open}:${variant}`)));
-  else if (Object.hasOwn(FLOOR_ART, open)) stamp(s, 0, DETAIL - FLOOR_SIZE, turned(FLOOR_ART[open] as readonly string[], (variant & 1) === 1, (variant & 2) === 2), FLOOR_KEY);
+  const [art, size] = grid === ART ? [FLOOR_ART_16, FLOOR_SIZE_16] : [FLOOR_ART, FLOOR_SIZE];
+  if (Object.hasOwn(art, open)) stamp(s, 0, grid - size, turned(art[open] as readonly string[], (variant & 1) === 1, (variant & 2) === 2), FLOOR_KEY);
+  else if (grid === ART) ground(s, open, scatter(hash(`${open}:${variant}`)));
   else box(s, 0, 0, DETAIL, DETAIL, GROUND[open]);
   return s;
+}
+
+/**
+ * The forest, hills or mountains of a square: the baked picture of the grid, the 16-pixel one a smaller copy
+ * of the 32-pixel one in the same colours, mirrored left to right by the variant and never turned upside
+ * down. A terrain with no baked picture has its trees or relief drawn in code on the 16-pixel grid.
+ */
+function feature(s: Sprite, look: TileLook): void {
+  const [art, size] = s.size === ART ? [FEATURE_ART_16, FEATURE_SIZE_16] : [FEATURE_ART, FEATURE_SIZE];
+  if (Object.hasOwn(art, look.terrain)) {
+    stamp(s, 0, s.size - size, turned(art[look.terrain] as readonly string[], (look.variant & 1) === 1, false), FEATURE_KEY);
+    return;
+  }
+  if (s.size !== ART) return;
+  const rnd = scatter(hash(`${look.terrain}:${look.variant}`));
+  // the trees and the relief stand where they stood when one run of numbers placed the ground's speckles first
+  ground(blank(), look.terrain, rnd);
+  if (look.terrain === 'hills' || look.terrain === 'mountains') relief(s, look.terrain, rnd);
+  else trees(s, look.terrain, rnd);
 }
 
 /**
  * Everything that stands on a square's floor, see-through elsewhere: furrows and rivers; then the forest,
  * hills or mountains; then the resource marker, at its own size; the lost-city seal, drawn for the grid;
  * then the road and the totem. On the 32-pixel grid the strokes and the totem are the 16-pixel ones
- * enlarged, and the forest or relief is the baked picture.
+ * enlarged. The forest or relief is the baked picture of the grid.
  */
 export function overArt(look: TileLook, grid: TileGrid): Sprite {
   if (grid === ART) {
     const s = blank();
-    const rnd = scatter(hash(`${look.terrain}:${look.variant}`));
-    // the trees and the relief stand where they stood when one run of numbers placed the ground's speckles first
-    ground(blank(), look.terrain, rnd);
     if (look.plowed) furrows(s);
     if (look.river !== 'none') river(s, look);
-    if (look.terrain === 'hills' || look.terrain === 'mountains') relief(s, look.terrain, rnd);
-    else trees(s, look.terrain, rnd);
+    feature(s, look);
     if (look.resource) resource(s, look.resource);
     if (look.rumor) rumor(s);
     if (look.road) road(s, look);
@@ -726,7 +743,7 @@ export function overArt(look: TileLook, grid: TileGrid): Sprite {
   if (look.plowed) furrows(under);
   if (look.river !== 'none') river(under, look);
   enlarge(s, under);
-  if (Object.hasOwn(FEATURE_ART, look.terrain)) stamp(s, 0, DETAIL - FEATURE_SIZE, turned(FEATURE_ART[look.terrain] as readonly string[], (look.variant & 1) === 1, false), FEATURE_KEY);
+  feature(s, look);
   if (look.resource) resource(s, look.resource);
   if (look.rumor) rumor(s);
   const over = blank();

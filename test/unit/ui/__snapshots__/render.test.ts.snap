@@ -3,17 +3,17 @@
 exports[`the map renderer, against a plain pixel buffer > matches the baseline at each zoom 1`] = `
 {
   "zoom0": "c1db8ab0",
-  "zoom1": "cf44196f",
-  "zoom2": "e07d3692",
-  "zoom3": "3757ad29",
+  "zoom1": "9b26274b",
+  "zoom2": "4e327cb5",
+  "zoom3": "0797045d",
 }
 `;
 
 exports[`the map renderer, against a plain pixel buffer > matches the chart's baseline at each zoom: a known patch on the vellum 1`] = `
 {
   "zoom0": "4de7a075",
-  "zoom1": "1c1d31e7",
-  "zoom2": "228913a0",
-  "zoom3": "d04dcec9",
+  "zoom1": "ae540c0d",
+  "zoom2": "f7394695",
+  "zoom3": "4ed57805",
 }
 `;
