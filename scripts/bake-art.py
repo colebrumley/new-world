@@ -7,12 +7,14 @@ What a source picture must look like, how one is generated and what to update af
 
 The pictures are shrunk by pixelforge (https://github.com/colebrumley/pixelforge); PIXELFORGE is the
 path to a checkout of it, and the script is run with that checkout's Python. With folder names
-(chart, units, places, features, floors, title, buildings, goods, portraits) only those are baked.
+(chart, units, places, features, floors, resources, title, buildings, goods, portraits) only those are baked.
 
 art/units holds one square picture per unit type (colonist.png, soldier.png, ...), art/places one
 per look of a colony or native settlement, and art/features one per forest, hills and mountains,
 each a single subject on a flat magenta ground. art/floors holds one ground texture per open
-terrain, filling its square. art/buildings holds one picture per colony building and art/goods one
+terrain, filling its square. art/resources holds one marker per special resource, named by its id in
+src/engine/data/resources.ts: a picture of the thing itself on a flat magenta ground, centred in its
+square and baked at 24 pixels and again at 12 in the same colours (src/ui/resource-art.ts). art/buildings holds one picture per colony building and art/goods one
 icon per good (and for hammers, crosses and bells); those two folders are drawn from plain shapes
 by scripts/draw-colony-art.py. The pictures must be our own (constraint C1). Every one is cut from
 its ground (a floor is not), shrunk by pixelforge (units, places, buildings and goods in one shared
@@ -102,6 +104,16 @@ def cut_out(path: Path) -> Image.Image:
     return canvas
 
 
+def centre(path: Path) -> Image.Image:
+    """The subject alone in the middle of a square see-through canvas, with a twelfth of the square clear on its longer sides."""
+    figure = cut_out(path)
+    figure = figure.crop(figure.getbbox())
+    side = max(figure.size) * 12 // 11
+    canvas = Image.new('RGBA', (side, side), (0, 0, 0, 0))
+    canvas.paste(figure, ((side - figure.width) // 2, (side - figure.height) // 2))
+    return canvas
+
+
 # The features whose clump leaves bare ground showing at the corners of the square, picked by eye:
 # these are baked with a second row behind. The others already fill their square, and a second row
 # only clutters them.
@@ -141,23 +153,29 @@ def floor(path: Path) -> Image.Image:
     return Image.fromarray(np.clip(rgb + (target - commonest), 0, 255).astype(np.uint8), 'RGB')
 
 
-def bake(folder: str, size: int, palette: int, owner_key: bool = False, prepare=cut_out, shared: bool = True) -> tuple[list[str], dict[str, list[str]]]:
+def bake(folder: str, size: int, palette: int, owner_key: bool = False, prepare=cut_out, shared: bool = True,
+         against: list[str] | None = None, outline: str = 'none') -> tuple[list[str], dict[str, list[str]]]:
     """
     Every picture in the folder at `size` pixels square: the colours used, and rows of letters per picture.
     The folder shares one palette of `palette` colours, or, with `shared` off, each picture is cut down to
-    that many colours of its own, which keeps a simple picture flat and free of in-between shades.
+    that many colours of its own, which keeps a simple picture flat and free of in-between shades. With
+    `against`, the colours of an earlier bake, the pictures are shrunk in those colours and no others, and
+    the letters are that bake's: a smaller copy that needs no colours of its own. `outline` is a colour to draw
+    round each silhouette after shrinking, for a copy too small to keep the outline its source was painted with.
     """
     sources = {p.stem: p for p in sorted((ROOT / folder).glob('*.png'))}
     forge = Path(os.environ['PIXELFORGE']).expanduser()
-    colours: list[str] = []
+    colours: list[str] = list(against or [])
     figures: dict[str, list[str]] = {}
     with tempfile.TemporaryDirectory() as tmp:
-        ready, out = Path(tmp, 'ready'), Path(tmp, 'out')
+        ready, out, hexes = Path(tmp, 'ready'), Path(tmp, 'out'), Path(tmp, 'against.hex')
         ready.mkdir()
         for name, path in sources.items():
             prepare(path).save(ready / f'{name}.png')
+        if against:
+            hexes.write_text('\n'.join(c[1:] for c in against) + '\n')
         flags = ['--preset', 'sprite', '--method', 'box', '--no-crop-to-alpha', '--no-key-bg', '--out-width', str(size), '--out-height', str(size),
-                 '--palette-size', str(palette), '--outline', 'none', '--dither', 'none']
+                 *(['--palette-name', str(hexes)] if against else ['--palette-size', str(palette)]), '--outline', outline, '--dither', 'none']
         jobs = [['batch', str(ready)]] if shared else [['convert', str(ready / f'{name}.png'), '--orphan-min-region', '3'] for name in sources]
         for job in jobs:
             subprocess.run([sys.executable, '-m', 'pixelforge', *job, '-o', str(out), *flags], cwd=forge, check=True, stdout=subprocess.DEVNULL)
@@ -178,6 +196,8 @@ def bake(folder: str, size: int, palette: int, owner_key: bool = False, prepare=
                         row += CODES[colours.index(colour)]
                 rows.append(row)
             figures[name] = rows
+    if against and colours != against:
+        raise SystemExit(f'{folder} at {size}: baked in {", ".join(colours[len(against):])}, which the larger bake does not have')
     return colours, figures
 
 
@@ -196,6 +216,23 @@ def level(colours: list[str], figures: dict[str, list[str]]) -> list[str]:
     for name, rows in figures.items():
         figures[name] = [''.join(CODES[used.index(letter)] for letter in row) for row in rows]
     return [colours[CODES.index(letter)] for letter in used]
+
+
+def one_ink(colours: list[str], figures: dict[str, list[str]], below: int = 48) -> list[str]:
+    """
+    Give a folder one outline colour: every colour with all three channels under `below` (the near-blacks a shared
+    palette spends on outlines tinted by what they surround) becomes the darkest of them, so that every picture is
+    outlined in the same ink. The colours left, in their old order.
+    """
+    dark = [c for c in colours if max(int(c[i:i + 2], 16) for i in (1, 3, 5)) < below]
+    if len(dark) < 2:
+        return colours
+    ink = min(dark, key=lambda c: sum(int(c[i:i + 2], 16) for i in (1, 3, 5)))
+    kept = [c for c in colours if c == ink or c not in dark]
+    letter = {CODES[n]: CODES[kept.index(ink if c in dark else c)] for n, c in enumerate(colours)}
+    for name, rows in figures.items():
+        figures[name] = [''.join(letter.get(ch, ch) for ch in row) for row in rows]
+    return kept
 
 
 # The inks the chart is drawn in, by the letter each goes by: entries of PALETTE in src/ui/pixel-art.ts.
@@ -239,7 +276,9 @@ def chart() -> None:
     print(f'src/ui/chart-art.ts: {len(figures)} pictures, {len(CHART_INKS)} colours')
 
 
-def write(path: str, title: str, prefix: str, size_name: str, size: int, colours: list[str], figures: dict[str, list[str]], note: str) -> None:
+def write(path: str, title: str, prefix: str, size_name: str, size: int, colours: list[str], figures: dict[str, list[str]], note: str,
+          smaller: tuple[int, dict[str, list[str]], str] | None = None) -> None:
+    """The baked file. `smaller` is a second set of the same pictures at a smaller size in the same colours: its size, its rows and its note."""
     lines = [
         f'// {title}, made by scripts/bake-art.py from our own pictures (constraint C1). Do not edit by hand.',
         '',
@@ -260,6 +299,15 @@ def write(path: str, title: str, prefix: str, size_name: str, size: int, colours
         lines += [f"    '{row}'," for row in rows]
         lines.append('  ],')
     lines += ['};', '']
+    if smaller:
+        small, copies, small_note = smaller
+        lines += ['/** How many art pixels square a smaller copy is. */', f'export const {size_name}_{small} = {small};', '',
+                  f'/** {small_note} */', f'export const {prefix}_ART_{small}: Readonly<Record<string, readonly string[]>> = {{']
+        for name, rows in copies.items():
+            lines.append(f'  {name}: [')
+            lines += [f"    '{row}'," for row in rows]
+            lines.append('  ],')
+        lines += ['};', '']
     (ROOT / path).write_text('\n'.join(lines))
     print(f'{path}: {len(figures)} pictures, {len(colours)} colours')
 
@@ -411,7 +459,7 @@ def write_painting(path: str, width: int, height: int, colours: list[str], rows:
 
 
 def main() -> None:
-    """Bake every folder, or only those named on the command line (chart, units, places, features, floors, title, buildings, goods, portraits)."""
+    """Bake every folder, or only those named on the command line (chart, units, places, features, floors, resources, title, buildings, goods, portraits)."""
     only = set(sys.argv[1:])
     wanted = lambda folder: not only or folder in only  # noqa: E731
     if wanted('chart'):
@@ -433,6 +481,14 @@ def main() -> None:
         colours = level(colours, figures)
         write('src/ui/floor-art.ts', 'Ground textures for the map', 'FLOOR', 'FLOOR_SIZE', 32, colours, figures,
               'One texture per open terrain, filling the square: rows of letters from FLOOR_CODES.')
+    if wanted('resources'):
+        colours, figures = bake('art/resources', 24, 24, prepare=centre)
+        colours = one_ink(colours, figures)
+        ink = min(colours, key=lambda c: sum(int(c[i:i + 2], 16) for i in (1, 3, 5)))
+        _, copies = bake('art/resources', 12, 24, prepare=centre, against=colours, outline=ink)
+        write('src/ui/resource-art.ts', 'Markers for the special resources on the map', 'RESOURCE', 'RESOURCE_SIZE', 24, colours, figures,
+              'One marker per special resource, by its id: rows of letters from RESOURCE_CODES; a full stop is see-through.',
+              smaller=(12, copies, 'The same markers at half the size, in the same colours and letters.'))
     if wanted('buildings'):
         colours, figures = bake('art/buildings', 32, 24, owner_key=True)
         write('src/ui/building-art.ts', 'Colony buildings for the colony screen', 'BUILDING', 'BUILDING_SIZE', 32, colours, figures,

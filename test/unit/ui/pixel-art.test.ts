@@ -10,6 +10,7 @@ import { UNIT_TYPE_IDS } from '../../../src/engine/data/units';
 import { BUILDING_ART, BUILDING_SIZE } from '../../../src/ui/building-art';
 import { FLOOR_ART, FLOOR_CODES, FLOOR_COLORS } from '../../../src/ui/floor-art';
 import { GOODS_ART, GOODS_SIZE } from '../../../src/ui/goods-art';
+import { RESOURCE_ART, RESOURCE_ART_12, RESOURCE_CODES, RESOURCE_COLORS, RESOURCE_SIZE, RESOURCE_SIZE_12 } from '../../../src/ui/resource-art';
 import { ART_COLORS, buildingArt, drawGood, drawSprite, figureArt, FLAG_IDS, flagArt, goodArt, SEAL_GLYPHS, sealArt } from '../../../src/ui/pixel-art';
 import { CHART, CHART_MARK_KINDS } from '../../../src/ui/chart';
 import { CHART_ART, CHART_COLORS } from '../../../src/ui/chart-art';
@@ -103,6 +104,90 @@ describe('terrain art', () => {
     expect(differ(plain, tileArt(look({ rumor: true })))).toBe(true);
     expect(differ(plain, tileArt(look({ totem: true })))).toBe(true);
     for (const resource of RESOURCE_IDS) expect(differ(plain, tileArt(look({ resource }))), resource).toBe(true);
+  });
+});
+
+describe('resource markers', () => {
+  const first = ART_COLORS.length - RESOURCE_COLORS.length;
+  const isMarker = (cell: number): boolean => cell - 1 >= first;
+  const grids = [[detailedTileArt, DETAIL, RESOURCE_ART, RESOURCE_SIZE], [tileArt, ART, RESOURCE_ART_12, RESOURCE_SIZE_12]] as const;
+
+  it('there is a picture of each of the thirteen at 24 pixels and at 12, every one its own', () => {
+    expect(RESOURCE_COLORS.length).toBeLessThanOrEqual(24);
+    const letters = RESOURCE_CODES.slice(0, RESOURCE_COLORS.length);
+    const sum = (colour: string): number => [1, 3, 5].reduce((n, i) => n + parseInt(colour.slice(i, i + 2), 16), 0);
+    const darkest = letters[RESOURCE_COLORS.indexOf([...RESOURCE_COLORS].sort((a, b) => sum(a) - sum(b))[0] as (typeof RESOURCE_COLORS)[number])] as string;
+    for (const [art, size] of [[RESOURCE_ART, RESOURCE_SIZE], [RESOURCE_ART_12, RESOURCE_SIZE_12]] as const) {
+      expect(Object.keys(art).sort()).toEqual([...RESOURCE_IDS].sort());
+      expect(new Set(Object.values(art).map((rows) => rows.join('\n'))).size).toBe(RESOURCE_IDS.length);
+      for (const [id, rows] of Object.entries(art)) {
+        expect(rows.length, id).toBe(size);
+        // a see-through cell or a colour of the 24-pixel bake, and nothing else
+        for (const row of rows) expect([...row].every((ch) => ch === '.' || letters.includes(ch)) && row.length === size, `${id}: ${row}`).toBe(true);
+      }
+    }
+    expect([RESOURCE_SIZE, RESOURCE_SIZE_12]).toEqual([24, 12]);
+    for (const id of RESOURCE_IDS) {
+      const cells = (RESOURCE_ART[id] as readonly string[]).join('');
+      const opaque = [...cells].filter((ch) => ch !== '.').length;
+      expect(opaque, id).toBeGreaterThanOrEqual(120);
+      expect(opaque, id).toBeLessThanOrEqual(460);
+      // the dark outline that lets it read on any ground
+      expect(cells.includes(darkest), id).toBe(true);
+    }
+  });
+
+  it('a marker shows in the middle of the square on the 32 and 16 grids, and not at all on the 8', () => {
+    for (const resource of RESOURCE_IDS) {
+      expect(text(miniTileArt(look({ resource }))), resource).toBe(text(miniTileArt(look())));
+      for (const [draw, grid, art, size] of grids) {
+        const [plain, marked] = [draw(look()), draw(look({ resource }))];
+        const rows = art[resource] as readonly string[];
+        const edge = (grid - size) / 2;
+        expect(differ(plain, marked), resource).toBe(true);
+        for (let y = 0; y < grid; y++) {
+          for (let x = 0; x < grid; x++) {
+            const inside = x >= edge && x < edge + size && y >= edge && y < edge + size;
+            const opaque = inside && rows[y - edge]?.[x - edge] !== '.';
+            // the picture itself where it is opaque, at one art pixel to the cell, and the bare square everywhere else
+            if (opaque) expect(at(marked, x, y) - 1, `${resource} ${x},${y}`).toBe(first + RESOURCE_CODES.indexOf(rows[y - edge]?.[x - edge] as string));
+            else expect(at(marked, x, y), `${resource} ${x},${y}`).toBe(at(plain, x, y));
+          }
+        }
+      }
+    }
+  });
+
+  it('a marker stands over the forest and under the road', () => {
+    for (const [draw, grid, art, size] of grids) {
+      const edge = (grid - size) / 2;
+      const opaque = (id: keyof typeof art | string, x: number, y: number): boolean => ((art[id] as readonly string[])[y - edge]?.[x - edge] ?? '.') !== '.';
+      // over the trees: every opaque cell of the beaver is the beaver's own colour, whatever the wood has there
+      const wood = draw(look({ terrain: 'mixed' }));
+      const beaver = draw(look({ terrain: 'mixed', resource: 'beaver' }));
+      let covered = 0;
+      for (let y = 0; y < grid; y++) {
+        for (let x = 0; x < grid; x++) {
+          if (!opaque('beaver', x, y)) continue;
+          expect(isMarker(at(beaver, x, y)), `${grid}: ${x},${y}`).toBe(true);
+          if (at(wood, x, y) !== at(draw(look()), x, y)) covered++;
+        }
+      }
+      expect(covered, `${grid}: the marker hides some of the trees`).toBeGreaterThan(0);
+      // under the road: wherever the road runs through the marker, the cell is the road's
+      const road = draw(look({ road: true, roadMask: 0b01000100 }));
+      const both = draw(look({ road: true, roadMask: 0b01000100, resource: 'wheat' }));
+      const bare = draw(look());
+      let crossed = 0;
+      for (let y = 0; y < grid; y++) {
+        for (let x = 0; x < grid; x++) {
+          if (at(road, x, y) === at(bare, x, y)) continue;
+          expect(at(both, x, y), `${grid}: ${x},${y}`).toBe(at(road, x, y));
+          if (opaque('wheat', x, y)) crossed++;
+        }
+      }
+      expect(crossed, `${grid}: the road crosses the marker`).toBeGreaterThan(0);
+    }
   });
 });
 

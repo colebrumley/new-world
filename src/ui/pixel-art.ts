@@ -14,6 +14,7 @@ import { FEATURE_ART, FEATURE_CODES, FEATURE_COLORS, FEATURE_SIZE } from './feat
 import { FLOOR_ART, FLOOR_CODES, FLOOR_COLORS, FLOOR_SIZE } from './floor-art';
 import { GOODS_ART, GOODS_CODES, GOODS_COLORS, GOODS_SIZE } from './goods-art';
 import { PLACE_ART, PLACE_CODES, PLACE_COLORS, PLACE_SIZE } from './place-art';
+import { RESOURCE_ART, RESOURCE_ART_12, RESOURCE_CODES, RESOURCE_COLORS, RESOURCE_SIZE, RESOURCE_SIZE_12 } from './resource-art';
 import { FIGURE_SIZE, UNIT_ART, UNIT_CODES, UNIT_COLORS } from './unit-art';
 
 /** The 32 colours everything on the map is drawn in: a palette in the spirit of 256-colour VGA art. */
@@ -171,12 +172,6 @@ const OPEN_ROW: Readonly<Partial<Record<TerrainId, TerrainId>>> = {
   boreal: 'tundra', scrub: 'desert', mixed: 'plains', broadleaf: 'prairie', conifer: 'grassland', tropical: 'savannah', wetland: 'marsh', rain: 'swamp',
 };
 
-const RESOURCE_INK: Readonly<Record<ResourceId, InkId>> = {
-  depletedMine: INK.darkGrey, oasis: INK.brightBlue, wheat: INK.yellow, primeCotton: INK.white, primeTobacco: INK.wood,
-  primeSugar: INK.parchment, minerals: INK.orange, fishery: INK.ice, beaver: INK.earth, game: INK.orange,
-  primeTimber: INK.deepForest, silverDeposit: INK.lightGrey, oreDeposit: INK.darkGrey,
-};
-
 /** Everything that changes how a tile looks. Masks describe which neighbours the tile links to. */
 export interface TileLook {
   readonly terrain: TerrainId;
@@ -287,10 +282,13 @@ function furrows(s: Sprite): void {
   for (let y = 2; y < ART; y += 3) for (let x = 1; x < ART - 1; x++) if ((x + y) % 5 !== 0) dot(s, x, y, INK.earth);
 }
 
-/** A resource: a small badge in the top right corner, a gem shape for what is dug and a round one for what grows. */
+/**
+ * A resource: a picture of the thing itself in the middle of the square, three quarters of it across (24 art
+ * pixels on the 32 grid, the 12-pixel copy on the 16 grid). The 8 grid shows none.
+ */
 function resource(s: Sprite, id: ResourceId): void {
-  const mined = id === 'silverDeposit' || id === 'oreDeposit' || id === 'minerals' || id === 'depletedMine';
-  stamp(s, 10, 1, mined ? ['..k..', '.kck.', 'kccck', '.kck.', '..k..'] : ['.kkk.', 'kccck', 'kccck', 'kccck', '.kkk.'], { k: INK.ink, c: RESOURCE_INK[id] });
+  const [rows, size] = s.size === DETAIL ? [RESOURCE_ART[id], RESOURCE_SIZE] : [RESOURCE_ART_12[id], RESOURCE_SIZE_12];
+  if (rows) stamp(s, (s.size - size) >> 1, (s.size - size) >> 1, rows, RESOURCE_KEY);
 }
 
 /** A Lost City Rumor: a broken arch of pale stone in the bottom left corner. */
@@ -514,16 +512,21 @@ export const DETAIL = 32;
 
 /**
  * Every colour art can be in: the map palette, then the colours of the detailed figures, places, ground and
- * features, then those of the colony screen's buildings and the goods icons. A sprite's cell is one of these
- * plus one in a byte, so there can be no more than 255.
+ * features, then those of the colony screen's buildings and the goods icons, then those of the resource
+ * markers. A sprite's cell is one of these plus one in a byte, so there can be no more than 255.
  */
-export const ART_COLORS: readonly string[] = [...PALETTE, ...UNIT_COLORS, ...PLACE_COLORS, ...FLOOR_COLORS, ...FEATURE_COLORS, ...BUILDING_COLORS, ...GOODS_COLORS];
+export const ART_COLORS: readonly string[] = [
+  ...PALETTE, ...UNIT_COLORS, ...PLACE_COLORS, ...FLOOR_COLORS, ...FEATURE_COLORS, ...BUILDING_COLORS, ...GOODS_COLORS, ...RESOURCE_COLORS,
+];
 const MAP_COLORS = PALETTE.length + UNIT_COLORS.length + PLACE_COLORS.length + FLOOR_COLORS.length + FEATURE_COLORS.length;
 const BUILDING_KEY: Readonly<Record<string, number>> = Object.fromEntries(BUILDING_COLORS.map((_, i) => [BUILDING_CODES[i] as string, MAP_COLORS + i]));
 const GOODS_KEY: Readonly<Record<string, number>> = Object.fromEntries(GOODS_COLORS.map((_, i) => [GOODS_CODES[i] as string, MAP_COLORS + BUILDING_COLORS.length + i]));
 const FLOOR_KEY: Readonly<Record<string, number>> = Object.fromEntries(FLOOR_COLORS.map((_, i) => [FLOOR_CODES[i] as string, PALETTE.length + UNIT_COLORS.length + PLACE_COLORS.length + i]));
 const FEATURE_KEY: Readonly<Record<string, number>> = Object.fromEntries(
   FEATURE_COLORS.map((_, i) => [FEATURE_CODES[i] as string, PALETTE.length + UNIT_COLORS.length + PLACE_COLORS.length + FLOOR_COLORS.length + i]),
+);
+const RESOURCE_KEY: Readonly<Record<string, number>> = Object.fromEntries(
+  RESOURCE_COLORS.map((_, i) => [RESOURCE_CODES[i] as string, ART_COLORS.length - RESOURCE_COLORS.length + i]),
 );
 const PLACE_KEY: Readonly<Record<string, number>> = Object.fromEntries(PLACE_COLORS.map((_, i) => [PLACE_CODES[i] as string, PALETTE.length + UNIT_COLORS.length + i]));
 const DETAIL_KEY: Readonly<Record<string, number>> = Object.fromEntries(UNIT_COLORS.map((_, i) => [UNIT_CODES[i] as string, PALETTE.length + i]));
@@ -663,8 +666,9 @@ export function floorArt(grid: TileGrid, terrain: TerrainId, variant: number): S
 
 /**
  * Everything that stands on a square's floor, see-through elsewhere: furrows and rivers; then the forest,
- * hills or mountains; then roads and the marks. On the 32-pixel grid the strokes and marks are the
- * 16-pixel ones enlarged, and the forest or relief is the baked picture.
+ * hills or mountains; then the resource marker, at its own size; then roads and the marks. On the
+ * 32-pixel grid the strokes and marks are the 16-pixel ones enlarged, and the forest or relief is the
+ * baked picture.
  */
 export function overArt(look: TileLook, grid: TileGrid): Sprite {
   if (grid === ART) {
@@ -676,8 +680,8 @@ export function overArt(look: TileLook, grid: TileGrid): Sprite {
     if (look.river !== 'none') river(s, look);
     if (look.terrain === 'hills' || look.terrain === 'mountains') relief(s, look.terrain, rnd);
     else trees(s, look.terrain, rnd);
-    if (look.road) road(s, look);
     if (look.resource) resource(s, look.resource);
+    if (look.road) road(s, look);
     if (look.rumor) rumor(s);
     if (look.totem) totem(s);
     return s;
@@ -688,9 +692,9 @@ export function overArt(look: TileLook, grid: TileGrid): Sprite {
   if (look.river !== 'none') river(under, look);
   enlarge(s, under);
   if (Object.hasOwn(FEATURE_ART, look.terrain)) stamp(s, 0, DETAIL - FEATURE_SIZE, turned(FEATURE_ART[look.terrain] as readonly string[], (look.variant & 1) === 1, false), FEATURE_KEY);
+  if (look.resource) resource(s, look.resource);
   const over = blank();
   if (look.road) road(over, look);
-  if (look.resource) resource(over, look.resource);
   if (look.rumor) rumor(over);
   if (look.totem) totem(over);
   enlarge(s, over);
