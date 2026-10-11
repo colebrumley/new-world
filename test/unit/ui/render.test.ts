@@ -476,6 +476,22 @@ describe('the map renderer, against a plain pixel buffer', () => {
     }
   });
 
+  it('leaves no bare ground in the middle of the edge two mountains share, side by side or one above the other', () => {
+    // the sixteen cells nearest the middle of the shared edge, eight either side of it
+    const row = land(['mm']);
+    const across = drawn(row, 32);
+    for (const [x, cx] of [[0, 31], [1, 0]] as const) {
+      const floor = floorInks(32, 'mountains', variantAt(x, 0));
+      for (let cy = 12; cy < 20; cy++) expect(floor.has(cell(across, 32, x, 0, cx, cy)), `east to west: square ${x} cell ${cx},${cy}`).toBe(false);
+    }
+    const column = land(['m', 'm']);
+    const down = drawn(column, 32);
+    for (const [y, cy] of [[0, 31], [1, 0]] as const) {
+      const floor = floorInks(32, 'mountains', variantAt(0, y));
+      for (let cx = 12; cx < 20; cx++) expect(floor.has(cell(down, 32, 0, y, cx, cy)), `north to south: square ${y} cell ${cx},${cy}`).toBe(false);
+    }
+  });
+
   it('draws the mouth of a river on the water it runs out into: the end of that river, from that side to a pool in the middle', () => {
     const blue = PALETTE[INK.blue] as string;
     const pale = PALETTE[INK.brightBlue] as string;
