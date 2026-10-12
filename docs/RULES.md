@@ -2104,3 +2104,19 @@ Cheats are this game's own; none of this is a rule of play.
     within a radius of it (default 3), as if a unit with that sight had stood there. A square off
     the map is refused.
 - Every cheat reports one sentence saying what it did, with its figures in plain digits.
+- **The typed line** (R-1061) is `[as <power>] <cheat> <arguments>`.
+  - An amount is `500` or `+500` (add), `-200` (take) or `=1000` (set); a count is a whole number
+    of zero or more; a percent is 0 to 100. A square is `x,y`, or `here` for the active unit's
+    square; a place is a square, `here`, `europe` or a colony. `here` with no active unit is
+    refused.
+  - A thing is named by its id or its name, case ignored. An exact id or full name wins outright;
+    otherwise the word must begin the id, the name or one of the name's words, and exactly one
+    thing may fit or the line is refused with the candidates. When several colonies or units fit,
+    those of the power the cheat is for are the candidates. A name with spaces goes in double
+    quotes. A unit may also be `active`. Buildings the game does not use and professions no
+    colonist can hold cannot be named.
+  - A word that does not fit an optional argument is tried on the next. A place left out is the
+    active unit's square, and the line is refused if there is none; a square left out is left to
+    the cheat.
+  - A first word that is no cheat is refused with the cheats that begin with its letter, or all
+    of them; a required argument left out is named; a word too many is refused.
