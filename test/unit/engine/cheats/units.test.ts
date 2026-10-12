@@ -12,7 +12,7 @@ import { checkInvariants } from '../../../../src/engine/invariants';
 import { fullMoves, turnMoves } from '../../../../src/engine/movement';
 import { MOVE_THIRDS, OFF_MAP, type Colonist, type GameState, type Settlement, type Unit } from '../../../../src/engine/state';
 import { deepFreeze } from '../../../helpers/freeze';
-import { withColony, withUnit, world } from '../../../helpers/world';
+import { setTile, withColony, withUnit, world } from '../../../helpers/world';
 
 //             01234567
 const ROWS = ['~~~~~~~~',
@@ -281,6 +281,15 @@ describe('teleport', () => {
     expect(run(dark, teleport('m1', 6, 1)).state.map).toEqual(revealAround(dark.map, 0, 6, 1, 1).map);
   });
 
+  it('digs up no rumour and meets nobody by itself', () => {
+    const state = setTile(land(), 6, 1, { rumor: true });
+    const { state: next } = run(state, teleport('m1', 6, 1));
+    expect(next.map.tiles[1 * next.map.width + 6]).toMatchObject({ rumor: true });
+    expect(next.rumors).toEqual(state.rumors);
+    const spawned = run(state, spawn('scout', at(6, 1))).state;
+    expect(spawned.map.tiles[1 * spawned.map.width + 6]).toMatchObject({ rumor: true });
+  });
+
   it('is refused for a unit on a voyage or aboard a carrier', () => {
     const state = land();
     expect(refusal(state, teleport('e1', 3, 0))).toEqual({ code: 'cheatTarget', message: 'Galleon e1 is not on the map' });
@@ -302,6 +311,11 @@ describe('teleport', () => {
     const state = land();
     expect(refusal(state, teleport('f1', 3, 3))).toEqual({ code: 'cheatTarget', message: 'Free Colonist (Soldier) f1 is not a unit of A' });
     expect(refusal(state, teleport('zz', 3, 3))).toEqual({ code: 'cheatTarget', message: 'there is no unit "zz"' });
+    // a name every object answers to is still no unit, and no colony
+    for (const id of ['constructor', 'toString', '__proto__']) {
+      expect(refusal(state, teleport(id, 3, 3)), id).toEqual({ code: 'cheatTarget', message: `there is no unit "${id}"` });
+      expect(refusal(state, spawn('colonist', { kind: 'colony', colonyId: id })), id).toEqual({ code: 'cheatTarget', message: `there is no colony "${id}"` });
+    }
     expect(run(state, teleport('f1', 3, 3), 'b').state.units.f1).toMatchObject({ x: 3, y: 3 });
   });
 });
@@ -362,6 +376,9 @@ describe('moves, repair and promote', () => {
     expect(refusal(next(state), on('promote', 'm1'))).toEqual({ code: 'cheatTarget', message: 'Veteran Soldier (Soldier) m1 is a veteran already' });
     expect(refusal(state, on('promote', 'p1'))).toEqual({ code: 'cheatTarget', message: 'Free Colonist p1 is neither a soldier nor a dragoon' });
     expect(refusal(state, on('promote', 's1')).message).toBe('Caravel s1 is neither a soldier nor a dragoon');
+    // the dragoons a mercenary offer lands fight as veterans already
+    const hired = withUnit(state, { id: 'h1', type: 'dragoon', x: 1, y: 1, profession: 'veteranDragoon' });
+    expect(refusal(hired, on('promote', 'h1'))).toEqual({ code: 'cheatTarget', message: 'Veteran Dragoon (Dragoon) h1 is a veteran already' });
     const line = withUnit(state, { id: 'l1', type: 'continentalArmy', x: 1, y: 1, profession: 'veteranSoldier' });
     expect(refusal(line, on('promote', 'l1')).message).toBe('Continental Army l1 is neither a soldier nor a dragoon');
     expect(refusal(state, on('promote', 'f1')).message).toBe('Free Colonist (Soldier) f1 is not a unit of A');

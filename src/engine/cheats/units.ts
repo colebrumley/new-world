@@ -2,7 +2,7 @@
 // a unit moved across the map; its moves restored; a ship made sound; a soldier made a veteran.
 // A unit is made the way the game's own code makes one (newDockUnit in Europe, joinColony into a
 // colony), and a square must be one the unit could stand on. No cheat here meets anybody or digs up
-// a rumour: that waits for the unit's next move.
+// a rumour: that waits for the power's next move or the end of its turn, when the game looks.
 import type { CheatCommand, CheatSpec, Place } from '../cheats';
 import { joinColony } from '../colony';
 import { CHEATS } from '../data/cheats';
@@ -35,6 +35,8 @@ export type UnitCommand =
 /** The types that go about under a veteran's name without being a colonist's role. */
 const VETERAN_LINE: readonly UnitTypeId[] = ['continentalArmy', 'continentalCavalry'];
 const PROMOTED: ProfessionId = 'veteranSoldier';
+/** The professions that already fight as veterans: the trained one, and the dragoons a mercenary offer lands. */
+const VETERANS: readonly (ProfessionId | null)[] = ['veteranSoldier', 'veteranDragoon'];
 const PROMOTABLE: readonly UnitTypeId[] = ['soldier', 'dragoon'];
 
 const isType = (type: unknown): type is UnitTypeId => (UNIT_TYPE_IDS as readonly unknown[]).includes(type);
@@ -76,7 +78,7 @@ function standing(state: GameState, player: Player, type: UnitTypeId, at: Square
 
 /** One of the power's own units, or the refusal that says why not. */
 function ownUnit(state: GameState, player: Player, id: UnitId): Unit | CheatCheck {
-  const unit = typeof id === 'string' ? state.units[id] : undefined;
+  const unit = typeof id === 'string' && Object.hasOwn(state.units, id) ? state.units[id] : undefined;
   if (!unit) return refuse('cheatTarget', `there is no unit "${String(id)}"`);
   return unit.owner === player.id ? unit : refuse('cheatTarget', `${called(unit)} is not a unit of ${player.name}`);
 }
@@ -97,7 +99,7 @@ function checkSpawn(state: GameState, player: Player, command: Extract<UnitComma
     case 'square':
       return standing(state, player, type, place);
     case 'colony': {
-      const colony = typeof place.colonyId === 'string' ? state.colonies[place.colonyId] : undefined;
+      const colony = typeof place.colonyId === 'string' && Object.hasOwn(state.colonies, place.colonyId) ? state.colonies[place.colonyId] : undefined;
       if (!colony) return refuse('cheatTarget', `there is no colony "${String(place.colonyId)}"`);
       if (colony.owner !== player.id) return refuse('cheatTarget', `${colony.name} is not a colony of ${player.name}`);
       if (!def.colonistRole) return standing(state, player, type, colony);
@@ -141,7 +143,7 @@ export function checkUnits(state: GameState, player: Player, command: CheatComma
       const unit = ownUnit(state, player, command.unit);
       if (isRefusal(unit)) return unit;
       if (!PROMOTABLE.includes(unit.type)) return refuse('cheatTarget', `${called(unit)} is neither a soldier nor a dragoon`);
-      return unit.profession === PROMOTED ? refuse('cheatTarget', `${called(unit)} is a veteran already`) : CHEAT_OK;
+      return VETERANS.includes(unit.profession) ? refuse('cheatTarget', `${called(unit)} is a veteran already`) : CHEAT_OK;
     }
     default:
       return null;

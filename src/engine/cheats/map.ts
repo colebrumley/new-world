@@ -67,6 +67,8 @@ function checkTerrain(state: GameState, at: Square, terrain: TerrainId): CheatCh
   const after = ground(tile, terrain);
   if (!after) return refuse('cheatSquare', `${where} is water: give it a ground of its own before ${named(terrain)}`);
   const water = isWater(after);
+  // a find still to be decided on would be brought up where the mounds are
+  if (water && state.players.some((p) => p.pendingBurial?.x === at.x && p.pendingBurial.y === at.y)) return refuse('cheatSquare', `burial mounds at ${where} still wait to be decided on`);
   for (const unit of unitsAt(state, at.x, at.y)) {
     const ship = UNIT_TYPES[unit.type].domain === 'sea';
     if (water && !ship && unit.aboard === null) return refuse('cheatSquare', `${UNIT_TYPES[unit.type].name} ${unit.id} stands at ${where} and cannot stand on water`);

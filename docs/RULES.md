@@ -2107,8 +2107,9 @@ Cheats are this game's own; none of this is a rule of play.
     its forest and levels it; hills and mountains are raised on the land that is there, and are
     refused on water; arctic, ocean and sea lane replace the ground. A square turned to water
     loses its road, plow, river, resource and rumour; land that is no longer open loses its plow.
-    Refused under a colony or a settlement, and under a unit the new ground could not carry (a
-    land unit not aboard a ship on water, a ship on land).
+    Refused under a colony or a settlement, under a unit the new ground could not carry (a
+    land unit not aboard a ship on water, a ship on land), and for water over burial mounds a
+    power has yet to decide about.
   - *road*, *plow*, *river*, *resource*, *rumor* (R-1059): set one feature of a square. A road, a
     plow, a river and a rumour need land; a plow needs open land (not forest, hills, mountains or
     arctic); a resource must be one the square's terrain carries, and may be taken away anywhere;
@@ -2133,6 +2134,7 @@ Cheats are this game's own; none of this is a rule of play.
   - *repair* (R-1059): a ship under repair is sound at once, wherever she lies. Refused for
     anything else.
   - *promote* (R-1059): a soldier or a dragoon becomes a veteran. Refused for any other unit and
-    for a veteran.
-  - A spawned or teleported unit meets nobody and explores no rumour until it next moves.
+    for one who is a veteran already, a hired veteran dragoon among them.
+  - A spawned or teleported unit meets nobody and explores no rumour by the cheat itself: the game
+    looks, as it always does, when a unit of the power next moves or its turn ends.
 - Every cheat reports one sentence saying what it did, with its figures in plain digits.

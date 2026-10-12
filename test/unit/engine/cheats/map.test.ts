@@ -210,6 +210,16 @@ describe('terrain', () => {
     expect(run(state, terrain(3, 0, 'seaLane')).tile.base).toBe('seaLane');
   });
 
+  it('is refused for water over burial mounds a power has yet to decide about', () => {
+    // what is found there would be brought up on that square
+    const mound = { unitId: 'm1', x: 3, y: 3, q: 100, skill: 0 };
+    const state: GameState = { ...country(), players: country().players.map((p) => (p.id === 'b' ? { ...p, pendingBurial: mound } : p)) };
+    expect(refusal(state, terrain(3, 3, 'ocean'))).toEqual({ code: 'cheatSquare', message: 'burial mounds at 3,3 still wait to be decided on' });
+    expect(refusal(state, terrain(3, 3, 'seaLane')).code).toBe('cheatSquare');
+    expect(validateAction(state, cheat(terrain(3, 3, 'hills'))).ok).toBe(true);
+    expect(validateAction(state, cheat(terrain(3, 2, 'ocean'))).ok).toBe(true);
+  });
+
   it('takes every row of the terrain table somewhere', () => {
     for (const id of TERRAIN_IDS) expect(validateAction(country(), cheat(terrain(1, 2, id))).ok, id).toBe(true);
   });
