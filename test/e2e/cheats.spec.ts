@@ -66,9 +66,9 @@ test('the cheat console: Alt+C opens it, a line is done at once and logged, a ba
   await expect(transcript.getByRole('listitem')).toHaveCount(2);
 
   // Tab finishes a word when one fits, and lists them when several do
-  await line.fill('go');
+  await line.fill('reve');
   await line.press('Tab');
-  await expect(line).toHaveValue('gold ');
+  await expect(line).toHaveValue('reveal ');
   await expect(line).toBeFocused();
   await line.fill('');
   await line.pressSequentially('father ');
