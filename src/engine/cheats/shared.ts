@@ -2,6 +2,7 @@
 // arguments of a spec apart (R-1058). The types of the grammar itself live in ../cheats.ts.
 import type { CheatArgValue } from '../cheats';
 import type { CongressEvent } from '../congress';
+import { CHEATS } from '../data/cheats';
 import type { IndependenceEvent } from '../independence';
 import type { GameState } from '../state';
 
@@ -38,6 +39,16 @@ export const refuse = (code: CheatErrorCode, message: string): CheatCheck => ({ 
 /** A whole number of zero or more, small enough to add to anything. */
 export const isCount = (n: unknown): n is number => typeof n === 'number' && Number.isSafeInteger(n) && n >= 0;
 
+/** A count after an amount is added to it, taken from it or put in its place; null when the amount or the result is no whole number. */
+export function amountAfter(current: number, amount: { readonly set: boolean; readonly value: number } | undefined): number | null {
+  if (typeof amount?.value !== 'number' || !Number.isSafeInteger(amount.value)) return null;
+  const after = amount.set ? amount.value : current + amount.value;
+  return Number.isSafeInteger(after) ? after : null;
+}
+
+/** Would a cheat leave a count past the most it may write? A count already past it may still come down. */
+export const pastMost = (current: number, after: number): boolean => after > Math.max(CHEATS.most, current);
+
 export const onMap = (state: GameState, x: number, y: number): boolean => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < state.map.width && y < state.map.height;
 
 type Args = Readonly<Record<string, CheatArgValue | undefined>>;
@@ -56,6 +67,13 @@ export function numberArg(args: Args, name: string): number | undefined {
 export function wordArg(args: Args, name: string): string | undefined {
   const v = args[name];
   return v === undefined ? undefined : typeof v === 'string' ? v : wrong(name, 'a word');
+}
+
+/** An argument that may be one of several kinds: which alternative matched ('word' for a fixed word) and what it read. */
+export function choiceArg(args: Args, name: string): { readonly kind: string; readonly value: CheatArgValue } | undefined {
+  const v = args[name];
+  if (v === undefined) return undefined;
+  return typeof v === 'object' && 'value' in v && 'kind' in v && !('set' in v) ? { kind: v.kind, value: v.value } : wrong(name, 'one of its alternatives');
 }
 
 export function amountArg(args: Args, name: string): { readonly set: boolean; readonly value: number } | undefined {

@@ -1,4 +1,5 @@
-// Cheats (R-1058; docs/RULES.md "Cheats"): the numbers a cheat uses when the player gives none.
+// Cheats (R-1058; docs/RULES.md "Cheats"): the numbers a cheat uses when the player gives none,
+// and the most it will write.
 export const CHEATS = {
   /** `gold` with no amount adds this much. */
   gold: 1000,
@@ -10,4 +11,6 @@ export const CHEATS = {
   revealRadius: 3,
   /** What a treasure train made by a cheat carries. */
   treasureGold: 1000,
+  /** The most a cheat will leave of a good in a warehouse, of hammers put by, or of any figure of the Crown's. */
+  most: 100000,
 } as const satisfies Record<string, number>;
