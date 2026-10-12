@@ -111,6 +111,12 @@ test('the Menus picker lists Cheats, and Done closes the console', async ({ page
   // the keys typed here are not orders on the map
   await cheats.getByLabel('Command').pressSequentially('v');
   await expect(page.locator('canvas.map')).toHaveAttribute('data-mode', 'move');
+  // and Tab goes round within the console, either way: the map never gets the keyboard while it is up
+  await cheats.getByLabel('Command').fill('');
+  for (const [key, stop] of [['Tab', 'button'], ['Tab', 'summary'], ['Tab', 'input'], ['Shift+Tab', 'summary'], ['Shift+Tab', 'button'], ['Shift+Tab', 'input']] as const) {
+    await page.keyboard.press(key);
+    expect(await page.evaluate(() => document.activeElement?.tagName.toLowerCase())).toBe(stop);
+  }
 
   // bells enough to convene the Congress: its question is put at once, over the console, and the console takes the keys back after
   const line = cheats.getByLabel('Command');

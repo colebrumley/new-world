@@ -57,7 +57,7 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | Alt+P | Encyclopedia | works |
 | Right-click | Open the encyclopedia at whatever is under the pointer (a unit, the terrain, a building, a cargo, a colonist) | works |
 | Alt+O | Colony report options: labels, and which colony news is reported | works |
-| Alt+C | Cheats: a console that takes a typed line such as gold 5000 or reveal, and does it at once; a game it is used in is marked in its score | works |
+| Alt+C | Cheats: a console that takes a typed line such as gold 5000 or reveal, and does it at once | works |
 | Esc | Cancel (Go To targeting, panels) | works |
 | Click / drag / pointer at edge | Centre on a square (or open your colony there) / pan / scroll the view | works |
 | Click on your unit | Make it the active unit, waking it if it has orders (a list if several stand there); in view mode this also returns to move mode | works |

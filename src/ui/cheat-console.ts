@@ -152,6 +152,10 @@ export function showCheatConsole(host: HTMLElement, game: CheatConsoleGame): Pro
       resolve();
     };
     done.addEventListener('click', finish);
+    // nor does a press on the veil around the console take the keyboard from it
+    backdrop.addEventListener('mousedown', (event) => {
+      if (event.target === backdrop) event.preventDefault();
+    });
     input.addEventListener('keydown', (event) => {
       if (event.altKey || event.ctrlKey || event.metaKey) return;
       if (event.key === 'Enter') run();
@@ -165,6 +169,13 @@ export function showCheatConsole(host: HTMLElement, game: CheatConsoleGame): Pro
       if (event.key === 'Escape' || (event.key === 'Enter' && event.target === done)) {
         event.preventDefault();
         finish();
+      } else if (event.key === 'Tab' && !event.defaultPrevented) {
+        // Tab goes round within the console: the map behind must not get the keyboard while it is up
+        const stops = [summary, ...(help.open ? [sheet] : []), input, done];
+        const from = stops.indexOf(document.activeElement as HTMLElement);
+        const to = event.shiftKey ? (from <= 0 ? stops.length - 1 : from - 1) : (from + 1) % stops.length;
+        event.preventDefault();
+        (stops[to] as HTMLElement).focus();
       }
       // no key typed here is an order on the map behind
       event.stopPropagation();
