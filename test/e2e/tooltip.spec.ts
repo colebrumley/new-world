@@ -210,6 +210,17 @@ test('the slip names the units the map shows on the square, under the ground', a
   await expect(tip.locator('p')).toHaveCount(3);
 });
 
+test("the slip names the skill under the equipment of one of the player's own", async ({ page }) => {
+  const FARMER = { x: 6, y: 8 }; // an expert farmer under arms, away from the other units
+  const { canvas, tip } = await start(page, '/?still', withUnit(peopled(), { id: 'u2', type: 'soldier', owner: 'p0', profession: 'expertFarmer', ...FARMER, orders: 'sentry' }));
+  await moveTo(page, canvas, FARMER);
+  await expect(tip).toBeVisible({ timeout: RESTED });
+  await expect(tip.locator('.map-tooltip-unit')).toHaveText('Soldier (Expert Farmer) · Moves 1 · Sentry');
+  // another power's piece still says its owner and kind alone
+  await moveTo(page, canvas, FRENCH);
+  await expect(tip.locator('.map-tooltip-unit')).toHaveText('French Soldier', { timeout: TOOLTIP_DELAY_MS / 2 });
+});
+
 test('near the right and bottom edges the slip turns to the other side of the pointer and stays on the map', async ({ page }) => {
   const { canvas, tip } = await start(page, '/?reveal&still');
   const box = (await canvas.boundingBox())!;

@@ -177,9 +177,10 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
     return b;
   }
 
-  /** A token that is its picture first: the picture, its name, and (after a space, so the two read as two words) a line under it. */
-  function token(className: string, key: string, art: HTMLCanvasElement | null, label: string, sub: string, onClick: () => void): HTMLButtonElement {
+  /** A token that is its picture first: the picture, its name, and (after a space, so the two read as two words) a line under it; `title` is what resting the pointer on it says. */
+  function token(className: string, key: string, art: HTMLCanvasElement | null, label: string, sub: string, onClick: () => void, title = ''): HTMLButtonElement {
     const b = button('', key, onClick, `token ${className}`);
+    if (title) b.title = title;
     if (art) b.append(art);
     b.append(el('span', 'token-label', label));
     if (sub) {
@@ -293,7 +294,7 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
         quay.append(token('token-unit', `rider:${rider.id}`, picture('figure', rider.type, 'figure-art', FIGURE_SCALE), rider.label, '', () => {
           attempt({ type: 'landInEurope', unitId: rider.id });
           render();
-        }));
+        }, rider.fullName));
       }
       // A ship under repair lies at the quay but cannot sail: her berth says so where Set sail would be.
       const orders = el('div', 'ship-orders');
@@ -313,7 +314,7 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
     fill(harbor, ...berths);
 
     const waiting: HTMLElement[] = view.docks.map((unit) =>
-      token('token-unit', `dock:${unit.id}`, picture('figure', unit.type, 'figure-art', FIGURE_SCALE), `${unit.label}${unit.boarding ? '' : ' (staying)'}`, '', () => void dockMenu(unit.id)));
+      token('token-unit', `dock:${unit.id}`, picture('figure', unit.type, 'figure-art', FIGURE_SCALE), `${unit.label}${unit.boarding ? '' : ' (staying)'}`, '', () => void dockMenu(unit.id), unit.fullName));
     if (waiting.length === 0) waiting.push(el('p', 'empty', 'Nobody is waiting.'));
     fill(docks, ...waiting);
 

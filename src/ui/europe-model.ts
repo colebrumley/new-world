@@ -10,6 +10,7 @@ import { recruitPrice } from '../engine/immigration';
 import { askPrice, bidPrice, isBoycotted } from '../engine/market';
 import type { GameState, Unit } from '../engine/state';
 import { unitLabel } from './sidebar';
+import { unitFullName } from './unit-text';
 
 export interface EuropeShip {
   readonly id: string;
@@ -21,7 +22,7 @@ export interface EuropeShip {
   /** Turns of repair still needed before she can sail; 0 when sound. */
   readonly repair: number;
   readonly cargo: readonly { readonly good: GoodId; readonly name: string; readonly amount: number }[];
-  readonly passengers: readonly { readonly id: string; readonly type: UnitTypeId; readonly label: string }[];
+  readonly passengers: readonly { readonly id: string; readonly type: UnitTypeId; readonly label: string; readonly fullName: string }[];
 }
 
 export interface EuropeVoyage {
@@ -39,7 +40,7 @@ export interface EuropeView {
   readonly expected: readonly EuropeVoyage[];
   readonly outbound: readonly EuropeVoyage[];
   readonly inPort: readonly EuropeShip[];
-  readonly docks: readonly { readonly id: string; readonly type: UnitTypeId; readonly label: string; readonly boarding: boolean }[];
+  readonly docks: readonly { readonly id: string; readonly type: UnitTypeId; readonly label: string; readonly fullName: string; readonly boarding: boolean }[];
   readonly prices: readonly { readonly good: GoodId; readonly name: string; readonly bid: number; readonly ask: number; readonly boycotted: boolean }[];
   /** The immigrant pool, and what passage for any one of them costs now. */
   readonly pool: readonly { readonly slot: number; readonly label: string }[];
@@ -70,9 +71,9 @@ export function europeView(state: GameState, playerId: string): EuropeView | nul
       used: holdsUsed(state, ship),
       repair: ship.repair,
       cargo: GOOD_IDS.filter((g) => (ship.cargo[g] ?? 0) > 0).map((g) => ({ good: g, name: GOOD_NAMES[g], amount: ship.cargo[g] ?? 0 })),
-      passengers: mine.filter((u) => u.aboard === ship.id).map((u) => ({ id: u.id, type: u.type, label: unitLabel(u) })),
+      passengers: mine.filter((u) => u.aboard === ship.id).map((u) => ({ id: u.id, type: u.type, label: unitLabel(u), fullName: unitFullName(u) })),
     })),
-    docks: docksOf(state, playerId).map((u) => ({ id: u.id, type: u.type, label: unitLabel(u), boarding: u.orders === 'sentry' })),
+    docks: docksOf(state, playerId).map((u) => ({ id: u.id, type: u.type, label: unitLabel(u), fullName: unitFullName(u), boarding: u.orders === 'sentry' })),
     prices: GOOD_IDS.map((g) => ({ good: g, name: GOOD_NAMES[g], bid: bidPrice(state, playerId, g), ask: askPrice(state, playerId, g), boycotted: isBoycotted(state, playerId, g) })),
     pool: player.pool.map((p, slot) => ({ slot, label: PROFESSIONS[p].name })),
     recruitPrice: recruitPrice(state, playerId),
