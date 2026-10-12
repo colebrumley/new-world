@@ -2204,6 +2204,10 @@ Cheats are this game's own; none of this is a rule of play.
   played (not once it is over). The line is for the player at the keyboard unless it says `as`;
   `here` and `active` are the active unit. An accepted line is done at once, entered in the
   console's transcript and in the log beside the map as "Cheat: …", and saved with the game; a
-  refused one stays to be mended, with the reason under it. A Congress that `bells` convenes puts
-  its question at once. The console may be opened whenever the map takes keys, so not while
-  another question is up.
+  refused one stays to be mended, with the reason under it. Tab finishes a word with a thing's
+  name only where that name, read back, is that thing: a colony named as another's id is, or as
+  a second colony is, or as a word a place reads first, is finished with its id. A Congress that
+  `bells` convenes puts its question at once, over the console; until it is answered the
+  keyboard stays with its answers (Tab goes round them, as in every such question), and then
+  returns to the console's line. The console may be opened whenever the map takes keys, so not
+  while another question is up.

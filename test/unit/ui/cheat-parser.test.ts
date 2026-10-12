@@ -372,6 +372,38 @@ describe('completeCheat', () => {
     expect(complete('who ', SPECS, NOBODY)).toEqual(['u1', 'u2', 'u3']);
   });
 
+  it('offers for a thing a word that is read back as that thing', () => {
+    // colonies named as another's id, as a place's own words, as each other, as a profession, and with a quote in the name
+    let s = land();
+    const names: Record<string, string> = { c5: 'c2', c6: 'Europe', c7: 'here', c8: 'Salem', c9: 'Salem', c10: '3,3', c11: 'Fort "A"', c12: 'Expert Farmer' };
+    Object.entries(names).forEach(([id, name], i) => { s = withColony(s, { id, x: 2 + (i % 6), y: 1 + (i % 3), name }); });
+    // a power whose leader is named as another power is
+    s = { ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, name: 'France' } : p)) };
+    const offers = (text: string): string[] => completeCheat(text, s, ME, SPECS);
+    const read = (text: string): Args => {
+      const r = parseCheat(text, s, ME, SPECS);
+      if (!r.ok) throw new Error(`refused: ${text}: ${r.message}`);
+      return (r.action as unknown as { command: { given: Args } }).command.given;
+    };
+    const own = ['c1', 'c2', 'c3', ...Object.keys(names)];
+
+    expect(offers('probe ')).toEqual(['Jamestown', '"New Amsterdam"', '"New Haven"', 'c5', 'Europe', 'here', 'c8', 'c9', '3,3', 'c11', '"Expert Farmer"']);
+    expect(offers('probe ').map((w) => read(`probe ${w} food galleon`).colony)).toEqual(own);
+    expect(offers('probe c2')).toEqual(['"New Amsterdam"', 'c5']);
+    // as a place, `europe`, `here` and x,y are taken first
+    expect(offers('spot ')).toEqual(['here', 'europe', 'Jamestown', '"New Amsterdam"', '"New Haven"', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', '"Expert Farmer"']);
+    expect(offers('spot ').slice(2).map((w) => read(`spot ${w}`).place)).toEqual(own.map((colonyId) => ({ kind: 'colony', colonyId })));
+    // and an optional argument before the place takes a word it can read
+    expect(offers('one soldier exp')).toContain('c12');
+    expect(offers('one soldier exp')).not.toContain('"Expert Farmer"');
+    expect(read('one soldier c12').place).toEqual({ kind: 'colony', colonyId: 'c12' });
+    // units and settlements are offered by id, powers by a name only one of them answers to
+    expect(offers('who ').slice(1).map((w) => read(`who ${w}`).unit)).toEqual(['u1', 'u2', 'u3']);
+    expect(offers('mood s').map((w) => read(`mood ${w} 50`).whom)).toEqual([{ kind: 'tribe', value: 'sioux' }, { kind: 'settlement', value: 's1' }, { kind: 'settlement', value: 's2' }]);
+    expect(offers('as ')).toEqual(['England', 'b']);
+    expect(offers('as ').map((w) => (parseCheat(`as ${w} sum 1`, s, ME, SPECS) as { action: { player: string } }).action.player)).toEqual(['a', 'b']);
+  });
+
   it('offers what could follow while the arguments before are optional', () => {
     expect(complete('one soldier e', SPECS)).toEqual(['expertFarmer', 'expertFurTrapper', 'expertLumberjack', 'expertOreMiner', 'expertSilverMiner', 'expertFisherman', 'elderStatesman', 'europe']);
     expect(complete('one soldier here ', SPECS)).toEqual([]);

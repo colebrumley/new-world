@@ -124,6 +124,22 @@ test('the Menus picker lists Cheats, and Done closes the console', async ({ page
   await line.press('Enter');
   const congress = page.getByRole('dialog').filter({ hasText: 'Which Founding Father' });
   await expect(congress).toBeVisible();
+  // until it is answered the keyboard stays with the question: neither Tab, nor a press on the veil and
+  // then Tab, reaches the console beneath, so the console cannot be closed and the map given the keys
+  const within = (): Promise<boolean> => congress.evaluate((box) => box.contains(document.activeElement));
+  for (const key of ['Shift+Tab', 'Shift+Tab', 'Tab', 'Tab', 'Tab', 'Tab']) {
+    await page.keyboard.press(key);
+    expect(await within()).toBe(true);
+  }
+  for (const press of [() => page.mouse.click(5, 5), () => congress.locator('p').click()]) {
+    await press();
+    expect(await within()).toBe(true);
+    await page.keyboard.press('Shift+Tab');
+    expect(await within()).toBe(true);
+  }
+  await page.keyboard.press('Escape');
+  await expect(congress).toBeVisible();
+  await expect(cheats).toBeVisible();
   await page.keyboard.press('Enter');
   await expect(congress).toBeHidden();
   await expect(line).toBeFocused();
