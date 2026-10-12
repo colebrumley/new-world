@@ -104,13 +104,17 @@ export function recruitPrice(state: GameState, playerId: PlayerId): number {
 
 /**
  * The least gold that puts one person on this power's docks: nothing if crosses have earned someone,
- * or will in the Europe phase of the turn now beginning, else the fare for one of the pool or the cheapest schooling the Royal University sells.
+ * or will in the Europe phase of the turn now beginning, else the fare (as that phase will leave it) for one of the pool or the cheapest schooling the Royal University sells.
  */
 export function cheapestPersonPrice(state: GameState, playerId: PlayerId): number {
   const player = state.players.find((p) => p.id === playerId);
   if (player?.immigrantDue || immigrantComing(state, playerId)) return 0;
   const schooling = (Object.keys(PROFESSIONS) as ProfessionId[]).map(trainingPrice).filter((price): price is number => price !== null);
-  return Math.min(...schooling, ...(player && player.pool.length > 0 ? [recruitPrice(state, playerId)] : []));
+  if (!player || player.pool.length === 0) return Math.min(...schooling);
+  // the fare as it will stand once the Europe phase of the turn now beginning has moved the crosses
+  const crosses = crossesAfterDrift(state, player);
+  const drifted: GameState = { ...state, players: state.players.map((p) => (p.id === playerId ? { ...p, crosses } : p)) };
+  return Math.min(...schooling, recruitPrice(drifted, playerId));
 }
 
 const no = (code: 'notForSale' | 'cannotAfford', message: string): EuropeCheck => ({ ok: false, code, message });

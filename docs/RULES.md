@@ -1962,10 +1962,10 @@ Numbers are `AI_FREIGHT` and `AI_RESERVE` in `src/engine/data/ai.ts`.
 - **Ruin.** Before 1600 the charter is withdrawn at once, in any year, from a human power not at
   war whose turn begins with no colony, no unit anywhere (on the map, at sea, on the docks or in
   port in Europe) and less gold than the cheapest way to put one person on Europe's docks: the
-  fare for one of the three who wait, as crosses have lowered it, or the cheapest schooling the
-  Royal University sells; nothing at all if crosses have earned someone or will in the turn now
-  beginning. It ends as the
-  1600 rule does and cannot be played on. The computer powers are not dismissed this way.
+  fare for one of the three who wait, as the crosses of the turn now beginning will leave it, or
+  the cheapest schooling the Royal University sells; nothing at all if crosses have earned
+  someone or will in that turn. It ends as the 1600 rule does and cannot be played on. The
+  computer powers are not dismissed this way.
 - **Hall of Fame.** Each finished game is entered once (leader, nation, level, date, score,
   rating, honour); the ten best are kept in the browser, best rating first, and shown after the
   score and from the title screen.

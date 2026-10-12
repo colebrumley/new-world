@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, listValidActions, validateAction, type GameEvent } from '../../../src/engine/actions';
 import { CALENDAR, dateOfTurn, firstTurnOfYear } from '../../../src/engine/calendar';
 import { PROFESSIONS } from '../../../src/engine/data/professions';
-import { cheapestPersonPrice, crossesNeeded } from '../../../src/engine/immigration';
+import { cheapestPersonPrice, crossesNeeded, recruitPrice } from '../../../src/engine/immigration';
 import { OFF_MAP, type GameState, type Voyage } from '../../../src/engine/state';
 import { withColony, withUnit, world } from '../../helpers/world';
 
@@ -116,12 +116,31 @@ describe('end of the game', () => {
 
     it('recalls a human power with no colony, no unit and too little gold, in any year', () => {
       expect(price).toBeGreaterThan(0);
-      for (const year of [1492, 1493, 1550, 1599]) {
+      for (const year of [1493, 1550, 1599]) {
         const r = end(atTurn(withGold(bare, price - 1), firstTurnOfYear(year) - 1));
         expect(r.state.over).toEqual({ reason: 'noColonies', turn: firstTurnOfYear(year), player: 'a' });
         expect(r.events.at(-1)).toEqual({ type: 'gameEnded', reason: 'noColonies', player: 'a', turn: firstTurnOfYear(year), year });
         expect(validateAction(r.state, { type: 'continuePlaying' }).ok).toBe(false);
       }
+    });
+
+    it('recalls it in 1492 itself, as its first turn begins', () => {
+      const two = withUnit(world({ rows: ROWS, players: [{ id: 'a' }, { id: 'b' }] }), { id: 'w', type: 'wagonTrain', x: 3, y: 2 });
+      const poor: GameState = { ...two, turn: 0, players: two.players.map((p) => (p.id === 'b' ? { ...p, gold: cheapestPersonPrice(two, 'b') - 1 } : p)) };
+      const r = end(poor);
+      expect(r.state.over).toEqual({ reason: 'noColonies', turn: 0, player: 'b' });
+      expect(r.events.at(-1)).toEqual({ type: 'gameEnded', reason: 'noColonies', player: 'b', turn: 0, year: 1492 });
+      expect(end({ ...poor, players: poor.players.map((p) => (p.id === 'b' ? { ...p, gold: p.gold + 1 } : p)) }).state.over).toBeNull();
+    });
+
+    it('weighs the fare as this turn\'s crosses will leave it', () => {
+      // the docks are empty, so the Europe phase adds crosses and the fare falls before the power can act
+      const now = recruitPrice(bare, 'a');
+      expect(price).toBeLessThan(now);
+      const before = (s: GameState): GameState => atTurn(s, firstTurnOfYear(1550) - 1);
+      const kept = end(before(withGold(bare, price)));
+      expect(kept.state.over).toBeNull();
+      expect(validateAction(kept.state, { type: 'recruit', slot: 0 }).ok).toBe(true);
     });
 
     it('spares one that has a unit anywhere', () => {
