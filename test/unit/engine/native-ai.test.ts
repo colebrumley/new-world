@@ -6,7 +6,7 @@ import { checkInvariants } from '../../../src/engine/invariants';
 import { bravesTurn, braveTurn, type NativeAiEvent } from '../../../src/engine/native-ai';
 import { createRng } from '../../../src/engine/rng';
 import type { Colonist, GameState, Settlement, TribeState, Unit } from '../../../src/engine/state';
-import { withColony, withUnit, world } from '../../helpers/world';
+import { BYSTANDER_GOLD, withColony, withUnit, world } from '../../helpers/world';
 
 const ROWS = Array.from({ length: 20 }, (_, y) => (y === 0 || y === 19 ? '~'.repeat(24) : `~${'.'.repeat(22)}~`));
 const village = (id: string, tribe: Settlement['tribe'], x: number, y: number, extra: Partial<Settlement> = {}): Settlement => ({
@@ -24,7 +24,9 @@ interface Opts { seed?: number; tribe?: Settlement['tribe']; record?: Partial<Tr
 /** A settlement at (10,10) with its brave beside it. */
 function land(o: Opts = {}): GameState {
   const tribe = o.tribe ?? 'cherokee';
-  const s = world({ rows: ROWS, seed: o.seed ?? 1, players: [{ id: 'a' }, { id: 'b', kind: 'ai' }] });
+  const bare = world({ rows: ROWS, seed: o.seed ?? 1, players: [{ id: 'a' }, { id: 'b', kind: 'ai' }] });
+  // gold, so that the human power with nothing on the map is not dismissed as ruined while the braves are watched
+  const s = { ...bare, players: bare.players.map((p) => (p.id === 'a' ? { ...p, gold: BYSTANDER_GOLD } : p)) };
   const [bx, by] = o.at ?? [10, 11];
   return { ...s, turn: 0, units: { 'brave-v': braveUnit('brave-v', tribe, o.brave ?? 'brave', bx, by) }, settlements: { v: village('v', tribe, 10, 10, o.village) }, tribes: { [tribe]: record(o.record) } };
 }
