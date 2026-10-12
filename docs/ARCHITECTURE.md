@@ -46,6 +46,18 @@ storage) and `construction.ts` what it may build, buying, and completion. `cargo
 `calendar.ts` the date, `save.ts` serialization and replay, `invariants.ts` the checks the
 simulation asserts, `rng.ts` the seeded generator, `game.ts` new-game setup.
 
+`cheats.ts` and `cheats/` are the cheats (R-1058): a `cheat` action carries a `CheatCommand`, a
+union with one member per cheat. `cheats.ts` holds the types of the command grammar (`CheatSpec`,
+its argument kinds and the values a parser hands to `build`), `CHEAT_SPECS` (every cheat's name,
+arguments, help line and example, in help order), and `checkCheat` and `applyCheat`, which pass the
+command to the group that owns it and mark the powers concerned (`Player.cheated`). The groups are
+files under `cheats/`, each with its command union, a check and an apply that answer null for a
+command not theirs, and its list of specs: `treasury.ts` (gold, crosses, bells, a Founding Father,
+the tax rate, boycotts) and `map.ts` (lifting the fog); `shared.ts` has the refusal, the outcome
+and the readers a spec's `build` takes its arguments apart with. A cheat changes the state through
+the game's own functions wherever there is one. Defaults are in `data/cheats.ts`. The engine knows
+nothing of the text a player types: turning a line into a command is the UI's business.
+
 ## `src/engine/mapgen/`
 The random New World generator: seeded value noise (`noise.ts`) and `generateWorld(rng, options)`
 (`generate.ts`), which shapes land, climate, relief, forest, rivers, sea lanes, resources and

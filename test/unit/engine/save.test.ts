@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { listValidActions } from '../../../src/engine/actions';
+import { listValidActions, type Action } from '../../../src/engine/actions';
 import { createRng } from '../../../src/engine/rng';
 import {
   deserialize, loadGame, migrate, newSession, replay, saveGame, SaveFormatError, serialize, stepSession,
@@ -39,6 +39,37 @@ describe('save/load', () => {
     const loaded = loadGame(saveGame(session));
     expect(loaded).toEqual(session);
     expect(replay(loaded.options, loaded.log)).toEqual(loaded.state);
+  });
+
+  it('saves, loads and replays a game in which cheats were used', () => {
+    const cheats: Action[] = [
+      { type: 'cheat', command: { cheat: 'gold', amount: { set: false, value: 5000 } } },
+      { type: 'cheat', command: { cheat: 'bells', count: 400 } },
+      { type: 'cheat', player: 'b', command: { cheat: 'father', father: 'pocahontas' } },
+      { type: 'cheat', command: { cheat: 'reveal', at: null, radius: 3 } },
+      { type: 'cheat', command: { cheat: 'reveal', at: { x: 2, y: 2 }, radius: 2 } },
+      { type: 'cheat', command: { cheat: 'tax', percent: 5 } },
+      { type: 'cheat', command: { cheat: 'crosses', count: 60 } },
+      { type: 'cheat', command: { cheat: 'boycott' } },
+    ];
+    const rng = createRng(77);
+    let session = newSession({ ...OPTIONS, seed: 77 });
+    for (let i = 0; i < 120; i++) {
+      const cheat = i % 15 === 3 ? cheats[Math.floor(i / 15)] : undefined;
+      session = stepSession(session, cheat ?? rng.pick(listValidActions(session.state))).session;
+    }
+    expect(session.log.filter((a) => a.type === 'cheat')).toHaveLength(cheats.length);
+    expect(session.state.players.map((p) => p.cheated)).toEqual([true, true]);
+    expect(session.state.players[1]?.fathers).toContain('pocahontas');
+    expect(replay(session.options, session.log)).toEqual(session.state);
+    const text = saveGame(session);
+    const loaded = loadGame(text);
+    expect(loaded).toEqual(session);
+    expect(loaded.state.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(replay(loaded.options, loaded.log)).toEqual(loaded.state);
+    // the snapshot alone carries the mark
+    expect(deserialize(serialize(loaded.state)).players.map((p) => p.cheated)).toEqual([true, true]);
+    expect(saveGame(loaded)).toBe(text);
   });
 
   it('rejects malformed saves with SaveFormatError', () => {
