@@ -1,6 +1,6 @@
 # Cheats: spec for R-1058 to R-1063
 
-Written by `/plan` on 2026-10-12. Status: proposed.
+Written by `/plan` on 2026-10-12. Status: built.
 
 **The request, in the owner's words:** "Just for fun I want to add a cheats menu, where the user can
 adjust money, spawn units, reveal the map, add resources, liberty bells, etc. Let's come up with a
