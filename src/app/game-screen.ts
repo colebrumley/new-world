@@ -26,7 +26,7 @@ import { showReport, type Report } from '../ui/report';
 import { foreignAffairsReport } from '../ui/reports/foreign';
 import { scoreReport } from '../ui/reports/score';
 import { colonyReport, economicReport, indianReport, laborReport, navalReport, religiousReport, terrainReport } from '../ui/reports/advisers';
-import { hallSection, readHall, recordGame } from './hall-of-fame';
+import { hallSection, readHall, recordGame, type HallEntry } from './hall-of-fame';
 import { congressReport } from '../ui/reports/congress';
 import { loadGame, saveGame, stepSession, type GameSession } from '../engine/save';
 import { dateOfTurn } from '../engine/calendar';
@@ -143,7 +143,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     magnified.stop();
     hideTip();
     overMap.disconnect();
-    audio.setMusic({ ...options, backgroundMusic: false });
+    audio.stop();
   };
   /** Put another game on the table in place of this one. */
   const switchTo = (other: GameSession): void => {
@@ -559,6 +559,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
 
   // --- the end of the game: the end page, and the map of a game that is over -----------------------
   let endPage: EndPage | null = null;
+  /** The Hall of Fame as it stood when this game was entered: shown in the reckoning even if the browser would not keep it. */
+  let hallAtEnd: readonly HallEntry[] | null = null;
   /** Say on the canvas how the game stands: the reason it ended, or nothing while it is played. */
   const markOver = (): void => {
     canvas.dataset['over'] = session.state.over?.reason ?? '';
@@ -587,11 +589,12 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     switch (choice) {
       case 'reckoning':
         canvas.dataset['report'] = 'score';
-        await showReport(screen, scoreReport(session.state, over.player, [hallSection(readHall())]));
+        await showReport(screen, scoreReport(session.state, over.player, [hallSection(hallAtEnd ?? readHall())]));
         canvas.dataset['report'] = '';
         return;
       case 'playOn':
         closeEnd();
+        hallAtEnd = null;
         dispatch({ type: 'continuePlaying' });
         markOver();
         return;
@@ -614,7 +617,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   const announceEnd = (): void => {
     const over = session.state.over;
     if (!over) return;
-    recordGame(session.state, over.player);
+    hallAtEnd = recordGame(session.state, over.player);
     markOver();
     showEnd();
   };

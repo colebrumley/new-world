@@ -219,6 +219,13 @@ test('Shift+R retires after asking, and the game is over for good', async ({ pag
   await expect(page.locator('canvas.map')).toHaveAttribute('data-over', 'retiredEarly');
   // no offer to play on
   await expect(end.getByRole('button')).toHaveText(['The reckoning', 'New game', 'Load game', 'Look over the map']);
+  // Tab goes round the choices and never to the map or the bar under the page
+  await page.keyboard.press('Shift+Tab');
+  await expect(end.getByRole('button', { name: 'Look over the map' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(end.getByRole('button', { name: 'The reckoning' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(end.getByRole('button', { name: 'New game' })).toBeFocused();
   await end.getByRole('button', { name: 'The reckoning' }).click();
   await expect(page.getByRole('dialog', { name: 'Colonial Score' }).getByRole('group', { name: 'Hall of Fame' })).toContainText('Walter Raleigh of England');
   await page.keyboard.press('Escape');

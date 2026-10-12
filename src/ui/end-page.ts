@@ -105,8 +105,8 @@ const SEAL_SCALE = 3;
 const HEADLINE_ID = 'end-page-headline';
 
 /**
- * Put the page up over `host`, the first choice holding the keyboard. The arrow keys move among the
- * choices and Enter takes one, as in a dialog; Escape looks over the map. The page stays up until
+ * Put the page up over `host`, the first choice holding the keyboard. The arrow keys and Tab move
+ * among the choices and Enter takes one, as in a dialog; Escape looks over the map. The page stays up until
  * it is closed: a choice that opens something over it (the reckoning, the load dialog) returns to it.
  */
 export function openEndPage(host: HTMLElement, model: EndPageModel, onPick: (choice: EndChoice) => void): EndPage {
@@ -177,10 +177,17 @@ export function openEndPage(host: HTMLElement, model: EndPageModel, onPick: (cho
 
   root.addEventListener('keydown', (event) => {
     const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
-    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') buttons[(at + 1) % buttons.length]?.focus();
-    else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') buttons[(at + buttons.length - 1) % buttons.length]?.focus();
-    else if (event.key === 'Escape') onPick('lookOver');
-    else if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Tab') event.preventDefault();
+    const next = (): void => buttons[(at + 1) % buttons.length]?.focus();
+    const previous = (): void => buttons[(at + buttons.length - 1) % buttons.length]?.focus();
+    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next();
+    else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') previous();
+    else if (event.key === 'Tab') {
+      // the page fills the window: Tab goes round its choices and never to what lies under it
+      event.preventDefault();
+      if (event.shiftKey) previous();
+      else next();
+    } else if (event.key === 'Escape') onPick('lookOver');
+    else if (event.key !== 'Enter' && event.key !== ' ') event.preventDefault();
     event.stopPropagation();
   });
 
