@@ -2136,5 +2136,7 @@ Cheats are this game's own; none of this is a rule of play.
   - *promote* (R-1059): a soldier or a dragoon becomes a veteran. Refused for any other unit and
     for one who is a veteran already, a hired veteran dragoon among them.
   - A spawned or teleported unit meets nobody and explores no rumour by the cheat itself: the game
-    looks, as it always does, when a unit of the power next moves or its turn ends.
+    looks, as it always does, when a unit of the power next moves or its next turn begins. It
+    looks at every unit of the power then, so a unit put on a rumour looks into it at the next
+    move of any of them.
 - Every cheat reports one sentence saying what it did, with its figures in plain digits.

@@ -2,7 +2,7 @@
 // a unit moved across the map; its moves restored; a ship made sound; a soldier made a veteran.
 // A unit is made the way the game's own code makes one (newDockUnit in Europe, joinColony into a
 // colony), and a square must be one the unit could stand on. No cheat here meets anybody or digs up
-// a rumour: that waits for the power's next move or the end of its turn, when the game looks.
+// a rumour: that waits for the power's next move or the start of its next turn, when the game looks.
 import type { CheatCommand, CheatSpec, Place } from '../cheats';
 import { joinColony } from '../colony';
 import { CHEATS } from '../data/cheats';

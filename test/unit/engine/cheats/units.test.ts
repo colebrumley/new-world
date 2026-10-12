@@ -282,12 +282,19 @@ describe('teleport', () => {
   });
 
   it('digs up no rumour and meets nobody by itself', () => {
-    const state = setTile(land(), 6, 1, { rumor: true });
-    const { state: next } = run(state, teleport('m1', 6, 1));
-    expect(next.map.tiles[1 * next.map.width + 6]).toMatchObject({ rumor: true });
-    expect(next.rumors).toEqual(state.rumors);
-    const spawned = run(state, spawn('scout', at(6, 1))).state;
-    expect(spawned.map.tiles[1 * spawned.map.width + 6]).toMatchObject({ rumor: true });
+    // a rumour at 4,2, beside b's soldier (a power not yet met) and the village of a tribe that knows nobody
+    const lit = setTile(land(), 4, 2, { rumor: true });
+    const state: GameState = { ...lit, tribes: { sioux: { ...lit.tribes.sioux!, met: [], peace: [] } } };
+    expect(state.players.map((p) => p.stance)).toEqual([{}, {}]);
+    for (const command of [teleport('m1', 4, 2), spawn('scout', at(4, 2))]) {
+      const { state: next, events } = applyAction(state, cheat(command));
+      expect(events.map((e) => e.type)).toEqual(['cheatApplied']);
+      expect(next.map.tiles[2 * next.map.width + 4]).toMatchObject({ rumor: true });
+      expect(next.rumors).toEqual(state.rumors);
+      expect(next.tribes).toEqual(state.tribes);
+      expect(next.settlements).toEqual(state.settlements);
+      expect(next.players.map((p) => ({ ...p, cheated: undefined }))).toEqual(state.players.map((p) => ({ ...p, cheated: undefined })));
+    }
   });
 
   it('is refused for a unit on a voyage or aboard a carrier', () => {
