@@ -1,6 +1,6 @@
 # The game ends on a page of its own: spec for R-1064 to R-1065
 
-Written by `/plan` on 2026-10-12. Status: proposed.
+Written by `/plan` on 2026-10-12. Status: built.
 
 **The request, in the owner's words:** "there is no ending - if you lose at least the game just sits
 there and you cant do anything".
