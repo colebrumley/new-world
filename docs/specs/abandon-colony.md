@@ -1,6 +1,6 @@
 # Abandoning a colony: spec for R-1054 to R-1055
 
-Written by `/plan` on 2026-10-11. Status: approved.
+Written by `/plan` on 2026-10-11. Status: built.
 
 **The request, in the owner's words:** "There needs to be a way to abandon or destroy a colony. The
 stupid Dutch made one like right next to me and I captured it, but I'm forced to keep it and I don't
