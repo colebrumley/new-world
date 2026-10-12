@@ -141,13 +141,14 @@ if (existsSync(claims)) {
     }
   }
 }
-// the main checkout: forward to origin/main, never a merge, never over someone's changes
+// the main checkout: forward to origin/main, never a merge, never over someone's changes or an
+// ignored file of theirs (the private notes and archives live there untracked)
 if (git(main, 'branch', '--show-current') === 'main' && git(main, 'rev-parse', 'main') !== git(main, 'rev-parse', 'origin/main')) {
   if (git(main, 'status', '--porcelain', '--untracked-files=no')) console.log('keep the main checkout where it is: it has uncommitted changes');
   else if (!execOk(main, 'merge-base', '--is-ancestor', 'main', 'origin/main')) console.log('keep the main checkout where it is: main has commits origin/main does not');
   else {
     say('fast-forward the main checkout to origin/main');
-    if (!dry && !execOk(main, 'merge', '--ff-only', '--quiet', 'origin/main')) console.log('  git would not fast-forward it');
+    if (!dry && !execOk(main, 'merge', '--ff-only', '--no-overwrite-ignore', '--quiet', 'origin/main')) console.log('  git would not fast-forward it');
   }
 }
 console.log(dry ? 'tidy: dry run, nothing changed' : 'tidy: done');

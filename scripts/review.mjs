@@ -84,7 +84,7 @@ function rabbitActivity(pr, since) {
 
 // Before Codex starts, so the two read at the same time. Returns what rabbitReport needs.
 function rabbitAsk(second) {
-  const pr = ghJson('pr', 'view', '--json', 'number,url,state,headRefOid,headRefName');
+  const pr = ghJson('pr', 'view', '--json', 'number,url,state,headRefOid,headRefName,isCrossRepository');
   if (!pr || pr.state !== 'OPEN') {
     return { skip: 'no open pull request for this branch; push and open it before the review so CodeRabbit reads it too' };
   }
@@ -97,6 +97,7 @@ function rabbitAsk(second) {
   // branch and only past the public-repo word check, and GitHub given time to see it.
   const tip = git('rev-parse', 'HEAD');
   if (pr.headRefOid !== tip) {
+    if (pr.isCrossRepository) return { pr, since: 0, note: 'the pull request is behind this branch and comes from a fork, so CodeRabbit was not asked; push first' };
     const guard = spawnSync('node', [join(top, 'scripts', 'guard.mjs'), '--check'], { encoding: 'utf8', cwd: top });
     if (guard.status !== 0) {
       return { pr, since: 0, note: 'the pull request is behind this branch and the word check (npm run guard) refuses the push, so CodeRabbit was not asked' };
