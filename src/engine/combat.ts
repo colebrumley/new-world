@@ -46,7 +46,10 @@ const dugIn = (f: Fighter): boolean => f.orders === 'fortify' || f.orders === 'f
 export function unitStrength(fighter: Fighter, side: 'attack' | 'defense', lines: CombatLine[] = []): number {
   const type = UNIT_TYPES[fighter.type];
   let s = (side === 'attack' ? type.attack : type.defense) * COMBAT.scale;
-  if ((fighter.type === 'soldier' || fighter.type === 'dragoon') && fighter.profession === 'veteranSoldier') {
+  // a veteran soldier under arms, on foot or mounted, and the veteran dragoons a mercenary offer lands
+  const veteran = ((fighter.type === 'soldier' || fighter.type === 'dragoon') && fighter.profession === 'veteranSoldier')
+    || (fighter.type === 'dragoon' && fighter.profession === 'veteranDragoon');
+  if (veteran) {
     s += half(s);
     lines.push({ label: 'Veteran', percent: 50 });
   }

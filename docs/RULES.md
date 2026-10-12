@@ -758,7 +758,12 @@ toward the trader, d the difficulty level (0 for a computer power).
 Strengths are whole numbers of eighths of a point.
 
 - **A unit's own strength** is 8 x its attack value when attacking, 8 x its combat value when
-  defending. A soldier or dragoon who is a veteran soldier has half again.
+  defending. A soldier or dragoon who is a veteran soldier has half again, and so has a dragoon who
+  is a veteran dragoon (the riders a mercenary offer lands): they fight as a mounted veteran
+  soldier does. That second half is this game's own choice, made by the owner. A veteran dragoon
+  who has lost his horse is an ordinary soldier, and in everything but strength the hired dragoons
+  are as they were: the muster after the Declaration counts them as veterans, and a win in the
+  field does not raise them to the Continental line.
 - **The defender's place**, in quarters q: a native settlement 2 (4 for the two city peoples),
   doubled for a capital; a colony 2, 4, 6 or 8 with nothing, a stockade, a fort, a fortress; in the
   open the terrain's defence figure. A defender whose order is Fortified (not on its first turn of
