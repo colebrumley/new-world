@@ -61,12 +61,17 @@ prompt that is not already public in this repository.
 | Step | Who | Model | Does |
 |---|---|---|---|
 | Intake and plan | `/plan` | the planning model, high effort | reads the code and rules, asks the owner the forks that matter (at most three), writes `docs/specs/<slug>.md` and one backlog line per item, merges the spec |
-| Dispatch | `/build` | same session | one worker per ready item: size S as a subagent at **Opus 5.5, medium effort**, size M or L as a task chip the owner runs at the same model |
+| Dispatch | `/build` | same session | one worker per ready item, whatever its size, as a subagent at **Opus 5.5, medium effort**; never a task chip |
 | Build | the worker | Opus 5.5, medium | the Worker protocol below: build, two reviewers (Codex and CodeRabbit), then a merged pull request or an open one with findings |
 | Close | `/build` | same session | `npm run tidy`, report |
 | Review the process | `/retro` | any | every ten or so merged pull requests: what the owner still had to type, and what to change so they need not |
 
 `/bughunt` finds bugs with reproductions and feeds them to `/plan` and `/build`. Run it on Opus.
+
+A bug or a small change the owner types straight into a session, without `/plan`, is one item with
+no spec: follow the Worker protocol to its end (worktree, pull request, both reviews, merge, tidy)
+without waiting to be told to open the pull request or to merge it, and commit as `Fix: <what>`.
+Every subagent a session starts, for building, research or critique, runs at Opus 5.5, medium effort.
 
 ## Worker protocol
 
@@ -90,6 +95,7 @@ the definition of done.
    which rules came from where. Push and open the pull request against `main`, so both reviewers
    can read it. Then `npm run review`: Codex reviews the branch's commits against `origin/main` as an
    adversary, CodeRabbit is asked to read the pull request, and both sets of findings are printed.
+   The script pushes the branch itself if the pull request is behind it.
    Read them together. Fix every Codex P1 and P2 and every CodeRabbit comment you can confirm
    against the code, re-run the tests for what you touched, commit as `R-xxxx: fix <what>`, push, and
    run the review once more. A finding you disagree with gets one sentence of why in the pull

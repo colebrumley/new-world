@@ -92,8 +92,19 @@ function rabbitAsk(second) {
   // The second ask is made even after an approval: that approval was of the commits before the fixes.
   const due = now.asks === 0 || (second && now.asks === 1);
   if (!due) return { pr, since: 0 };
-  if (pr.headRefOid !== git('rev-parse', 'HEAD')) {
-    return { pr, since: 0, note: 'the pull request is behind this branch, so CodeRabbit was not asked; push first' };
+  // A worker that commits its fixes and runs the review without pushing would leave CodeRabbit's
+  // verdict on the commits before them, so the branch is pushed here and GitHub given time to see it.
+  const tip = git('rev-parse', 'HEAD');
+  if (pr.headRefOid !== tip) {
+    const pushed = spawnSync('git', ['push', '--quiet', 'origin', 'HEAD'], { encoding: 'utf8' });
+    for (let tries = 0; pushed.status === 0 && pr.headRefOid !== tip && tries < 10; tries++) {
+      sleep(3 * 1000);
+      pr.headRefOid = ghJson('pr', 'view', '--json', 'headRefOid')?.headRefOid ?? pr.headRefOid;
+    }
+    if (pr.headRefOid !== tip) {
+      return { pr, since: 0, note: `the pull request is behind this branch and the push did not bring it up (${pushed.stderr?.trim() || 'GitHub has not seen it'}), so CodeRabbit was not asked` };
+    }
+    console.log('review: pushed this branch so the pull request holds what is being reviewed');
   }
   const since = Date.now() - 60 * 1000;
   const asked = gh('pr', 'comment', String(pr.number), '--body', ASK);
@@ -147,6 +158,7 @@ function rabbitReport(asked) {
     : 'review: CodeRabbit: no open comments');
   const verdict = rabbitActivity(asked.pr, 0).verdict;
   console.log(`review: CodeRabbit: ${verdict === 'APPROVED' ? 'APPROVED' : verdict === 'CHANGES_REQUESTED' ? 'CHANGES REQUESTED' : 'has not read this pull request to a verdict'}`);
+  if (verdict === 'CHANGES_REQUESTED' && !asked.started) console.log('review: CodeRabbit: that verdict is from before this run; it was not asked again');
 }
 
 const dir = join(common, 'private', 'reviews');
