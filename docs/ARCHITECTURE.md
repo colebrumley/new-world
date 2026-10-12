@@ -53,7 +53,8 @@ arguments, help line and example, in help order), and `checkCheat` and `applyChe
 command to the group that owns it and mark the powers concerned (`Player.cheated`). The groups are
 files under `cheats/`, each with its command union, a check and an apply that answer null for a
 command not theirs, and its list of specs: `treasury.ts` (gold, crosses, bells, a Founding Father,
-the tax rate, boycotts) and `map.ts` (lifting the fog); `shared.ts` has the refusal, the outcome
+the tax rate, boycotts), `map.ts` (lifting the fog; a square's ground and features) and `units.ts`
+(a new unit, a unit moved, its moves, a repair, a promotion); `shared.ts` has the refusal, the outcome
 and the readers a spec's `build` takes its arguments apart with. A cheat changes the state through
 the game's own functions wherever there is one. Defaults are in `data/cheats.ts`. The engine knows
 nothing of the text a player types: turning a line into a command is the UI's business.
