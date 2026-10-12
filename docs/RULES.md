@@ -2103,6 +2103,42 @@ Cheats are this game's own; none of this is a rule of play.
   - *reveal*: makes every square of the map known to the power; or, given a square, the squares
     within a radius of it (default 3), as if a unit with that sight had stood there. A square off
     the map is refused.
+  - *terrain* (R-1059): sets the ground of a square. An open or a forest kind sets the ground and
+    its forest and levels it; hills and mountains are raised on the land that is there, and are
+    refused on water; arctic, ocean and sea lane replace the ground. A square turned to water
+    loses its road, plow, river, resource and rumour; land that is no longer open loses its plow.
+    Refused under a colony or a settlement, under a unit the new ground could not carry (a
+    land unit not aboard a ship on water, a ship on land), and for water over burial mounds a
+    power has yet to decide about.
+  - *road*, *plow*, *river*, *resource*, *rumor* (R-1059): set one feature of a square. A road, a
+    plow, a river and a rumour need land; a plow needs open land (not forest, hills, mountains or
+    arctic); a resource must be one the square's terrain carries, and may be taken away anywhere;
+    a rumour cannot be started under a colony or a settlement.
+  - *spawn* (R-1059): a new unit of the power, of any type but the natives' and damaged
+    artillery, with the next id. The six types a colonist takes on may be given a profession (a
+    free colonist if none); no other type takes one, and the Continental line carries the
+    veteran's name as it does in play. *At a square*: full moves, no orders; a land unit on land,
+    a ship on water or in the power's own colony; refused on a settlement, on another power's
+    colony and on a square holding a unit not the power's; the squares in its sight become known
+    to its owner. *In a colony of the power's*: one of the six types joins as a colonist, its kit
+    going to the warehouse, refused when the colony is full; any other type stands on the colony's
+    square. *In Europe*: a ship in port or a unit on the docks, as one bought there; refused when
+    Europe is closed to the power, and for a wagon train, which no ship carries. A pioneer has a
+    full kit of tools (100); a treasure train carries 1000 gold.
+  - *teleport* (R-1059): moves one of the power's units on the map, and all aboard it, to a square
+    it could stand on by the same test as spawn. Its moves are kept; its standing orders are
+    dropped, but for a trade route. The squares in its sight become known. Refused for a unit at
+    sea to or from Europe or in Europe, and for one aboard a carrier.
+  - *moves* (R-1059): gives a unit the moves a turn would. Refused off the map and for a ship
+    under repair.
+  - *repair* (R-1059): a ship under repair is sound at once, wherever she lies. Refused for
+    anything else.
+  - *promote* (R-1059): a soldier or a dragoon becomes a veteran. Refused for any other unit and
+    for one who is a veteran already, a hired veteran dragoon among them.
+  - A spawned or teleported unit meets nobody and explores no rumour by the cheat itself: the game
+    looks, as it always does, when a unit of the power next moves or its next turn begins. It
+    looks at every unit of the power then, so a unit put on a rumour looks into it at the next
+    move of any of them.
   - *goods*: adds to one good in a colony's warehouse, takes from it or sets it; or does so to
     every one of the sixteen goods at once, and then the whole is refused if any one of them would
     go below nothing. The warehouse may be left holding more than it has room for: the end of the
