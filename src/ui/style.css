@@ -824,10 +824,12 @@ canvas.minimap {
 .colony-message:empty, .colony-message:not(:empty) + .colony-help { display: none; }
 .colony-help { color: var(--ink-faded); font-style: italic; font-size: 0.78rem; }
 .colony-help::before { content: '* '; font-style: normal; }
-.colony-close { grid-area: exit; justify-self: end; align-self: center; }
+/* the commands are a region for the keyboard's sake, not a panel of the sheet */
+.colony-screen .colony-commands { grid-area: exit; justify-self: end; align-self: center; display: flex; align-items: center; gap: 8px; border: 0; background: none; box-shadow: none; padding: 0; overflow: visible; }
 
-.colony-close, .tab, .construction-change, .construction-buy { padding: 2px 10px; }
+.colony-close, .colony-abandon, .tab, .construction-change, .construction-buy { padding: 2px 10px; }
 .colony-close { background: var(--plate-brass); padding: 4px 16px; }
+.colony-abandon { padding: 4px 12px; }
 .colony-screen button:focus-visible { outline-offset: -1px; }
 
 /* anything that can be picked up: its name, and a line under it (the Europe screen has these too) */

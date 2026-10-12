@@ -2,7 +2,9 @@
 // be tested without a browser and rendered without further rule knowledge.
 import type { Action } from '../engine/actions';
 import { hasCustomHouse } from '../engine/custom-house';
+import { CALENDAR } from '../engine/calendar';
 import { holdsFree, holdsUsed } from '../engine/cargo';
+import { abandonColony, type ColonyEvent } from '../engine/colony';
 import { availableItems, buyQuote, itemCost, itemName } from '../engine/construction';
 import { BUILDING_CHAINS, BUILDINGS, chainLevel, type BuildingChain, type BuildingId } from '../engine/data/buildings';
 import { GOOD_IDS, GOOD_NAMES, HOLD_CAPACITY, type GoodId } from '../engine/data/goods';
@@ -244,6 +246,38 @@ export function carrierRoom(state: GameState, unit: Unit): number {
   return holdsFree(state, unit);
 }
 
+// --- leaving and abandoning (R-1055) ----------------------------------------------------------
+
+/** What sending this colonist outside the gates asks of the game: the last one out abandons the colony. */
+export function leaveAction(state: GameState, colonyId: string, colonistId: string): Action {
+  const colonists = state.colonies[colonyId]?.colonists ?? [];
+  return colonists.length === 1 && colonists[0]?.id === colonistId ? { type: 'abandonColony', colonyId } : { type: 'leaveColony', colonyId, colonistId };
+}
+
+/** The question put before a colony is abandoned: who walks out, what is lost, and what else it costs. Null for no such colony. */
+export function abandonQuestion(state: GameState, colonyId: string): string | null {
+  const colony = state.colonies[colonyId];
+  if (!colony) return null;
+  const people = colony.colonists.length;
+  // what becomes of our ships in port is the game's to say: ask it, on a trial
+  const events: ColonyEvent[] = [];
+  const after = abandonColony(state, colony, events);
+  const sunk = events.filter((e) => e.type === 'shipSunk').length;
+  const ships = sunk + events.filter((e) => e.type === 'shipDamaged').length;
+  const riders = Object.values(state.units).some((u) => u.aboard !== null && u.owner === colony.owner && u.x === colony.x && u.y === colony.y && !after.units[u.id]);
+  const hold = riders ? 'cargo and everyone aboard' : 'cargo';
+  const one = sunk > 0 ? `Our ship in port has nowhere to go for repair and sinks with its ${hold}.` : `Our ship in port leaves damaged and loses its ${hold}.`;
+  const many = sunk > 0 ? `Our ${ships} ships in port have nowhere to go for repair and sink with their ${hold}.` : `Our ${ships} ships in port leave damaged and lose their ${hold}.`;
+  const only = !Object.values(state.colonies).some((c) => c.owner === colony.owner && c.id !== colony.id);
+  return [
+    `Abandon ${colony.name}?`,
+    people === 1 ? 'Its one colonist will walk out and stand on the square.' : `Its ${people} colonists will walk out and stand on the square.`,
+    'The buildings and everything in the warehouse are lost.',
+    ...(ships === 1 ? [one] : ships > 1 ? [many] : []),
+    ...(only ? [`This is our only colony: from ${CALENDAR.charterYear} on, holding no colony loses the charter.`] : []),
+  ].join(' ');
+}
+
 // --- what a drop would come to (R-1035) -----------------------------------------------------
 
 /** What letting go here would do: the game takes it, the game refuses it, or it is where it already stands. */
@@ -284,7 +318,7 @@ export function dropVerdict(
   const carrier = target.startsWith('carrier:') ? target.slice('carrier:'.length) : null;
 
   if (kind === 'colonist') {
-    if (target === 'outside') return probe({ type: 'leaveColony', colonyId, colonistId: id });
+    if (target === 'outside') return probe(leaveAction(state, colonyId, id));
     const field = target.startsWith('field:');
     if (!field && target !== 'idle' && !target.startsWith('trade:')) return 'bad';
     if (field && colony) {

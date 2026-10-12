@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { CALENDAR } from '../../../src/engine/calendar';
 import type { Action } from '../../../src/engine/actions';
 import type { Colonist, GameState, Job } from '../../../src/engine/state';
-import { colonyView, dropVerdict, homeOf, jobChoices } from '../../../src/ui/colony-model';
+import { abandonQuestion, colonyView, dropVerdict, homeOf, jobChoices, leaveAction } from '../../../src/ui/colony-model';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~', '~.f..~', '~~.g.~', '~....~', '~~~~~~'];
@@ -225,6 +226,15 @@ describe('drop verdicts', () => {
     expect(probes(port(), 'leaveColony').one('colonist:a', 'outside')[0]).toBe('bad');
   });
 
+  it('asks whether the colony may be abandoned when the last colonist is dragged outside', () => {
+    const s = port();
+    const alone = { ...s, colonies: { col: { ...s.colonies['col']!, colonists: s.colonies['col']!.colonists.filter((c) => c.id === 'a') } } };
+    expect(probes(alone).one('colonist:a', 'outside')).toEqual(['ok', { type: 'abandonColony', colonyId: 'col' }]);
+    expect(probes(alone, 'abandonColony').one('colonist:a', 'outside')[0]).toBe('bad');
+    // refusing to let anyone leave does not turn the last one back: that is not what is asked
+    expect(probes(alone, 'leaveColony').one('colonist:a', 'outside')[0]).toBe('ok');
+  });
+
   it('allows a colonist onto native land without asking, since the drop offers to buy it or take it', () => {
     const { one } = probes(setTile(port(), 3, 2, { homeland: 'sioux' }), 'assignJob');
     expect(one('colonist:c', 'field:1,0')).toEqual(['ok', null]);
@@ -272,5 +282,55 @@ describe('drop verdicts', () => {
     expect(one('carrier:ship', 'warehouse')).toEqual(['bad', null]);
     expect(one('carrier:ship', 'carrier:wagon')).toEqual(['bad', null]);
     expect(one('nothing:x', 'idle')).toEqual(['bad', null]);
+  });
+});
+
+describe('leaving and abandoning', () => {
+  const alone = (): GameState => withColony(world({ rows: ROWS }), { id: 'col', x: 2, y: 2, name: 'Plymouth', colonists: [who('a', { kind: 'idle' })] });
+
+  it('sending a colonist outside is leaving, and for the last one abandoning', () => {
+    expect(leaveAction(town(), 'col', 'a')).toEqual({ type: 'leaveColony', colonyId: 'col', colonistId: 'a' });
+    expect(leaveAction(alone(), 'col', 'a')).toEqual({ type: 'abandonColony', colonyId: 'col' });
+    // somebody who is not there, or no colony at all, is left for the game to refuse
+    expect(leaveAction(alone(), 'col', 'ghost')).toEqual({ type: 'leaveColony', colonyId: 'col', colonistId: 'ghost' });
+    expect(leaveAction(alone(), 'nope', 'a')).toEqual({ type: 'leaveColony', colonyId: 'nope', colonistId: 'a' });
+  });
+
+  it('the question names the colony, counts who walks out and says what is lost', () => {
+    const two = withColony(town(), { id: 'other', x: 4, y: 1, name: 'Boston' });
+    const inland = { ...two, units: { far: two.units['far']! } };
+    expect(abandonQuestion(inland, 'col')).toBe('Abandon Plymouth? Its 3 colonists will walk out and stand on the square. The buildings and everything in the warehouse are lost.');
+    expect(abandonQuestion(inland, 'other')).toBe('Abandon Boston? Its one colonist will walk out and stand on the square. The buildings and everything in the warehouse are lost.');
+    expect(abandonQuestion(inland, 'nope')).toBeNull();
+  });
+
+  it('adds what becomes of our ships in port, and of nobody else', () => {
+    const two = withColony(town(), { id: 'other', x: 4, y: 1, name: 'Boston' });
+    expect(abandonQuestion(two, 'col')).toContain('lost. Our ship in port leaves damaged and loses its cargo and everyone aboard.');
+    const fleet = withUnit(two, { id: 'ship2', type: 'merchantman', x: 2, y: 2 });
+    expect(abandonQuestion(fleet, 'col')).toMatch(/Our 2 ships in port leave damaged and lose their cargo and everyone aboard[.]$/);
+    // those aboard go with the cargo; the colonist standing ashore does not
+    expect(abandonQuestion(withUnit(fleet, { id: 'q', x: 2, y: 2 }), 'col')).toMatch(/lose their cargo and everyone aboard[.]$/);
+    expect(abandonQuestion({ ...two, units: { ship: two.units['ship']! } }, 'col')).toMatch(/Our ship in port leaves damaged and loses its cargo[.]$/);
+    // at war, with no Drydock of ours left to make for, Europe is closed: they sink
+    const atWar = (s: GameState): GameState => ({ ...s, players: s.players.map((p) => (p.id === s.colonies['col']!.owner ? { ...p, atWar: true } : p)) });
+    expect(abandonQuestion(atWar(two), 'col')).toMatch(/Our ship in port has nowhere to go for repair and sinks with its cargo and everyone aboard[.]$/);
+    expect(abandonQuestion(atWar(fleet), 'col')).toMatch(/Our 2 ships in port have nowhere to go for repair and sink with their cargo and everyone aboard[.]$/);
+    const yard = withColony(atWar(two), { id: 'yard', x: 4, y: 3, buildings: ['docks', 'drydock'] });
+    expect(abandonQuestion(yard, 'col')).toMatch(/Our ship in port leaves damaged and loses its cargo and everyone aboard[.]$/);
+    // a wagon train is no ship; nor is a ship elsewhere, or another power's
+    let none: GameState = { ...two, units: { far: two.units['far']! } };
+    none = withUnit(none, { id: 'wagon', type: 'wagonTrain', x: 2, y: 2 });
+    none = withUnit(none, { id: 'away', type: 'caravel', x: 1, y: 2 });
+    none = withUnit(none, { id: 'theirs', type: 'caravel', x: 2, y: 2, owner: 'b' });
+    expect(abandonQuestion(none, 'col')).not.toContain('ship');
+  });
+
+  it('warns that the only colony is the charter, from the charter year on', () => {
+    const warning = `This is our only colony: from ${CALENDAR.charterYear} on, holding no colony loses the charter.`;
+    expect(abandonQuestion(alone(), 'col')).toBe(`Abandon Plymouth? Its one colonist will walk out and stand on the square. The buildings and everything in the warehouse are lost. ${warning}`);
+    // another power's colony does not keep our charter; a second one of ours does
+    expect(abandonQuestion(withColony(alone(), { id: 'theirs', x: 4, y: 3, owner: 'b' }), 'col')).toContain(warning);
+    expect(abandonQuestion(withColony(alone(), { id: 'ours', x: 4, y: 3 }), 'col')).not.toContain('charter');
   });
 });

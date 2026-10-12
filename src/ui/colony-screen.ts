@@ -13,7 +13,7 @@ import { COLONIST_ROLES } from '../engine/data/equipment';
 import type { GoodId } from '../engine/data/goods';
 import type { GameState, Job, Unit } from '../engine/state';
 import { checkCashTreasure, treasureQuote } from '../engine/royal';
-import { colonyView, dropVerdict, jobChoices, type ColonyView, type DropVerdict, type PersonView } from './colony-model';
+import { abandonQuestion, colonyView, dropVerdict, jobChoices, leaveAction, type ColonyView, type DropVerdict, type PersonView } from './colony-model';
 import { ask, askText } from './dialog';
 import { buildingArt, figureArt, flagArt, goodArt, type Sprite } from './pixel-art';
 import { inkOf } from './render';
@@ -26,6 +26,8 @@ export interface ColonyScreenHost {
   readonly dispatch: (action: Action) => boolean;
   /** Reason for refusing an action, or null if it would be accepted. */
   readonly refusal: (action: Action) => string | null;
+  /** The player looking at the screen: only their own colony offers to be abandoned. */
+  readonly player: () => string;
   readonly close: () => void;
 }
 
@@ -75,6 +77,13 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   let focusKey = '';
   /** The token picked by a click or a drag, as its drag source ("colonist:id"); the next click on a place sends it there. */
   let selected = '';
+  /** The screen has asked to be closed: nothing more is drawn, and the host is not asked twice. */
+  let closed = false;
+  const close = (): void => {
+    if (closed) return;
+    closed = true;
+    host.close();
+  };
 
   const tell = (text: string): void => {
     message = text;
@@ -148,7 +157,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   async function drop(source: string, target: string, partial: boolean): Promise<void> {
     const [kind, id, extra] = source.split(':') as [string, string, string | undefined];
     if (kind === 'colonist') {
-      if (target === 'outside') attempt({ type: 'leaveColony', colonyId, colonistId: id });
+      if (target === 'outside') await leave(id);
       else {
         const ours = await settleLand(target);
         const job = ours ? jobForTarget(target, id) : null;
@@ -191,6 +200,28 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     return answer !== null && Number.isFinite(n) && n > 0 ? Math.min(n, most) : 0;
   }
 
+  // --- leaving and abandoning --------------------------------------------------------------
+
+  /** Asks once whether the colony is to be given up, and gives it up on yes: the screen then closes. A refusal is told instead. */
+  async function abandon(): Promise<void> {
+    const action: Action = { type: 'abandonColony', colonyId };
+    const text = abandonQuestion(host.state(), colonyId);
+    const why = host.refusal(action);
+    if (why || text === null) {
+      if (why) tell(why);
+      return;
+    }
+    const pick = await ask(root, { text, choices: ['No, keep it', 'Yes, abandon it'], escape: 0 });
+    if (pick === 1 && attempt(action)) close();
+  }
+
+  /** A colonist steps outside the gates; the last one out abandons the colony, once the player has agreed to it. */
+  async function leave(colonistId: string): Promise<void> {
+    const action = leaveAction(host.state(), colonyId, colonistId);
+    if (action.type === 'abandonColony') await abandon();
+    else attempt(action);
+  }
+
   // --- menus ------------------------------------------------------------------------------
 
   async function jobsMenu(colonistId: string): Promise<void> {
@@ -204,7 +235,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     const chosen = choices[pick];
     if (chosen) attempt({ type: 'assignJob', colonyId, colonistId, job: chosen.job });
     else if (clear && pick === choices.length) attempt({ type: 'clearSpecialty', colonyId, colonistId });
-    else if (pick === labels.length - 2) attempt({ type: 'leaveColony', colonyId, colonistId });
+    else if (pick === labels.length - 2) await leave(colonistId);
     focusKey = `colonist:${colonistId}`;
     render();
   }
@@ -334,9 +365,10 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   }
 
   function render(): void {
+    if (closed) return;
     const view = colonyView(host.state(), colonyId);
     if (!view) {
-      host.close();
+      close();
       return;
     }
     if (carrierId === null || !view.carriers.some((c) => c.id === carrierId)) carrierId = view.carriers[0]?.id ?? null;
@@ -367,7 +399,22 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     header.append(el('h2', '', view.name), el('span', 'colony-pop', `Population ${view.population}`), gauge);
     const done = el('button', 'colony-close', 'Exit (Esc)');
     done.type = 'button';
-    done.addEventListener('click', () => host.close());
+    done.addEventListener('click', close);
+    // the commands at the foot of the sheet: giving the colony up (our own only), and leaving the screen
+    const commands = el('div', 'colony-commands');
+    commands.dataset['region'] = 'commands';
+    commands.setAttribute('role', 'group');
+    commands.setAttribute('aria-label', 'Commands');
+    if (view.owner === host.player()) {
+      const giveUp = el('button', 'colony-abandon', 'Abandon colony');
+      giveUp.type = 'button';
+      const why = host.refusal({ type: 'abandonColony', colonyId });
+      giveUp.disabled = why !== null;
+      if (why) giveUp.title = why;
+      giveUp.addEventListener('click', () => void abandon().then(render));
+      commands.append(giveUp);
+    }
+    commands.append(done);
 
     const settlement = region('settlement', 'Settlement');
     for (const b of view.buildings) {
@@ -500,7 +547,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     picked?.classList.add('token-selected');
     showHolding();
     restoreDrag();
-    root.append(el('p', 'colony-help', helpFor(picked?.querySelector('.token-label')?.textContent ?? '')), done);
+    root.append(el('p', 'colony-help', helpFor(picked?.querySelector('.token-label')?.textContent ?? '')), commands);
     const again = focusKey ? root.querySelector<HTMLElement>(`[data-key="${focusKey}"]`) : null;
     (again ?? root.querySelector<HTMLElement>('.token') ?? root).focus();
   }
@@ -698,7 +745,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   // --- keyboard ---------------------------------------------------------------------------------
 
   const focusables = (scope: ParentNode): HTMLElement[] => [...scope.querySelectorAll<HTMLElement>('button:not(:disabled)')];
-  const REGIONS = ['settlement', 'area', 'people', 'multi', 'transport', 'warehouse'];
+  const REGIONS = ['settlement', 'area', 'people', 'multi', 'transport', 'warehouse', 'commands'];
 
   root.addEventListener('keydown', (event) => {
     if ((event.target as HTMLElement).closest('.dialog')) return;
@@ -713,7 +760,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
 
     if (event.key === 'Escape') {
       handled();
-      host.close();
+      close();
       return;
     }
     if (event.key === 'Tab') {
