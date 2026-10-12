@@ -3,11 +3,14 @@ import { applyAction, validateAction, type Action, type GameEvent } from '../../
 import { isHostile } from '../../../../src/engine/alarm';
 import { checkCheat, CHEAT_SPECS, type CheatArgValue, type CheatCommand } from '../../../../src/engine/cheats';
 import { WORLD_SPECS } from '../../../../src/engine/cheats/world';
+import { CHEATS } from '../../../../src/engine/data/cheats';
 import { GOOD_IDS } from '../../../../src/engine/data/goods';
 import { MARKET } from '../../../../src/engine/data/market';
+import { ROYAL } from '../../../../src/engine/data/royal';
 import { NATIVES } from '../../../../src/engine/data/tribes';
 import { checkInvariants } from '../../../../src/engine/invariants';
 import { askPrice, bidPrice } from '../../../../src/engine/market';
+import { growRef } from '../../../../src/engine/royal';
 import type { GameState, Player, Settlement, TribeState } from '../../../../src/engine/state';
 import { deepFreeze } from '../../../helpers/freeze';
 import { withBids, world } from '../../../helpers/world';
@@ -161,6 +164,14 @@ describe('stance', () => {
     expect(power(others, 'c').stance).toEqual({ b: 'war' });
   });
 
+  it('with a power not yet met is refused where a meeting would be, and still sets the stance of powers that had met', () => {
+    const rebel = patch(base(), { atWar: true }, 'c');
+    expect(refusal(rebel, { cheat: 'stance', power: 'c', stance: 'war' })).toEqual({ code: 'cheatTarget', message: 'C is fighting for its independence and meets no one' });
+    expect(refusal(patch(base(), { atWar: true }), { cheat: 'stance', power: 'b', stance: 'peace' }).message).toBe('A is fighting for its independence and meets no one');
+    const known = patch(run(base(), { cheat: 'stance', power: 'c', stance: 'war' }).state, { atWar: true }, 'c');
+    expect(power(run(known, { cheat: 'stance', power: 'c', stance: 'peace' }).state, 'c').stance).toEqual({ a: 'peace' });
+  });
+
   it('is refused for itself, for no power, and for a word that is neither', () => {
     expect(refusal(base(), { cheat: 'stance', power: 'a', stance: 'war' }).code).toBe('cheatTarget');
     expect(refusal(base(), { cheat: 'stance', power: 'z', stance: 'war' }).message).toBe('"z" is not a power in the New World');
@@ -195,6 +206,16 @@ describe('crown', () => {
     expect(summary(added.events)).toBe("Added 1000 gold to the King's war chest.");
     expect(power(run(state, { cheat: 'crown', part: 'gold', amount: add(-500) }).state).royalMoney).toBe(0);
     expect(summary(run(state, { cheat: 'crown', part: 'gold', amount: set(7) }).events)).toBe("Set the gold of the King's war chest to 7.");
+  });
+
+  it('is refused past the most a cheat will write, which a turn can still spend', () => {
+    expect(power(run(base(), { cheat: 'crown', part: 'gold', amount: set(CHEATS.most) }).state).royalMoney).toBe(CHEATS.most);
+    expect(refusal(base(), { cheat: 'crown', part: 'gold', amount: set(1000000000) })).toEqual({ code: 'cheatAmount', message: `the Crown is given no more than ${CHEATS.most} gold` });
+    expect(refusal(base(), { cheat: 'crown', part: 'regulars', amount: add(CHEATS.most) }).code).toBe('cheatAmount');
+    const grown = growRef(run(base(), { cheat: 'crown', part: 'gold', amount: set(CHEATS.most) }).state, 'a', []);
+    expect(power(grown).royalMoney).toBeLessThan(ROYAL.unitCost);
+    const over = patch(base(), { royalMoney: CHEATS.most + 500 });
+    expect(power(run(over, { cheat: 'crown', part: 'gold', amount: add(-100) }).state).royalMoney).toBe(CHEATS.most + 400);
   });
 
   it('is refused, not clamped, below nothing; and for an amount that is not whole or a part there is none of', () => {

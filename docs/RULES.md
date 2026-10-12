@@ -2129,12 +2129,13 @@ Cheats are this game's own; none of this is a rule of play.
   - *peace*: a treaty with a tribe. If they had not met they meet, as on first contact (the tribe
     starts no worse than wary); the tribe is at peace with the power and forgets a settlement
     destroyed; an offer of a treaty still waiting is taken as answered; a computer power that had
-    resolved to fight that tribe gives it up. The alarm is left as it is.
+    resolved to fight that tribe gives it up. Beyond what a first meeting does, the alarm is left
+    as it is.
   - *meet*: two powers meet as if their people stood side by side on land: at war until they agree
     otherwise, two computer powers settling it at once, a computer power asking a human one for an
     audience. Refused if they have met, and if either is fighting its War of Independence.
   - *stance*: sets peace or war between the power and another, on both sides, meeting it first
-    (as *meet* does) if they had not met. Nothing else of their dealings is changed: no grudge is
+    (as *meet* does, and refused where *meet* would be) if they had not met. Nothing else of their dealings is changed: no grudge is
     made by a war begun this way, and none is forgiven by a peace.
   - *crown*: adds to the regulars, the cavalry, the artillery or the ships of the Expeditionary
     Force held against the power, takes from them or sets them; or does the same to the King's
@@ -2142,6 +2143,8 @@ Cheats are this game's own; none of this is a rule of play.
   - *price*: sets what Europe pays the power for a good. The number is held to the limits between
     which that good's price moves, and the asking price follows it as always. The traffic that
     moves prices is left alone, so the price drifts on from there.
+  - *goods*, *hammers* and *crown* leave no count above 100000 (a count already past it may
+    still be brought down): the turn's own reckoning is not made for sums beyond any play.
   - A colony named in a cheat must be a colony of the power the cheat is for; the other power in
     *meet* and *stance* must be a European power still in the New World, and not the same one.
 - Every cheat reports one sentence saying what it did, with its figures in plain digits.

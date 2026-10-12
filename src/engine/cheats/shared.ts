@@ -2,6 +2,7 @@
 // arguments of a spec apart (R-1058). The types of the grammar itself live in ../cheats.ts.
 import type { CheatArgValue } from '../cheats';
 import type { CongressEvent } from '../congress';
+import { CHEATS } from '../data/cheats';
 import type { IndependenceEvent } from '../independence';
 import type { GameState } from '../state';
 
@@ -44,6 +45,9 @@ export function amountAfter(current: number, amount: { readonly set: boolean; re
   const after = amount.set ? amount.value : current + amount.value;
   return Number.isSafeInteger(after) ? after : null;
 }
+
+/** Would a cheat leave a count past the most it may write? A count already past it may still come down. */
+export const pastMost = (current: number, after: number): boolean => after > Math.max(CHEATS.most, current);
 
 export const onMap = (state: GameState, x: number, y: number): boolean => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < state.map.width && y < state.map.height;
 

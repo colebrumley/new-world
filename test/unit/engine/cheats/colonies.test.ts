@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, validateAction, type Action, type GameEvent } from '../../../../src/engine/actions';
 import { checkCheat, CHEAT_SPECS, type CheatArgValue, type CheatCommand } from '../../../../src/engine/cheats';
 import { COLONIES_SPECS } from '../../../../src/engine/cheats/colonies';
+import { hasWaterSquare, isPortColony } from '../../../../src/engine/construction';
 import { BUILDINGS } from '../../../../src/engine/data/buildings';
+import { CHEATS } from '../../../../src/engine/data/cheats';
 import { GOOD_IDS } from '../../../../src/engine/data/goods';
 import { checkInvariants } from '../../../../src/engine/invariants';
 import { solPercent } from '../../../../src/engine/liberty';
@@ -74,6 +76,20 @@ describe('goods', () => {
     for (const value of [1.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1]) expect(refusal(base(), { cheat: 'goods', colonyId: 'c1', good: 'food', amount: add(value) }).code, String(value)).toBe('cheatAmount');
     expect(refusal(base(), { cheat: 'goods', colonyId: 'c1', good: 'food' } as unknown as CheatCommand).code).toBe('cheatAmount');
     expect(refusal(base(), { cheat: 'goods', colonyId: 'c1', good: 'hammers', amount: add(1) } as unknown as CheatCommand)).toEqual({ code: 'cheatTarget', message: 'there is no good "hammers"' });
+  });
+});
+
+describe('the most a colony cheat will write', () => {
+  it('is refused past it for a good and for the hammers, and a count already past it may come down', () => {
+    expect(validateAction(base(), cheat({ cheat: 'goods', colonyId: 'c1', good: 'all', amount: set(CHEATS.most) })).ok).toBe(true);
+    expect(refusal(base(), { cheat: 'goods', colonyId: 'c1', good: 'silver', amount: set(CHEATS.most + 1) })).toEqual({ code: 'cheatAmount', message: `a warehouse is given no more than ${CHEATS.most} of a good` });
+    expect(refusal(base({ goods: { silver: 1 } }), { cheat: 'goods', colonyId: 'c1', good: 'all', amount: add(CHEATS.most) }).code).toBe('cheatAmount');
+    expect(validateAction(base(), cheat({ cheat: 'hammers', colonyId: 'c1', amount: add(CHEATS.most) })).ok).toBe(true);
+    expect(refusal(base({ hammers: 1 }), { cheat: 'hammers', colonyId: 'c1', amount: add(CHEATS.most) })).toEqual({ code: 'cheatAmount', message: `a colony is given no more than ${CHEATS.most} hammers` });
+    const rich = base({ hammers: CHEATS.most + 50, goods: { ore: CHEATS.most + 50 } });
+    expect(town(run(rich, { cheat: 'hammers', colonyId: 'c1', amount: add(-10) }).state).hammers).toBe(CHEATS.most + 40);
+    expect(town(run(rich, { cheat: 'goods', colonyId: 'c1', good: 'ore', amount: add(-10) }).state).goods).toEqual({ ore: CHEATS.most + 40 });
+    expect(refusal(rich, { cheat: 'goods', colonyId: 'c1', good: 'ore', amount: add(1) }).code).toBe('cheatAmount');
   });
 });
 
@@ -171,6 +187,14 @@ describe('building', () => {
     const one = run(state, { cheat: 'building', colonyId: 'c1', building: 'stable' });
     expect(town(one.state).buildings).toEqual(['stable']);
     expect(summary(one.events)).toBe('Built in Jamestown: Stable.');
+  });
+
+  it('puts a shipyard in a colony far from any water', () => {
+    const inland = withColony(base(), { id: 'c3', name: 'Inland', x: 3, y: 2 });
+    expect(hasWaterSquare(inland, town(inland, 'c3'))).toBe(false);
+    expect(isPortColony(inland, town(inland, 'c3'))).toBe(false);
+    expect(BUILDINGS.docks.coastal && BUILDINGS.shipyard.coastal).toBe(true);
+    expect(town(run(inland, { cheat: 'building', colonyId: 'c3', building: 'shipyard' }).state, 'c3').buildings).toEqual(['docks', 'drydock', 'shipyard']);
   });
 
   it('is refused if the colony has it, if there is none such, and for one never built in play', () => {

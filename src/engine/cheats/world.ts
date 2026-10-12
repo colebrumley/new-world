@@ -5,13 +5,14 @@
 // game's that sets one, and the ordinary turn takes it from there.
 import { meetTribe, type AlarmEvent } from '../alarm';
 import type { CheatCommand, CheatSpec } from '../cheats';
+import { CHEATS } from '../data/cheats';
 import { GOOD_IDS, GOOD_NAMES, type GoodId } from '../data/goods';
 import { MARKET } from '../data/market';
 import { NATIVES, TRIBES, type TribeId } from '../data/tribes';
 import { powersMeet, setStance, type DiplomacyEvent } from '../diplomacy';
 import { bidPrice } from '../market';
 import type { GameState, Player, PlayerId, RefForce, Settlement, TribeState } from '../state';
-import { amountAfter, amountArg, CHEAT_OK, choiceArg, isCount, numberArg, refuse, wordArg, type CheatCheck, type CheatOutcome, type CheatSink } from './shared';
+import { amountAfter, amountArg, CHEAT_OK, choiceArg, isCount, numberArg, pastMost, refuse, wordArg, type CheatCheck, type CheatOutcome, type CheatSink } from './shared';
 
 type Amount = { readonly set: boolean; readonly value: number };
 const CROWN_PARTS = ['regulars', 'cavalry', 'artillery', 'ships', 'gold'] as const;
@@ -44,6 +45,12 @@ function otherPower(state: GameState, player: Player, id: PlayerId): Player | Ch
 }
 const isPlayer = (found: Player | CheatCheck): found is Player => 'id' in found;
 
+/** A power fighting for its independence treats with no one, and the game's own meeting does nothing for it: the refusal, if either is. */
+function fightingFor(player: Player, other: Player): CheatCheck | null {
+  const fighting = player.atWar ? player : other.atWar ? other : null;
+  return fighting ? refuse('cheatTarget', `${fighting.name} is fighting for its independence and meets no one`) : null;
+}
+
 /** A settlement's own alarm runs past a hundred; a percent is of the mark at which it turns hostile. */
 const settlementAlarmFor = (percent: number): number => Math.round((percent * NATIVES.settlementHostile) / FULL);
 
@@ -71,21 +78,23 @@ export function checkWorld(state: GameState, player: Player, command: CheatComma
       const other = otherPower(state, player, command.power);
       if (!isPlayer(other)) return other;
       if (hasMet(player, other.id) || hasMet(other, player.id)) return refuse('cheatTarget', `${player.name} and ${other.name} have met already`);
-      // a power fighting for its independence treats with no one, and the game's own meeting does nothing for it
-      const fighting = player.atWar ? player : other.atWar ? other : null;
-      return fighting ? refuse('cheatTarget', `${fighting.name} is fighting for its independence and meets no one`) : CHEAT_OK;
+      return fightingFor(player, other) ?? CHEAT_OK;
     }
     case 'stance': {
       const other = otherPower(state, player, command.power);
       if (!isPlayer(other)) return other;
-      return (STANCES as readonly string[]).includes(command.stance) ? CHEAT_OK : refuse('cheatTarget', 'a stance is peace or war');
+      if (!(STANCES as readonly string[]).includes(command.stance)) return refuse('cheatTarget', 'a stance is peace or war');
+      if (hasMet(player, other.id) && hasMet(other, player.id)) return CHEAT_OK;
+      return fightingFor(player, other) ?? CHEAT_OK;
     }
     case 'crown': {
       if (!(CROWN_PARTS as readonly string[]).includes(command.part)) return refuse('cheatTarget', `the Crown has ${CROWN_PARTS.join(', ')}, and no "${String(command.part)}"`);
       const now = crownFigure(player, command.part);
       const after = amountAfter(now, command.amount);
       if (after === null) return refuse('cheatAmount', `an amount of ${command.part} is a whole number`);
-      return after < 0 ? refuse('cheatBelowZero', `the Crown has only ${now} ${command.part}`) : CHEAT_OK;
+      if (after < 0) return refuse('cheatBelowZero', `the Crown has only ${now} ${command.part}`);
+      // the war chest buys the force a unit for every so much gold in it, each with its notice: it must stay a sum a turn can spend
+      return pastMost(now, after) ? refuse('cheatAmount', `the Crown is given no more than ${CHEATS.most} ${command.part}`) : CHEAT_OK;
     }
     case 'price':
       if (!(GOOD_IDS as readonly string[]).includes(command.good)) return refuse('cheatTarget', `there is no good "${String(command.good)}"`);

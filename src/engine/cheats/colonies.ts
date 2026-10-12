@@ -7,10 +7,11 @@ import type { CheatCommand, CheatSpec } from '../cheats';
 import { addGoods, amountOf } from '../cargo';
 import { itemCost, itemName } from '../construction';
 import { BUILDING_CHAINS, BUILDING_IDS, BUILDINGS, type BuildingId } from '../data/buildings';
+import { CHEATS } from '../data/cheats';
 import { GOOD_IDS, GOOD_NAMES, type GoodId } from '../data/goods';
 import { solPercent } from '../liberty';
 import type { Colony, ColonyId, GameState, Player } from '../state';
-import { amountAfter, amountArg, CHEAT_OK, choiceArg, isCount, numberArg, refuse, wordArg, type CheatCheck, type CheatOutcome, type CheatSink } from './shared';
+import { amountAfter, amountArg, CHEAT_OK, choiceArg, isCount, numberArg, pastMost, refuse, wordArg, type CheatCheck, type CheatOutcome, type CheatSink } from './shared';
 
 type Amount = { readonly set: boolean; readonly value: number };
 
@@ -79,13 +80,15 @@ export function checkColonies(state: GameState, player: Player, command: CheatCo
         const after = amountAfter(amountOf(colony.goods, good), command.amount);
         if (after === null) return refuse('cheatAmount', 'an amount of goods is a whole number');
         if (after < 0) return refuse('cheatBelowZero', `${colony.name} holds only ${amountOf(colony.goods, good)} ${GOOD_NAMES[good].toLowerCase()}`);
+        if (pastMost(amountOf(colony.goods, good), after)) return refuse('cheatAmount', `a warehouse is given no more than ${CHEATS.most} of a good`);
       }
       return CHEAT_OK;
     }
     case 'hammers': {
       const after = amountAfter(colony.hammers, command.amount);
       if (after === null) return refuse('cheatAmount', 'an amount of hammers is a whole number');
-      return after < 0 ? refuse('cheatBelowZero', `${colony.name} has only ${colony.hammers} hammers put by`) : CHEAT_OK;
+      if (after < 0) return refuse('cheatBelowZero', `${colony.name} has only ${colony.hammers} hammers put by`);
+      return pastMost(colony.hammers, after) ? refuse('cheatAmount', `a colony is given no more than ${CHEATS.most} hammers`) : CHEAT_OK;
     }
     case 'finish': {
       const item = colony.construction;
