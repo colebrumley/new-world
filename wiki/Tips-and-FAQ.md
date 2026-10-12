@@ -50,6 +50,10 @@ Goods they lack, room to live, and to be left in peace. A chief will tell a scou
 
 You can once half your colonists support it (50% rebel sentiment). Before you do, make sure the colonies that will be attacked are well defended, with veteran soldiers, artillery and stout walls, and that the Sons of Liberty are strong in them. When the war starts, each colony at 50% membership or more turns some of its veteran soldiers and dragoons into Continental Army: more as membership climbs toward 100%, up to half the colony's population, and always at least one. The Continental Congress report (F3) shows the force the King will send. Declaring cuts you off from Europe, so stock up on muskets, horses and tools first. See [[The Crown and Independence]].
 
+### Is there a cheat menu?
+
+Yes, for fun: **Alt+C** (or **Menu...** then **Cheats**) opens a console where you type a line such as `gold 5000` or `reveal` and the game does it at once. A game in which a cheat was used is scored and entered in the Hall of Fame like any other, but marked as cheated. See [[Help and Options#Cheats]].
+
 ### Where do I report a bug?
 
 Open an issue in the repository's [Issues](https://github.com/colebrumley/new-world/issues). Say what you did, what you expected and what happened. An exported save (see [[Help and Options]]) helps a great deal.

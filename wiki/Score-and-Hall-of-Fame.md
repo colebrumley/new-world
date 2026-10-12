@@ -108,7 +108,7 @@ While you look over the map of a finished game you can scroll, zoom, read the re
 
 ## The Hall of Fame
 
-Every finished game is put forward for the Hall of Fame: your leader and nation (marked a rebel if you declared independence and a liberator if you won it), the level, the date the game ended, the score, the rating and the honour. Only the ten best are kept, best rating first and then best score, so a game that rates below all ten leaves no line. The same ending is entered only once, even if you load the game again after it has ended.
+Every finished game is put forward for the Hall of Fame: your leader and nation (marked a rebel if you declared independence and a liberator if you won it), the level, the date the game ended, the score, the rating and the honour. Only the ten best are kept, best rating first and then best score, so a game that rates below all ten leaves no line. The same ending is entered only once, even if you load the game again after it has ended. A game in which a cheat was used is scored and entered like any other, with "cheated" after the leader's name, and its score report says so above the total (see [[Help and Options#Cheats]]).
 
 The Hall of Fame is shown beneath the score in the reckoning when a game ends, and from the title screen with **View Hall of Fame**.
 
