@@ -64,6 +64,7 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'map', keys: 'Alt+P', action: 'Encyclopedia', command: 'menu' },
   { context: 'map', keys: 'Right-click', action: 'Open the encyclopedia at whatever is under the pointer (a unit, the terrain, a building, a cargo, a colonist)' },
   { context: 'map', keys: 'Alt+O', action: 'Colony report options: labels, and which colony news is reported', command: 'menu' },
+  { context: 'map', keys: 'Alt+C', action: 'Cheats: a console that takes a typed line such as gold 5000 or reveal, and does it at once', command: 'menu' },
   { context: 'map', keys: 'Esc', action: 'Cancel (Go To targeting, panels)', command: 'cancel' },
   { context: 'map', keys: 'Click / drag / pointer at edge', action: 'Centre on a square (or open your colony there) / pan / scroll the view' },
   { context: 'map', keys: 'Click on your unit', action: 'Make it the active unit, waking it if it has orders (a list if several stand there); in view mode this also returns to move mode' },

@@ -51,12 +51,12 @@ describe('command bar', () => {
     for (const binding of KEYMAP) if (binding.command) expect(reachable, binding.keys).toContain(binding.command);
   });
 
-  it('lists the ten reports by function key and the six menus by letter', () => {
+  it('lists the ten reports by function key and the seven menus by letter', () => {
     expect(REPORT_CHOICES.map((c) => c.key)).toEqual(['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10']);
     expect(REPORT_CHOICES.map((c) => c.label)).toContain('Colonial Score');
     expect(REPORT_CHOICES.every((c) => !c.label.includes(':'))).toBe(true);
     expect(MENU_CHOICES.map((c) => `${c.label}=${c.command}:${c.key}`)).toEqual([
-      'Trade menu=menu:t', 'Game options=menu:g', 'Save or load a game=menu:l', 'Sound options=menu:s', 'Encyclopedia=menu:p', 'Colony report options=menu:o',
+      'Trade menu=menu:t', 'Game options=menu:g', 'Save or load a game=menu:l', 'Sound options=menu:s', 'Encyclopedia=menu:p', 'Colony report options=menu:o', 'Cheats=menu:c',
       'Declare independence=declare:i', 'Retire=retire:r',
     ]);
     for (const c of MENU_CHOICES) expect(viaKey(c.key, c.command !== 'menu', c.command === 'menu'), c.label).toBe(c.command);

@@ -15,7 +15,7 @@ describe('keyboard map', () => {
 
   it('covers every map key of Appendix K', () => {
     const map = KEYMAP.filter((k) => k.context === 'map').map((k) => k.keys).join(' | ');
-    for (const want of ['Arrows', 'numpad', 'A', 'W', 'Space', 'F', 'S', 'B', 'P', 'R', 'G', 'L', 'U', 'O', 'T', 'Shift-D', 'V', 'M', 'E', 'Z / X', 'H', 'C', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'Alt+T', 'Alt+G', 'Alt+O', 'Esc']) {
+    for (const want of ['Arrows', 'numpad', 'A', 'W', 'Space', 'F', 'S', 'B', 'P', 'R', 'G', 'L', 'U', 'O', 'T', 'Shift-D', 'V', 'M', 'E', 'Z / X', 'H', 'C', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'Alt+T', 'Alt+G', 'Alt+O', 'Alt+C', 'Esc']) {
       expect(map, want).toContain(want);
     }
     const colony = KEYMAP.filter((k) => k.context === 'colony').map((k) => k.keys);
@@ -40,6 +40,9 @@ describe('keyboard map', () => {
     expect(key('F10')).toBe('report');
     expect(key('F11')).toBeNull();
     expect(key('g', { altKey: true, code: 'KeyG' })).toBe('menu');
+    // Alt+C is the cheats menu (on some keyboards Alt changes the letter typed: the key's place decides), C alone centres the view
+    expect(key('ç', { altKey: true, code: 'KeyC' })).toBe('menu');
+    expect(KEYMAP.find((k) => k.context === 'map' && k.keys === 'Alt+C')).toMatchObject({ command: 'menu', action: expect.stringMatching(/^Cheats:/) });
     expect(key('ArrowUp', { altKey: true, code: 'ArrowUp' })).toBeNull();
     expect(key('q')).toBeNull();
   });
