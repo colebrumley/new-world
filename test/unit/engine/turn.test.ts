@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, listValidActions, validateAction, type GameEvent } from '../../../src/engine/actions';
 import { CALENDAR, dateOfTurn, firstTurnOfYear } from '../../../src/engine/calendar';
-import type { GameState } from '../../../src/engine/state';
+import { PROFESSIONS } from '../../../src/engine/data/professions';
+import { cheapestPersonPrice, crossesNeeded, recruitPrice } from '../../../src/engine/immigration';
+import { OFF_MAP, type GameState, type Voyage } from '../../../src/engine/state';
 import { withColony, withUnit, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~~~~~', '~~....~sss', '~~....~sss', '~~....~sss', '~~~~~~~~~~'];
 const FOUR = [{ id: 'england' }, { id: 'france' }, { id: 'spain' }, { id: 'netherlands' }];
+const withGold = (s: GameState, gold: number): GameState => ({ ...s, players: s.players.map((p) => ({ ...p, gold })) });
 const end = (s: GameState): { state: GameState; events: readonly GameEvent[] } => applyAction(s, { type: 'endTurn' });
 const atTurn = (s: GameState, turn: number, current = 0): GameState => ({ ...s, turn, current });
 
@@ -92,8 +95,11 @@ describe('end of the game', () => {
   });
 
   it('recalls a human player who holds no colony in or after 1600', () => {
-    const human = world({ rows: ROWS, players: [{ id: 'a' }] });
+    // with a unit, or the gold to send for someone, it plays through 1599
+    const bare = world({ rows: ROWS, players: [{ id: 'a' }] });
+    const human = withUnit(bare, { id: 'w', type: 'wagonTrain', x: 3, y: 2 });
     expect(end(atTurn(human, firstTurnOfYear(1599) - 1)).state.over).toBeNull();
+    expect(end(atTurn(withGold(bare, cheapestPersonPrice(bare, 'a')), firstTurnOfYear(1599) - 1)).state.over).toBeNull();
     const r = end(atTurn(human, firstTurnOfYear(1600) - 1));
     expect(r.state.over).toEqual({ reason: 'noColonies', turn: 108, player: 'a' });
     expect(r.events.at(-1)).toMatchObject({ type: 'gameEnded', reason: 'noColonies', year: 1600 });
@@ -102,6 +108,79 @@ describe('end of the game', () => {
     expect(end(atTurn(settled, firstTurnOfYear(1700))).state.over).toBeNull();
     // an AI power without colonies is not recalled
     expect(end(atTurn(ai, firstTurnOfYear(1650), 1)).state.over).toBeNull();
+  });
+
+  describe('ruin before 1600', () => {
+    const bare = world({ rows: ROWS, players: [{ id: 'a' }] });
+    const price = cheapestPersonPrice(bare, 'a');
+
+    it('recalls a human power with no colony, no unit and too little gold, in any year', () => {
+      expect(price).toBeGreaterThan(0);
+      for (const year of [1493, 1550, 1599]) {
+        const r = end(atTurn(withGold(bare, price - 1), firstTurnOfYear(year) - 1));
+        expect(r.state.over).toEqual({ reason: 'noColonies', turn: firstTurnOfYear(year), player: 'a' });
+        expect(r.events.at(-1)).toEqual({ type: 'gameEnded', reason: 'noColonies', player: 'a', turn: firstTurnOfYear(year), year });
+        expect(validateAction(r.state, { type: 'continuePlaying' }).ok).toBe(false);
+      }
+    });
+
+    it('recalls it in 1492 itself, as its first turn begins', () => {
+      const two = withUnit(world({ rows: ROWS, players: [{ id: 'a' }, { id: 'b' }] }), { id: 'w', type: 'wagonTrain', x: 3, y: 2 });
+      const poor: GameState = { ...two, turn: 0, players: two.players.map((p) => (p.id === 'b' ? { ...p, gold: cheapestPersonPrice(two, 'b') - 1 } : p)) };
+      const r = end(poor);
+      expect(r.state.over).toEqual({ reason: 'noColonies', turn: 0, player: 'b' });
+      expect(r.events.at(-1)).toEqual({ type: 'gameEnded', reason: 'noColonies', player: 'b', turn: 0, year: 1492 });
+      expect(end({ ...poor, players: poor.players.map((p) => (p.id === 'b' ? { ...p, gold: p.gold + 1 } : p)) }).state.over).toBeNull();
+    });
+
+    it('weighs the fare as this turn\'s crosses will leave it', () => {
+      // the docks are empty, so the Europe phase adds crosses and the fare falls before the power can act
+      const now = recruitPrice(bare, 'a');
+      expect(price).toBeLessThan(now);
+      const before = (s: GameState): GameState => atTurn(s, firstTurnOfYear(1550) - 1);
+      const kept = end(before(withGold(bare, price)));
+      expect(kept.state.over).toBeNull();
+      expect(validateAction(kept.state, { type: 'recruit', slot: 0 }).ok).toBe(true);
+    });
+
+    it('spares one that has a unit anywhere', () => {
+      const before = (s: GameState): GameState => atTurn(s, firstTurnOfYear(1550) - 1);
+      const voyaging = (s: GameState, voyage: Voyage): GameState => ({ ...s, units: { ...s.units, u: { ...s.units['u']!, x: OFF_MAP, y: OFF_MAP, voyage } } });
+      // a wagon on the map, a ship crossing the ocean, a colonist on the docks
+      expect(end(before(withUnit(bare, { id: 'u', type: 'wagonTrain', x: 3, y: 2 }))).state.over).toBeNull();
+      expect(end(before(voyaging(withUnit(bare, { id: 'u', type: 'caravel', x: 7, y: 2 }), { phase: 'toNewWorld', turnsLeft: 2, origin: [7, 2] }))).state.over).toBeNull();
+      expect(end(before(voyaging(withUnit(bare, { id: 'u', x: 7, y: 2 }), { phase: 'inEurope', turnsLeft: 0, origin: [7, 2] }))).state.over).toBeNull();
+    });
+
+    it('spares one with the gold for the cheapest person, or with someone coming free', () => {
+      const before = (s: GameState): GameState => atTurn(s, firstTurnOfYear(1550) - 1);
+      expect(end(before(withGold(bare, price))).state.over).toBeNull();
+      const due = { ...bare, players: bare.players.map((p) => ({ ...p, immigrantDue: true })) };
+      expect(cheapestPersonPrice(due, 'a')).toBe(0);
+      expect(end(before(due)).state.over).toBeNull();
+      // crosses that bring someone over free in the turn now beginning count as well; a turn short, they do not
+      const crossed = (crosses: number): GameState => ({ ...bare, players: bare.players.map((p) => ({ ...p, crosses })) });
+      const needed = crossesNeeded(bare, 'a');
+      const soon = end(before(crossed(needed - 1)));
+      expect(soon.state.over).toBeNull();
+      expect(soon.events.some((e) => e.type === 'immigrantArrived')).toBe(true);
+      expect(end(before(crossed(needed - 2))).state.over?.reason).toBe('noColonies');
+    });
+
+    it('counts the fare as crosses have lowered it, and the University when nobody waits', () => {
+      const pious = { ...bare, players: bare.players.map((p) => ({ ...p, crosses: 2 })) };
+      expect(cheapestPersonPrice(pious, 'a')).toBeLessThan(price);
+      expect(cheapestPersonPrice(pious, 'a')).toBeGreaterThan(0);
+      const empty = { ...bare, players: bare.players.map((p) => ({ ...p, pool: [] })) };
+      expect(cheapestPersonPrice(empty, 'a')).toBe(Math.min(...Object.values(PROFESSIONS).flatMap((p) => (p.colonist && p.europePrice !== null ? [p.europePrice] : []))));
+    });
+
+    it('leaves a computer power alone, and a power at war to the war', () => {
+      const machine = world({ rows: ROWS, players: [{ id: 'a', kind: 'ai' }] });
+      expect(end(atTurn(machine, firstTurnOfYear(1550) - 1)).state.over).toBeNull();
+      const war = world({ rows: ROWS, players: [{ id: 'a', atWar: true }] });
+      expect(end(atTurn(war, firstTurnOfYear(1550) - 1)).state.over?.reason).not.toBe('noColonies');
+    });
   });
 
   it('accepts no actions once over', () => {

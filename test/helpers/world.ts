@@ -39,7 +39,17 @@ export interface WorldSpec {
   readonly difficulty?: GameState['difficulty'];
 }
 
-/** Build a state from rows of glyphs (see GLYPHS). Every tile starts explored by everyone. */
+/**
+ * What every human power after the first holds. Such a power usually has no colony and no unit, and
+ * with an empty treasury as well the rules would dismiss it as ruined when its turn began
+ * (docs/RULES.md, "Ruin"), ending the game under the test.
+ */
+export const BYSTANDER_GOLD = 1000;
+
+/**
+ * Build a state from rows of glyphs (see GLYPHS). Every tile starts explored by everyone. The first
+ * power and the computer powers start with no gold; the other human powers hold BYSTANDER_GOLD.
+ */
 export function world(spec: WorldSpec): GameState {
   const width = spec.rows[0]?.length ?? 0;
   const tiles: Tile[] = [];
@@ -52,7 +62,7 @@ export function world(spec: WorldSpec): GameState {
     }
   }
   const NATIONS_IN_ORDER = ['england', 'france', 'spain', 'netherlands'] as const;
-  const players = (spec.players ?? [{ id: 'a' }, { id: 'b' }]).map((p, i) => ({ id: p.id, name: p.id.toUpperCase(), kind: p.kind ?? ('human' as const), nation: p.nation ?? NATIONS_IN_ORDER[i % 4]!, gold: 0, fathers: knownFathers(p.fathers ?? []), bells: 0, fatherBells: 0, candidate: null, fatherOffer: [], crosses: 0, taxRate: p.taxRate ?? 0, pendingTax: null, royalWeddings: 0, lastRoyalEnemy: -1, boycotts: [], entry: [0, 0] as const, artilleryBought: 0, atWar: p.atWar ?? false, pool: ['indenturedServant', 'freeColonist', 'expertFarmer'] as const, recruits: 0, hadImmigrant: false, immigrantDue: false, royalMoney: 0, ref: startingRef(spec.difficulty ?? 'conquistador'), stance: {}, dealings: {}, audiencesDue: [], pendingBurial: null, fountain: 0, rumorLossSpared: false, villagesBurned: 0, demands: [], pendingTreaties: [], pendingOffer: null, scored: false, revolution: null, withdrawn: false, independent: false, independenceTalk: 0 }));
+  const players = (spec.players ?? [{ id: 'a' }, { id: 'b' }]).map((p, i) => ({ id: p.id, name: p.id.toUpperCase(), kind: p.kind ?? ('human' as const), nation: p.nation ?? NATIONS_IN_ORDER[i % 4]!, gold: i > 0 && p.kind !== 'ai' ? BYSTANDER_GOLD : 0, fathers: knownFathers(p.fathers ?? []), bells: 0, fatherBells: 0, candidate: null, fatherOffer: [], crosses: 0, taxRate: p.taxRate ?? 0, pendingTax: null, royalWeddings: 0, lastRoyalEnemy: -1, boycotts: [], entry: [0, 0] as const, artilleryBought: 0, atWar: p.atWar ?? false, pool: ['indenturedServant', 'freeColonist', 'expertFarmer'] as const, recruits: 0, hadImmigrant: false, immigrantDue: false, royalMoney: 0, ref: startingRef(spec.difficulty ?? 'conquistador'), stance: {}, dealings: {}, audiencesDue: [], pendingBurial: null, fountain: 0, rumorLossSpared: false, villagesBurned: 0, demands: [], pendingTreaties: [], pendingOffer: null, scored: false, revolution: null, withdrawn: false, independent: false, independenceTalk: 0 }));
   return {
     schemaVersion: SCHEMA_VERSION,
     seed: spec.seed ?? 1,
