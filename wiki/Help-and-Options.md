@@ -1,4 +1,4 @@
-The options, saving and loading, the hints, the encyclopedia and the tooltips.
+The options, saving and loading, the hints, the encyclopedia, the tooltips and the cheats.
 
 ## Options
 
@@ -94,3 +94,79 @@ The encyclopedia (**Alt+P**, or **Menu...** then **Encyclopedia**) has a page fo
 Hold the pointer over a map square to see a slip describing it: the terrain, any river, road, plowing, resource or rumor, what a colonist working it would bring in, the cost of moving onto it and its value in defence. Where the map shows a unit on the square the slip names it underneath: each of your own units with its moves, its orders and what it carries, and for an armed or equipped colonist the skill under the equipment in brackets ("Soldier (Expert Farmer)"), or whose the unit of another power is and its kind. Turn the **Terrain tooltips** game option off if you would rather not see it; the same facts for the active unit's square stay in the sidebar, and **F1** (Terrain Information) lists every kind of terrain.
 
 Elsewhere, hold the pointer over a sidebar button to see its name and key, over an option to see what it does, and over the Europe button to see which of your ships are in port there or crossing, and when each arrives. [[Controls]] lists every key; [[Reports and Advisers]] describes the reports.
+
+## Cheats
+
+The game has a cheat console, for fun and for trying things out. It is not part of the game proper, and nothing in play needs it.
+
+Press **Alt+C** (or **Menu...** then **Cheats**) during play to open it. Type a line and press **Enter**: the game does what the line says at once. A line the game cannot carry out stays in the box with the reason under it; one it accepts is cleared, and a sentence saying what was done joins the list above the box and the log beside the map. **Tab** completes the word you are typing, **Up** and **Down** bring back the lines accepted since you opened the console, and **Esc** (or **Done**) closes it. The console stays open between lines, so you can give several one after another, and its **Commands** sheet lists every cheat with an example.
+
+**A cheated game is marked.** Once a cheat has been used, the game is marked for good, and the mark is kept in the save. The game plays on unchanged, is scored as any other and can enter the Hall of Fame, but its score report says "Cheats were used in this game." and its line in the Hall of Fame reads "cheated" after the leader's name. No cheat undoes another or takes the mark off. See [[Score and Hall of Fame]].
+
+### How a line is written
+
+A line is the cheat's name followed by what it needs. Below, `<angle brackets>` mark something you must give and `[square brackets]` something you may leave out.
+
+- **For another power.** Begin the line with `as` and a power to cheat for that power instead of your own: `as france gold 2000`. Every cheat takes it, and both that power and yours are marked.
+- **An amount** adds, takes or sets: `500` or `+500` adds 500, `-200` takes 200 away, and `=1000` sets the figure to 1000. **A count** is a whole number, nought or more. **A percent** is 0 to 100. A line that would leave less than nothing of anything is refused, not rounded.
+- **A square** is its column and row with a comma between, `12,30`, or `here` for the square of the active unit. **A place** is a square, `here`, `europe`, or one of your colonies by name.
+- **A thing is named** by its name or by the start of it, in capitals or not: `jamest` for Jamestown, `farmer` for an Expert Farmer, `smith` for Adam Smith. The start of any word of the name will do, as long as only one thing fits; if several fit, the line is refused and they are listed. Put a name with spaces in quotes: `"New Amsterdam"`. A unit may also be `active`, the one whose turn it is to move.
+- A colony, a unit or a settlement named in a cheat must be the power's own, or concern it.
+
+### The cheats
+
+**Treasury and Congress**
+
+| Line | What it does |
+| :--- | :--- |
+| `gold [amount]` | Adds to the treasury, takes from it or sets it. With no amount: adds 1000. |
+| `crosses [count]` | Adds crosses toward the next immigrant. With no count: 100. |
+| `bells [count]` | Adds liberty bells. Before the Declaration they count toward the next Founding Father, who may join at once. After it they count toward help from abroad. With no count: 100. |
+| `father <father>` | Seats a Founding Father in your Congress at once. The bells gathered toward the next one are lost, as when a Father joins in the ordinary way. Refused if he already sits there. |
+| `tax <percent>` | Sets the tax rate, from 0 to 75. |
+| `boycott lift` | Lifts every boycott, with nothing to pay. |
+
+**The map**
+
+| Line | What it does |
+| :--- | :--- |
+| `reveal [square] [count]` | With nothing after it: makes the whole map known. With a square: the squares within that many squares of it (3 if no count is given). |
+| `terrain <square> <terrain>` | Changes the ground of a square. A square turned to water loses its road, plowing, river, resource and rumor. Refused under a colony or a settlement, and under a unit that could not stand on the new ground. |
+| `road <square> on\|off` | Lays or lifts a road. Refused on water. |
+| `plow <square> on\|off` | Plows a square or lets it go back. Needs open land. |
+| `river <square> none\|minor\|major` | Sets the river on a square. Refused on water. |
+| `resource <square> <resource>\|none` | Puts a special resource on a square, or takes it away. The resource must suit the terrain. |
+| `rumor <square> on\|off` | Places or removes a rumor of a lost city. Refused on water, and `on` is refused under a colony or a settlement. |
+
+**Units**
+
+| Line | What it does |
+| :--- | :--- |
+| `spawn <unitType> [profession] [place]` | Makes a new unit, ready to move. A colonist may be given a profession (a free colonist otherwise); other units take none. With no place it appears on the active unit's square. *At a square*: a land unit on land, a ship on water or in your own colony; refused on a settlement, on another power's colony and on a square with someone else's units. *In a colony* named: a colonist joins it and goes to work (a soldier's muskets or a pioneer's tools go to the warehouse), unless the colony is full; any other unit stands on its square. *In `europe`*: a ship lies in port and a person waits on the docks; refused once Europe is closed to you. A pioneer on the map carries a full set of tools, and a treasure train 1000 gold. Native units and damaged artillery cannot be made. |
+| `teleport <unit> <square>` | Moves one of your units on the map to a square, with everything aboard it, keeping its moves. The square must be one it could be spawned on. Refused for a unit on a voyage or aboard a ship. |
+| `moves <unit>` | Gives a unit its moves for the turn back. |
+| `repair <unit>` | Makes a damaged ship sound again. Refused for anything else. |
+| `promote <unit>` | Makes a soldier or a dragoon a veteran. Refused for anything else, and for one who already is. |
+
+**Colonies**
+
+| Line | What it does |
+| :--- | :--- |
+| `goods <colony> <good>\|all <amount>` | Adds to, takes from or sets one cargo in the warehouse, or with `all` every one of the sixteen. The warehouse may be left over-full; what it cannot hold spoils at the end of the turn as usual. |
+| `hammers <colony> <amount>` | Adds to, takes from or sets the hammers the colony has put by. |
+| `finish <colony>` | Gives the colony the hammers and tools its present project needs, at no cost in gold. The project is completed at the end of the turn in the ordinary way. Refused if nothing is being built. |
+| `building <colony> <building>` | Adds a building, with any earlier ones of its line the colony lacks. The colony's size, the coast and any Founding Father the building would need are ignored. Refused if the colony has it. |
+| `liberty <colony> <percent>` | Sets Sons of Liberty membership in the colony. The production bonus follows at the next turn. |
+
+**Natives, powers, the Crown and the market**
+
+| Line | What it does |
+| :--- | :--- |
+| `alarm <tribe>\|<settlement> <percent>` | Sets how alarmed a tribe, or one settlement, is at you. |
+| `peace <tribe>` | Makes a treaty of peace with a tribe: met, at peace, and nothing held against you. |
+| `meet <power>` | You and another power have met. Refused if you already have. |
+| `stance <power> peace\|war` | Sets peace or war with another power, meeting it first if need be. |
+| `crown regulars\|cavalry\|artillery\|ships\|gold <amount>` | Adds to, takes from or sets a part of the Expeditionary Force held against you, or the King's war chest. |
+| `price <good> <count>` | Sets the price Europe pays you for a cargo, within the range that cargo's price may take. |
+
+No cheat changes the turn, the year or the difficulty of a game.

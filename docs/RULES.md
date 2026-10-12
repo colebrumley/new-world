@@ -1959,6 +1959,10 @@ Numbers are `AI_FREIGHT` and `AI_RESERVE` in `src/engine/data/ai.ts`.
   withdrawn (no colonies in 1600), or when the player retires (Shift-R). After the 1800 or 1850
   reckoning the player may play on; the game is not scored or stopped by the calendar again.
   F10 shows the score as it stands at any time.
+- **A cheated game** (a power marked as "Cheats" below describes) is scored as any other and
+  entered in the Hall of Fame as any other, at its full score and rating. It is marked: the score
+  report says "Cheats were used in this game." above the total, and the Hall of Fame writes
+  "cheated" after the leader. An entry kept from before there were cheats is not marked (R-1063).
 - **Ruin.** Before 1600 the charter is withdrawn at once, in any year, from a human power not at
   war whose turn begins with no colony, no unit anywhere (on the map, at sea, on the docks or in
   port in Europe) and less gold than the cheapest way to put one person on Europe's docks: the

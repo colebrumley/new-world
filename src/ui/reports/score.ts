@@ -21,6 +21,7 @@ export function scoreReport(state: GameState, playerId: PlayerId, extra: readonl
   if (s.early > 0) rows.push([`Independence declared before ${SCORE.earlyBefore}`, '', String(s.early)]);
   if (s.bells > 0) rows.push(['Liberty bells since the intervention', '', String(s.bells)]);
   if (s.bonusPercent > 0) rows.push(['Independence won', `+${s.bonusPercent}%`, String(s.total - s.subtotal)]);
+  if (player?.cheated) rows.push(['Cheats were used in this game.', '', '']);
   rows.push(['Total', '', String(s.total)]);
   const honour = honourFor(rating.rank);
   return {

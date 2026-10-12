@@ -23,6 +23,8 @@ export interface HallEntry {
   readonly score: number;
   readonly rating: number;
   readonly rank: number | null;
+  /** A cheat was used in the game (R-1063). Absent in entries written before there were cheats: not cheated. */
+  readonly cheated?: boolean;
 }
 
 export function entryFor(state: GameState, playerId: PlayerId): HallEntry | null {
@@ -41,6 +43,7 @@ export function entryFor(state: GameState, playerId: PlayerId): HallEntry | null
     score,
     rating: rating.percent,
     rank: rating.rank,
+    ...(player.cheated ? { cheated: true } : {}),
   };
 }
 
@@ -84,7 +87,7 @@ export function hallSection(hall: readonly HallEntry[]): ReportSection {
       ['', 'Leader', 'Level', 'Ended', 'Score', 'Rating', 'Remembered by'],
       ...hall.map((e, i) => [
         String(i + 1),
-        `${e.leader} of ${NATIONS[e.nation].name}${e.won ? ', liberator' : e.declared ? ', rebel' : ''}`,
+        `${e.leader} of ${NATIONS[e.nation].name}${e.won ? ', liberator' : e.declared ? ', rebel' : ''}${e.cheated === true ? ', cheated' : ''}`,
         LEVEL[e.difficulty],
         e.date,
         String(e.score),
