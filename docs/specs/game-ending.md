@@ -1,4 +1,4 @@
-# The game ends on a page of its own: spec for R-1058 to R-1059
+# The game ends on a page of its own: spec for R-1064 to R-1065
 
 Written by `/plan` on 2026-10-12. Status: proposed.
 
@@ -52,9 +52,13 @@ None changed. `GameOverReason`, the `continuePlaying` and `retire` actions, the 
 `canvas.dataset['over']` (which the end-to-end tests read) all stay as they are. The two items touch
 different files and may be built at the same time.
 
+The cheats spec (`docs/specs/cheats.md`, R-1058 to R-1063) is being built alongside and also edits
+`src/app/game-screen.ts`, `src/ui/command-bar.ts`, the score report and the Hall of Fame. W2 brings
+`origin/main` in before its review and keeps what those items added.
+
 ## Work items
 
-### W1 — A power with nothing left is dismissed at once (R-1058, size S, depends on: nothing)
+### W1 — A power with nothing left is dismissed at once (R-1064, size S, depends on: nothing)
 
 Files: `src/engine/actions.ts` (`gameOverFor`), `src/engine/europe.ts` only if a helper for "the
 cheapest way to a person on the docks" is wanted, `src/engine/calendar.ts` or the fitting file under
@@ -75,7 +79,7 @@ Acceptance:
 
 Verify: `npm test -- test/unit/engine/turn.test.ts`; `npm run check`.
 
-### W2 — The end page (R-1059, size M, depends on: nothing)
+### W2 — The end page (R-1065, size M, depends on: nothing)
 
 Files: `src/ui/end-page.ts` (new: the page and its text, no engine calls beyond reading the state),
 `src/app/game-screen.ts` (`announceEnd`, `END_TEXT`, `startGame`, the key handler, the command bar's
