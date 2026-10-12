@@ -257,6 +257,7 @@ export function withoutOne(sol: Colony['sol']): Colony['sol'] {
   return { n: Math.max(0, Math.min(sol.n, d)), d };
 }
 
+/** May the colony be given up? Not from behind its works. The siege test is added where the action is validated (actions.ts). */
 export function checkAbandon(colony: Colony | undefined): ColonyCheck {
   if (!colony) return no('noColonyHere', 'no such colony');
   if (isFortified(colony)) return no('keepStockade', 'a colony behind a stockade or stronger works cannot be abandoned');
@@ -265,17 +266,24 @@ export function checkAbandon(colony: Colony | undefined): ColonyCheck {
 
 /**
  * Give the colony up: its people walk out as units; buildings and stores are lost. Ships in port
- * cannot stay on what is now bare land: they leave damaged, as from a colony that has fallen.
+ * cannot stay on what is now bare land: they leave damaged, as from a colony that has fallen. The
+ * owner's trade routes that stop here go with it, and whoever was following one stops.
  */
 export function abandonColony(state: GameState, colony: Colony, events: ColonyEvent[]): GameState {
   const { [colony.id]: _gone, ...colonies } = state.colonies;
   const units = { ...shipsLeavePort(state, colony, events).units };
   for (const colonist of colony.colonists) units[colonist.id] = asUnit(colony, colonist);
+  const tradeRoutes = Object.fromEntries(
+    Object.entries(state.tradeRoutes).filter(([, r]) => r.owner !== colony.owner || !r.stops.some((s) => s.colonyId === colony.id)),
+  );
+  for (const u of Object.values(units)) {
+    if (u.route && !tradeRoutes[u.route.routeId]) units[u.id] = { ...u, orders: 'none', route: null };
+  }
   const tiles = [...state.map.tiles];
   const i = colony.y * state.map.width + colony.x;
   tiles[i] = { ...(tiles[i] as Tile), claim: null };
   events.push({ type: 'colonyAbandoned', colonyId: colony.id, name: colony.name });
-  return { ...state, colonies, units, map: { ...state.map, tiles } };
+  return { ...state, colonies, units, tradeRoutes, map: { ...state.map, tiles } };
 }
 
 /** Terrain row of the colony's own square, for callers that describe it. */

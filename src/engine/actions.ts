@@ -474,7 +474,7 @@ export function validateAction(state: GameState, action: Action): Validation {
       if (colony && colony.owner !== currentPlayer(state).id) return fail('notYourColony', `${colony.name} is not yours`);
       const check =
         action.type === 'leaveColony' ? checkLeaveUnderSiege(state, colony, action.colonistId)
-        : action.type === 'abandonColony' ? checkAbandon(colony)
+        : action.type === 'abandonColony' ? checkAbandonUnderSiege(state, colony)
         : colony ? checkName(state, action.name, colony.id) : checkAbandon(colony);
       return check.ok ? OK : fail(check.code, check.message);
     }
@@ -1171,6 +1171,13 @@ function checkLeaveUnderSiege(state: GameState, colony: Colony | undefined, colo
   const check = checkLeave(colony, colonistId);
   if (!check.ok || !colony || !isBesieged(state, colony)) return check;
   return (colony.goods.muskets ?? 0) >= ROLE_GOODS.soldier.muskets ? check : { ok: false, code: 'underSiege', message: `${colony.name} is under siege: only armed men may leave, and there are no muskets for them` };
+}
+
+/** Abandoning a colony: never under siege, which would turn everyone out unarmed at once. */
+function checkAbandonUnderSiege(state: GameState, colony: Colony | undefined): ReturnType<typeof checkAbandon> {
+  const check = checkAbandon(colony);
+  if (!check.ok || !colony || !isBesieged(state, colony)) return check;
+  return { ok: false, code: 'underSiege', message: `${colony.name} is under siege and cannot be abandoned` };
 }
 
 /** Land a pioneer has just improved without its having been paid for is held against the power. */

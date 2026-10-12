@@ -193,6 +193,13 @@ and the native-land dialog belong to R-510.
 - Abandoning a colony with the owner's ships in port: each ship leaves damaged, as from a
   colony that has fallen (hold and passengers lost; to the nearest other colony with a Drydock,
   else to Europe, else sunk). The same holds when a colony starves out (R-304).
+- A colony with a Stockade, a Fort or a Fortress cannot be abandoned. Nor can a colony under
+  siege (the enemy's fighting land units on its square and the eight around it outnumber the
+  owner's): abandoning would turn everyone out unarmed at once. With the besiegers gone or
+  matched it can be.
+- Abandoning removes every trade route of the owner that has a stop at the colony, and the
+  wagon trains and ships following such a route stop following it. Other powers' routes are
+  not touched.
 **Notes:** founding is immediate, so there is no refusal for a colony being built next door.
 The first build item (Warehouse, or Docks in a port colony) is set by R-303.
 
