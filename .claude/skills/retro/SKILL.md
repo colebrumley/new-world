@@ -19,7 +19,10 @@ short messages typed more than once.
 3. For each, decide where the fix belongs: the Worker protocol or a rule in CLAUDE.md; a skill under
    `.claude/skills/`; a script under `scripts/`; a hook in `.claude/settings.json`; an app setting
    (`ccd_settings`). Prefer a mechanical fix (hook, script) over a sentence.
-4. Make the changes that are clearly right in one pull request titled `Workflow: <what changed>`,
-   following the Worker protocol. List the rest, with the trade-off, for the owner to decide.
+4. Report before changing anything: a table of the patterns with their counts and causes, the
+   change you propose for each and where it goes, and the choices that are the owner's (a gate
+   loosened, a stop removed, anything touching the main checkout) with the trade-off and your
+   lean. Wait for the owner's answer. Then make the agreed changes in one pull request titled
+   `Workflow: <what changed>`, following the Worker protocol.
 5. Keep CLAUDE.md short: when you add a rule, look for one it makes redundant.
 6. Run `npm run retro -- --mark`.
