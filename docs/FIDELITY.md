@@ -200,6 +200,7 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-505 | hostile village | throw 0..500 against alarm and twice alarm | — | high | |
 | R-505 | trade memory decay | tech + 1 per turn | — | high | |
 | R-506 | land combat strengths and modifiers | as in RULES "Land combat" | — | high | built ahead of R-600; fortified adds to the place bonus and is capped |
+| R-1057 | the veteran's half again | a soldier or dragoon whose calling is veteran soldier, and a dragoon whose calling is veteran dragoon (a mercenary offer's riders) | — | high for the veteran soldier | the hired dragoons' bonus is this game's own choice, made by the owner; before it they fought as ordinary dragoons. Only strength changed: the muster counted them as veterans already, a win in the field still does not raise them to the Continental line, and unhorsed they fight as ordinary soldiers |
 | R-506 | resolution | one throw, attacker wins with attack / (attack + defence) | — | high | |
 | R-506 | promotion | L / (W + L +/- level), -10 criminal, -5 servant; Washington certain | — | high (operand order medium) | Revolution Now uses a flat 45% |
 | R-506 | alarm for attacking natives | level + 5, x2 settlement, x6 capital; +256 settlement alarm | — | high | Revolution Now uses a flat 10 |

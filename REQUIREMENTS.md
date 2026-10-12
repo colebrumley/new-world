@@ -1443,7 +1443,7 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1054 Abandoning a colony: not under siege, and its trade routes go with it** — docs/specs/abandon-colony.md, item W1, size S.
 - [x] **R-1055 The colony screen abandons: a command in the header, and the last colonist's way out** — docs/specs/abandon-colony.md, item W2, size M.
 - [x] **R-1056 The skill under the equipment, named on hover: map slip, colony gates, Europe docks** — docs/specs/equipped-skill-on-hover.md, item W1, size S.
-- [ ] **R-1057 Hired veteran dragoons fight as veterans** — docs/specs/equipped-skill-on-hover.md, item W2, size S.
+- [x] **R-1057 Hired veteran dragoons fight as veterans** — docs/specs/equipped-skill-on-hover.md, item W2, size S.
 
 ---
 
