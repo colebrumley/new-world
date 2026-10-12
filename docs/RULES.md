@@ -2107,4 +2107,107 @@ Cheats are this game's own; none of this is a rule of play.
   - *reveal*: makes every square of the map known to the power; or, given a square, the squares
     within a radius of it (default 3), as if a unit with that sight had stood there. A square off
     the map is refused.
+  - *terrain* (R-1059): sets the ground of a square. An open or a forest kind sets the ground and
+    its forest and levels it; hills and mountains are raised on the land that is there, and are
+    refused on water; arctic, ocean and sea lane replace the ground. A square turned to water
+    loses its road, plow, river, resource and rumour; land that is no longer open loses its plow.
+    Refused under a colony or a settlement, under a unit the new ground could not carry (a
+    land unit not aboard a ship on water, a ship on land), and for water over burial mounds a
+    power has yet to decide about.
+  - *road*, *plow*, *river*, *resource*, *rumor* (R-1059): set one feature of a square. A road, a
+    plow, a river and a rumour need land; a plow needs open land (not forest, hills, mountains or
+    arctic); a resource must be one the square's terrain carries, and may be taken away anywhere;
+    a rumour cannot be started under a colony or a settlement.
+  - *spawn* (R-1059): a new unit of the power, of any type but the natives' and damaged
+    artillery, with the next id. The six types a colonist takes on may be given a profession (a
+    free colonist if none); no other type takes one, and the Continental line carries the
+    veteran's name as it does in play. *At a square*: full moves, no orders; a land unit on land,
+    a ship on water or in the power's own colony; refused on a settlement, on another power's
+    colony and on a square holding a unit not the power's; the squares in its sight become known
+    to its owner. *In a colony of the power's*: one of the six types joins as a colonist, its kit
+    going to the warehouse, refused when the colony is full; any other type stands on the colony's
+    square. *In Europe*: a ship in port or a unit on the docks, as one bought there; refused when
+    Europe is closed to the power, and for a wagon train, which no ship carries. A pioneer has a
+    full kit of tools (100); a treasure train carries 1000 gold.
+  - *teleport* (R-1059): moves one of the power's units on the map, and all aboard it, to a square
+    it could stand on by the same test as spawn. Its moves are kept; its standing orders are
+    dropped, but for a trade route. The squares in its sight become known. Refused for a unit at
+    sea to or from Europe or in Europe, and for one aboard a carrier.
+  - *moves* (R-1059): gives a unit the moves a turn would. Refused off the map and for a ship
+    under repair.
+  - *repair* (R-1059): a ship under repair is sound at once, wherever she lies. Refused for
+    anything else.
+  - *promote* (R-1059): a soldier or a dragoon becomes a veteran. Refused for any other unit and
+    for one who is a veteran already, a hired veteran dragoon among them.
+  - A spawned or teleported unit meets nobody and explores no rumour by the cheat itself: the game
+    looks, as it always does, when a unit of the power next moves or its next turn begins. It
+    looks at every unit of the power then, so a unit put on a rumour looks into it at the next
+    move of any of them.
+  - *goods*: adds to one good in a colony's warehouse, takes from it or sets it; or does so to
+    every one of the sixteen goods at once, and then the whole is refused if any one of them would
+    go below nothing. The warehouse may be left holding more than it has room for: the end of the
+    colony's turn trims it as it trims any other excess.
+  - *hammers*: adds to the hammers a colony has put by, takes from them or sets them.
+  - *finish*: gives a colony the hammers and the tools its project still lacks, as paying for it
+    would, for no gold. The project is finished when the colony's turn is next worked, by the
+    ordinary rules, with the notices that always come. Refused with nothing under construction,
+    with a building the colony already has, and when nothing is lacking.
+  - *building*: puts up a building at once, together with every earlier building of its line the
+    colony lacks (a fortress brings the stockade and the fort). The colony's size, the coast and
+    the Founding Father a building may need are not asked. Refused if the colony has it, and for
+    the buildings that are never offered in play.
+  - *liberty*: sets a colony's Sons of Liberty membership to a percent, from 0 to 100. Only the
+    count of members is written, the least that reads no less than the percent; the figure it is
+    reckoned against is kept, so the colony drifts on from there as any other would. Bolivar's
+    points are counted on top as always, so they are taken off what is asked first, and a colony
+    of his power cannot be set below them. The production bonus is not touched: it follows when the
+    colony's turn is next worked, one step a turn.
+  - *alarm*: writes a tribe's alarm at the power, from 0 to 100, or one settlement's. A
+    settlement's own alarm runs past a hundred, so there the number is a percent of the mark at
+    which the settlement turns hostile (128): 50 is the mark at which it turns ships away, 100 is
+    hostile. Nothing else is moved and nothing is reported: no missions burn, no settlement cools.
+  - *peace*: a treaty with a tribe. If they had not met they meet, as on first contact (the tribe
+    starts no worse than wary); the tribe is at peace with the power and forgets a settlement
+    destroyed; an offer of a treaty still waiting is taken as answered; a computer power that had
+    resolved to fight that tribe gives it up. Beyond what a first meeting does, the alarm is left
+    as it is.
+  - *meet*: two powers meet as if their people stood side by side on land: at war until they agree
+    otherwise, two computer powers settling it at once, a computer power asking a human one for an
+    audience. Refused if they have met, and if either is fighting its War of Independence.
+  - *stance*: sets peace or war between the power and another, on both sides, meeting it first
+    (as *meet* does, and refused where *meet* would be) if they had not met. Nothing else of their dealings is changed: no grudge is
+    made by a war begun this way, and none is forgiven by a peace.
+  - *crown*: adds to the regulars, the cavalry, the artillery or the ships of the Expeditionary
+    Force held against the power, takes from them or sets them; or does the same to the King's
+    war chest, the money that buys the force its next unit.
+  - *price*: sets what Europe pays the power for a good. The number is held to the limits between
+    which that good's price moves, and the asking price follows it as always. The traffic that
+    moves prices is left alone, so the price drifts on from there.
+  - *goods*, *hammers* and *crown* leave no count above 100000 (a count already past it may
+    still be brought down): the turn's own reckoning is not made for sums beyond any play.
+  - A colony named in a cheat must be a colony of the power the cheat is for; the other power in
+    *meet* and *stance* must be a European power still in the New World, and not the same one.
 - Every cheat reports one sentence saying what it did, with its figures in plain digits.
+- **The typed line** (R-1061) is `[as <power>] <cheat> <arguments>`.
+  - An amount is `500` or `+500` (add), `-200` (take) or `=1000` (set); a count is a whole number
+    of zero or more; a percent is 0 to 100. A square is `x,y`, or `here` for the active unit's
+    square; a place is a square, `here`, `europe` or a colony. `here` with no active unit is
+    refused.
+  - A thing is named by its id or its name, case ignored. An exact id wins outright, then an exact full
+    name; otherwise the word must begin the id, the name or one of the name's words, and exactly one
+    thing may fit or the line is refused with the candidates. When several colonies or units fit,
+    those of the power the cheat is for are the candidates. A name with spaces goes in double
+    quotes. A unit may also be `active`. Buildings the game does not use and professions no
+    colonist can hold cannot be named.
+  - A word that does not fit an optional argument is tried on the next. A place left out is the
+    active unit's square, and the line is refused if there is none; a square left out is left to
+    the cheat.
+  - A first word that is no cheat is refused with the cheats that begin with its letter, or all
+    of them; a required argument left out is named; a word too many is refused.
+- **The console** (R-1062) opens on Alt+C, or from Menu… then Cheats, while the game is being
+  played (not once it is over). The line is for the player at the keyboard unless it says `as`;
+  `here` and `active` are the active unit. An accepted line is done at once, entered in the
+  console's transcript and in the log beside the map as "Cheat: …", and saved with the game; a
+  refused one stays to be mended, with the reason under it. A Congress that `bells` convenes puts
+  its question at once. The console may be opened whenever the map takes keys, so not while
+  another question is up.

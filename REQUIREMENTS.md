@@ -1446,10 +1446,10 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1056 The skill under the equipment, named on hover: map slip, colony gates, Europe docks** — docs/specs/equipped-skill-on-hover.md, item W1, size S.
 - [x] **R-1057 Hired veteran dragoons fight as veterans** — docs/specs/equipped-skill-on-hover.md, item W2, size S.
 - [x] **R-1058 Cheats: the cheat action, its command specs, and the treasury, Congress and reveal cheats** — docs/specs/cheats.md, item W1, size M.
-- [ ] **R-1059 Cheats: spawn, teleport, moves, repair, promote, and square edits** — docs/specs/cheats.md, item W2, size S.
-- [ ] **R-1060 Cheats: warehouse, hammers, buildings, liberty, alarm, peace, powers, the Crown and prices** — docs/specs/cheats.md, item W3, size S.
-- [ ] **R-1061 Cheats: the command parser, names, completion and help** — docs/specs/cheats.md, item W4, size S.
-- [ ] **R-1062 Cheats: the console dialog on Alt+C and in the Menus picker, the log line** — docs/specs/cheats.md, item W5, size M.
+- [x] **R-1059 Cheats: spawn, teleport, moves, repair, promote, and square edits** — docs/specs/cheats.md, item W2, size S.
+- [x] **R-1060 Cheats: warehouse, hammers, buildings, liberty, alarm, peace, powers, the Crown and prices** — docs/specs/cheats.md, item W3, size S.
+- [x] **R-1061 Cheats: the command parser, names, completion and help** — docs/specs/cheats.md, item W4, size S.
+- [x] **R-1062 Cheats: the console dialog on Alt+C and in the Menus picker, the log line** — docs/specs/cheats.md, item W5, size M.
 - [x] **R-1063 Cheats: a cheated game marked in the score report and the Hall of Fame; the manual** — docs/specs/cheats.md, item W6, size S.
 - [x] **R-1064 A power with nothing left is dismissed at once** — docs/specs/game-ending.md, item W1, size S.
 - [x] **R-1065 The end page: what happened, the reckoning, and every way on** — docs/specs/game-ending.md, item W2, size M.

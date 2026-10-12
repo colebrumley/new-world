@@ -1,7 +1,7 @@
 // The in-game screen: map canvas, sidebar with the New World view, and input. Redraws happen
 // in a requestAnimationFrame loop only when the state or the view changed (dirty flag).
 import { GOOD_NAMES, type GoodId } from '../engine/data/goods';
-import { FATHERS } from '../engine/data/fathers';
+import { FATHERS, type FatherId } from '../engine/data/fathers';
 import { NATIONS } from '../engine/data/nations';
 import { INDEPENDENCE } from '../engine/data/independence';
 import { CAPITAL_NAME, TECH_LEVELS, TRIBES } from '../engine/data/tribes';
@@ -57,6 +57,7 @@ import { COLONY_OPTIONS, GAME_OPTIONS, SOUND_OPTIONS, type Options } from '../ui
 import { cuesFor } from '../ui/audio-cues';
 import { createAudioPlayer } from './audio';
 import { showOptions } from '../ui/options-dialog';
+import { showCheatConsole } from '../ui/cheat-console';
 import { showPedia, type PediaTarget } from '../ui/pedia-screen';
 import { isExploredBy, terrainOf } from '../engine/tile';
 import { cargoNotices, colonyNotices, movementNotices, voyageNotices } from '../ui/notices';
@@ -95,6 +96,8 @@ declare global {
 
 /** Commands that go on working on the map of a game that is over: looking, reading, and the menus that give no order. */
 const OVER_COMMANDS: ReadonlySet<MapCommand> = new Set(['zoomIn', 'zoomOut', 'hiddenTerrain', 'report', 'menu']);
+/** The menus that do give orders, by their Alt letter: Trade and Cheats. A game that is over does not open them. */
+const ORDER_MENUS: ReadonlySet<string> = new Set(['t', 'c']);
 
 export interface GameScreenOptions {
   /** A game just begun (never one loaded): it opens with an audience with the Crown. */
@@ -380,11 +383,30 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   };
 
   /** Apply an action if it is valid; otherwise show why not. Returns whether it was applied. */
-  const dispatch = (action: Action): boolean => {
+  const dispatch = (action: Action): boolean => perform(action) !== null;
+
+  /**
+   * Apply a `cheat` action from the console (R-1062): the session steps as it does for any action,
+   * the log beside the map says what was done, and the summary goes back to the console. A Founding
+   * Father the cheat seated is announced as one seated by a turn is; a Congress it convened puts its
+   * question at once, over the console.
+   */
+  const runCheat = (action: Action): string | null => {
+    const events = perform(action);
+    const applied = events?.find((e) => e.type === 'cheatApplied');
+    if (!events || !applied || applied.type !== 'cheatApplied') return null;
+    record(`Cheat: ${applied.summary}`);
+    for (const e of events) if (e.type === 'fatherJoined' && e.player === me()) say(fatherJoinedText(e.father));
+    if (events.some((e) => e.type === 'congressConvened' && e.player === me())) void congressBusiness();
+    return applied.summary;
+  };
+
+  /** The one body of `dispatch` and `runCheat`: step the session and do all that follows on the screen. The events, or null if the action was refused. */
+  const perform = (action: Action): readonly GameEvent[] | null => {
     const check = validateAction(session.state, action);
     if (!check.ok) {
       say(check.error.message);
-      return false;
+      return null;
     }
     const before = session.state;
     const first = stepSession(session, action);
@@ -441,7 +463,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         if (e.type === 'refGrew' && e.player === me()) say(`The Crown has added ${e.unit} to its Expeditionary Force.`);
         if (e.type === 'succession') say('The War of Succession is over in Europe; one power has ceded its colonies to another.');
         if (e.type === 'independenceGranted') say('A rival power has been granted its independence.');
-        if (e.type === 'fatherJoined' && e.player === me()) say(`${FATHERS[e.father].name} has joined the Continental Congress. ${FATHERS[e.father].effect}`);
+        if (e.type === 'fatherJoined' && e.player === me()) say(fatherJoinedText(e.father));
         if (e.type === 'colonyCaptured' && e.from === me()) say(`${e.name} has fallen to the enemy${e.plunder > 0 ? `, who carried off ${e.plunder} gold` : ''}.`);
         if (e.type === 'shipSunk' && e.owner === me()) say('One of our ships has been sunk.');
         if (e.type === 'fortFired' && session.state.colonies[e.colonyId]?.owner === me()) say(e.hit ? 'Our fort has hit an enemy ship.' : 'Our fort fired on an enemy ship and missed.');
@@ -485,7 +507,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     // with "End of turn" off, the turn ends by itself once the last unit has had its orders
     // (a treasure's question comes first: afterMoving ends the turn once it is answered)
     if (!turnEnded && arrived.length === 0 && UNIT_ORDER_ACTIONS.has(action.type)) queueMicrotask(endTurnIfDone);
-    return true;
+    return stepped.events;
   };
 
   /** With "End of turn" off, end the turn once the last unit has had its orders and nothing is being asked. */
@@ -504,6 +526,23 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       })
       .map((u) => u.id);
 
+  const fatherJoinedText = (father: FatherId): string => `${FATHERS[father].name} has joined the Continental Congress. ${FATHERS[father].effect}`;
+
+  /** The Continental Congress wants to know whom to work toward: asked at the opening of a turn, and when a cheat convenes it. */
+  const congressBusiness = async (): Promise<void> => {
+    const mine = (): (typeof session.state.players)[number] | undefined => session.state.players.find((p) => p.id === me());
+    for (let guard = 0; guard < 6 && (mine()?.fatherOffer.length ?? 0) > 0; guard++) {
+      const names = mine()?.fatherOffer ?? [];
+      const labels = names.map((id) => `${FATHERS[id].name} (${FATHERS[id].category}): ${FATHERS[id].effect}`);
+      const pick = await ask(screen, { text: 'Which Founding Father shall the Continental Congress next seek to seat?', choices: labels, choicePictures: names.map((id) => portraitCanvas(id)) });
+      const father = names[pick] ?? names[0];
+      if (!father) break;
+      const joined = stepSession(session, { type: 'chooseFather', father }).events.find((e) => e.type === 'fatherJoined');
+      if (!dispatch({ type: 'chooseFather', father })) break;
+      if (joined && joined.type === 'fatherJoined') await ask(screen, { text: fatherJoinedText(joined.father), choices: ['Continue'], escape: 0, picture: portraitCanvas(joined.father, 2) });
+    }
+  };
+
   /** Questions the turn has left for the player: a tax rise, an offer from the Crown, a choice of immigrant. */
   const royalBusiness = async (): Promise<void> => {
     const mine = (): (typeof session.state.players)[number] | undefined => session.state.players.find((p) => p.id === me());
@@ -516,17 +555,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       });
       dispatch({ type: 'answerTax', party: pick === 1 });
     }
-    // the Continental Congress wants to know whom to work toward
-    for (let guard = 0; guard < 6 && (mine()?.fatherOffer.length ?? 0) > 0; guard++) {
-      const names = mine()?.fatherOffer ?? [];
-      const labels = names.map((id) => `${FATHERS[id].name} (${FATHERS[id].category}): ${FATHERS[id].effect}`);
-      const pick = await ask(screen, { text: 'Which Founding Father shall the Continental Congress next seek to seat?', choices: labels, choicePictures: names.map((id) => portraitCanvas(id)) });
-      const father = names[pick] ?? names[0];
-      if (!father) break;
-      const joined = stepSession(session, { type: 'chooseFather', father }).events.find((e) => e.type === 'fatherJoined');
-      if (!dispatch({ type: 'chooseFather', father })) break;
-      if (joined && joined.type === 'fatherJoined') await ask(screen, { text: `${FATHERS[joined.father].name} has joined the Continental Congress. ${FATHERS[joined.father].effect}`, choices: ['Continue'], escape: 0, picture: portraitCanvas(joined.father, 2) });
-    }
+    await congressBusiness();
     const offer = mine()?.pendingOffer;
     if (offer) {
       const text = offer.kind === 'frigate'
@@ -1282,7 +1311,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         showEnd();
         return;
       }
-      if (!OVER_COMMANDS.has(command) || (command === 'menu' && key === 't')) return;
+      if (!OVER_COMMANDS.has(command) || (command === 'menu' && ORDER_MENUS.has(key))) return;
     }
     switch (command) {
       case 'zoomIn':
@@ -1337,7 +1366,16 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         else if (key === 'g') await showOptions(screen, 'Game Options', GAME_OPTIONS, options, applyOptions);
         else if (key === 'o') await showOptions(screen, 'Colony Report Options', COLONY_OPTIONS, options, applyOptions);
         else if (key === 's') await showOptions(screen, 'Sound Options', SOUND_OPTIONS, options, applyOptions);
-        else say('There is no such menu. Alt+T is Trade, Alt+G the game options, Alt+O the colony report options, Alt+S sound, Alt+L save and load, Alt+P the encyclopedia.');
+        else if (key === 'c') {
+          await showCheatConsole(screen, {
+            state: () => session.state,
+            context: () => {
+              const active = activeUnit();
+              return { player: me(), active: active?.id ?? null, here: active && active.x >= 0 ? { x: active.x, y: active.y } : null };
+            },
+            run: runCheat,
+          });
+        } else say('There is no such menu. Alt+T is Trade, Alt+G the game options, Alt+O the colony report options, Alt+S sound, Alt+L save and load, Alt+P the encyclopedia, Alt+C the cheats.');
         canvas.focus();
         return;
       case 'retire': {
@@ -1760,7 +1798,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       dispatch({ type: 'endTurn' });
     } else if (button.id === 'goTo' && mode === 'goto') void runCommand('cancel', 'Escape');
     else if (button.run === 'reports') void pickFrom('Which report?', REPORT_CHOICES);
-    else if (button.run === 'menus') void pickFrom('Which menu?', session.state.over ? MENU_CHOICES.filter((c) => c.command === 'menu' && c.key !== 't') : MENU_CHOICES);
+    else if (button.run === 'menus') void pickFrom('Which menu?', session.state.over ? MENU_CHOICES.filter((c) => c.command === 'menu' && !ORDER_MENUS.has(c.key)) : MENU_CHOICES);
     else void runCommand(button.run.command, button.run.key);
   });
   sidebar.element.querySelector('.sidebar-info')?.after(commandBar.element);

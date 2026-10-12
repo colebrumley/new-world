@@ -53,9 +53,13 @@ arguments, help line and example, in help order), and `checkCheat` and `applyChe
 command to the group that owns it and mark the powers concerned (`Player.cheated`). The groups are
 files under `cheats/`, each with its command union, a check and an apply that answer null for a
 command not theirs, and its list of specs: `treasury.ts` (gold, crosses, bells, a Founding Father,
-the tax rate, boycotts) and `map.ts` (lifting the fog); `shared.ts` has the refusal, the outcome
+the tax rate, boycotts), `map.ts` (lifting the fog; a square's ground and features) and `units.ts`
+(a new unit, a unit moved, its moves, a repair, a promotion); `shared.ts` has the refusal, the outcome
 and the readers a spec's `build` takes its arguments apart with. A cheat changes the state through
-the game's own functions wherever there is one. Defaults are in `data/cheats.ts`. The engine knows
+the game's own functions wherever there is one. Defaults are in `data/cheats.ts`. `colonies.ts`
+(a colony's warehouse, hammers, project, buildings and Sons of Liberty) and `world.ts` (native
+alarm and treaties, the other powers, the Crown's force, a price in Europe) are the groups R-1060
+added. The engine knows
 nothing of the text a player types: turning a line into a command is the UI's business.
 
 ## `src/engine/mapgen/`
@@ -110,7 +114,7 @@ market's stalls, the doors of the offices), its parts made once and changes writ
 function in `reports/` (so far the Continental Congress). `title.ts` and
 `customize.ts` are the opening screens. Panels and dialogs are plain DOM.
 
-`ui/options.ts` lists the game and colony report options (kept by `app/storage.ts`, edited in `ui/options-dialog.ts`); `ui/notices.ts` turns a turn's events into log lines as the options allow (a ship of ours reaching Europe is always logged); `ui/hints.ts` picks the tutorial hint for the moment. `ui/audio-cues.ts` maps events to sound cues and defines each cue as tones (and the ambient phrase generator); `app/audio.ts` plays them through WebAudio. `ui/pedia.ts` generates the encyclopedia pages from the data tables and `ui/pedia-screen.ts` shows them. `ui/report.ts` is the full-screen frame every adviser uses; `ui/reports/` holds the builders
+`ui/options.ts` lists the game and colony report options (kept by `app/storage.ts`, edited in `ui/options-dialog.ts`); `ui/notices.ts` turns a turn's events into log lines as the options allow (a ship of ours reaching Europe is always logged); `ui/hints.ts` picks the tutorial hint for the moment. `ui/cheat-parser.ts` is the cheat console's grammar (R-1061), pure text and state: `parseCheat` turns a typed line into a `cheat` action by reading its words against a `CheatSpec`'s arguments by their kinds alone (so it knows no single cheat), `completeCheat` gives the words that could finish the last one, and `cheatHelp` the usage, help line and example of every spec; `withCompletion` writes a completion into the line. `ui/cheat-console.ts` is the console itself (R-1062), the dialog Alt+C and the Menus picker open: a transcript, the help sheet folded under "Commands", one line of text and a hint under it. Enter parses the line, asks `validateAction`, and hands an accepted action to the `runCheat` of `app/game-screen.ts`, which steps the session through the one body it shares with `dispatch`, writes "Cheat: …" in the log beside the map, announces a Founding Father the cheat seated and puts the Congress's question at once if the cheat convened it; a refusal stays in the hint with the text left to mend. Tab completes, Up and Down walk the lines accepted this visit, and the console stays open until Esc or Done. A game that is over does not open it. `ui/audio-cues.ts` maps events to sound cues and defines each cue as tones (and the ambient phrase generator); `app/audio.ts` plays them through WebAudio. `ui/pedia.ts` generates the encyclopedia pages from the data tables and `ui/pedia-screen.ts` shows them. `ui/report.ts` is the full-screen frame every adviser uses; `ui/reports/` holds the builders
 (`advisers.ts` for F1, F2, F4-F7 and F9; `congress.ts`, `foreign.ts`, `score.ts`), each a pure
 function from the state to rows.
 
