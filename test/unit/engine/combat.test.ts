@@ -39,6 +39,41 @@ describe('a unit\'s own strength', () => {
     expect(unitStrength(f('colonist', { profession: 'veteranSoldier' }), 'defense')).toBe(8);
     expect(unitStrength(f('scout', { profession: 'veteranSoldier' }), 'attack')).toBe(8);
   });
+
+  it('a hired veteran dragoon fights as a mounted veteran soldier does', () => {
+    for (const side of ['attack', 'defense'] as const) {
+      const hired: { label: string; percent: number }[] = [];
+      const mounted: { label: string; percent: number }[] = [];
+      expect(unitStrength(f('dragoon', { profession: 'veteranDragoon' }), side, hired)).toBe(unitStrength(f('dragoon', { profession: 'veteranSoldier' }), side, mounted));
+      expect(hired).toEqual([{ label: 'Veteran', percent: 50 }]);
+      expect(mounted).toEqual(hired);
+    }
+    expect(unitStrength(f('dragoon', { profession: 'veteranDragoon' }), 'attack')).toBe(36);
+    expect(unitStrength(f('dragoon', { profession: 'veteranDragoon' }), 'defense')).toBe(36);
+  });
+
+  it('the combat analysis lists the same Veteran line for a hired dragoon and a mounted veteran', () => {
+    const foe = f('soldier', { owner: 'b', x: 2, y: 1 });
+    const hired = combatOdds(base(), f('dragoon', { profession: 'veteranDragoon' }), foe);
+    const mounted = combatOdds(base(), f('dragoon', { profession: 'veteranSoldier' }), foe);
+    expect(hired).toEqual(mounted);
+    expect(hired.attackLines).toContainEqual({ label: 'Veteran', percent: 50 });
+    const held = combatOdds(base(), f('soldier', { owner: 'b', x: 2, y: 1 }), f('dragoon', { profession: 'veteranDragoon' }));
+    expect(held).toEqual(combatOdds(base(), f('soldier', { owner: 'b', x: 2, y: 1 }), f('dragoon', { profession: 'veteranSoldier' })));
+    expect(held.defenseLines).toContainEqual({ label: 'Veteran', percent: 50 });
+  });
+
+  it('the veteran dragoon\'s calling counts only on a dragoon, and no other calling counts at all', () => {
+    expect(unitStrength(f('soldier', { profession: 'veteranDragoon' }), 'attack')).toBe(16);
+    expect(unitStrength(f('soldier', { profession: 'veteranDragoon' }), 'defense')).toBe(16);
+    expect(unitStrength(f('scout', { profession: 'veteranDragoon' }), 'attack')).toBe(8);
+    expect(unitStrength(f('colonist', { profession: 'veteranDragoon' }), 'defense')).toBe(8);
+    expect(unitStrength(f('continentalCavalry', { profession: 'veteranDragoon' }), 'attack')).toBe(unitStrength(f('continentalCavalry'), 'attack'));
+    const lines: { label: string; percent: number }[] = [];
+    expect(unitStrength(f('dragoon', { profession: 'seasonedScout' }), 'attack', lines)).toBe(24);
+    expect(unitStrength(f('dragoon', { profession: 'expertFarmer' }), 'defense', lines)).toBe(24);
+    expect(lines).toEqual([]);
+  });
 });
 
 describe('attack and defence', () => {
