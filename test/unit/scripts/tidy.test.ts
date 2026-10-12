@@ -112,6 +112,20 @@ describe('tidy', () => {
     expect(existsSync(elsewhere)).toBe(true);
   });
 
+  it('fast-forwards a clean main checkout to origin/main and leaves a changed one alone', () => {
+    const { main, branch } = repo();
+    const ahead = branch('ahead');
+    git(ahead, 'push', '-q', 'origin', 'ahead:main');
+    writeFileSync(join(main, 'README.md'), 'someone is editing\n');
+    expect(tidy(ahead)).toContain('keep the main checkout where it is: it has uncommitted changes');
+    expect(git(main, 'rev-parse', 'HEAD')).not.toBe(git(ahead, 'rev-parse', 'HEAD'));
+    git(main, 'checkout', '-q', '--', 'README.md');
+    expect(tidy(ahead, '--dry-run')).toContain('would fast-forward the main checkout');
+    expect(git(main, 'rev-parse', 'HEAD')).not.toBe(git(ahead, 'rev-parse', 'HEAD'));
+    expect(tidy(ahead)).toContain('fast-forward the main checkout to origin/main');
+    expect(git(main, 'rev-parse', 'HEAD')).toBe(git(ahead, 'rev-parse', 'HEAD'));
+  });
+
   it('never removes the worktree it is run from', () => {
     const { main, branch, merge } = repo();
     const self = branch('self');
