@@ -84,7 +84,7 @@ function rabbitActivity(pr, since) {
 
 // Before Codex starts, so the two read at the same time. Returns what rabbitReport needs.
 function rabbitAsk(second) {
-  const pr = ghJson('pr', 'view', '--json', 'number,url,state,headRefOid');
+  const pr = ghJson('pr', 'view', '--json', 'number,url,state,headRefOid,headRefName');
   if (!pr || pr.state !== 'OPEN') {
     return { skip: 'no open pull request for this branch; push and open it before the review so CodeRabbit reads it too' };
   }
@@ -93,10 +93,15 @@ function rabbitAsk(second) {
   const due = now.asks === 0 || (second && now.asks === 1);
   if (!due) return { pr, since: 0 };
   // A worker that commits its fixes and runs the review without pushing would leave CodeRabbit's
-  // verdict on the commits before them, so the branch is pushed here and GitHub given time to see it.
+  // verdict on the commits before them, so the branch is pushed here, to the pull request's own
+  // branch and only past the public-repo word check, and GitHub given time to see it.
   const tip = git('rev-parse', 'HEAD');
   if (pr.headRefOid !== tip) {
-    const pushed = spawnSync('git', ['push', '--quiet', 'origin', 'HEAD'], { encoding: 'utf8' });
+    const guard = spawnSync('node', [join(top, 'scripts', 'guard.mjs'), '--check'], { encoding: 'utf8', cwd: top });
+    if (guard.status !== 0) {
+      return { pr, since: 0, note: 'the pull request is behind this branch and the word check (npm run guard) refuses the push, so CodeRabbit was not asked' };
+    }
+    const pushed = spawnSync('git', ['push', '--quiet', 'origin', `HEAD:refs/heads/${pr.headRefName}`], { encoding: 'utf8' });
     for (let tries = 0; pushed.status === 0 && pr.headRefOid !== tip && tries < 10; tries++) {
       sleep(3 * 1000);
       pr.headRefOid = ghJson('pr', 'view', '--json', 'headRefOid')?.headRefOid ?? pr.headRefOid;

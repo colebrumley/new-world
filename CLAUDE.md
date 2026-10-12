@@ -70,7 +70,8 @@ prompt that is not already public in this repository.
 
 A bug or a small change the owner types straight into a session, without `/plan`, is one item with
 no spec: follow the Worker protocol to its end (worktree, pull request, both reviews, merge, tidy)
-without waiting to be told to open the pull request or to merge it, and commit as `Fix: <what>`.
+without waiting to be told to open the pull request or to merge it. It has no R-number: claim it on
+the board under a short name, commit as `Fix: <what>`, and skip the REQUIREMENTS.md tick.
 Every subagent a session starts, for building, research or critique, runs at Opus 5.5, medium effort.
 
 ## Worker protocol
