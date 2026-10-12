@@ -313,25 +313,49 @@ export function parseCheat(text: string, state: GameState, context: CheatContext
 
 // ---- completion ----
 
-/** The words of a kind that begin as the text does (`lower`, already lower case). */
-function candidates(kind: CheatArgKind, lower: string, state: GameState, context: CheatContext): string[] {
+/** The id of the thing a word is read as where it would stand in the line, if it is read as one of the kind. */
+type ReadBack = (word: string, kind: NameKind) => string | undefined;
+
+/**
+ * The words of a kind that begin as the text does (`lower`, already lower case). A thing is offered by
+ * its name only if the name, read back, is that thing; otherwise by its id, which always is. So a
+ * colony named as another's id is, or as a second colony is, or `Europe` where a place is wanted, is
+ * offered as `c5`.
+ */
+function candidates(kind: CheatArgKind, lower: string, state: GameState, context: CheatContext, back: ReadBack): string[] {
   const fixed = (...words: string[]): string[] => words.filter((w) => w.toLowerCase().startsWith(lower));
-  if (typeof kind === 'object') return 'oneOf' in kind ? fixed(...kind.oneOf) : kind.anyOf.flatMap((k) => candidates(k, lower, state, context));
+  if (typeof kind === 'object') return 'oneOf' in kind ? fixed(...kind.oneOf) : kind.anyOf.flatMap((k) => candidates(k, lower, state, context, back));
   // `here` and `active` only when there is an active unit for them to mean
   const here = context.here ? ['here'] : [];
   if (kind === 'square') return fixed(...here);
-  if (kind === 'place') return [...fixed(...here, 'europe'), ...candidates('colony', lower, state, context)];
+  if (kind === 'place') return [...fixed(...here, 'europe'), ...candidates('colony', lower, state, context, back)];
   if (!isNameKind(kind)) return [];
   const fitting = THINGS[kind](state, context.player).filter((t) => begins(t, lower));
   // a colony or a unit of the power's own, if any fits; another's can still be typed
   const own = fitting.filter((t) => t.own);
-  return [...(kind === 'unit' && context.active !== null ? fixed('active') : []), ...(own.length > 0 ? own : fitting).map((t) => t.offer)];
+  const word = (t: Thing): string => (t.offer === t.id || back(t.offer, kind) === t.id ? t.offer : t.id);
+  return [...(kind === 'unit' && context.active !== null ? fixed('active') : []), ...(own.length > 0 ? own : fitting).map(word)];
+}
+
+/** The one word a completion is, or null if a line would not read it as one (a name with a quote in it). */
+function oneWord(offer: string): Word | null {
+  const read = split(offer);
+  return read.words.length === 1 && !read.open ? (read.words[0] as Word) : null;
+}
+
+/** The id a value read from a line names as one of `kind`: itself, a place's colony, or an `anyOf`'s pick of that kind. */
+function idOf(value: CheatArgValue | undefined, kind: NameKind): string | undefined {
+  if (typeof value === 'string') return value;
+  if (typeof value !== 'object' || !('kind' in value) || value.kind !== kind) return undefined;
+  if ('colonyId' in value) return value.colonyId;
+  return 'value' in value && typeof value.value === 'string' ? value.value : undefined;
 }
 
 /**
  * The words that could complete the last word of a line being typed: cheat names at the first word,
  * the powers after `as`, and after a cheat's name whatever its next argument takes (and those after
- * it, while the ones before are optional). A name with spaces is offered in quotes.
+ * it, while the ones before are optional). A name with spaces is offered in quotes; a name that
+ * would be read as something else is left for the thing's id.
  */
 export function completeCheat(text: string, state: GameState, context: CheatContext, specs: readonly CheatSpec[] = CHEAT_SPECS): string[] {
   const line = split(text);
@@ -340,7 +364,13 @@ export function completeCheat(text: string, state: GameState, context: CheatCont
   const unique = (words: string[]): string[] => [...new Set(words)];
 
   const first = done[0];
-  if (first && !first.quoted && same(first.text, 'as') && done.length === 1) return unique(candidates('power', lower, state, context));
+  if (first && !first.quoted && same(first.text, 'as') && done.length === 1) {
+    return unique(candidates('power', lower, state, context, (offer) => {
+      const word = oneWord(offer);
+      const r = word ? named('power', word, state, context.player) : null;
+      return r?.ok ? idOf(r.value, 'power') : undefined;
+    }));
+  }
   const power = forPower(done, state, context);
   if (!power.ok) return [];
   const name = power.rest[0];
@@ -351,11 +381,17 @@ export function completeCheat(text: string, state: GameState, context: CheatCont
   const spec = findSpec(specs, name.text);
   if (!spec) return [];
   const mine = { ...context, player: power.player };
-  const filled = fill(spec, power.rest.slice(1), state, mine, false);
+  const before = power.rest.slice(1);
+  const filled = fill(spec, before, state, mine, false);
   if (!filled.ok) return [];
   const out: string[] = [];
   for (const arg of spec.args.slice(filled.next)) {
-    out.push(...candidates(arg.kind, lower, state, mine));
+    // read back as the whole line will be: an optional argument before this one may take the word for its own
+    out.push(...candidates(arg.kind, lower, state, mine, (offer, kind) => {
+      const word = oneWord(offer);
+      const r = word ? fill(spec, [...before, word], state, mine, false) : null;
+      return r?.ok ? idOf(r.values[arg.name], kind) : undefined;
+    }));
     if (!arg.optional) break;
   }
   return unique(out);

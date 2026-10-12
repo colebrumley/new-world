@@ -65,13 +65,25 @@ export function ask(host: HTMLElement, options: DialogOptions): Promise<number> 
 
     box.addEventListener('keydown', (event) => {
       const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
-      if (event.key === 'ArrowDown' || event.key === 'ArrowRight') buttons[(at + 1) % buttons.length]?.focus();
-      else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') buttons[(at + buttons.length - 1) % buttons.length]?.focus();
-      else if (event.key === 'Escape' && options.escape !== undefined) finish(options.escape);
-      else if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Tab') {
+      const next = (): void => buttons[(at + 1) % buttons.length]?.focus();
+      const before = (): void => buttons[(at + buttons.length - 1) % buttons.length]?.focus();
+      if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next();
+      else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') before();
+      else if (event.key === 'Tab') {
+        // Tab goes round the answers and never to what lies under the question: the map, or a
+        // dialog it was put up over (the cheat console), which must not be worked until it is answered
+        event.preventDefault();
+        if (event.shiftKey) before();
+        else next();
+      } else if (event.key === 'Escape' && options.escape !== undefined) finish(options.escape);
+      else if (event.key !== 'Enter' && event.key !== ' ') {
         event.preventDefault();
       }
       event.stopPropagation();
+    });
+    // nor does a press on the veil or on the question's words take the keyboard from the answers
+    backdrop.addEventListener('mousedown', (event) => {
+      if (!(event.target instanceof Element && event.target.closest('button'))) event.preventDefault();
     });
 
     backdrop.append(box);
