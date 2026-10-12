@@ -2139,6 +2139,50 @@ Cheats are this game's own; none of this is a rule of play.
     looks, as it always does, when a unit of the power next moves or its next turn begins. It
     looks at every unit of the power then, so a unit put on a rumour looks into it at the next
     move of any of them.
+  - *goods*: adds to one good in a colony's warehouse, takes from it or sets it; or does so to
+    every one of the sixteen goods at once, and then the whole is refused if any one of them would
+    go below nothing. The warehouse may be left holding more than it has room for: the end of the
+    colony's turn trims it as it trims any other excess.
+  - *hammers*: adds to the hammers a colony has put by, takes from them or sets them.
+  - *finish*: gives a colony the hammers and the tools its project still lacks, as paying for it
+    would, for no gold. The project is finished when the colony's turn is next worked, by the
+    ordinary rules, with the notices that always come. Refused with nothing under construction,
+    with a building the colony already has, and when nothing is lacking.
+  - *building*: puts up a building at once, together with every earlier building of its line the
+    colony lacks (a fortress brings the stockade and the fort). The colony's size, the coast and
+    the Founding Father a building may need are not asked. Refused if the colony has it, and for
+    the buildings that are never offered in play.
+  - *liberty*: sets a colony's Sons of Liberty membership to a percent, from 0 to 100. Only the
+    count of members is written, the least that reads no less than the percent; the figure it is
+    reckoned against is kept, so the colony drifts on from there as any other would. Bolivar's
+    points are counted on top as always, so they are taken off what is asked first, and a colony
+    of his power cannot be set below them. The production bonus is not touched: it follows when the
+    colony's turn is next worked, one step a turn.
+  - *alarm*: writes a tribe's alarm at the power, from 0 to 100, or one settlement's. A
+    settlement's own alarm runs past a hundred, so there the number is a percent of the mark at
+    which the settlement turns hostile (128): 50 is the mark at which it turns ships away, 100 is
+    hostile. Nothing else is moved and nothing is reported: no missions burn, no settlement cools.
+  - *peace*: a treaty with a tribe. If they had not met they meet, as on first contact (the tribe
+    starts no worse than wary); the tribe is at peace with the power and forgets a settlement
+    destroyed; an offer of a treaty still waiting is taken as answered; a computer power that had
+    resolved to fight that tribe gives it up. Beyond what a first meeting does, the alarm is left
+    as it is.
+  - *meet*: two powers meet as if their people stood side by side on land: at war until they agree
+    otherwise, two computer powers settling it at once, a computer power asking a human one for an
+    audience. Refused if they have met, and if either is fighting its War of Independence.
+  - *stance*: sets peace or war between the power and another, on both sides, meeting it first
+    (as *meet* does, and refused where *meet* would be) if they had not met. Nothing else of their dealings is changed: no grudge is
+    made by a war begun this way, and none is forgiven by a peace.
+  - *crown*: adds to the regulars, the cavalry, the artillery or the ships of the Expeditionary
+    Force held against the power, takes from them or sets them; or does the same to the King's
+    war chest, the money that buys the force its next unit.
+  - *price*: sets what Europe pays the power for a good. The number is held to the limits between
+    which that good's price moves, and the asking price follows it as always. The traffic that
+    moves prices is left alone, so the price drifts on from there.
+  - *goods*, *hammers* and *crown* leave no count above 100000 (a count already past it may
+    still be brought down): the turn's own reckoning is not made for sums beyond any play.
+  - A colony named in a cheat must be a colony of the power the cheat is for; the other power in
+    *meet* and *stance* must be a European power still in the New World, and not the same one.
 - Every cheat reports one sentence saying what it did, with its figures in plain digits.
 - **The typed line** (R-1061) is `[as <power>] <cheat> <arguments>`.
   - An amount is `500` or `+500` (add), `-200` (take) or `=1000` (set); a count is a whole number

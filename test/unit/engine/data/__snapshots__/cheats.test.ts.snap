@@ -5,6 +5,7 @@ exports[`cheat defaults > match the snapshot and are whole numbers above nothing
   "bells": 100,
   "crosses": 100,
   "gold": 1000,
+  "most": 100000,
   "revealRadius": 3,
   "treasureGold": 1000,
 }
