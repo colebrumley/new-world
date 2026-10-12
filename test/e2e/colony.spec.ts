@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { CALENDAR } from '../../src/engine/calendar';
 import { BUILDING_CHAINS } from '../../src/engine/data/buildings';
 import { saveGame } from '../../src/engine/save';
 import type { Colonist } from '../../src/engine/state';
@@ -617,4 +618,115 @@ test('a finished project takes the player to the colony to choose the next one',
   await expect(page.locator('canvas.map')).toHaveAttribute('data-turn', String(turn + 1));
   await expect(field(page, 'log').locator('li', { hasText: 'completed' })).toHaveCount(1); // the Docks line alone
   await expect(colony).toHaveCount(0);
+});
+
+// --- abandoning a colony (R-1055) -------------------------------------------------------------
+
+/** What the autosave holds: the colonies' names, and what stands on a square, by unit type. */
+const savedWorld = (page: Page, x: number, y: number): Promise<{ colonies: string[]; here: string[] }> =>
+  page.evaluate(([px, py]) => {
+    const state = (JSON.parse(localStorage.getItem('new-world:autosave')!) as { state: { colonies: Record<string, { name: string }>; units: Record<string, { type: string; x: number; y: number; voyage: unknown }> } }).state;
+    return {
+      colonies: Object.values(state.colonies).map((c) => c.name).sort(),
+      here: Object.values(state.units).filter((u) => u.x === px && u.y === py && u.voyage === null).map((u) => u.type).sort(),
+    };
+  }, [x, y] as const);
+
+/** A small island with Jamestown on its west shore, a colonist standing in it, and whatever else the test adds; opens the colony. */
+async function openJamestown(page: Page, colony: Partial<Parameters<typeof withColony>[1]> = {}, more: (state: ReturnType<typeof world>) => ReturnType<typeof world> = (s) => s): Promise<Locator> {
+  const rows = Array.from({ length: 8 }, (_, y) => (y === 0 || y === 7 ? '~'.repeat(10) : '~~......~~'));
+  let state = world({ rows, seed: 5, players: [{ id: 'p0', kind: 'human', nation: 'england' }] });
+  const settler = (id: string): Colonist => ({ id, profession: 'freeColonist', job: { kind: 'idle' }, turns: 0 });
+  state = withColony(state, { id: 'james', owner: 'p0', x: 2, y: 3, name: 'Jamestown', goods: { food: 50, furs: 30 }, colonists: [settler('ann'), settler('ben')], ...colony });
+  state = withUnit(state, { id: 'hand', owner: 'p0', x: 2, y: 3 });
+  state = more(state);
+  await page.addInitScript((text) => localStorage.setItem('new-world:autosave', text), saveGame({ options: { seed: 5 }, log: [], state }));
+  await page.goto('/');
+  await page.getByRole('menuitem', { name: 'Load Game' }).click();
+  await expect(field(page, 'unit')).toHaveText('Free Colonist');
+  await page.keyboard.press('v');
+  await page.keyboard.press('Enter');
+  const screen = page.locator('.colony-screen');
+  await expect(screen.getByRole('heading', { name: 'Jamestown' })).toBeVisible();
+  return screen;
+}
+
+const abandonQuestion = (page: Page): Locator => page.locator('.dialog').filter({ hasText: 'Abandon Jamestown?' });
+
+test('the Abandon colony button asks once, and on yes the colonists stand on the map where the colony was', async ({ page }) => {
+  const colony = await openJamestown(page, {}, (s) => withUnit(s, { id: 'ship', owner: 'p0', type: 'caravel', profession: null, x: 2, y: 3, cargo: { furs: 100 } }));
+  const button = colony.getByRole('button', { name: 'Abandon colony' });
+  await expect(button).toBeEnabled();
+  await expect(colony.locator('.colony-commands button')).toHaveText(['Abandon colony', 'Exit (Esc)']);
+  await button.click();
+  const question = abandonQuestion(page);
+  await expect(question.getByRole('button')).toHaveText(['No, keep it', 'Yes, abandon it']);
+  await expect(question.locator('p')).toHaveText(`Abandon Jamestown? Its 2 colonists will walk out and stand on the square. The buildings and everything in the warehouse are lost. Our ship in port leaves damaged and loses its cargo. This is our only colony: from ${CALENDAR.charterYear} on, holding no colony loses the charter.`);
+  await page.screenshot({ path: 'test-results/colony-abandon-question.png' });
+  await question.getByRole('button', { name: 'Yes, abandon it' }).click();
+  await expect(colony).toHaveCount(0);
+  await expect(field(page, 'status')).toHaveText('Jamestown has been abandoned.');
+  await expect(page.locator('canvas.map')).toHaveAttribute('data-colony', '');
+  const after = await savedWorld(page, 2, 3);
+  expect(after.colonies).toEqual([]);
+  // the colonist who stood there, and the two who walked out; the ship has slipped her cable
+  expect(after.here).toEqual(['colonist', 'colonist', 'colonist']);
+});
+
+test('answering no, or Escape, leaves the colony as it was', async ({ page }) => {
+  const colony = await openJamestown(page, {}, (s) => withColony(s, { id: 'ply', owner: 'p0', x: 6, y: 5, name: 'Plymouth' }));
+  const question = abandonQuestion(page);
+  await colony.getByRole('button', { name: 'Abandon colony' }).click();
+  // a second colony keeps the charter, and no ship is in port: neither is spoken of
+  await expect(question.locator('p')).toHaveText('Abandon Jamestown? Its 2 colonists will walk out and stand on the square. The buildings and everything in the warehouse are lost.');
+  await question.getByRole('button', { name: 'No, keep it' }).click();
+  await expect(question).toHaveCount(0);
+  await colony.getByRole('button', { name: 'Abandon colony' }).click();
+  await expect(question).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(question).toHaveCount(0);
+  await expect(colony.getByRole('heading', { name: 'Jamestown' })).toBeVisible();
+  await expect(colony.locator('.idle-row .token-colonist')).toHaveCount(2);
+  await expect(colony.locator('.token-good', { hasText: 'Furs' })).toContainText('30');
+  await page.keyboard.press('Escape');
+  await expect(colony).toHaveCount(0);
+  // nothing was sent to the game: the autosave is still the one loaded
+  expect((await savedWorld(page, 2, 3))).toEqual({ colonies: ['Jamestown', 'Plymouth'], here: ['colonist'] });
+});
+
+test('the last colonist leaves through the jobs menu by abandoning the colony, once confirmed', async ({ page }) => {
+  const last: Colonist = { id: 'ann', profession: 'freeColonist', job: { kind: 'idle' }, turns: 0 };
+  const colony = await openJamestown(page, { colonists: [last] }, (s) => withColony(s, { id: 'ply', owner: 'p0', x: 6, y: 5, name: 'Plymouth' }));
+  const ann = colony.locator('.idle-row .token-colonist');
+  const menu = page.locator('.dialog').filter({ hasText: 'Choose work' });
+  const question = abandonQuestion(page);
+  await ann.click();
+  await ann.click();
+  await menu.getByRole('button', { name: 'Leave the colony' }).click();
+  await expect(question.locator('p')).toHaveText('Abandon Jamestown? Its one colonist will walk out and stand on the square. The buildings and everything in the warehouse are lost.');
+  await question.getByRole('button', { name: 'No, keep it' }).click();
+  await expect(ann).toHaveCount(1);
+  await expect(colony.locator('[data-field="colony-message"]')).toHaveText('');
+  await ann.click();
+  await menu.getByRole('button', { name: 'Leave the colony' }).click();
+  await question.getByRole('button', { name: 'Yes, abandon it' }).click();
+  await expect(colony).toHaveCount(0);
+  await expect(field(page, 'status')).toHaveText('Jamestown has been abandoned.');
+  expect(await savedWorld(page, 2, 3)).toEqual({ colonies: ['Plymouth'], here: ['colonist', 'colonist'] });
+});
+
+test('behind a Stockade the Abandon colony button is disabled and says why, and nobody leaves at three', async ({ page }) => {
+  const three = ['ann', 'ben', 'cat'].map((id): Colonist => ({ id, profession: 'freeColonist', job: { kind: 'idle' }, turns: 0 }));
+  const colony = await openJamestown(page, { colonists: three, buildings: ['townHall', 'stockade'] });
+  const button = colony.getByRole('button', { name: 'Abandon colony' });
+  await expect(button).toBeDisabled();
+  await expect(button).toHaveAttribute('title', 'a colony behind a stockade or stronger works cannot be abandoned');
+  // leaving is refused as before
+  const ann = colony.locator('.idle-row .token-colonist').first();
+  await ann.click();
+  await ann.click();
+  await page.locator('.dialog').filter({ hasText: 'Choose work' }).getByRole('button', { name: 'Leave the colony' }).click();
+  await expect(colony.locator('[data-field="colony-message"]')).toHaveText('a colony behind a stockade or stronger works keeps at least 3 colonists');
+  await expect(colony.locator('.idle-row .token-colonist')).toHaveCount(3);
+  await expect(abandonQuestion(page)).toHaveCount(0);
 });

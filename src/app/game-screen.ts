@@ -439,6 +439,10 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         if ((e.type === 'buildingCompleted' || e.type === 'unitBuilt') && session.state.colonies[e.colonyId]?.owner === me() && !finished.includes(e.colonyId)) finished.push(e.colonyId);
       }
     }
+    // a colony of ours given up, from its own screen
+    for (const e of stepped.events) {
+      if (e.type === 'colonyAbandoned' && before.colonies[e.colonyId]?.owner === me()) say(`${e.name} has been abandoned.`);
+    }
     // a treasure train that has just come into one of our colonies, by a move, a Go To or being put ashore there
     const arrived = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'endTurn' || action.type === 'goAshore' ? treasuresArrived(before, session.state) : [];
     const moving = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'foundColony' || action.type === 'endTurn';
@@ -1092,6 +1096,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         const check = validateAction(session.state, action);
         return check.ok ? null : check.error.message;
       },
+      player: me,
       close: closeColony,
     });
   };

@@ -159,7 +159,9 @@ A colonist who joins without being told where to work is given a job. If the col
 
 ## Leaving and losing a colony
 
-A colonist can leave the colony through his jobs menu or by being dragged outside the gates, but the last colonist cannot. A colony with a Stockade or stronger works cannot drop below three colonists by choice. The colony screen offers no way to abandon a colony; a colony ends only when it starves out or is taken.
+A colonist can leave the colony through his jobs menu or by being dragged outside the gates. A colony with a Stockade or stronger works cannot drop below three colonists by choice.
+
+You can give a colony up. Press **Abandon colony** beside **Exit** on the colony screen, or send the last colonist outside the gates; either way the game asks once before anything happens. On yes, every colonist walks out and stands on the square as a unit with no moves left this turn, the buildings and everything in the warehouse are lost, the land is free again, and your trade routes that stopped there are struck off. Two things prevent it: a Stockade, Fort or Fortress, and a siege. The button is then greyed, and resting the pointer on it says why. A colony taken from another power can be abandoned like any other, once you open it. Giving up your only colony is allowed, but from 1600 on a power that holds no colony loses its charter and the game.
 
 When a colony is lost, its owner's ships in its port leave damaged, losing their cargo and any passengers aboard. They sail for the nearest colony with a Drydock, or for Europe; with neither (Europe is closed once you have declared independence), they sink.
 
