@@ -183,6 +183,10 @@ describe('parseCheat: names', () => {
     expect(given('greet France').power).toBe('b');
     expect(given('greet a').power).toBe('a');
     expect(given('greet england').power).toBe('a');
+    // an exact id wins over another's exact name: here the first power is called France and the second has the id france
+    const state = land();
+    const named = { ...state, players: state.players.map((p) => (p.id === 'a' ? { ...p, name: 'France' } : { ...p, id: 'france', nation: 'spain' as const })) };
+    expect(parseCheat('greet france', named, ME, SPECS)).toMatchObject({ ok: true, action: { command: { given: { power: 'france' } } } });
   });
 
   it('a power that has withdrawn or fights for the Crown is no power', () => {
@@ -261,8 +265,10 @@ describe('parseCheat: the line', () => {
     expect(r).toMatchObject({ ok: true, action: { player: 'b', command: { given: { unit: 'u4' } } } });
   });
 
-  it('a quote left open is refused', () => {
+  it('a quote left open is refused, and a quote always begins a word', () => {
     expect(refusal('spot "new amsterdam')).toContain('quote is left open');
+    expect(refusal('spot new"amsterdam')).toContain('quote is left open');
+    expect(refusal('spot jamest"own"')).toContain('"own" is one word too many');
   });
 
   it('a build that will not have its arguments is a refusal, not a crash', () => {
@@ -298,13 +304,23 @@ describe('parseCheat: the cheats there are', () => {
     expect(run('tax 5 6')).toMatchObject({ ok: false });
   });
 
-  it('every spec\'s own example parses, and the engine has no quarrel with its shape', () => {
+  it('every spec\'s own example parses, but for a thing this small world lacks', () => {
     const state = land();
     for (const s of CHEAT_SPECS) {
       const r = parseCheat(s.example, state, ME);
-      // an example may name a colony or a unit this small world lacks; it must not fail on the cheat's name or its numbers
+      // an example may name a colony or a unit this world lacks; it must not fail on the cheat's name, its numbers or its words
       if (!r.ok) expect(r.message, s.example).toMatch(/^there is no (colony|unit|settlement|power) /);
-      else if (s.name === 'gold') expect(validateAction(state, r.action)).toEqual({ ok: true });
+    }
+  });
+
+  it('the examples of the treasury, Congress and reveal cheats pass the engine\'s own check', () => {
+    // a map large enough for the squares the examples name
+    const wide = world({ rows: Array.from({ length: 40 }, () => '.'.repeat(40)), players: [{ id: 'a' }, { id: 'b', kind: 'ai' }] });
+    for (const name of ['gold', 'crosses', 'bells', 'father', 'tax', 'boycott', 'reveal']) {
+      const s = CHEAT_SPECS.find((c) => c.name === name) as CheatSpec;
+      const r = parseCheat(s.example, wide, ME);
+      expect(r, s.example).toMatchObject({ ok: true });
+      if (r.ok) expect(validateAction(wide, r.action), s.example).toEqual({ ok: true });
     }
   });
 });
@@ -350,6 +366,10 @@ describe('completeCheat', () => {
     expect(complete('raise c1 town', SPECS)).toEqual(['townHall']);
     expect(complete('job vet', SPECS)).toEqual(['veteranSoldier']);
     expect(complete('at h', SPECS)).toEqual(['here']);
+    // with no active unit, neither `here` nor `active` would be accepted, so neither is offered
+    expect(complete('at h', SPECS, NOBODY)).toEqual([]);
+    expect(complete('spot ', SPECS, NOBODY)).toEqual(['europe', 'Jamestown', '"New Amsterdam"', '"New Haven"']);
+    expect(complete('who ', SPECS, NOBODY)).toEqual(['u1', 'u2', 'u3']);
   });
 
   it('offers what could follow while the arguments before are optional', () => {

@@ -30,11 +30,11 @@ export interface CheatHelpEntry { readonly usage: string; readonly about: string
 
 interface Word { readonly text: string; readonly quoted: boolean }
 
-/** Split a line at its spaces, keeping what stands between double quotes as one word. */
+/** Split a line at its spaces, keeping what stands between double quotes as one word; a quote always begins a word. */
 function split(text: string): { words: Word[]; open: boolean; trailing: boolean } {
   const words: Word[] = [];
   let open = false;
-  for (const m of text.matchAll(/"([^"]*)("?)|([^\s"]\S*)/g)) {
+  for (const m of text.matchAll(/"([^"]*)("?)|([^\s"]+)/g)) {
     const quoted = m[3] === undefined;
     words.push({ text: (quoted ? m[1] : m[3]) as string, quoted });
     open = quoted && m[2] === '';
@@ -125,8 +125,9 @@ function named(kind: NameKind, word: Word, state: GameState, player: PlayerId): 
   const lower = word.text.toLowerCase();
   if (lower === '') return miss(`a ${noun} needs a name`);
   const things = THINGS[kind](state, player);
-  // an exact id or full name wins outright; otherwise whatever the word begins
-  const exact = things.filter((t) => same(t.id, lower) || t.names.some((n) => same(n, lower)));
+  // an exact id wins outright, then an exact full name; otherwise whatever the word begins
+  const byId = things.filter((t) => same(t.id, lower));
+  const exact = byId.length > 0 ? byId : things.filter((t) => t.names.some((n) => same(n, lower)));
   const found = exact.length > 0 ? exact : things.filter((t) => begins(t, lower));
   if (found.length === 0) return miss(`there is no ${noun} "${word.text}"`);
   const own = found.filter((t) => t.own);
@@ -313,13 +314,15 @@ export function parseCheat(text: string, state: GameState, context: CheatContext
 function candidates(kind: CheatArgKind, lower: string, state: GameState, context: CheatContext): string[] {
   const fixed = (...words: string[]): string[] => words.filter((w) => w.toLowerCase().startsWith(lower));
   if (typeof kind === 'object') return 'oneOf' in kind ? fixed(...kind.oneOf) : kind.anyOf.flatMap((k) => candidates(k, lower, state, context));
-  if (kind === 'square') return fixed('here');
-  if (kind === 'place') return [...fixed('here', 'europe'), ...candidates('colony', lower, state, context)];
+  // `here` and `active` only when there is an active unit for them to mean
+  const here = context.here ? ['here'] : [];
+  if (kind === 'square') return fixed(...here);
+  if (kind === 'place') return [...fixed(...here, 'europe'), ...candidates('colony', lower, state, context)];
   if (!isNameKind(kind)) return [];
   const fitting = THINGS[kind](state, context.player).filter((t) => begins(t, lower));
   // a colony or a unit of the power's own, if any fits; another's can still be typed
   const own = fitting.filter((t) => t.own);
-  return [...(kind === 'unit' ? fixed('active') : []), ...(own.length > 0 ? own : fitting).map((t) => t.offer)];
+  return [...(kind === 'unit' && context.active !== null ? fixed('active') : []), ...(own.length > 0 ? own : fitting).map((t) => t.offer)];
 }
 
 /**
