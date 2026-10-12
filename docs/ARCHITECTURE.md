@@ -55,7 +55,10 @@ files under `cheats/`, each with its command union, a check and an apply that an
 command not theirs, and its list of specs: `treasury.ts` (gold, crosses, bells, a Founding Father,
 the tax rate, boycotts) and `map.ts` (lifting the fog); `shared.ts` has the refusal, the outcome
 and the readers a spec's `build` takes its arguments apart with. A cheat changes the state through
-the game's own functions wherever there is one. Defaults are in `data/cheats.ts`. The engine knows
+the game's own functions wherever there is one. Defaults are in `data/cheats.ts`. `colonies.ts`
+(a colony's warehouse, hammers, project, buildings and Sons of Liberty) and `world.ts` (native
+alarm and treaties, the other powers, the Crown's force, a price in Europe) are the groups R-1060
+added. The engine knows
 nothing of the text a player types: turning a line into a command is the UI's business.
 
 ## `src/engine/mapgen/`
