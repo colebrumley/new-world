@@ -681,7 +681,10 @@ test('answering no, or Escape, leaves the colony as it was', async ({ page }) =>
   await expect(question.locator('p')).toHaveText('Abandon Jamestown? Its 2 colonists will walk out and stand on the square. The buildings and everything in the warehouse are lost.');
   await question.getByRole('button', { name: 'No, keep it' }).click();
   await expect(question).toHaveCount(0);
-  await colony.getByRole('button', { name: 'Abandon colony' }).click();
+  // the keyboard reaches the command too: Tab goes round the regions to it
+  for (let i = 0; i < 8 && (await page.evaluate(() => document.activeElement?.closest('[data-region]')?.getAttribute('data-region'))) !== 'commands'; i++) await page.keyboard.press('Tab');
+  await expect(colony.getByRole('button', { name: 'Abandon colony' })).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(question).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(question).toHaveCount(0);

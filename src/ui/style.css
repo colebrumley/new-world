@@ -824,7 +824,8 @@ canvas.minimap {
 .colony-message:empty, .colony-message:not(:empty) + .colony-help { display: none; }
 .colony-help { color: var(--ink-faded); font-style: italic; font-size: 0.78rem; }
 .colony-help::before { content: '* '; font-style: normal; }
-.colony-commands { grid-area: exit; justify-self: end; align-self: center; display: flex; align-items: center; gap: 8px; }
+/* the commands are a region for the keyboard's sake, not a panel of the sheet */
+.colony-screen .colony-commands { grid-area: exit; justify-self: end; align-self: center; display: flex; align-items: center; gap: 8px; border: 0; background: none; box-shadow: none; padding: 0; overflow: visible; }
 
 .colony-close, .colony-abandon, .tab, .construction-change, .construction-buy { padding: 2px 10px; }
 .colony-close { background: var(--plate-brass); padding: 4px 16px; }

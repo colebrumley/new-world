@@ -402,6 +402,9 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     done.addEventListener('click', close);
     // the commands at the foot of the sheet: giving the colony up (our own only), and leaving the screen
     const commands = el('div', 'colony-commands');
+    commands.dataset['region'] = 'commands';
+    commands.setAttribute('role', 'group');
+    commands.setAttribute('aria-label', 'Commands');
     if (view.owner === host.player()) {
       const giveUp = el('button', 'colony-abandon', 'Abandon colony');
       giveUp.type = 'button';
@@ -742,7 +745,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   // --- keyboard ---------------------------------------------------------------------------------
 
   const focusables = (scope: ParentNode): HTMLElement[] => [...scope.querySelectorAll<HTMLElement>('button:not(:disabled)')];
-  const REGIONS = ['settlement', 'area', 'people', 'multi', 'transport', 'warehouse'];
+  const REGIONS = ['settlement', 'area', 'people', 'multi', 'transport', 'warehouse', 'commands'];
 
   root.addEventListener('keydown', (event) => {
     if ((event.target as HTMLElement).closest('.dialog')) return;

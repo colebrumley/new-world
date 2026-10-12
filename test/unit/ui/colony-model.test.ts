@@ -306,9 +306,18 @@ describe('leaving and abandoning', () => {
 
   it('adds what becomes of our ships in port, and of nobody else', () => {
     const two = withColony(town(), { id: 'other', x: 4, y: 1, name: 'Boston' });
-    expect(abandonQuestion(two, 'col')).toContain('lost. Our ship in port leaves damaged and loses its cargo.');
+    expect(abandonQuestion(two, 'col')).toContain('lost. Our ship in port leaves damaged and loses its cargo and everyone aboard.');
     const fleet = withUnit(two, { id: 'ship2', type: 'merchantman', x: 2, y: 2 });
-    expect(abandonQuestion(fleet, 'col')).toMatch(/Our 2 ships in port leave damaged and lose their cargo[.]$/);
+    expect(abandonQuestion(fleet, 'col')).toMatch(/Our 2 ships in port leave damaged and lose their cargo and everyone aboard[.]$/);
+    // those aboard go with the cargo; the colonist standing ashore does not
+    expect(abandonQuestion(withUnit(fleet, { id: 'q', x: 2, y: 2 }), 'col')).toMatch(/lose their cargo and everyone aboard[.]$/);
+    expect(abandonQuestion({ ...two, units: { ship: two.units['ship']! } }, 'col')).toMatch(/Our ship in port leaves damaged and loses its cargo[.]$/);
+    // at war, with no Drydock of ours left to make for, Europe is closed: they sink
+    const atWar = (s: GameState): GameState => ({ ...s, players: s.players.map((p) => (p.id === s.colonies['col']!.owner ? { ...p, atWar: true } : p)) });
+    expect(abandonQuestion(atWar(two), 'col')).toMatch(/Our ship in port has nowhere to go for repair and sinks with its cargo and everyone aboard[.]$/);
+    expect(abandonQuestion(atWar(fleet), 'col')).toMatch(/Our 2 ships in port have nowhere to go for repair and sink with their cargo and everyone aboard[.]$/);
+    const yard = withColony(atWar(two), { id: 'yard', x: 4, y: 3, buildings: ['docks', 'drydock'] });
+    expect(abandonQuestion(yard, 'col')).toMatch(/Our ship in port leaves damaged and loses its cargo and everyone aboard[.]$/);
     // a wagon train is no ship; nor is a ship elsewhere, or another power's
     let none: GameState = { ...two, units: { far: two.units['far']! } };
     none = withUnit(none, { id: 'wagon', type: 'wagonTrain', x: 2, y: 2 });
