@@ -56,7 +56,7 @@ const REQUIRED: Record<string, { tables: string[]; images: string[] }> = {
       ...['report-economic', 'report-colony', 'report-score'].map(screen),
     ],
   },
-  'Score-and-Hall-of-Fame.md': { tables: ['score'], images: [screen('hall-of-fame')] },
+  'Score-and-Hall-of-Fame.md': { tables: ['score'], images: ['game-over', 'end-defeat', 'reckoning', 'hall-of-fame'].map(screen) },
   'Gallery.md': { tables: [], images: [] },
 };
 

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { saveGame } from '../../src/engine/save';
 import type { GameState } from '../../src/engine/state';
 import { withColony, withUnit, world } from '../helpers/world';
@@ -8,7 +8,7 @@ const summarise = (root: Element) => [...root.querySelectorAll('.report-section'
   rows: [...box.querySelectorAll('tr')].map((tr) => [...tr.children].map((c) => c.textContent)),
   note: box.querySelector('p')?.textContent ?? null,
 }));
-import { field } from './helpers';
+import { field, settled, startNewGame } from './helpers';
 
 /** A prepared game with a Congress under way. */
 function congress(): string {
@@ -153,17 +153,33 @@ test('in 1800 the game is scored, entered in the Hall of Fame, and may be played
 
   await page.keyboard.press(' '); // the scout has nothing to do
   await page.keyboard.press('Enter');
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('1800');
-  await dialog.getByRole('button', { name: 'So be it' }).click();
+  // the end page: what happened, the reckoning in short, and the ways on
+  const end = page.getByRole('dialog', { name: 'Retirement: your term is over' });
+  await expect(end).toContainText('The year is 1800');
+  await expect(end.locator('[data-end="date"]')).toHaveText('Spring 1800');
+  await expect(end.locator('[data-end="rating"]')).toHaveText(/^\d+%$/);
+  await expect(end.locator('[data-end="honour"]')).toContainText('named');
+  await expect(end.getByRole('button')).toHaveText(['The reckoning', 'Play on', 'New game', 'Load game', 'Look over the map']);
+  await expect(end.getByRole('button', { name: 'The reckoning' })).toBeFocused();
+  await expect(page.locator('canvas.map')).toHaveAttribute('data-over', 'retired');
+  // the reckoning in full, and back to the page
+  await page.keyboard.press('Enter');
   await expect(score.getByRole('group', { name: 'Colonial rating' })).toBeVisible();
   await expect(score.getByRole('group', { name: 'Hall of Fame' })).toContainText('Walter Raleigh of England');
   expect(JSON.stringify(await score.evaluate(summarise), null, 2)).toMatchSnapshot('score-1800.json');
+  const total = await score.getByRole('row', { name: /^Total/ }).getByRole('cell').last().textContent();
   await page.keyboard.press('Escape');
+  await expect(score).toHaveCount(0);
+  await expect(end.getByRole('button', { name: 'The reckoning' })).toBeFocused();
+  await expect(end.locator('[data-end="score"]')).toHaveText(total!);
 
   // stop, or play on unscored
-  await expect(dialog).toContainText('play on');
-  await dialog.getByRole('button', { name: 'Play on' }).click();
+  await expect(end).toContainText('will not be scored again');
+  await page.keyboard.press('ArrowDown');
+  await expect(end.getByRole('button', { name: 'Play on' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(end).toHaveCount(0);
+  await expect(page.locator('canvas.map')).toHaveAttribute('data-over', '');
   await expect(field(page, 'date')).toHaveText('Spring 1800');
   await page.keyboard.press(' ');
   await page.keyboard.press('Enter');
@@ -178,8 +194,12 @@ test('in 1800 the game is scored, entered in the Hall of Fame, and may be played
   await expect(hall).toContainText('Spring 1800');
 });
 
-test('Shift+R retires after asking, and the game is over for good', async ({ page }) => {
-  await page.addInitScript((text) => localStorage.setItem('new-world:autosave', text), eveOf1800());
+/** Load the game on the eve of 1800 and retire from it: the end page of an early retirement is up. */
+async function retire(page: Page): Promise<Locator> {
+  await page.addInitScript(([key, text]) => {
+    if (!sessionStorage.getItem('seeded')) localStorage.setItem(key!, text!);
+    sessionStorage.setItem('seeded', '1');
+  }, ['new-world:autosave', eveOf1800()] as const);
   await page.goto('/');
   await page.getByRole('menuitem', { name: 'Load Game' }).click();
   await expect(field(page, 'unit')).toHaveText('Scout');
@@ -187,12 +207,130 @@ test('Shift+R retires after asking, and the game is over for good', async ({ pag
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('Retire as Viceroy');
   await dialog.getByRole('button', { name: 'Yes, retire' }).click();
-  await expect(dialog).toContainText('laid down');
-  await dialog.getByRole('button', { name: 'So be it' }).click();
+  const end = page.getByRole('dialog', { name: 'Retirement: you lay down your office' });
+  await expect(end).toBeVisible();
+  return end;
+}
+
+test('Shift+R retires after asking, and the game is over for good', async ({ page }) => {
+  const end = await retire(page);
+  await expect(end).toContainText('laid down');
+  await expect(end).toHaveAttribute('aria-modal', 'true');
+  await expect(page.locator('canvas.map')).toHaveAttribute('data-over', 'retiredEarly');
+  // no offer to play on
+  await expect(end.getByRole('button')).toHaveText(['The reckoning', 'New game', 'Load game', 'Look over the map']);
+  // Tab goes round the choices and never to the map or the bar under the page
+  await page.keyboard.press('Shift+Tab');
+  await expect(end.getByRole('button', { name: 'Look over the map' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(end.getByRole('button', { name: 'The reckoning' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(end.getByRole('button', { name: 'New game' })).toBeFocused();
+  await end.getByRole('button', { name: 'The reckoning' }).click();
+  await expect(page.getByRole('dialog', { name: 'Colonial Score' }).getByRole('group', { name: 'Hall of Fame' })).toContainText('Walter Raleigh of England');
+  await page.keyboard.press('Escape');
+  await expect(end).toBeVisible();
+  // Load game: the load dialog, and the page again when nothing is loaded
+  await end.getByRole('button', { name: 'Load game' }).click();
+  const loader = page.getByRole('dialog', { name: 'Load Game' });
+  await expect(loader.getByRole('button', { name: /^Save / })).toHaveCount(0); // a finished game is not saved again
+  await page.keyboard.press('Escape');
+  await expect(loader).toHaveCount(0);
+  await expect(end.getByRole('button', { name: 'Load game' })).toBeFocused();
+
+  // the page fits the window, wide and narrow: nothing runs off it and nothing scrolls
+  for (const size of [{ width: 1280, height: 720 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(size);
+    await settled(page);
+    const fit = await end.evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      const inside = [...el.querySelectorAll('*')].every((child) => {
+        const b = child.getBoundingClientRect();
+        return b.left >= box.left - 0.5 && b.right <= box.right + 0.5 && b.top >= box.top - 0.5 && b.bottom <= box.bottom + 0.5;
+      });
+      const doc = document.documentElement;
+      return { inside, pageScrolls: el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth, windowScrolls: doc.scrollHeight > window.innerHeight || doc.scrollWidth > window.innerWidth, fills: box.width === window.innerWidth && box.height === window.innerHeight };
+    });
+    expect(fit, `${size.width} x ${size.height}`).toEqual({ inside: true, pageScrolls: false, windowScrolls: false, fills: true });
+  }
+});
+
+test('from the end page, New game reaches the title screen and a new game can be begun', async ({ page }) => {
+  const end = await retire(page);
+  await end.getByRole('button', { name: 'New game' }).click();
+  await expect(page.locator('canvas.map')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'New World', level: 1 })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Load Game' })).toBeEnabled();
+  // the finished game is still where it was saved
+  const kept = await page.evaluate(() => (JSON.parse(localStorage.getItem('new-world:autosave') ?? 'null') as { state: { over: { reason: string } | null } } | null)?.state.over?.reason);
+  expect(kept).toBe('retiredEarly');
+  // the title's choices work: the Hall of Fame, then a game begun afresh
+  await page.getByRole('menuitem', { name: 'View Hall of Fame' }).click();
+  await expect(page.getByRole('dialog', { name: 'Hall of Fame' })).toContainText('Walter Raleigh of England');
+  await page.keyboard.press('Escape');
+  await startNewGame(page);
+  await expect(field(page, 'date')).toHaveText('1492');
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  await expect(page.locator('canvas.map')).toHaveAttribute('data-over', '');
+  await expect(page.locator('canvas.map')).toHaveCount(1);
+  // and it is played: the ship sails
+  const from = await field(page, 'location').textContent();
+  await page.keyboard.press('ArrowLeft');
+  await expect(field(page, 'location')).not.toHaveText(from!);
+});
+
+test('Look over the map closes the end page; The end, Enter and Esc bring it back, and no order is taken', async ({ page }) => {
+  const end = await retire(page);
+  await end.getByRole('button', { name: 'Look over the map' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('canvas.map')).toBeFocused();
+  await expect(page.locator('canvas.map')).toHaveAttribute('data-over', 'retiredEarly');
+  await expect(field(page, 'status')).toContainText('The game has ended');
+  await expect(field(page, 'unit')).toHaveText('No active unit');
+
+  // the bar: no orders, no turn to end, and The end where End turn was
+  const bar = page.getByRole('toolbar', { name: 'Commands' });
+  for (const name of ['Wait', 'Fortify', 'Go to', 'Build', 'Disband', 'Europe']) await expect(bar.getByRole('button', { name, exact: true })).toBeDisabled();
+  await expect(bar.getByRole('button', { name: 'End turn' })).toHaveCount(0);
+  await expect(bar.getByRole('button', { name: 'The end' })).toBeEnabled();
+
+  // keys that would give an order do nothing, and nothing is said of them
+  const logged = (): Promise<number> => page.evaluate(() => (JSON.parse(localStorage.getItem('new-world:autosave') ?? 'null') as { log: unknown[] } | null)?.log.length ?? -1);
+  const before = await logged();
+  for (const key of ['f', 's', 'w', ' ', 'b', 'e', 'Shift+D', 'Shift+R', 'Shift+I', 'Alt+T']) await page.keyboard.press(key);
+  await settled(page);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(field(page, 'status')).toHaveText('The game has ended. Press Enter for the end page.');
+  expect(await logged()).toBe(before);
+
+  // looking goes on: the zoom zooms, the reports report, the load menu opens (the arrows scroll: saves.spec.ts, on a map wider than the window)
+  const tileSize = async (): Promise<number> => (JSON.parse((await page.locator('canvas.map').getAttribute('data-view'))!) as { tileSize: number }).tileSize;
+  const near = await tileSize();
+  await page.keyboard.press('x');
+  await settled(page);
+  expect(await tileSize()).toBeLessThan(near);
+  await page.keyboard.press('F10');
   await expect(page.getByRole('dialog', { name: 'Colonial Score' })).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).toHaveCount(0); // no offer to play on
-  await expect(page.locator('canvas.map')).toHaveAttribute('data-over', 'retiredEarly');
+  await page.keyboard.press('Alt+L');
+  await expect(page.getByRole('dialog', { name: 'Load Game' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  // three ways back to the page
+  await bar.getByRole('button', { name: 'The end' }).click();
+  await expect(end).toBeVisible();
+  await expect(end.getByRole('button', { name: 'The reckoning' })).toBeFocused();
+  await page.keyboard.press('Escape'); // Esc on the page looks over the map
+  await expect(end).toHaveCount(0);
+  await page.keyboard.press('Enter');
+  await expect(end).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(end).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(end).toBeVisible();
+  // the game went into the Hall of Fame once
+  expect(await page.evaluate(() => (JSON.parse(localStorage.getItem('new-world:hall-of-fame') ?? '[]') as unknown[]).length)).toBe(1);
 });
 
 /** A prepared game with something for every adviser to say. */

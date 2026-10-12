@@ -74,7 +74,7 @@ function remember(choice: PowerChoice): void {
 }
 
 /** With only the game last played to choose from it is simply resumed; otherwise the slots are shown. */
-async function loadFromTitle(root: HTMLElement): Promise<void> {
+async function loadFromTitle(root: HTMLElement, toTitle: () => void): Promise<void> {
   let notice = '';
   for (;;) {
     const slots = listSlots();
@@ -85,7 +85,7 @@ async function loadFromTitle(root: HTMLElement): Promise<void> {
     try {
       const loaded = choice.kind === 'load' ? readSlot(choice.slot) : loadGame(choice.text);
       if (loaded) {
-        startGame(root, loaded);
+        startGame(root, loaded, { toTitle });
         return;
       }
       notice = 'That slot is empty.';
@@ -95,7 +95,7 @@ async function loadFromTitle(root: HTMLElement): Promise<void> {
   }
 }
 
-/** Act on a choice made on the title screen. `back` puts the title screen up again. */
+/** Act on a choice made on the title screen. `back` puts the title screen up again, from the screens before a game and from the end of one. */
 export function choose(root: HTMLElement, choice: TitleChoice, difficulty: Difficulty, back: () => void): void {
   /** The power screen, then the game `begin` makes for the seats chosen; Back returns to the screen `from` puts up. */
   const choosePower = (begin: (players: Seats) => GameSession, from: () => void): void => {
@@ -105,7 +105,7 @@ export function choose(root: HTMLElement, choice: TitleChoice, difficulty: Diffi
       onBack: from,
       onStart: (picked) => {
         remember(picked);
-        startGame(root, begin(powers(picked)), { opening: true });
+        startGame(root, begin(powers(picked)), { opening: true, toTitle: back });
       },
     });
     root.replaceChildren(screen);
@@ -127,7 +127,7 @@ export function choose(root: HTMLElement, choice: TitleChoice, difficulty: Diffi
       break;
     }
     case 'load':
-      void loadFromTitle(root);
+      void loadFromTitle(root, back);
       break;
     case 'hallOfFame':
       void showReport(root, hallReport(readHall()));

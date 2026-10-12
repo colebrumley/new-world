@@ -148,7 +148,7 @@ screen shows one dialog through the existing `ask` (`src/ui/dialog.ts`) with the
 - Where the human's name is shown, `player.name` replaces `NATIONS[nation].leader`:
   - `src/app/hall-of-fame.ts` `entryFor` (`leader: player.kind === 'human' ? player.name : NATIONS[...].leader`);
   - `src/app/slots.ts` `describeSession` ("Jacques Cartier of France, Spring 1500, …");
-  - the retirement and score texts in `src/app/game-screen.ts` and `src/ui/reports/score.ts`,
+  - the retirement and score texts in `src/ui/end-page.ts` and `src/ui/reports/score.ts`,
     if any name a leader (none does today; the end-of-game "give your name to" text, R-902, is
     the one to check).
   A player named exactly `Player` (every save made before this change) shows the leader's name

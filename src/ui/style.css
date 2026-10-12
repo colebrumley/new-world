@@ -145,7 +145,7 @@ select, input[type='text'] {
   box-shadow: var(--lift);
 }
 /* A sheet that fills the window, the wood showing round it behind a line of brass. */
-.europe-screen, .report-screen, .colony-screen {
+.europe-screen, .report-screen, .colony-screen, .end-page {
   border: var(--frame) solid transparent;
   background: var(--grain-parchment) padding-box, linear-gradient(var(--parchment), var(--parchment)) padding-box, var(--planks) border-box, var(--grain-wood) border-box var(--wood);
   box-shadow: inset 0 0 0 1px var(--brass), inset 0 0 0 2px var(--brass-dark);
@@ -631,6 +631,31 @@ canvas.minimap {
 .map-tooltip-carried { color: var(--ink-faded); }
 
 /* --- adviser reports --------------------------------------------------------------------- */
+/* The end page (R-1065): one sheet over the whole game, its words down the middle. The headline and
+   the closing words are in the good ink for a victory and the bad ink for a defeat; a retirement
+   keeps the plain ink. */
+.end-page {
+  position: absolute; inset: 0; z-index: 8; box-sizing: border-box; overflow: auto;
+  /* (in a window too low for it the page starts at its head and scrolls, rather than losing the headline off the top) */
+  display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 10px;
+  padding: 14px 18px; text-align: center; line-height: 1.3;
+}
+.end-page > * { flex: none; box-sizing: border-box; max-width: min(34rem, 100%); }
+.end-seal { width: 48px; height: 48px; image-rendering: pixelated; transform: rotate(-8deg); filter: drop-shadow(0 2px 1px var(--shadow)); }
+.end-headline { margin: 0; padding-bottom: 8px; font-size: clamp(1.5rem, 6vw, 2rem); line-height: 1.1; border-bottom: 3px double currentColor; }
+.end-text { margin: 0; font-size: 1.1rem; }
+.end-page[data-kind='win'] :is(.end-headline, .end-text) { color: var(--ink-good); }
+.end-page[data-kind='loss'] :is(.end-headline, .end-text) { color: var(--ink-bad); }
+.end-note { margin: 0; font-style: italic; color: var(--ink-faded); }
+.end-tally { display: flex; justify-content: center; gap: 28px; margin: 0; padding: 6px 12px; border-top: var(--rule); border-bottom: var(--rule); }
+.end-tally dt { font-family: var(--font-display); letter-spacing: var(--tracking-display); font-size: 0.85rem; color: var(--ink-faded); }
+.end-tally dd { margin: 0; font-size: 1.3rem; }
+.end-honour { margin: 0; }
+.end-choices { display: flex; flex-direction: column; gap: 6px; width: min(18rem, 100%); margin-top: 4px; }
+.end-choices button { padding: 0.35rem 0.7rem; }
+/* the choice the keys are on: a brass plate, and the ring */
+.end-choices button:focus-visible { background: var(--plate-brass); }
+
 /* A report is a page of parchment (R-1015): the adviser's seal and the title at its head over a
    double rule, the adviser's opening words with a drop capital, then each section as a table
    ruled in ink with its headings in small capitals. */

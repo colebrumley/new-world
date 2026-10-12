@@ -14,6 +14,8 @@ export interface AudioPlayer {
   play(cues: readonly CueId[], options: Options): void;
   /** Start or stop the ambient music to match the options. */
   setMusic(options: Options): void;
+  /** Fall silent for good: the music stops, what was already sounding is cut off, and nothing more is played. */
+  stop(): void;
   /** For tests and the options screen: what has been asked for so far. */
   readonly played: readonly CueId[];
   readonly musicOn: boolean;
@@ -25,7 +27,10 @@ export function createAudioPlayer(): AudioPlayer {
   let phrase = 1;
   const played: CueId[] = [];
 
+  let stopped = false;
+
   const ready = (): AudioContext | null => {
+    if (stopped) return null;
     if (context) return context;
     const w = window as unknown as AudioWindow;
     const Make = w.AudioContext ?? w.webkitAudioContext;
@@ -91,11 +96,20 @@ export function createAudioPlayer(): AudioPlayer {
       }
     },
     setMusic(options) {
+      if (stopped) return;
       if (options.backgroundMusic && musicTimer === null) nextPhrase();
       else if (!options.backgroundMusic && musicTimer !== null) {
         clearTimeout(musicTimer);
         musicTimer = null;
       }
+    },
+    stop() {
+      stopped = true;
+      if (musicTimer !== null) clearTimeout(musicTimer);
+      musicTimer = null;
+      // closing the context ends the tones already scheduled on it
+      void context?.close().catch(() => undefined);
+      context = null;
     },
     get played() {
       return played;

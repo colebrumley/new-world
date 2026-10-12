@@ -59,7 +59,7 @@ Four advisers sign the reports. The Continental Congress, Foreign Affairs and th
 
 ### F10 Colonial Score
 
-<img src="images/art/portraits/score.png" width="64" alt="The chronicler of the Colonial Score"> Your score as it would stand if the game ended now, term by term, with the Colonial Rating and what posterity would name after you. The same report closes every game, with the Hall of Fame beneath it. See [[Score and Hall of Fame]].
+<img src="images/art/portraits/score.png" width="64" alt="The chronicler of the Colonial Score"> Your score as it would stand if the game ended now, term by term, with the Colonial Rating and what posterity would name after you. The same report is the reckoning on the end page of every game, with the Hall of Fame beneath it. See [[Score and Hall of Fame]].
 
 ![The Colonial Score (F10)](images/screens/report-score.png)
 

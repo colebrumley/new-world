@@ -19,7 +19,7 @@ export const SCREENS = [
   'colony', 'colony-construction', 'colony-large',
   'europe', 'europe-recruit',
   'report-economic', 'report-colony', 'report-foreign', 'report-congress', 'report-score',
-  'encyclopedia', 'combat-analysis', 'options', 'saves', 'hall-of-fame', 'game-over',
+  'encyclopedia', 'combat-analysis', 'options', 'saves', 'hall-of-fame', 'game-over', 'end-defeat', 'reckoning',
   'trade-route', 'native-settlement', 'declaration', 'congress-choice', 'rumor',
 ] as const;
 

@@ -26,7 +26,7 @@ import { showReport, type Report } from '../ui/report';
 import { foreignAffairsReport } from '../ui/reports/foreign';
 import { scoreReport } from '../ui/reports/score';
 import { colonyReport, economicReport, indianReport, laborReport, navalReport, religiousReport, terrainReport } from '../ui/reports/advisers';
-import { hallSection, recordGame } from './hall-of-fame';
+import { hallSection, readHall, recordGame, type HallEntry } from './hall-of-fame';
 import { congressReport } from '../ui/reports/congress';
 import { loadGame, saveGame, stepSession, type GameSession } from '../engine/save';
 import { dateOfTurn } from '../engine/calendar';
@@ -37,6 +37,7 @@ import { checkFound, coloniesOf, nextColonyName, siteWarnings } from '../engine/
 import { defaultRouteName, routesOf } from '../engine/trade-routes';
 import { openColonyScreen } from '../ui/colony-screen';
 import { ask, askText } from '../ui/dialog';
+import { END_STATUS, endPageModel, openEndPage, type EndChoice, type EndPage } from '../ui/end-page';
 import { europeCall } from '../ui/europe-model';
 import { openEuropeScreen } from '../ui/europe-screen';
 import { mapCommandFor, type MapCommand } from '../ui/keymap';
@@ -92,8 +93,17 @@ declare global {
   }
 }
 
-/** `opening`: a game just begun (never one loaded): it opens with an audience with the Crown. */
-export function startGame(root: HTMLElement, initial: GameSession, { opening = false }: { readonly opening?: boolean } = {}): void {
+/** Commands that go on working on the map of a game that is over: looking, reading, and the menus that give no order. */
+const OVER_COMMANDS: ReadonlySet<MapCommand> = new Set(['zoomIn', 'zoomOut', 'hiddenTerrain', 'report', 'menu']);
+
+export interface GameScreenOptions {
+  /** A game just begun (never one loaded): it opens with an audience with the Crown. */
+  readonly opening?: boolean;
+  /** Puts the title screen up in place of the game, for New game on the end page. */
+  readonly toTitle: () => void;
+}
+
+export function startGame(root: HTMLElement, initial: GameSession, { opening = false, toTitle }: GameScreenOptions): void {
   const screen = document.createElement('div');
   screen.className = 'game';
   // the stylesheet seals what it shows with wax of the player's colour (--nation)
@@ -126,14 +136,19 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   };
 
   const onResize = (): void => resize();
-  /** Put another game on the table in place of this one. */
-  const switchTo = (other: GameSession): void => {
+  /** Leave this game: its loop ends, its listeners on the window go, and its music stops. */
+  const stopGame = (): void => {
     stopped = true;
     window.removeEventListener('resize', onResize);
     magnified.stop();
     hideTip();
     overMap.disconnect();
-    startGame(root, other);
+    audio.stop();
+  };
+  /** Put another game on the table in place of this one. */
+  const switchTo = (other: GameSession): void => {
+    stopGame();
+    startGame(root, other, { toTitle });
   };
   /** Save/Load Game: the ten slots, and a file in or out. Stays open after a save so the player sees it took. */
   const saveLoadMenu = async (): Promise<void> => {
@@ -311,7 +326,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   const activeUnit = (): Unit | null => (activeId ? (session.state.units[activeId] ?? null) : null);
 
   const first = nextUnit(session.state, me(), null, waiting);
-  activeId = first?.id ?? null;
+  activeId = session.state.over ? null : (first?.id ?? null);
   let view: View = makeView(session.state.map, 1, 1, first?.x ?? session.state.map.width / 2, first?.y ?? session.state.map.height / 2, { revealAll });
 
   const setView = (next: View): void => {
@@ -350,6 +365,12 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
 
   /** Move on to another unit if the active one is done for the turn. */
   const settle = (): void => {
+    // nobody takes orders in a game that is over
+    if (session.state.over) {
+      activeId = null;
+      dirty = true;
+      return;
+    }
     const unit = activeUnit();
     if (unit && needsOrders(unit, me())) return;
     const next = nextUnit(session.state, me(), activeId, waiting);
@@ -446,7 +467,10 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     // a treasure train that has just come into one of our colonies, by a move, a Go To or being put ashore there
     const arrived = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'endTurn' || action.type === 'goAshore' ? treasuresArrived(before, session.state) : [];
     const moving = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'foundColony' || action.type === 'endTurn';
-    if (turnEnded) {
+    if (session.state.over) {
+      // the end page comes up in place of anything the turn would have asked: no answer could be given now
+      announceEnd();
+    } else if (turnEnded) {
       // the turn's questions come one after another (both ask for audiences); then the player is taken to each colony with a finished project
       void royalBusiness().then(() => (moving ? afterMoving(stepped.events, arrived, false) : undefined)).then(visitFinished);
     } else if (moving) {
@@ -455,7 +479,6 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       // put ashore from the colony screen: ask once that screen has redrawn and taken focus, so the question keeps it
       queueMicrotask(() => void offerTreasures(arrived, false));
     }
-    if (session.state.over) void announceEnd();
     audio.play(cuesFor(stepped.events, session.state, me()), options);
     canvas.dataset['cues'] = audio.played.slice(-6).join(',');
     offerHint({ where: colonyScreen ? 'colony' : europeScreen ? 'europe' : 'map', activeUnitId: activeId, colonyId: canvas.dataset['colony'] || null });
@@ -534,33 +557,69 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     }
   };
 
-  const END_TEXT: Readonly<Record<string, string>> = {
-    retiredEarly: 'You have laid down the Viceroy\'s office. The colonies will be judged as they stand.',
-    retired: 'The year is 1800 and your term as Viceroy is over. The colonies will be judged as they stand.',
-    warLost: 'It is 1850 and the war is not won. The Congress makes its peace with the Crown.',
-    independence: 'The King\'s army is broken and his colonies are ours. The Crown recognises our independence: a new nation is born.',
-    crownVictory: 'The Crown has put down the rebellion. Our leaders go into exile, and the colonies return to the King.',
-    noColonies: 'You hold no colony in the New World. The Crown has withdrawn your charter.',
+  // --- the end of the game: the end page, and the map of a game that is over -----------------------
+  let endPage: EndPage | null = null;
+  /** The Hall of Fame as it stood when this game was entered: shown in the reckoning even if the browser would not keep it. */
+  let hallAtEnd: readonly HallEntry[] | null = null;
+  /** Say on the canvas how the game stands: the reason it ended, or nothing while it is played. */
+  const markOver = (): void => {
+    canvas.dataset['over'] = session.state.over?.reason ?? '';
   };
-
-  const announceEnd = async (): Promise<void> => {
+  const closeEnd = (): void => {
+    endPage?.close();
+    endPage = null;
+    dirty = true;
+    canvas.focus();
+  };
+  /** Put the end page up, if the game is over and the page is not up already. */
+  const showEnd = (): void => {
+    const model = endPageModel(session.state);
+    if (!model || endPage) return;
+    hideTip();
+    mode = 'move';
+    cursor = null;
+    notice = '';
+    dirty = true;
+    endPage = openEndPage(screen, model, (choice) => void endChoice(choice));
+  };
+  const endChoice = async (choice: EndChoice): Promise<void> => {
+    const over = session.state.over;
+    // one thing at a time: a choice clicked under the reckoning or the load dialog is not taken
+    if (!over || !endPage || screen.querySelector('[role="dialog"]:not(.end-page)')) return;
+    switch (choice) {
+      case 'reckoning':
+        canvas.dataset['report'] = 'score';
+        await showReport(screen, scoreReport(session.state, over.player, [hallSection(hallAtEnd ?? readHall())]));
+        canvas.dataset['report'] = '';
+        return;
+      case 'playOn':
+        closeEnd();
+        hallAtEnd = null;
+        dispatch({ type: 'continuePlaying' });
+        markOver();
+        return;
+      case 'newGame':
+        // the finished game stays where it was saved; nothing of it goes on running
+        stopGame();
+        toTitle();
+        root.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')?.focus();
+        return;
+      case 'loadGame':
+        // a game loaded takes this screen's place; cancelled, the page is still here
+        await saveLoadMenu();
+        return;
+      case 'lookOver':
+        closeEnd();
+        return;
+    }
+  };
+  /** The game has just ended: a place in the Hall of Fame, once, and the end page. */
+  const announceEnd = (): void => {
     const over = session.state.over;
     if (!over) return;
-    say('The game has ended.');
-    await ask(screen, { text: END_TEXT[over.reason] ?? 'The game has ended.', choices: ['So be it'], escape: 0 });
-    canvas.dataset['over'] = over.reason;
-    // the reckoning, and a place in the Hall of Fame
-    canvas.dataset['report'] = 'score';
-    await showReport(screen, scoreReport(session.state, over.player, [hallSection(recordGame(session.state, over.player))]));
-    canvas.dataset['report'] = '';
-    if (validateAction(session.state, { type: 'continuePlaying' }).ok) {
-      const pick = await ask(screen, { text: 'The game has been scored. You may stop here, or play on; it will not be scored again.', choices: ['Stop here', 'Play on'], escape: 0 });
-      if (pick === 1) {
-        canvas.dataset['over'] = '';
-        dispatch({ type: 'continuePlaying' });
-      }
-    }
-    canvas.focus();
+    hallAtEnd = recordGame(session.state, over.player);
+    markOver();
+    showEnd();
   };
 
   const RUMOR_TEXT: Readonly<Record<string, string>> = {
@@ -1216,6 +1275,15 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
 
   const runCommand = async (command: MapCommand, key: string): Promise<void> => {
     const unit = activeUnit();
+    if (session.state.over) {
+      // a game that is over takes no orders, and says nothing about the ones it is given: Enter and Esc bring the end page back
+      if (notice) say('');
+      if (command === 'endTurn' || command === 'cancel') {
+        showEnd();
+        return;
+      }
+      if (!OVER_COMMANDS.has(command) || (command === 'menu' && key === 't')) return;
+    }
     switch (command) {
       case 'zoomIn':
       case 'zoomOut':
@@ -1423,6 +1491,11 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     if (step) {
       event.preventDefault();
       hideTip(); // the view or the active unit may move under a resting pointer
+      if (session.state.over) {
+        // nothing is left to move: the arrows scroll the map
+        setView(panBy(view, session.state.map, step[0], step[1]));
+        return;
+      }
       if (mode === 'move') {
         const unit = activeUnit();
         if (unit) void tryMove(unit.id, step[0], step[1]);
@@ -1517,6 +1590,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   const clickAt = (p: { x: number; y: number }): ReturnType<typeof mapClick> | null => {
     const tile = screenToTile(view, session.state.map, p.x, p.y);
     const at = { x: view.originX + p.x / view.tileSize, y: view.originY + p.y / view.tileSize };
+    // on the map of a game that is over a click only shows the place
+    if (session.state.over) return tile ? { kind: 'center', x: tile.x, y: tile.y } : null;
     return tile ? mapClick(session.state, me(), activeUnit(), mode, tile, at) : null;
   };
 
@@ -1675,14 +1750,17 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     hideTip(); // a button worked from the keyboard may change the square under a resting pointer
     canvas.focus();
     if (view.showHidden && button.id !== 'hiddenTerrain') setView({ ...view, showHidden: false });
-    if (button.id === 'endTurn') {
+    if (session.state.over && (button.id === 'endTurn' || button.id === 'europe' || button.needsUnit)) {
+      // the one button left to press is The end, where End turn was
+      if (button.id === 'endTurn') showEnd();
+    } else if (button.id === 'endTurn') {
       // the button does what it says: Enter's other meanings (confirm a Go To, open the colony under the view cursor) are not its own
       mode = 'move';
       cursor = null;
       dispatch({ type: 'endTurn' });
     } else if (button.id === 'goTo' && mode === 'goto') void runCommand('cancel', 'Escape');
     else if (button.run === 'reports') void pickFrom('Which report?', REPORT_CHOICES);
-    else if (button.run === 'menus') void pickFrom('Which menu?', MENU_CHOICES);
+    else if (button.run === 'menus') void pickFrom('Which menu?', session.state.over ? MENU_CHOICES.filter((c) => c.command === 'menu' && c.key !== 't') : MENU_CHOICES);
     else void runCommand(button.run.command, button.run.key);
   });
   sidebar.element.querySelector('.sidebar-info')?.after(commandBar.element);
@@ -1776,9 +1854,9 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     renderPieces(ctx, session.state, view, cache, { activeUnitId: unit?.id ?? null, cursor: showCursor, dragged, blinkOn: shownBlink, waterPhase: shownWater, slide: slideAt(time) });
     renderMinimap(miniCtx, session.state, view, sidebar.minimap.clientWidth, sidebar.minimap.clientHeight, unit?.id ?? null);
     const focus = mode !== 'move' || !unit || unit.x < 0 ? cursor : { x: unit.x, y: unit.y };
-    const status = notice || (unit ? '' : 'End of turn. Press Enter.');
+    const status = notice || (session.state.over ? END_STATUS : unit ? '' : 'End of turn. Press Enter.');
     sidebar.update(sidebarModel(session.state, mode === 'view' ? null : unit, focus, revealAll, status));
-    commandBar.update(unit !== null && mode !== 'view', mode === 'goto', europeCall(session.state, me()));
+    commandBar.update(unit !== null && mode !== 'view', mode === 'goto', europeCall(session.state, me()), session.state.over !== null);
   };
 
   const frame = (time: number): void => {
@@ -1828,7 +1906,11 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     offerHint({ where: 'map', activeUnitId: activeId });
     canvas.focus();
   };
-  if (opening && seat) {
+  markOver();
+  if (session.state.over) {
+    // a finished game resumed or loaded: its end page at once; it had its place in the Hall of Fame when it ended
+    showEnd();
+  } else if (opening && seat) {
     // the first thing seen: the Crown's commission, over the map with the ship already on it
     const court = NATIONS[seat.nation];
     void ask(screen, {

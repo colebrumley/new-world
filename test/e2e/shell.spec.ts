@@ -391,7 +391,7 @@ test('Set Sail as France: an audience with the King, then the game under the Fre
   // the Hall of Fame too, once the game is over
   await page.keyboard.press('Shift+R');
   await dialog.getByRole('button', { name: 'Yes, retire' }).click();
-  await dialog.getByRole('button', { name: 'So be it' }).click();
+  await page.getByRole('dialog', { name: 'Retirement: you lay down your office' }).getByRole('button', { name: 'The reckoning' }).click();
   const score = page.getByRole('dialog', { name: 'Colonial Score' });
   await expect(score.getByRole('group', { name: 'Hall of Fame' })).toContainText('Anne of Brittany of France');
 

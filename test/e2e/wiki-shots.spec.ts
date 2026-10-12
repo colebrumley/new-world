@@ -329,16 +329,33 @@ test('the encyclopedia, the options and the saves', async ({ page }) => {
 
 // --- the end of the game --------------------------------------------------------------------------
 
-test('retiring: the score, then the Hall of Fame', async ({ page }) => {
+test('the end page: independence won, and the rebellion put down', async ({ page }) => {
+  const ended = (reason: 'independence' | 'crownVictory'): GameState => {
+    const state = largeColony();
+    return { ...state, turn: 470, over: { reason, turn: 470, player: 'p0' } };
+  };
+  // a finished game loaded shows its end page at once
+  await load(page, ended('independence'));
+  await expect(page.getByRole('dialog', { name: 'Victory: independence is won' })).toBeVisible();
+  await shoot(page, 'game-over');
+
+  await page.evaluate((text) => localStorage.setItem('new-world:autosave', text), saveGame({ options: { seed: 7 }, log: [], state: ended('crownVictory') }));
+  await page.goto('/?still');
+  await page.getByRole('menuitem', { name: 'Load Game' }).click();
+  await expect(page.getByRole('dialog', { name: 'Defeat: the rebellion is put down' })).toBeVisible();
+  await shoot(page, 'end-defeat');
+});
+
+test('retiring: the end page, the reckoning, then the Hall of Fame', async ({ page }) => {
   await load(page, largeColony());
   await expect(field(page, 'unit')).toHaveText(/Soldier$/);
   await page.keyboard.press('Shift+R');
-  const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: 'Yes, retire' }).click();
-  await dialog.getByRole('button', { name: 'So be it' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Yes, retire' }).click();
+  const end = page.getByRole('dialog', { name: 'Retirement: you lay down your office' });
+  await end.getByRole('button', { name: 'The reckoning' }).click();
   const score = page.getByRole('dialog', { name: 'Colonial Score' });
   await expect(score.getByRole('group', { name: 'Hall of Fame' })).toBeVisible();
-  await shoot(page, 'game-over');
+  await shoot(page, 'reckoning');
   await page.keyboard.press('Escape');
   await expect(page.locator('canvas.map')).toHaveAttribute('data-over', 'retiredEarly');
 
