@@ -1,6 +1,6 @@
 # The skill under the equipment, on hover: spec for R-1056 to R-1057
 
-Written by `/plan` on 2026-10-11. Status: approved.
+Written by `/plan` on 2026-10-11. Status: built.
 
 **The request, in the owner's words:** "I should be able to see what type of colonist it is when they
 are a dragoon or soldier, maybe when hovering over them. Veteran soldiers should be visually distinct
