@@ -84,7 +84,7 @@ function rabbitActivity(pr, since) {
 
 // Before Codex starts, so the two read at the same time. Returns what rabbitReport needs.
 function rabbitAsk(second) {
-  const pr = ghJson('pr', 'view', '--json', 'number,url,state,headRefOid');
+  const pr = ghJson('pr', 'view', '--json', 'number,url,state,headRefOid,headRefName,isCrossRepository');
   if (!pr || pr.state !== 'OPEN') {
     return { skip: 'no open pull request for this branch; push and open it before the review so CodeRabbit reads it too' };
   }
@@ -92,8 +92,25 @@ function rabbitAsk(second) {
   // The second ask is made even after an approval: that approval was of the commits before the fixes.
   const due = now.asks === 0 || (second && now.asks === 1);
   if (!due) return { pr, since: 0 };
-  if (pr.headRefOid !== git('rev-parse', 'HEAD')) {
-    return { pr, since: 0, note: 'the pull request is behind this branch, so CodeRabbit was not asked; push first' };
+  // A worker that commits its fixes and runs the review without pushing would leave CodeRabbit's
+  // verdict on the commits before them, so the branch is pushed here, to the pull request's own
+  // branch and only past the public-repo word check, and GitHub given time to see it.
+  const tip = git('rev-parse', 'HEAD');
+  if (pr.headRefOid !== tip) {
+    if (pr.isCrossRepository) return { pr, since: 0, note: 'the pull request is behind this branch and comes from a fork, so CodeRabbit was not asked; push first' };
+    const guard = spawnSync('node', [join(top, 'scripts', 'guard.mjs'), '--check'], { encoding: 'utf8', cwd: top });
+    if (guard.status !== 0) {
+      return { pr, since: 0, note: 'the pull request is behind this branch and the word check (npm run guard) refuses the push, so CodeRabbit was not asked' };
+    }
+    const pushed = spawnSync('git', ['push', '--quiet', 'origin', `HEAD:refs/heads/${pr.headRefName}`], { encoding: 'utf8' });
+    for (let tries = 0; pushed.status === 0 && pr.headRefOid !== tip && tries < 10; tries++) {
+      sleep(3 * 1000);
+      pr.headRefOid = ghJson('pr', 'view', '--json', 'headRefOid')?.headRefOid ?? pr.headRefOid;
+    }
+    if (pr.headRefOid !== tip) {
+      return { pr, since: 0, note: `the pull request is behind this branch and the push did not bring it up (${pushed.stderr?.trim() || 'GitHub has not seen it'}), so CodeRabbit was not asked` };
+    }
+    console.log('review: pushed this branch so the pull request holds what is being reviewed');
   }
   const since = Date.now() - 60 * 1000;
   const asked = gh('pr', 'comment', String(pr.number), '--body', ASK);
@@ -147,6 +164,7 @@ function rabbitReport(asked) {
     : 'review: CodeRabbit: no open comments');
   const verdict = rabbitActivity(asked.pr, 0).verdict;
   console.log(`review: CodeRabbit: ${verdict === 'APPROVED' ? 'APPROVED' : verdict === 'CHANGES_REQUESTED' ? 'CHANGES REQUESTED' : 'has not read this pull request to a verdict'}`);
+  if (verdict === 'CHANGES_REQUESTED' && !asked.started) console.log('review: CodeRabbit: that verdict is from before this run; it was not asked again');
 }
 
 const dir = join(common, 'private', 'reviews');

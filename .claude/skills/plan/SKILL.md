@@ -43,6 +43,11 @@ Lead with the one most likely to make a worker build the wrong thing. Do not int
 a fork you settled yourself goes in the spec as the planner's choice, apart from the owner's
 decisions, with the alternative rejected.
 
+The default for every rule is what the private notes say, and the owner asks for it each time it is
+missing: for each rule the spec adds or changes, look it up before the hand-over and say in the spec
+and in the hand-over message what the notes say and whether the spec follows them. A departure from
+them is a fork for the owner, never the planner's choice.
+
 Say in the spec which rules came from where. Never name another game or say a rule or a look was
 taken from one, anywhere in the spec or the backlog line (CLAUDE.md, public-repo rule).
 
@@ -52,8 +57,8 @@ Copy `docs/specs/TEMPLATE.md` to `docs/specs/<slug>.md` and fill every section. 
 
 - independent of one another wherever the code allows; a shared surface (a type in `state.ts`, an
   action, the save version, a test helper, a theme token) is changed by one item that goes first;
-- each small enough for one worker session: S (subagent: an hour or less, a few files), M or L (task
-  chip, the owner watches it);
+- each small enough for one worker session: S (an hour or less, a few files), M or L (more); every
+  size is built by a subagent, so split an L that one session could not finish;
 - each names its files, acceptance bullets a test can check, the tests that are its definition of done,
   and what it depends on. Write the acceptance as the game's behaviour, not as code.
 

@@ -3,6 +3,8 @@
 // here and on origin, local or remote branches merged the same way, and board claims whose worktree
 // is gone. A worktree used in the last half hour, the one this is run from, and the main checkout
 // are never touched. "Used" means a commit, checkout or reset in it: its ref log's age.
+// The main checkout is only ever fast-forwarded to origin/main, and only when it is on main with no
+// change to a tracked file, so the owner's copy keeps up with what merged.
 //   npm run tidy                  do it
 //   npm run tidy -- --dry-run     only say what would go
 import { execFileSync } from 'node:child_process';
@@ -137,6 +139,16 @@ if (existsSync(claims)) {
     } finally {
       rmdirSync(lock);
     }
+  }
+}
+// the main checkout: forward to origin/main, never a merge, never over someone's changes or an
+// ignored file of theirs (the private notes and archives live there untracked)
+if (git(main, 'branch', '--show-current') === 'main' && git(main, 'rev-parse', 'main') !== git(main, 'rev-parse', 'origin/main')) {
+  if (git(main, 'status', '--porcelain', '--untracked-files=no')) console.log('keep the main checkout where it is: it has uncommitted changes');
+  else if (!execOk(main, 'merge-base', '--is-ancestor', 'main', 'origin/main')) console.log('keep the main checkout where it is: main has commits origin/main does not');
+  else {
+    say('fast-forward the main checkout to origin/main');
+    if (!dry && !execOk(main, 'merge', '--ff-only', '--no-overwrite-ignore', '--quiet', 'origin/main')) console.log('  git would not fast-forward it');
   }
 }
 console.log(dry ? 'tidy: dry run, nothing changed' : 'tidy: done');

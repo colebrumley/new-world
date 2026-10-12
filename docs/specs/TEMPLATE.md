@@ -25,8 +25,8 @@ tokens: anything more than one item touches. Say which item changes each, and th
 
 ## Work items
 
-Independent where possible; each small enough for one worker session. Size S is a subagent (an hour's
-work or less, few files); M and L are task chips (the owner watches them). An item names the files it
+Independent where possible; each small enough for one worker session. Size S is an hour's work or
+less in a few files; M and L are more. Every size is built by a subagent. An item names the files it
 will touch, acceptance bullets a test can check, the tests that prove it (the definition of done), and
 what it depends on.
 
