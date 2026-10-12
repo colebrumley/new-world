@@ -86,13 +86,31 @@ To retire, press **Shift-R**. The game asks first; if you say yes, it is scored 
 
 When the game ends in 1800 or 1850, you may play on after the scoring. The calendar will not stop the game a second time. If it later ends another way (you retire, or a war of independence is won or lost), it is scored again as it then stands, and that score goes to the Hall of Fame as well.
 
-![The score at the end of a game, with the Hall of Fame beneath it](images/screens/game-over.png)
+### The end page
+
+However the game ends, it ends on a page of its own. The headline says what happened: a **Victory** in green ink, a **Defeat** in red, or a **Retirement**. Under the closing words are the date, your score, your Colonial Rating and what posterity has named after you. Then come the ways on:
+
+- **The reckoning**: the score term by term, with the Hall of Fame beneath it. Closing it returns to the end page.
+- **Play on**: offered after the 1800 and 1850 endings only. The game goes on and is not scored again.
+- **New game**: back to the title screen. The finished game stays where it was saved.
+- **Load game**: the saved games. Cancel to come back to the end page.
+- **Look over the map**: closes the page so you can see how things stood.
+
+The arrow keys move among the choices and Enter takes one; Esc looks over the map.
+
+![The end page of a game won](images/screens/game-over.png)
+
+![The end page of a rebellion put down](images/screens/end-defeat.png)
+
+While you look over the map of a finished game you can scroll, zoom, read the reports (F1 to F10) and open the load menu, but nothing takes an order. The status line says the game has ended. Press **Enter** or **Esc**, or the **The end** button where End turn was, to bring the end page back. If you load a game that had already ended, it opens on its end page.
+
+![The reckoning: the score, with the Hall of Fame beneath it](images/screens/reckoning.png)
 
 ## The Hall of Fame
 
 Every finished game is put forward for the Hall of Fame: your leader and nation (marked a rebel if you declared independence and a liberator if you won it), the level, the date the game ended, the score, the rating and the honour. Only the ten best are kept, best rating first and then best score, so a game that rates below all ten leaves no line. The same ending is entered only once, even if you load the game again after it has ended.
 
-The Hall of Fame is shown beneath the score when a game ends, and from the title screen with **View Hall of Fame**.
+The Hall of Fame is shown beneath the score in the reckoning when a game ends, and from the title screen with **View Hall of Fame**.
 
 ![The Hall of Fame](images/screens/hall-of-fame.png)
 

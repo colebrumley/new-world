@@ -72,7 +72,8 @@ The keyboard is quicker once you know it. The tables below list every key, and e
 | Drag from the active unit | Send it to the square where the button is let go: one step if adjacent, Go To if farther. Its piece follows the pointer; the marker turns red over a square it cannot go to |
 | Wheel / pinch | Zoom in / zoom out about the pointer (a pinch on a trackpad or a touch screen zooms the map, not the page) |
 | Ctrl/Cmd + Plus / Minus | Zoom in / zoom out: the browser's zoom keys zoom the map while it has the keyboard |
-| Sidebar buttons | Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel |
+| Sidebar buttons | Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel; once the game is over, End turn reads The end |
+| Enter / Esc / The end (the game is over) | Bring back the end page; the map can still be scrolled and zoomed, and the reports and the load menu opened, but takes no order |
 | Enter (view mode, on your colony) | Open the colony |
 | Click on the New World view | Centre the view there |
 

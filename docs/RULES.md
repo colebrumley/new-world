@@ -1959,9 +1959,18 @@ Numbers are `AI_FREIGHT` and `AI_RESERVE` in `src/engine/data/ai.ts`.
   withdrawn (no colonies in 1600), or when the player retires (Shift-R). After the 1800 or 1850
   reckoning the player may play on; the game is not scored or stopped by the calendar again.
   F10 shows the score as it stands at any time.
+- **The end page.** A game that ends, for any of these reasons, ends on a page of its own: a
+  headline that says whether it was a victory, a defeat or a retirement, the closing words, the
+  date, the score, the rating and the honour, and the ways on: the reckoning (the score in full
+  with the Hall of Fame), Play on (after 1800 or 1850 only), New game (the title screen; the
+  finished game stays where it was saved), Load game, and Look over the map. A finished game
+  resumed or loaded opens on the same page. While the page is down the map can be looked over
+  (scrolling, zoom, the reports, the load menu) but takes no order; Enter, Esc or The end on the
+  command bar bring the page back. The page and its choices are this game's own.
 - **Hall of Fame.** Each finished game is entered once (leader, nation, level, date, score,
-  rating, honour); the ten best are kept in the browser, best rating first, and shown after the
-  score and from the title screen.
+  rating, honour) as it ends, and never again when it is loaded; the ten best are kept in the
+  browser, best rating first, and shown under the score in the reckoning and from the title
+  screen.
 - A game ended by retiring early cannot be played on.
 
 ### Advisers (R-1000)

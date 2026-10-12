@@ -1,5 +1,6 @@
 // The command bar: a button in the sidebar for every map command, for play with the mouse.
 // Each button runs the same command as its key; the lists of reports and menus come from the keyboard table.
+import { END_BUTTON } from './end-page';
 import type { EuropeCall } from './europe-model';
 import { KEYMAP, type MapCommand } from './keymap';
 
@@ -77,9 +78,11 @@ export interface CommandBar {
    * Enable or disable the orders, according to whether a unit is waiting for them. While a Go To
    * destination is being picked the Go to button reads Cancel, and gives the targeting up. The
    * Europe button shows whether a ship in port is ready, or ships are at sea or under repair, by
-   * its `data-europe` and its title.
+   * its `data-europe` and its title. Once the game is `over` no order can be given: the orders, End
+   * turn's own work and Europe are shut, and the End turn button reads The end and brings the end
+   * page back; looking (the terrain, the zoom, the reports and the menus) goes on.
    */
-  update(hasUnit: boolean, targeting: boolean, europe?: EuropeCall): void;
+  update(hasUnit: boolean, targeting: boolean, europe?: EuropeCall, over?: boolean): void;
 }
 
 export function createCommandBar(onPick: (button: CommandButton) => void): CommandBar {
@@ -90,6 +93,7 @@ export function createCommandBar(onPick: (button: CommandButton) => void): Comma
   const orders: HTMLButtonElement[] = [];
   let goTo: HTMLButtonElement | null = null;
   let europeButton: HTMLButtonElement | null = null;
+  let endTurn: HTMLButtonElement | null = null;
   for (const button of COMMAND_BUTTONS) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -103,23 +107,30 @@ export function createCommandBar(onPick: (button: CommandButton) => void): Comma
     if (button.needsUnit) orders.push(b);
     if (button.id === 'goTo') goTo = b;
     if (button.id === 'europe') europeButton = b;
+    if (button.id === 'endTurn') endTurn = b;
     element.append(b);
   }
   let shown: string | null = null;
   return {
     element,
-    update(hasUnit, targeting, europe = { state: 'none', note: '' }) {
-      const state = `${hasUnit}|${targeting}|${europe.state}|${europe.note}`;
+    update(hasUnit, targeting, europe = { state: 'none', note: '' }, over = false) {
+      const state = `${hasUnit}|${targeting}|${europe.state}|${europe.note}|${over}`;
       if (shown === state) return;
       shown = state;
-      for (const b of orders) b.disabled = !hasUnit;
+      for (const b of orders) b.disabled = !hasUnit || over;
+      if (endTurn) {
+        const label = over ? END_BUTTON : (COMMAND_BUTTONS.find((c) => c.id === 'endTurn')?.label ?? '');
+        endTurn.textContent = label;
+        endTurn.title = `${label} (Enter)`;
+      }
       if (goTo) {
         const label = targeting ? CANCEL_LABEL : (COMMAND_BUTTONS.find((c) => c.id === 'goTo')?.label ?? '');
         goTo.textContent = label;
         goTo.title = targeting ? `${CANCEL_LABEL} (Esc)` : `${label} (G)`;
-        goTo.disabled = !hasUnit && !targeting;
+        goTo.disabled = over || (!hasUnit && !targeting);
       }
       if (europeButton) {
+        europeButton.disabled = over;
         if (europe.state === 'none') delete europeButton.dataset['europe'];
         else europeButton.dataset['europe'] = europe.state;
         europeButton.title = europe.note ? `Europe (E): ${europe.note}` : 'Europe (E)';

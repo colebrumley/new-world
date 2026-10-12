@@ -72,7 +72,8 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'map', keys: 'Drag from the active unit', action: 'Send it to the square where the button is let go: one step if adjacent, Go To if farther. Its piece follows the pointer; the marker turns red over a square it cannot go to' },
   { context: 'map', keys: 'Wheel / pinch', action: 'Zoom in / zoom out about the pointer (a pinch on a trackpad or a touch screen zooms the map, not the page)' },
   { context: 'map', keys: 'Ctrl/Cmd + Plus / Minus', action: 'Zoom in / zoom out: the browser\'s zoom keys zoom the map while it has the keyboard' },
-  { context: 'map', keys: 'Sidebar buttons', action: 'Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel' },
+  { context: 'map', keys: 'Sidebar buttons', action: 'Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel; once the game is over, End turn reads The end' },
+  { context: 'map', keys: 'Enter / Esc / The end (the game is over)', action: 'Bring back the end page; the map can still be scrolled and zoomed, and the reports and the load menu opened, but takes no order' },
   { context: 'map', keys: 'Enter (view mode, on your colony)', action: 'Open the colony' },
   { context: 'map', keys: 'Click on the New World view', action: 'Centre the view there' },
 

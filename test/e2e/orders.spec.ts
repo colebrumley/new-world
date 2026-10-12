@@ -127,16 +127,22 @@ test('units stand on a nation-coloured base', async ({ page }) => {
 test('with no colony by 1600 the charter is withdrawn and the game stops', async ({ page }) => {
   await start(page);
   for (let year = 1492; year < 1600; year++) await page.keyboard.press('Enter');
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('charter');
+  // the end page: a defeat, with the reckoning to hand and no offer to play on
+  const end = page.getByRole('dialog', { name: 'Defeat: your charter is withdrawn' });
+  await expect(end).toContainText('charter');
+  await expect(end).toHaveAttribute('data-kind', 'loss');
   await expect(field(page, 'date')).toHaveText('Spring 1600');
-  await dialog.getByRole('button', { name: 'So be it' }).click();
   await expect(page.locator('canvas.map')).toHaveAttribute('data-over', 'noColonies');
-  // the reckoning is shown, with no offer to play on
+  await expect(end.getByRole('button', { name: 'Play on' })).toHaveCount(0);
+  await end.getByRole('button', { name: 'The reckoning' }).click();
   await expect(page.getByRole('dialog', { name: 'Colonial Score' })).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(end).toBeVisible();
+  // looking over the map: the game has stopped, and Enter ends no turn but brings the page back
+  await end.getByRole('button', { name: 'Look over the map' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(field(page, 'status')).toContainText('The game has ended');
   await page.keyboard.press('Enter');
-  await expect(field(page, 'status')).toHaveText('the game has ended');
+  await expect(end).toBeVisible();
   await expect(field(page, 'date')).toHaveText('Spring 1600');
 });

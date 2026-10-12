@@ -30,14 +30,19 @@ export function boot(root: HTMLElement): void {
   // one fetch, started as soon as the title is on screen and shared by everything that needs it
   let game: Promise<typeof Game> | null = null;
   const load = (): Promise<typeof Game> => (game ??= import('./boot'));
-  const disabled = new Set<TitleChoice>(hasAnySave() ? [] : ['load']);
+  const disabled = (): Set<TitleChoice> => new Set<TitleChoice>(hasAnySave() ? [] : ['load']);
+  /** The title screen again, from a screen before a game or from the end of one: by then there may be a game to load. */
+  const back = (): void => {
+    title.setDisabled(disabled());
+    root.replaceChildren(title.element);
+  };
   const title = createTitleScreen((choice) => {
     title.setNotice('');
     void load().then(
-      (app) => app.choose(root, choice, title.difficulty(), () => root.replaceChildren(title.element)),
+      (app) => app.choose(root, choice, title.difficulty(), back),
       () => title.setNotice('The game could not be loaded. Check the connection and try again.'),
     );
-  }, disabled, chosenDifficulty() ?? DEFAULT_DIFFICULTY);
+  }, disabled(), chosenDifficulty() ?? DEFAULT_DIFFICULTY);
   root.replaceChildren(title.element);
   // for the load-time budget: when, since the page was asked for, the title screen went up
   performance.mark('new-world:title');

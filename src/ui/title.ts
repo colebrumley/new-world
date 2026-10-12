@@ -16,6 +16,8 @@ export const TITLE_CHOICES: readonly { readonly id: TitleChoice; readonly label:
 export interface TitleScreen {
   readonly element: HTMLElement;
   setNotice(text: string): void;
+  /** Say again which choices cannot be made (Load Game, while nothing is saved). */
+  setDisabled(disabled: ReadonlySet<TitleChoice>): void;
   /** The level chosen for the next new game. */
   difficulty(): Difficulty;
   /** Supply the one-line account of a level, once the rules that know it have loaded. */
@@ -109,6 +111,9 @@ export function createTitleScreen(onChoose: (choice: TitleChoice) => void, disab
     element,
     setNotice(text: string): void {
       notice.textContent = text;
+    },
+    setDisabled(next): void {
+      for (const button of menu.querySelectorAll<HTMLButtonElement>('button[data-choice]')) button.disabled = next.has(button.dataset['choice'] as TitleChoice);
     },
     difficulty: () => select.value as Difficulty,
     setDescriber(next): void {

@@ -28,7 +28,7 @@ Every game ends with a score, and the best go into the Hall of Fame. The score c
 
 ### How is a game lost?
 
-Three ways. If you hold no colony in 1600 the Crown withdraws your charter. If you declare independence and the King's army takes enough of your colonies and ports, the rebellion is put down. And a war of independence not won by 1850 ends in a peace on the Crown's terms. Reaching 1800 without declaring is not a loss: the game is scored, and you may play on. See [[The Crown and Independence]].
+Three ways. If you hold no colony in 1600 the Crown withdraws your charter. If you declare independence and the King's army takes enough of your colonies and ports, the rebellion is put down. And a war of independence not won by 1850 ends in a peace on the Crown's terms. Reaching 1800 without declaring is not a loss: the game is scored, and you may play on. Every ending leads to an end page with the ways on from there: a new game, a saved one, or a last look over the map. See [[The Crown and Independence]].
 
 ### How do I make money early?
 

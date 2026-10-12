@@ -95,3 +95,42 @@ test('a copy is put by as each decade opens', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Load Autosave (decade)' }).click();
   await expect(field(page, 'date')).toHaveText('1500');
 });
+
+test('a retired game reloaded shows its end page at once, and is not entered in the Hall of Fame again', async ({ page }) => {
+  await start(page);
+  await page.keyboard.press('Shift+R');
+  await page.getByRole('dialog').getByRole('button', { name: 'Yes, retire' }).click();
+  const end = page.getByRole('dialog', { name: 'Retirement: you lay down your office' });
+  await expect(end).toBeVisible();
+  const hall = (): Promise<number> => page.evaluate(() => (JSON.parse(localStorage.getItem('new-world:hall-of-fame') ?? '[]') as unknown[]).length);
+  expect(await hall()).toBe(1);
+  expect((await stored(page, 'new-world:autosave'))!.state).toMatchObject({ over: { reason: 'retiredEarly' } });
+
+  // the autosave resumed: the page, with no word of anything else first
+  await page.reload();
+  await page.getByRole('menuitem', { name: 'Load Game' }).click();
+  await expect(end).toBeVisible();
+  await expect(end.getByRole('button', { name: 'The reckoning' })).toBeFocused();
+  await expect(page.locator('canvas.map')).toHaveAttribute('data-over', 'retiredEarly');
+  await expect(end.locator('[data-end="date"]')).toHaveText('1492');
+  expect(await hall()).toBe(1);
+
+  // and from the page's own Load game, the same game loaded again shows it again
+  await end.getByRole('button', { name: 'Load game' }).click();
+  await page.getByRole('dialog', { name: 'Load Game' }).getByRole('button', { name: 'Load Autosave (last turn)' }).click();
+  await expect(page.getByRole('dialog', { name: 'Load Game' })).toHaveCount(0);
+  await expect(end).toBeVisible();
+  await expect(page.locator('canvas.map')).toHaveCount(1);
+  expect(await hall()).toBe(1);
+
+  // looking over the map, the arrows scroll it: there is no unit left to take them as orders
+  await end.getByRole('button', { name: 'Look over the map' }).click();
+  await expect(end).toHaveCount(0);
+  await settled(page);
+  const origin = async (): Promise<number> => (JSON.parse((await page.locator('canvas.map').getAttribute('data-view'))!) as { originX: number }).originX;
+  const from = await origin();
+  await page.keyboard.press('ArrowLeft');
+  await settled(page);
+  expect(await origin()).toBeLessThan(from);
+  await expect(field(page, 'status')).toHaveText('The game has ended. Press Enter for the end page.');
+});
