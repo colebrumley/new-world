@@ -2120,3 +2120,10 @@ Cheats are this game's own; none of this is a rule of play.
     the cheat.
   - A first word that is no cheat is refused with the cheats that begin with its letter, or all
     of them; a required argument left out is named; a word too many is refused.
+- **The console** (R-1062) opens on Alt+C, or from Menu… then Cheats, while the game is being
+  played (not once it is over). The line is for the player at the keyboard unless it says `as`;
+  `here` and `active` are the active unit. An accepted line is done at once, entered in the
+  console's transcript and in the log beside the map as "Cheat: …", and saved with the game; a
+  refused one stays to be mended, with the reason under it. A Congress that `bells` convenes puts
+  its question at once. The console may be opened whenever the map takes keys, so not while
+  another question is up.

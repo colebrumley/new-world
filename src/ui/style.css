@@ -574,7 +574,7 @@ canvas.minimap {
 /* --- combat ------------------------------------------------------------------------------ */
 /* The analysis is a sheet of reckoning (R-1015): the two sides in columns with an ink rule between
    them, what tells for each listed above a line, and the sum under it. */
-.save-dialog h2, .options-dialog h2, .combat-analysis h2 {
+.save-dialog h2, .options-dialog h2, .combat-analysis h2, .cheat-console h2 {
   margin: 0 0 6px; padding-bottom: 4px; font-size: 1.3rem; text-align: center; border-bottom: 3px double var(--ink);
 }
 .combat-analysis { min-width: 23rem; }
@@ -708,7 +708,35 @@ canvas.minimap {
 .options-dialog { min-width: 300px; gap: 0; }
 .options-dialog .option { display: flex; align-items: center; gap: 9px; padding: 4px 3px; cursor: pointer; border-bottom: 1px dotted var(--ink-rule); }
 .options-dialog .option:hover, .options-dialog .option:has(:focus-visible) { background: var(--parchment-shade); }
-.options-dialog .options-done { align-self: center; margin-top: 12px; padding: 0.35rem 1.4rem; text-align: center; }
+.options-dialog .options-done, .cheat-console .options-done { align-self: center; margin-top: 12px; padding: 0.35rem 1.4rem; text-align: center; }
+
+/* --- the cheat console ------------------------------------------------------------------- */
+/* A clerk's slip (R-1062): what was done is entered line by line above, the sheet of commands
+   unfolds under it, and the line being written stands at the foot. */
+.cheat-console { width: min(40rem, 92vw); max-width: none; max-height: 92vh; box-sizing: border-box; }
+.cheat-transcript { margin: 0; padding: 0; list-style: none; max-height: 9.5em; overflow-y: auto; font-size: 0.92rem; }
+.cheat-transcript:empty { display: none; }
+.cheat-transcript li { padding: 2px 3px; border-bottom: 1px dotted var(--ink-rule); }
+.cheat-typed { font-family: var(--font-display); letter-spacing: var(--tracking-display); color: var(--ink-active); }
+.cheat-typed::after { content: ':'; }
+.cheat-help { min-height: 0; display: flex; flex-direction: column; }
+.cheat-help summary { cursor: pointer; padding: 2px 3px; font-family: var(--font-display); letter-spacing: var(--tracking-display); }
+.cheat-help summary:hover { background: var(--parchment-shade); }
+.cheat-sheet { max-height: 38vh; overflow-y: auto; margin-top: 4px; border-top: var(--rule); border-bottom: var(--rule); font-size: 0.85rem; }
+.cheat-sheet table { width: 100%; border-collapse: collapse; }
+.cheat-sheet :is(th, td) { padding: 2px 6px 2px 3px; text-align: left; vertical-align: top; font-weight: normal; border-bottom: 1px dotted var(--ink-rule-faint); }
+.cheat-sheet thead th { position: sticky; top: 0; background: var(--parchment-light); color: var(--ink-faded); border-bottom: var(--rule); }
+.cheat-sheet tbody th { white-space: nowrap; color: var(--ink-active); }
+.cheat-sheet .cheat-example { white-space: nowrap; font-style: italic; }
+.cheat-sheet p { margin: 6px 3px; color: var(--ink-faded); }
+.cheat-line { margin-top: 6px; font-family: var(--font-display); letter-spacing: var(--tracking-display); }
+.cheat-line input { font-family: var(--font-body); letter-spacing: normal; }
+.dialog .cheat-hint { min-height: 2.6em; margin: 0; font-size: 0.88rem; font-style: italic; color: var(--ink-faded); overflow-wrap: anywhere; }
+.dialog .cheat-hint.refused { color: var(--ink-bad); }
+@media (max-width: 760px) {
+  .cheat-sheet .cheat-example, .cheat-sheet thead th:last-child { display: none; }
+  .cheat-sheet tbody th { white-space: normal; }
+}
 /* marks made in ink: a box for a thing wanted or not, a ring for one choice among several (Customize) */
 .options-dialog input[type='checkbox'], .customize input[type='radio'] {
   appearance: none; position: relative; flex: none; box-sizing: border-box; width: 1.05em; height: 1.05em; margin: 0;

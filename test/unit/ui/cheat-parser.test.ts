@@ -3,7 +3,7 @@ import { validateAction } from '../../../src/engine/actions';
 import { CHEAT_SPECS, type CheatArg, type CheatArgValue, type CheatCommand, type CheatSpec } from '../../../src/engine/cheats';
 import { CHEATS } from '../../../src/engine/data/cheats';
 import type { GameState, Settlement } from '../../../src/engine/state';
-import { cheatHelp, completeCheat, parseCheat, type CheatContext } from '../../../src/ui/cheat-parser';
+import { cheatHelp, completeCheat, parseCheat, withCompletion, type CheatContext } from '../../../src/ui/cheat-parser';
 import { withColony, withUnit, world } from '../../helpers/world';
 
 type Args = Readonly<Record<string, CheatArgValue | undefined>>;
@@ -411,5 +411,24 @@ describe('cheatHelp', () => {
   it('carries each spec\'s help line and example, in the specs\' order', () => {
     expect(cheatHelp().map((h) => [h.about, h.example])).toEqual(CHEAT_SPECS.map((s) => [s.about, s.example]));
     expect(cheatHelp(SPECS)[0]).toEqual({ usage: 'probe <colony> <good> <unitType> [place]', about: 'about probe', example: 'probe' });
+  });
+});
+
+describe('withCompletion', () => {
+  it('finishes the last word and leaves a space for the next', () => {
+    expect(withCompletion('go', 'gold')).toBe('gold ');
+    expect(withCompletion('as eng', 'England')).toBe('as England ');
+    expect(withCompletion('father  ad', 'adamSmith')).toBe('father  adamSmith ');
+  });
+
+  it('adds the word to a line that ends between words', () => {
+    expect(withCompletion('', 'gold')).toBe('gold ');
+    expect(withCompletion('spawn ', 'caravel')).toBe('spawn caravel ');
+  });
+
+  it('takes a quoted word, open or closed, as the one word it is', () => {
+    expect(withCompletion('goods "new am', '"New Amsterdam"')).toBe('goods "New Amsterdam" ');
+    expect(withCompletion('goods "New Amsterdam"', '"New Amsterdam"')).toBe('goods "New Amsterdam" ');
+    expect(withCompletion('goods "', '"New Amsterdam"')).toBe('goods "New Amsterdam" ');
   });
 });

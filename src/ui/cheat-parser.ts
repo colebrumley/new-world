@@ -30,11 +30,14 @@ export interface CheatHelpEntry { readonly usage: string; readonly about: string
 
 interface Word { readonly text: string; readonly quoted: boolean }
 
+/** One word of a line: what stands between double quotes (closed or not), or a run with no space or quote in it. */
+const WORD = /"([^"]*)("?)|([^\s"]+)/g;
+
 /** Split a line at its spaces, keeping what stands between double quotes as one word; a quote always begins a word. */
 function split(text: string): { words: Word[]; open: boolean; trailing: boolean } {
   const words: Word[] = [];
   let open = false;
-  for (const m of text.matchAll(/"([^"]*)("?)|([^\s"]+)/g)) {
+  for (const m of text.matchAll(WORD)) {
     const quoted = m[3] === undefined;
     words.push({ text: (quoted ? m[1] : m[3]) as string, quoted });
     open = quoted && m[2] === '';
@@ -356,4 +359,15 @@ export function completeCheat(text: string, state: GameState, context: CheatCont
     if (!arg.optional) break;
   }
   return unique(out);
+}
+
+/**
+ * The line with its last word finished as `word` (one of `completeCheat`'s answers) and a space
+ * after it, ready for the next; a line that ends between words gains the word.
+ */
+export function withCompletion(text: string, word: string): string {
+  if (split(text).trailing) return `${text}${word} `;
+  let start = text.length;
+  for (const m of text.matchAll(WORD)) start = m.index;
+  return `${text.slice(0, start)}${word} `;
 }
