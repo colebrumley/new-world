@@ -163,7 +163,7 @@ A line is the cheat's name followed by what it needs. Below, `<angle brackets>` 
 | Line | What it does |
 | :--- | :--- |
 | `alarm <tribe>\|<settlement> <percent>` | Sets how alarmed a tribe, or one settlement, is at you. For a tribe the number is the alarm itself. For a settlement it is a percent of the point at which the settlement turns hostile: 100 is hostile, and at 50 it turns ships away. Nothing else follows from the change. |
-| `peace <tribe>` | Makes a treaty of peace with a tribe: met, at peace, a destroyed settlement forgiven, and any offer of a treaty still waiting answered. Its alarm is left as it is. |
+| `peace <tribe>` | Makes a treaty of peace with a tribe: met, at peace, a destroyed settlement forgiven, and any offer of a treaty still waiting answered. A tribe you had not met meets you first, as on first contact, which leaves it no worse than wary; otherwise its alarm is left as it is. |
 | `meet <power>` | You and another power meet, as if your people had come face to face on land. Refused if you already have, and with a power fighting its War of Independence. |
 | `stance <power> peace\|war` | Sets peace or war with another power, meeting it first if need be (and refused where `meet` would be). |
 | `crown regulars\|cavalry\|artillery\|ships\|gold <amount>` | Adds to, takes from or sets a part of the Expeditionary Force held against you, or with `gold` the King's war chest, to 100000 at most. |
