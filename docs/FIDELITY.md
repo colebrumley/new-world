@@ -74,6 +74,7 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-204 | plowing hills and mountains | refused | Revolution Now command.rcl | low | |
 | R-204 | warehouse capacity | 100 + 100 per Warehouse / Expansion | — | high | used here for the lumber cap; R-305 owns the rule |
 | R-206 | game end | 1800 if not at war; 1850 at war; no colonies in or after 1600 (human) | — | medium | checked at the start of the first turn of that year; play continuing unscored after 1800 is not offered yet |
+| R-1064 | ruin before 1600 | a human power not at war with no colony, no unit anywhere and less gold than the cheapest person on the docks (recruit fare or cheapest schooling; nothing when crosses bring someone that turn) is dismissed at once, as `noColonies` | own design | low | the private notes are silent on a power with nothing left before 1600; gold alone is weighed, so one who could afford a person but no ship plays on to 1600 |
 | R-206 | order within a turn | natives, then powers in table order; per power: Europe, colonies, units | backlog R-206 | medium | natives and colony phases are empty slots until Phases 3 and 5 |
 | R-300 | colony caps | 48 in the whole game; a human power with 38 can found no more; colonies taken in war or inherited are not counted, and computer powers are held only to the 48 | — | high | backlog had 48 per power |
 | R-300 | forbidden sites | water, Mountains, a colony on any of the 8 neighbours | — | high | hills, arctic, desert are allowed |

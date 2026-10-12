@@ -7,7 +7,7 @@ import { PROFESSIONS, type ProfessionId } from './data/professions';
 import { AI_RESERVE } from './data/ai';
 import { PIONEER_TOOLS, UNIT_TYPES, type UnitTypeId } from './data/units';
 import { DIFFICULTIES, type Difficulty } from './data/yields';
-import { checkEuropeOpen, docksOf, newDockUnit, type EuropeCheck } from './europe';
+import { checkEuropeOpen, docksOf, newDockUnit, trainingPrice, type EuropeCheck } from './europe';
 import { createRng, type Rng } from './rng';
 import { type GameState, type Player, type PlayerId, type UnitId } from './state';
 
@@ -102,6 +102,17 @@ export function recruitPrice(state: GameState, playerId: PlayerId): number {
   return Math.max(IMMIGRATION.priceMinimum, price);
 }
 
+/**
+ * The least gold that puts one person on this power's docks: nothing if crosses have earned someone,
+ * or will in the Europe phase of the turn now beginning, else the fare for one of the pool or the cheapest schooling the Royal University sells.
+ */
+export function cheapestPersonPrice(state: GameState, playerId: PlayerId): number {
+  const player = state.players.find((p) => p.id === playerId);
+  if (player?.immigrantDue || immigrantComing(state, playerId)) return 0;
+  const schooling = (Object.keys(PROFESSIONS) as ProfessionId[]).map(trainingPrice).filter((price): price is number => price !== null);
+  return Math.min(...schooling, ...(player && player.pool.length > 0 ? [recruitPrice(state, playerId)] : []));
+}
+
 const no = (code: 'notForSale' | 'cannotAfford', message: string): EuropeCheck => ({ ok: false, code, message });
 
 export function checkRecruit(state: GameState, playerId: PlayerId, slot: number): EuropeCheck {
@@ -156,6 +167,20 @@ export function brewsterPool(pool: readonly ProfessionId[]): ProfessionId[] {
   return pool.map((p) => (p === 'pettyCriminal' || p === 'indenturedServant' ? 'freeColonist' : p));
 }
 
+/** The power's crosses once this turn's docks have drawn people on or put them off. */
+function crossesAfterDrift(state: GameState, player: Player): number {
+  const waiting = docksOf(state, player.id).length;
+  const drift = waiting === 0 ? IMMIGRATION.emptyDocksBonus : player.hadImmigrant ? -IMMIGRATION.waitingPenalty * waiting : 0;
+  return Math.max(0, player.crosses + drift);
+}
+
+/** Would `immigrationTurn` bring someone over, or ask whom, were it run on this state? */
+export function immigrantComing(state: GameState, playerId: PlayerId): boolean {
+  const player = state.players.find((p) => p.id === playerId);
+  if (!player || player.atWar || player.pool.length === 0 || player.immigrantDue) return false;
+  return crossesAfterDrift(state, player) > crossesNeeded(state, playerId);
+}
+
 /**
  * One power's immigration for the turn. Empty docks draw people on, a crowd on the docks puts
  * them off; when the crosses pass what is needed someone comes over free. With Brewster a human
@@ -164,9 +189,7 @@ export function brewsterPool(pool: readonly ProfessionId[]): ProfessionId[] {
 export function immigrationTurn(state: GameState, playerId: PlayerId, events: ImmigrationEvent[]): GameState {
   const player = state.players.find((p) => p.id === playerId);
   if (!player || player.atWar || player.pool.length === 0 || player.immigrantDue) return state;
-  const waiting = docksOf(state, playerId).length;
-  const drift = waiting === 0 ? IMMIGRATION.emptyDocksBonus : player.hadImmigrant ? -IMMIGRATION.waitingPenalty * waiting : 0;
-  const crosses = Math.max(0, player.crosses + drift);
+  const crosses = crossesAfterDrift(state, player);
   const due = crosses > crossesNeeded(state, playerId);
   const choosing = due && hasBrewster(player) && player.kind === 'human';
   const next: GameState = { ...state, players: state.players.map((p) => (p.id === playerId ? { ...p, crosses, immigrantDue: choosing } : p)) };

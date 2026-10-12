@@ -35,7 +35,7 @@ import { answerBurial, canExplore, checkAnswerBurial, checkFountainPick, drinkFo
 import { answerOffer, cashTreasure, cashTreasuresAboard, checkAnswerOffer, checkCashTreasure, royalTurn, type RoyalErrorCode, type RoyalEvent } from './royal';
 import { checkSetExport, setExport, type CustomHouseErrorCode, type CustomHouseEvent } from './custom-house';
 import { colonyTurn, type EconomyEvent } from './economy';
-import { arriveByLot, checkChooseImmigrant, checkRecruit, chooseImmigrant, immigrationTurn, recruit, type ImmigrationEvent } from './immigration';
+import { arriveByLot, cheapestPersonPrice, checkChooseImmigrant, checkRecruit, chooseImmigrant, immigrationTurn, recruit, type ImmigrationEvent } from './immigration';
 import { SPECIALISTS, type ProfessionId } from './data/professions';
 import { UNIT_TYPES, type UnitTypeId } from './data/units';
 import { GOOD_IDS, type GoodId } from './data/goods';
@@ -725,7 +725,11 @@ function gameOverFor(state: GameState, playerId: PlayerId): GameOverReason | nul
   // the calendar retires a human Viceroy; once any human has been scored and plays on, nobody is stopped by it
   if (year >= CALENDAR.retireYear && !state.players.some((p) => p.scored)) return 'retired';
   // The charter rule is the human player's: a power with no colonies after 1600 is recalled.
-  if (player.kind === 'human' && year >= CALENDAR.charterYear && !Object.values(state.colonies).some((c) => c.owner === playerId)) return 'noColonies';
+  if (player.kind !== 'human' || Object.values(state.colonies).some((c) => c.owner === playerId)) return null;
+  if (year >= CALENDAR.charterYear) return 'noColonies';
+  // Before then it is recalled only in ruin: nobody left anywhere, and too little gold to send for anyone.
+  const ruined = !Object.values(state.units).some((u) => u.owner === playerId) && player.gold < cheapestPersonPrice(state, playerId);
+  return ruined ? 'noColonies' : null;
   return null;
 }
 
