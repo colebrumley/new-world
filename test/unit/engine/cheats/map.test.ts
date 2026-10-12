@@ -79,6 +79,11 @@ describe('reveal', () => {
       expect(check, `${x},${y}`).toEqual({ ok: false, error: { code: 'cheatSquare', message: `there is no square ${x},${y} on the map` } });
     }
     expect(validateAction(state, cheat(reveal({ x: 14, y: 11 }))).ok).toBe(true);
+    // a command with no word about where is refused, not taken for the whole map
+    for (const at of [undefined, 7]) {
+      const check = validateAction(state, cheat({ cheat: 'reveal', at, radius: 1 } as unknown as CheatCommand));
+      expect(check, String(at)).toEqual({ ok: false, error: { code: 'cheatSquare', message: 'reveal takes a square, or none for the whole map' } });
+    }
     for (const radius of [-1, 0.5, Number.NaN]) {
       const check = validateAction(state, cheat(reveal({ x: 3, y: 3 }, radius)));
       expect(check, String(radius)).toEqual({ ok: false, error: { code: 'cheatAmount', message: 'a radius is a whole number of zero or more' } });

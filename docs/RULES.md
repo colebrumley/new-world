@@ -2085,7 +2085,8 @@ Cheats are this game's own; none of this is a rule of play.
   Crown's army.
 - **The mark.** The power a cheat was for and the power whose turn it was are both marked as
   having cheated. The mark is never taken off and is kept in the save.
-- **Refused, never clamped.** A cheat that would leave a count below nothing is refused whole.
+- **Refused, never clamped.** A cheat that would leave a count below nothing is refused whole,
+  and so is one that would take a count past the largest number that still counts by ones.
 - **What each does** (a number left out is the default given):
   - *gold*: adds to the treasury, takes from it, or sets it. Default: adds 1000.
   - *crosses*: adds crosses toward the next immigrant. Default 100.

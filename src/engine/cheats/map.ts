@@ -15,6 +15,7 @@ export function checkMap(state: GameState, _player: Player, command: CheatComman
   switch (command.cheat) {
     case 'reveal':
       if (command.at === null) return CHEAT_OK;
+      if (typeof command.at !== 'object') return refuse('cheatSquare', 'reveal takes a square, or none for the whole map');
       if (!onMap(state, command.at.x, command.at.y)) return refuse('cheatSquare', `there is no square ${command.at.x},${command.at.y} on the map`);
       return isCount(command.radius) ? CHEAT_OK : refuse('cheatAmount', 'a radius is a whole number of zero or more');
     default:

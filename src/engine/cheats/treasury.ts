@@ -40,8 +40,12 @@ export function checkTreasury(_state: GameState, player: Player, command: CheatC
       return after < 0 ? refuse('cheatBelowZero', `the treasury holds only ${player.gold} gold`) : CHEAT_OK;
     }
     case 'crosses':
-    case 'bells':
-      return isCount(command.count) ? CHEAT_OK : refuse('cheatAmount', `a count of ${command.cheat} is a whole number of zero or more`);
+    case 'bells': {
+      if (!isCount(command.count)) return refuse('cheatAmount', `a count of ${command.cheat} is a whole number of zero or more`);
+      // every tally the count is added to must still be a number that counts by ones
+      const tallies = command.cheat === 'crosses' ? [player.crosses] : [player.bells, player.fatherBells, player.revolution?.bells ?? 0];
+      return tallies.every((t) => Number.isSafeInteger(t + command.count)) ? CHEAT_OK : refuse('cheatAmount', `that is more ${command.cheat} than can be counted`);
+    }
     case 'father':
       if (!(FATHER_IDS as readonly string[]).includes(command.father)) return refuse('cheatTarget', `there is no Founding Father "${String(command.father)}"`);
       return player.fathers.includes(command.father) ? refuse('cheatTarget', `${FATHERS[command.father].name} already sits in the Congress`) : CHEAT_OK;
@@ -81,7 +85,10 @@ export function applyTreasury(state: GameState, player: Player, command: CheatCo
       const congress: CongressEvent[] = [];
       const seated = join(state, player.id, command.father, rng, congress);
       events.push(...congress);
-      return { state: { ...seated, rng: rng.state() }, summary: `Seated ${FATHERS[command.father].name} in the Congress.` };
+      // an arrival either draws from the generator handed to it or moves the state's own on (a ship's crossing); keep whichever moved
+      const drawn = rng.state();
+      const drew = drawn.s.some((word, i) => word !== state.rng.s[i]);
+      return { state: drew ? { ...seated, rng: drawn } : seated, summary: `Seated ${FATHERS[command.father].name} in the Congress.` };
     }
     case 'tax':
       return { state: patch(state, player.id, { taxRate: command.percent }), summary: `Set the tax rate to ${command.percent} percent.` };

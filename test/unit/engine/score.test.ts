@@ -74,6 +74,12 @@ describe('the score', () => {
       return { ...s, over: { reason: 'independence', turn: 500, player: 'a' } };
     };
 
+    it('doubles a very large score without losing it', () => {
+      const rich = patch(won(), { gold: 200_000_000_000 });
+      expect(scoreOf(rich, 'a')).toMatchObject({ gold: 200_000_000, subtotal: 200_000_064, total: 400_000_128 });
+      expect(scoreOf({ ...rich, players: rich.players.map((p) => (p.id === 'b' ? { ...p, independent: true } : p)) }, 'a').total).toBe(300_000_096);
+    });
+
     it('won first doubles the score; behind one power it is half as much again, behind two a quarter', () => {
       // 6 for the people + 50 sentiment + 8 for declaring in 1776
       expect(scoreOf(won(), 'a')).toMatchObject({ population: 6, sentiment: 50, early: 8, subtotal: 64, bonusPercent: 100, total: 128 });

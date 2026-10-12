@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, validateAction, type Action, type GameEvent } from '../../../../src/engine/actions';
 import { checkCheat, type CheatArgValue, type CheatCommand } from '../../../../src/engine/cheats';
 import { TREASURY_SPECS } from '../../../../src/engine/cheats/treasury';
-import { creditBells, fatherCost, type CongressEvent } from '../../../../src/engine/congress';
+import { creditBells, fatherCost, join, type CongressEvent } from '../../../../src/engine/congress';
 import { CHEATS } from '../../../../src/engine/data/cheats';
 import { FATHER_IDS } from '../../../../src/engine/data/fathers';
 import { MARKET_MODEL } from '../../../../src/engine/data/market';
 import { interventionBells, warBells, type IndependenceEvent } from '../../../../src/engine/independence';
+import { createRng } from '../../../../src/engine/rng';
 import type { GameState, Player, Revolution } from '../../../../src/engine/state';
 import { deepFreeze } from '../../../helpers/freeze';
 import { world } from '../../../helpers/world';
@@ -79,6 +80,15 @@ describe('crosses', () => {
   it('is refused for a count below nothing or not whole', () => {
     for (const count of [-1, 2.5, Number.NaN]) expect(refusal(base(), { cheat: 'crosses', count }).code, String(count)).toBe('cheatAmount');
     expect(refusal(base(), { cheat: 'bells', count: -5 })).toEqual({ code: 'cheatAmount', message: 'a count of bells is a whole number of zero or more' });
+  });
+
+  it('is refused when a tally would grow past what can be counted by ones', () => {
+    const most = Number.MAX_SAFE_INTEGER;
+    expect(validateAction(base(), cheat({ cheat: 'crosses', count: most })).ok).toBe(true);
+    expect(refusal(patch(base(), { crosses: 1 }), { cheat: 'crosses', count: most })).toEqual({ code: 'cheatAmount', message: 'that is more crosses than can be counted' });
+    expect(validateAction(patch(base(), { crosses: 1 }), cheat({ cheat: 'bells', count: most })).ok).toBe(true);
+    for (const held of [{ bells: 1 }, { fatherBells: 1 }]) expect(refusal(patch(base(), held), { cheat: 'bells', count: most }).message).toBe('that is more bells than can be counted');
+    expect(refusal(atWar(base(), { bells: 1 }), { cheat: 'bells', count: most }).code).toBe('cheatAmount');
   });
 });
 
@@ -179,6 +189,24 @@ describe('father', () => {
     const { state: next } = run(state, { cheat: 'father', father: 'williamBrewster' });
     expect(me(next).pool).not.toContain('pettyCriminal');
     expect(me(next).pool).not.toContain('indenturedServant');
+  });
+
+  it('keeps the dice where his arrival left them, whichever dice it threw', () => {
+    // Jones's frigate rolls for its crossing on the state's own generator
+    const state = base();
+    const jones = run(state, { cheat: 'father', father: 'johnPaulJones' });
+    const byCongress = join(state, 'a', 'johnPaulJones', createRng(state.rng), []);
+    expect(byCongress.rng).not.toEqual(state.rng);
+    expect(jones.state.rng).toEqual(byCongress.rng);
+    expect(Object.values(jones.state.units).map((u) => u.type)).toEqual(['frigate']);
+    expect(jones.events.map((e) => e.type)).toContain('frigateGranted');
+    // Pocahontas calms the tribes with the generator the Congress hands her
+    const angry: GameState = { ...state, tribes: { sioux: { ...state.tribes['sioux']!, alarm: { a: 60 } } } };
+    const rng = createRng(angry.rng);
+    const calmed = join(angry, 'a', 'pocahontas', rng, []);
+    const cheated = run(angry, { cheat: 'father', father: 'pocahontas' }).state;
+    expect(cheated.tribes).toEqual(calmed.tribes);
+    expect(cheated.rng).toEqual(rng.state());
   });
 
   it('is refused if he already sits in this power\'s Congress, though another power may have him', () => {

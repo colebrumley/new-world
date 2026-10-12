@@ -74,7 +74,7 @@ export function scoreOf(state: GameState, playerId: PlayerId): ScoreBreakdown {
   const subtotal = population + fathers + gold + natives + sentiment + early + bells;
   const ahead = state.players.filter((p) => p.id !== playerId && p.independent).length;
   const bonusPercent = won ? 100 >> ahead : 0;
-  const total = won ? (subtotal * (SCORE.independenceBase + (SCORE.independenceBase >> ahead))) >> 3 : subtotal;
+  const total = won ? Math.floor((subtotal * (SCORE.independenceBase + (SCORE.independenceBase >> ahead))) / SCORE.independenceBase) : subtotal;
   return { ...counts, population, fathers, gold, natives, sentiment, early, bells, subtotal, bonusPercent, total };
 }
 
