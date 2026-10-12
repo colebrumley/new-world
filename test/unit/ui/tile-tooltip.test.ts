@@ -99,6 +99,20 @@ describe('tileTip units', () => {
     expect(units(s, 4, 0)?.[0]?.carried).toBe('');
   });
 
+  it("names the skill under the equipment of the viewer's own units and passengers, never another power's", () => {
+    let s = withUnit(four(), { id: 'guard', type: 'soldier', profession: 'expertFarmer', x: 1, y: 1, orders: 'fortified' });
+    s = withUnit(s, { id: 'vet', type: 'soldier', profession: 'veteranSoldier', x: 2, y: 1 });
+    s = withUnit(s, { id: 'ship', type: 'caravel', x: 1, y: 2, cargo: { muskets: 100 } });
+    s = withUnit(s, { id: 'rider', type: 'soldier', profession: 'freeColonist', x: 1, y: 2, aboard: 'ship' });
+    s = withUnit(s, { id: 'f1', owner: 'b', type: 'soldier', profession: 'expertFarmer', x: 1, y: 0 });
+    expect(lines(s, 1, 1)).toEqual(['Soldier (Expert Farmer) · Moves 1 · Fortified']);
+    expect(lines(s, 2, 1)).toEqual(['Veteran Soldier · Moves 1 · No orders']);
+    expect(units(s, 1, 2)).toEqual([{ line: 'Caravel · Moves 4 · No orders', carried: 'Carrying Soldier (Free Colonist), 100 Muskets' }]);
+    // the sidebar still lists the passenger by its label
+    expect(sidebarModel(s, s.units['ship']!, null).aboard).toEqual(['Soldier', '100 Muskets']);
+    expect(units(s, 1, 0)).toEqual([{ line: 'French Soldier', carried: '' }]);
+  });
+
   it('never lists a unit on a voyage', () => {
     let s = withUnit(four(), { id: 'ship', type: 'caravel', x: 1, y: 2 });
     s = patch(s, 'ship', { voyage: { phase: 'toEurope', turnsLeft: 1, origin: [1, 2] } });

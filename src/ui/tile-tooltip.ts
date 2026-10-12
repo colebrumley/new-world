@@ -15,10 +15,10 @@ import { isExploredBy, terrainOf, type Tile } from '../engine/tile';
 import { countWaterNeighbors, FREE_COLONIST, tileYield } from '../engine/yields';
 import { viewerIndex } from './render';
 import { topUnit } from './unit-queue';
-import { formatMoves, manifest, ORDER_NAMES, unitLabel } from './unit-text';
+import { formatMoves, manifest, ORDER_NAMES, unitFullName } from './unit-text';
 
 export interface UnitTip {
-  /** "Veteran Soldier · Moves 1 · Fortified" / "French Caravel · 2 holds in use" / "and others". */
+  /** "Veteran Soldier · Moves 1 · Fortified" / "Soldier (Expert Farmer) · Moves 1 · Sentry" / "French Caravel · 2 holds in use" / "and others". */
   readonly line: string;
   /** "Carrying Free Colonist, 100 Muskets"; '' for a unit that carries nothing, and for every unit of another power. */
   readonly carried: string;
@@ -104,12 +104,12 @@ export function groundFeatures(tile: Tile): string[] {
   return lines;
 }
 
-/** One of the viewer's own units, as the sidebar describes it, with a treasure train's gold. */
+/** One of the viewer's own units, as the sidebar describes it, with the skill under its equipment and a treasure train's gold. */
 function ownUnitTip(state: GameState, unit: Unit): UnitTip {
-  const load = manifest(state, unit);
+  const load = manifest(state, unit, unitFullName);
   if (unit.treasure > 0) load.push(`${unit.treasure} gold`);
   return {
-    line: `${unitLabel(unit)} · Moves ${formatMoves(unit.movesLeft)} · ${ORDER_NAMES[unit.orders]}`,
+    line: `${unitFullName(unit)} · Moves ${formatMoves(unit.movesLeft)} · ${ORDER_NAMES[unit.orders]}`,
     carried: load.length > 0 ? `Carrying ${load.join(', ')}` : '',
   };
 }

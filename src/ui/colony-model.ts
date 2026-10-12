@@ -19,10 +19,13 @@ import { warehouseCapacity } from '../engine/pioneer';
 import { hasFather, type BuildItem, type Colonist, type Colony, type GameState, type Job, type Unit } from '../engine/state';
 import { PROFESSIONS } from '../engine/data/professions';
 import { unitLabel } from './sidebar';
+import { unitFullName } from './unit-text';
 
 export interface PersonView {
   readonly id: string;
   readonly label: string;
+  /** The hover title's name: a unit's skill under its equipment ("Pioneer (Free Colonist)"); the label for everyone else. */
+  readonly fullName: string;
   /** What they are doing, e.g. "5 Food" or "3 Cloth". */
   readonly doing: string;
 }
@@ -113,8 +116,8 @@ function doing(state: GameState, colony: Colony, c: Colonist): string {
   return 'Idle';
 }
 
-const person = (state: GameState, colony: Colony, c: Colonist): PersonView => ({ id: c.id, label: profession(c), doing: doing(state, colony, c) });
-const unitPerson = (u: Unit): PersonView => ({ id: u.id, label: unitLabel(u), doing: u.type === 'pioneer' ? `${u.tools} Tools` : '' });
+const person = (state: GameState, colony: Colony, c: Colonist): PersonView => ({ id: c.id, label: profession(c), fullName: profession(c), doing: doing(state, colony, c) });
+const unitPerson = (u: Unit): PersonView => ({ id: u.id, label: unitLabel(u), fullName: unitFullName(u), doing: u.type === 'pioneer' ? `${u.tools} Tools` : '' });
 
 function tradeOf(chain: BuildingChain): TradeId | null {
   return TRADE_IDS.find((t) => TRADES[t].chain === chain) ?? null;

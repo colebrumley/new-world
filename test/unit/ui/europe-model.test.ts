@@ -44,6 +44,18 @@ describe('europeView', () => {
     expect(europeView(s, 'nobody')).toBeNull();
   });
 
+  it('names those on the docks and the quay in full for their hover titles, their labels as before', () => {
+    let s = port();
+    const armed = (id: string, patch: Partial<Unit>): void => {
+      s = { ...s, units: { ...s.units, [id]: { ...(s.units[id] as Unit), ...patch } } };
+    };
+    armed('rider', { type: 'soldier', profession: 'expertFarmer' });
+    armed('man', { type: 'dragoon', profession: 'pettyCriminal' });
+    const v = europeView(s, 'a')!;
+    expect(v.inPort[0]?.passengers).toEqual([{ id: 'rider', type: 'soldier', label: 'Soldier', fullName: 'Soldier (Expert Farmer)' }]);
+    expect(v.docks.map((d) => [d.id, d.label, d.fullName])).toEqual([['man', 'Dragoon', 'Dragoon (Petty Criminal)'], ['idler', 'Veteran Soldier', 'Veteran Soldier']]);
+  });
+
   it('quotes bid and ask for all sixteen goods and marks the boycotted', () => {
     const s = port();
     const v = europeView(s, 'a')!;

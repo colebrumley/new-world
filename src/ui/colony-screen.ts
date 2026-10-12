@@ -324,12 +324,12 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   // --- drawing ----------------------------------------------------------------------------
 
   /** A thing that can be picked up: its picture (a figure or a goods icon) if it has one, its name, and a line under it. */
-  function token(kind: string, id: string, label: string, sub: string, extra = '', art: HTMLCanvasElement | null = null): HTMLButtonElement {
+  function token(kind: string, id: string, label: string, sub: string, extra = '', art: HTMLCanvasElement | null = null, named = label): HTMLButtonElement {
     const b = el('button', `token token-${kind}`);
     b.type = 'button';
     b.dataset['drag'] = extra ? `${kind}:${id}:${extra}` : `${kind}:${id}`;
     b.dataset['key'] = `${kind}:${id}${extra ? `:${extra}` : ''}`;
-    b.title = sub ? `${label}: ${sub}` : label;
+    b.title = sub ? `${named}: ${sub}` : named;
     if (art) b.append(art);
     b.append(el('span', 'token-label', label));
     if (sub) b.append(el('span', 'token-sub', sub));
@@ -341,7 +341,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     picture(figureArt(kind === 'colonist' ? 'colonist' : (host.state().units[id]?.type ?? '')), 'token-art token-figure');
   const goodIcon = (good: string): HTMLCanvasElement | null => picture(goodArt(good), 'token-art good-art', GOOD_SCALE);
 
-  const personToken = (kind: 'colonist' | 'unit', p: PersonView): HTMLButtonElement => token(kind, p.id, p.label, p.doing, '', figure(kind, p.id));
+  const personToken = (kind: 'colonist' | 'unit', p: PersonView): HTMLButtonElement => token(kind, p.id, p.label, p.doing, '', figure(kind, p.id), p.fullName);
 
   function region(name: string, title: string): HTMLElement {
     const box = el('div', `colony-${name}`);

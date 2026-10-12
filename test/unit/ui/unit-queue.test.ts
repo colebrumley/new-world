@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Unit } from '../../../src/engine/state';
 import { sidebarModel, unitLabel, formatMoves } from '../../../src/ui/sidebar';
 import { needsOrders, nextUnit, orderLetter, topUnit } from '../../../src/ui/unit-queue';
+import { unitFullName } from '../../../src/ui/unit-text';
 import { withUnit, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~', '~....~', '~....~', '~~~~~~'];
@@ -72,6 +73,30 @@ describe('sidebar model', () => {
     expect(unitLabel({ ...u, type: 'pioneer', profession: 'hardyPioneer' })).toBe('Hardy Pioneer');
     expect(unitLabel({ ...u, type: 'caravel', profession: null })).toBe('Caravel');
     expect([0, 1, 2, 3, 4, 12].map(formatMoves)).toEqual(['0', '1/3', '2/3', '1', '1 1/3', '4']);
+  });
+
+  it('names the skill under the equipment in full, for anyone but the expert of the role', () => {
+    const u = base().units['u1'] as Unit;
+    const full = (type: Unit['type'], profession: Unit['profession']): string => unitFullName({ ...u, type, profession });
+    expect(full('soldier', 'expertFarmer')).toBe('Soldier (Expert Farmer)');
+    expect(full('soldier', 'freeColonist')).toBe('Soldier (Free Colonist)');
+    expect(full('dragoon', 'pettyCriminal')).toBe('Dragoon (Petty Criminal)');
+    expect(full('pioneer', 'masterCarpenter')).toBe('Pioneer (Master Carpenter)');
+    expect(full('scout', 'indenturedServant')).toBe('Scout (Indentured Servant)');
+    expect(full('missionary', 'freeColonist')).toBe('Missionary (Free Colonist)');
+    expect(full('dragoon', 'veteranSoldier')).toBe('Dragoon (Veteran Soldier)');
+    expect(full('scout', 'veteranSoldier')).toBe('Scout (Veteran Soldier)');
+    // everything else is its label
+    const same: readonly [Unit['type'], Unit['profession'], string][] = [
+      ['soldier', 'veteranSoldier', 'Veteran Soldier'], ['dragoon', 'veteranDragoon', 'Veteran Dragoon'], ['pioneer', 'hardyPioneer', 'Hardy Pioneer'],
+      ['scout', 'seasonedScout', 'Seasoned Scout'], ['missionary', 'jesuitMissionary', 'Jesuit Missionary'], ['colonist', 'expertFarmer', 'Expert Farmer'],
+      ['colonist', 'freeColonist', 'Free Colonist'], ['caravel', null, 'Caravel'], ['continentalArmy', null, 'Continental Army'], ['continentalArmy', 'veteranSoldier', 'Continental Army'],
+      ['artillery', null, 'Artillery'], ['soldier', null, 'Soldier'],
+    ];
+    for (const [type, profession, name] of same) {
+      expect(full(type, profession), `${type} ${profession}`).toBe(name);
+      expect(unitLabel({ ...u, type, profession }), `${type} ${profession}`).toBe(name);
+    }
   });
 
   it('describes the active unit, what it carries, its square, and the status line', () => {
