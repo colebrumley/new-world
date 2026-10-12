@@ -83,6 +83,7 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-300 | population cap | 32 | — | high | |
 | R-300 | La Salle | free Stockade when a colony has 3+ colonists after a join | — | high | existing colonies on election: R-700 |
 | R-300 | colony names | the rule table's lists in order; a second round is numbered | — | high | numbering past the end of a list is ours |
+| R-300 | abandoning | a colony with a Stockade, Fort or Fortress cannot be abandoned; nor can a besieged one; the owner's trade routes that stop there are removed and their carriers released | — | high for the fortified rule | the siege refusal and the route removal are this game's own choices, where the sources are silent |
 | R-301 | indoor output per worker | house 3 / shop 6 / factory 9; expert x2; servant 2/4/6; criminal and convert 1/2/3 | Revolution Now production.rcl | high | resolves [VERIFY] convert = 1 |
 | R-301 | factory level | half again the output for two thirds the input | — | high | backlog's "6 input -> 9 output" |
 | R-301 | carpenter, preacher | expert 6 flat; Lumber Mill / Cathedral double; Church does not multiply | — | high | |

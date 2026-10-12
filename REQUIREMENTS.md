@@ -1440,7 +1440,7 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1051 Units on the map tooltip: the player's own with moves, orders and load, the top one of another power's** — docs/specs/unit-tooltips.md, item W1, size S.
 - [x] **R-1052 Four more silver deposits in the Andes on the America map, seven in all** — docs/specs/andes-silver.md, item W1, size S.
 - [x] **R-1053 A silver marker that shows on mountains: bright metal in dark rock** — docs/specs/andes-silver.md, item W2, size M.
-- [ ] **R-1054 Abandoning a colony: not under siege, and its trade routes go with it** — docs/specs/abandon-colony.md, item W1, size S.
+- [x] **R-1054 Abandoning a colony: not under siege, and its trade routes go with it** — docs/specs/abandon-colony.md, item W1, size S.
 - [ ] **R-1055 The colony screen abandons: a command in the header, and the last colonist's way out** — docs/specs/abandon-colony.md, item W2, size M.
 
 ---

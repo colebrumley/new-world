@@ -253,6 +253,55 @@ describe('abandoning and renaming', () => {
     expect(code(town, { type: 'abandonColony', colonyId: 'nope' })).toBe('noColonyHere');
   });
 
+  it('a colony under siege cannot be abandoned until the besiegers are gone', () => {
+    const besieged = withUnit(town, { id: 'e1', owner: 'b', type: 'soldier', x: 3, y: 2 });
+    const refusal = validateAction(besieged, { type: 'abandonColony', colonyId: 'col' });
+    expect(refusal.ok).toBe(false);
+    if (!refusal.ok) {
+      expect(refusal.error.code).toBe('underSiege');
+      expect(refusal.error.message).toContain('Roanoke');
+    }
+    const { e1: _gone, ...units } = besieged.units;
+    const relieved = { ...besieged, units };
+    expect(code(relieved, { type: 'abandonColony', colonyId: 'col' })).toBe('ok');
+    expect(act(relieved, { type: 'abandonColony', colonyId: 'col' }).colonies).toEqual({});
+    // a garrison that matches the besiegers lifts the siege too
+    expect(code(withUnit(besieged, { id: 'g', type: 'soldier', x: 2, y: 2 }), { type: 'abandonColony', colonyId: 'col' })).toBe('ok');
+  });
+
+  it('abandoning takes the owner\'s trade routes through the colony with it, and nobody else\'s', () => {
+    const stop = (colonyId: string) => ({ colonyId, unload: [], load: [] });
+    let s = withColony(town, { id: 'other', x: 6, y: 1, name: 'Plymouth', colonists: [{ ...crowd(1)[0]!, id: 'o0' }] });
+    s = withColony(s, { id: 'theirs', x: 4, y: 3, name: 'Fort Orange', owner: 'b', colonists: [{ ...crowd(1)[0]!, id: 't0' }] });
+    s = withUnit(withUnit(withUnit(s, { id: 'w1', type: 'wagonTrain', x: 6, y: 1 }), { id: 'w2', type: 'wagonTrain', x: 6, y: 1 }), { id: 'w3', type: 'wagonTrain', owner: 'b', x: 4, y: 3 });
+    s = {
+      ...s,
+      tradeRoutes: {
+        through: { id: 'through', owner: 'a', name: 'Through', kind: 'land', stops: [stop('other'), stop('col')] },
+        apart: { id: 'apart', owner: 'a', name: 'Apart', kind: 'land', stops: [stop('other')] },
+        // a stale stop in another power's route is not ours to tidy
+        foreign: { id: 'foreign', owner: 'b', name: 'Foreign', kind: 'land', stops: [stop('theirs'), stop('col')] },
+      },
+      units: {
+        ...s.units,
+        w1: { ...u(s, 'w1'), orders: 'trade', route: { routeId: 'through', stop: 1 } },
+        w2: { ...u(s, 'w2'), orders: 'trade', route: { routeId: 'apart', stop: 0 } },
+        w3: { ...u(s, 'w3'), orders: 'trade', route: { routeId: 'foreign', stop: 0 } },
+      },
+    };
+    const foreign = s.tradeRoutes['foreign'];
+    const after = act(s, { type: 'abandonColony', colonyId: 'col' });
+    expect(Object.keys(after.tradeRoutes).sort()).toEqual(['apart', 'foreign']);
+    expect(Object.values(after.tradeRoutes).filter((r) => r.owner === 'a').some((r) => r.stops.some((x) => x.colonyId === 'col'))).toBe(false);
+    expect(after.tradeRoutes['foreign']).toEqual(foreign);
+    expect(u(after, 'w1')).toMatchObject({ orders: 'none', route: null });
+    expect(u(after, 'w2')).toMatchObject({ orders: 'trade', route: { routeId: 'apart', stop: 0 } });
+    expect(u(after, 'w3')).toMatchObject({ orders: 'trade', route: { routeId: 'foreign', stop: 0 } });
+    expect(Object.values(after.units).every((x) => x.route === null || after.tradeRoutes[x.route.routeId] !== undefined)).toBe(true);
+    expect(code(s, { type: 'abandonColony', colonyId: 'theirs' })).toBe('notYourColony');
+    expect(code(s, { type: 'abandonColony', colonyId: 'nope' })).toBe('noColonyHere');
+  });
+
   it('abandoning a port colony does not strand ships on land', () => {
     // a one-square island: the caravel in port has no drydock to make for, so it limps to Europe and its hold is lost
     const island = withColony(world({ rows: ['~~~', '~.~', '~~~'] }), { id: 'col', x: 1, y: 1, name: 'Roanoke', colonists: crowd(1) });
