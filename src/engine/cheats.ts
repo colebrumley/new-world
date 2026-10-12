@@ -7,6 +7,7 @@ import { applyColonies, checkColonies, COLONIES_SPECS, type ColoniesCommand } fr
 import { applyMap, checkMap, MAP_SPECS, type MapCommand } from './cheats/map';
 import { refuse, type CheatCheck, type CheatOutcome, type CheatSideEvent } from './cheats/shared';
 import { applyTreasury, checkTreasury, TREASURY_SPECS, type TreasuryCommand } from './cheats/treasury';
+import { applyUnits, checkUnits, UNIT_SPECS, type UnitCommand } from './cheats/units';
 import { applyWorld, checkWorld, WORLD_SPECS, type WorldCommand } from './cheats/world';
 import type { ColonyId, GameState, Player, PlayerId } from './state';
 
@@ -16,6 +17,7 @@ export type { CheatCheck, CheatErrorCode } from './cheats/shared';
 export type CheatCommand =
   | TreasuryCommand
   // map and units (R-1059)
+  | UnitCommand
   // colonies and world (R-1060)
   | ColoniesCommand
   | WorldCommand
@@ -50,6 +52,7 @@ export const CHEAT_SPECS: readonly CheatSpec[] = [
   ...TREASURY_SPECS,
   ...MAP_SPECS,
   // map and units (R-1059)
+  ...UNIT_SPECS,
   // colonies and world (R-1060)
   ...COLONIES_SPECS,
   ...WORLD_SPECS,
@@ -70,6 +73,7 @@ export function checkCheat(state: GameState, playerId: PlayerId, command: CheatC
     checkTreasury(state, player, command)
     ?? checkMap(state, player, command)
     // map and units (R-1059)
+    ?? checkUnits(state, player, command)
     // colonies and world (R-1060)
     ?? checkColonies(state, player, command)
     ?? checkWorld(state, player, command)
@@ -89,6 +93,7 @@ export function applyCheat(state: GameState, playerId: PlayerId, command: CheatC
     applyTreasury(state, player, command, side)
     ?? applyMap(state, player, command, side)
     // map and units (R-1059)
+    ?? applyUnits(state, player, command, side)
     // colonies and world (R-1060)
     ?? applyColonies(state, player, command, side)
     ?? applyWorld(state, player, command, side)
