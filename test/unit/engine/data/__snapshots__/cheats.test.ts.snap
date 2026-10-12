@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`cheat defaults > match the snapshot and are whole numbers above nothing 1`] = `
+{
+  "bells": 100,
+  "crosses": 100,
+  "gold": 1000,
+  "revealRadius": 3,
+  "treasureGold": 1000,
+}
+`;

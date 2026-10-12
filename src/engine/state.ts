@@ -105,6 +105,8 @@ export interface Player {
   readonly independent: boolean;
   /** The rebel strength last remarked upon in talk of this power's independence. */
   readonly independenceTalk: number;
+  /** A cheat was applied for this power, or by it for another (R-1058). Never cleared; absent means never. */
+  readonly cheated?: true;
 }
 
 /** One power's memory of another. */

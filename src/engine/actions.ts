@@ -17,6 +17,7 @@ import {
 } from './diplomacy';
 import { crownMoves, interventionArrives, noteRefBeaten, wartimeHire, warOutcome, warWarning, type WarEvent } from './war';
 import { checkDeclare, crownTurn, declareIndependence, musterContinentals, type IndependenceErrorCode, type IndependenceEvent } from './independence';
+import { applyCheat, checkCheat, type CheatAppliedEvent, type CheatCommand, type CheatErrorCode } from './cheats';
 import { checkChooseFather, chooseFather, coronadoSees, type CongressErrorCode, type CongressEvent } from './congress';
 import { attackColony, checkAttackColony, checkInfiltrate, infiltrate, isBesieged, type AssaultErrorCode, type AssaultEvent } from './assault';
 import { checkNavalAttack, fortFire, navalAttack, patrolAndForts, type NavalErrorCode, type NavalEvent } from './naval';
@@ -173,6 +174,8 @@ export type Action =
   | { readonly type: 'continuePlaying' }
   /** Irrevocable; it ends the turn. */
   | { readonly type: 'declareIndependence' }
+  /** Change the game outright (R-1058), for the power named or else the one whose turn it is. Both are marked as having cheated. */
+  | { readonly type: 'cheat'; readonly player?: PlayerId; readonly command: CheatCommand }
   | { readonly type: 'endTurn' };
 
 /** Everything the UI may need to react to. Later phases add combat, arrivals, elections, etc. */
@@ -209,9 +212,11 @@ export type GameEvent =
   | { readonly type: 'unitDisbanded'; readonly unitId: UnitId; readonly owner: PlayerId }
   | { readonly type: 'playerTurnStarted'; readonly player: PlayerId; readonly turn: number }
   | { readonly type: 'turnAdvanced'; readonly turn: number }
+  /** A cheat was applied for `player`; `summary` is a sentence saying what it did. */
+  | CheatAppliedEvent
   | { readonly type: 'gameEnded'; readonly reason: GameOverReason; readonly player: PlayerId; readonly turn: number; readonly year: number };
 
-export type ActionErrorCode = 'gameOver' | 'notAboard' | IndependenceErrorCode | DiplomacyErrorCode | CongressErrorCode | NavalErrorCode | 'underRepair' | AssaultErrorCode | BattleErrorCode | LandErrorCode | RumorErrorCode | NativeWarErrorCode | VillageErrorCode | RoyalErrorCode | CustomHouseErrorCode | TaxErrorCode | MarketErrorCode | EuropeErrorCode | TradeRouteErrorCode | 'notYourColony' | ConstructionErrorCode | MoveErrorCode | ColonyErrorCode | JobErrorCode | CargoErrorCode | PioneerErrorCode | 'atSea' | 'notInEurope' | 'notAtSea' | 'unknownAction' | 'noSuchUnit' | 'notYourUnit' | 'noPath' | 'badOrders';
+export type ActionErrorCode = 'gameOver' | 'notAboard' | CheatErrorCode | IndependenceErrorCode | DiplomacyErrorCode | CongressErrorCode | NavalErrorCode | 'underRepair' | AssaultErrorCode | BattleErrorCode | LandErrorCode | RumorErrorCode | NativeWarErrorCode | VillageErrorCode | RoyalErrorCode | CustomHouseErrorCode | TaxErrorCode | MarketErrorCode | EuropeErrorCode | TradeRouteErrorCode | 'notYourColony' | ConstructionErrorCode | MoveErrorCode | ColonyErrorCode | JobErrorCode | CargoErrorCode | PioneerErrorCode | 'atSea' | 'notInEurope' | 'notAtSea' | 'unknownAction' | 'noSuchUnit' | 'notYourUnit' | 'noPath' | 'badOrders';
 
 export interface ActionError {
   readonly code: ActionErrorCode;
@@ -583,6 +588,10 @@ export function validateAction(state: GameState, action: Action): Validation {
       const unit = ownUnit(state, action.unitId);
       if (isValidation(unit)) return unit;
       const check = checkEquip(state, unit, action.role);
+      return check.ok ? OK : fail(check.code, check.message);
+    }
+    case 'cheat': {
+      const check = checkCheat(state, action.player ?? currentPlayer(state).id, action.command);
       return check.ok ? OK : fail(check.code, check.message);
     }
     case 'endTurn':
@@ -1121,6 +1130,10 @@ function applyCore(state: GameState, action: Action): ActionResult {
       const events: GameEvent[] = [];
       const resumed: GameState = { ...state, over: null, players: state.players.map((p) => (p.id === player ? { ...p, scored: true } : p)) };
       return { state: beginPlayerTurn(resumed, player, events), events };
+    }
+    case 'cheat': {
+      const events: GameEvent[] = [];
+      return { state: applyCheat(state, action.player ?? currentPlayer(state).id, action.command, events), events };
     }
     case 'declareIndependence': {
       const events: GameEvent[] = [];

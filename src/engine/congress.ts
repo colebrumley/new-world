@@ -116,7 +116,8 @@ export function fatherArrives(state: GameState, playerId: PlayerId, father: Fath
   }
 }
 
-function join(state: GameState, playerId: PlayerId, father: FatherId, rng: Rng, events: CongressEvent[]): GameState {
+/** Seat a Founding Father: he is counted, the bells gathered go back to nothing, the Congress has no candidate, and what he does on arriving is done. */
+export function join(state: GameState, playerId: PlayerId, father: FatherId, rng: Rng, events: CongressEvent[]): GameState {
   const player = playerOf(state, playerId) as Player;
   const fathers = [...player.fathers, father];
   events.push({ type: 'fatherJoined', player: playerId, father, count: fathers.length });

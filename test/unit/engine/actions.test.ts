@@ -161,3 +161,50 @@ describe('treasure landed in Europe', () => {
     expect(listValidActions(s).filter((x) => x.type === 'cashTreasure')).toEqual([{ type: 'cashTreasure', unitId: 'here' }]);
   });
 });
+
+describe('cheats (R-1058)', () => {
+  const start = (): GameState => deepFreeze(createGame({ seed: 7, players: TWO }));
+
+  it('go through the pipeline like any action: validated, applied to a new state, reported by one event', () => {
+    const state = start();
+    const action: Action = { type: 'cheat', command: { cheat: 'gold', amount: { set: false, value: 5000 } } };
+    expect(validateAction(state, action)).toEqual({ ok: true });
+    const r = applyAction(state, action);
+    expect(r.state.players[0]?.gold).toBe((state.players[0]?.gold ?? 0) + 5000);
+    expect(r.events).toEqual([{ type: 'cheatApplied', player: 'a', summary: 'Added 5000 gold to the treasury.' }]);
+    expect(r.state.players.map((p) => p.cheated)).toEqual([true, undefined]);
+    expect(jsonClone(r.state)).toEqual(r.state);
+    expect(checkInvariants(r.state)).toEqual([]);
+    // nothing else moved, and it is still the same power's turn
+    expect({ ...r.state, players: state.players }).toEqual(state);
+  });
+
+  it('are refused with a reason a player can read', () => {
+    const state = start();
+    const refused: [Action, string, string][] = [
+      [{ type: 'cheat', player: 'nobody', command: { cheat: 'boycott' } }, 'cheatPower', '"nobody" is not a power in the New World'],
+      [{ type: 'cheat', command: { cheat: 'gold', amount: { set: true, value: -1 } } }, 'cheatBelowZero', `the treasury holds only ${state.players[0]?.gold} gold`],
+      [{ type: 'cheat', command: { cheat: 'tax', percent: 76 } }, 'cheatAmount', 'the tax rate is a whole number from 0 to 75'],
+      [{ type: 'cheat', command: { cheat: 'reveal', at: { x: state.map.width, y: 0 }, radius: 1 } }, 'cheatSquare', `there is no square ${state.map.width},0 on the map`],
+    ];
+    for (const [action, code, message] of refused) {
+      expect(validateAction(state, action), message).toEqual({ ok: false, error: { code, message } });
+      expect(() => applyAction(state, action)).toThrow(InvalidActionError);
+    }
+    const seated = applyAction(state, { type: 'cheat', command: { cheat: 'father', father: 'peterMinuit' } }).state;
+    expect(validateAction(seated, { type: 'cheat', command: { cheat: 'father', father: 'peterMinuit' } })).toEqual({ ok: false, error: { code: 'cheatTarget', message: 'Peter Minuit already sits in the Congress' } });
+    const over = applyAction(state, { type: 'retire' }).state;
+    expect(validateAction(over, { type: 'cheat', command: { cheat: 'boycott' } })).toEqual({ ok: false, error: { code: 'gameOver', message: 'the game has ended' } });
+  });
+
+  it('are never among the actions offered to a computer power or a random walk', () => {
+    expect(listValidActions(start()).some((a) => a.type === 'cheat')).toBe(false);
+  });
+
+  it('lift the fog for the power alone when the whole map is revealed', () => {
+    const state = start();
+    const r = applyAction(state, { type: 'cheat', command: { cheat: 'reveal', at: null, radius: 0 } });
+    expect(r.state.map.tiles.every((t, i) => t.explored === ((state.map.tiles[i]?.explored ?? 0) | 1))).toBe(true);
+    expect(r.state.map.tiles.some((t, i) => t.explored !== state.map.tiles[i]?.explored)).toBe(true);
+  });
+});

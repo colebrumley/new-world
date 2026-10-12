@@ -2072,3 +2072,35 @@ tax events, rumors, prices, demands and so on) are described where those rules a
 - **A save that will not load** says why: not a saved game; saved by a newer version; obsolete
   (too old to be read); incomplete; or damaged, with a map that is not the size it claims.
 - Loading replaces the game on the table; nothing is merged.
+
+### Cheats (R-1058)
+
+Cheats are this game's own; none of this is a rule of play.
+
+- **A cheat is an action** like any other: it is checked, applied, logged in the save and replayed
+  from it. It may be used at any moment of a power's turn, also while a question is waiting for an
+  answer, and never after the game has ended.
+- **For whom.** A cheat is for the power whose turn it is unless it names another. That power must
+  be one of the European powers still in the New World: not one that has withdrawn, and not the
+  Crown's army.
+- **The mark.** The power a cheat was for and the power whose turn it was are both marked as
+  having cheated. The mark is never taken off and is kept in the save.
+- **Refused, never clamped.** A cheat that would leave a count below nothing is refused whole,
+  and so is one that would take a count past the largest number that still counts by ones.
+- **What each does** (a number left out is the default given):
+  - *gold*: adds to the treasury, takes from it, or sets it. Default: adds 1000.
+  - *crosses*: adds crosses toward the next immigrant. Default 100.
+  - *bells*: adds liberty bells, entered as a colony's are at the end of its turn. The lifetime
+    count always grows. Before the Declaration they also go before the Congress: if there is no
+    candidate one is settled on (a human power is offered names), and a candidate whose price is
+    now met joins at once. After the Declaration they count toward help from abroad instead, and
+    reaching what that takes brings it and starts the count again. Default 100.
+  - *father*: seats a Founding Father at once. What he does on joining is done; the bells gathered
+    toward the next Father go back to nothing, and the Congress has no candidate and no names on
+    the table. Refused if he already sits in that power's Congress.
+  - *tax*: sets the tax rate, from 0 to the highest rate there is (75).
+  - *boycott lift*: lifts every boycott, nothing owed.
+  - *reveal*: makes every square of the map known to the power; or, given a square, the squares
+    within a radius of it (default 3), as if a unit with that sight had stood there. A square off
+    the map is refused.
+- Every cheat reports one sentence saying what it did, with its figures in plain digits.

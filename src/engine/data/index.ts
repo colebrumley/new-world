@@ -1,6 +1,7 @@
 // Static rule tables (terrain, goods, units, buildings, fathers, tribes, prices, nations).
 export * from './america';
 export * from './buildings';
+export * from './cheats';
 export * from './colony';
 export * from './construction';
 export * from './crosses';
