@@ -200,7 +200,7 @@ describe('father', () => {
     expect(jones.state.rng).toEqual(byCongress.rng);
     expect(Object.values(jones.state.units).map((u) => u.type)).toEqual(['frigate']);
     expect(jones.events.map((e) => e.type)).toContain('frigateGranted');
-    // Pocahontas calms the tribes with the generator the Congress hands her
+    // Pocahontas calms the tribes without a throw: the dice stay where they were (treasury-dice.test.ts covers an arrival that throws the dice handed to it)
     const angry: GameState = { ...state, tribes: { sioux: { ...state.tribes['sioux']!, alarm: { a: 60 } } } };
     const rng = createRng(angry.rng);
     const calmed = join(angry, 'a', 'pocahontas', rng, []);
