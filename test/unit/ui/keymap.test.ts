@@ -15,7 +15,7 @@ describe('keyboard map', () => {
 
   it('covers every map key of Appendix K', () => {
     const map = KEYMAP.filter((k) => k.context === 'map').map((k) => k.keys).join(' | ');
-    for (const want of ['Arrows', 'numpad', 'A', 'W', 'Space', 'F', 'S', 'B', 'P', 'R', 'G', 'L', 'U', 'O', 'T', 'Shift-D', 'V', 'M', 'E', 'Z / X', 'H', 'C', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'Alt+T', 'Alt+G', 'Alt+O', 'Alt+C', 'Esc']) {
+    for (const want of ['Arrows', 'numpad', 'A', 'W', 'Space', 'F', 'S', 'B', 'P', 'R', 'G', 'L', 'U', 'O', 'T', 'Shift-D', 'Shift-E', 'V', 'M', 'E', 'Z / X', 'H', 'C', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'Alt+T', 'Alt+G', 'Alt+O', 'Alt+C', 'Esc']) {
       expect(map, want).toContain(want);
     }
     const colony = KEYMAP.filter((k) => k.context === 'colony').map((k) => k.keys);
@@ -35,6 +35,10 @@ describe('keyboard map', () => {
       if (k.length === 1 && k !== ' ') expect(key(k.toUpperCase()), k).toBe(command === 'activate' || k !== 'd' ? command : 'disband');
     }
     expect(key('D', { shiftKey: true })).toBe('disband');
+    // Shift-E explores; E alone (or with Caps Lock) still opens Europe
+    expect(key('E', { shiftKey: true })).toBe('explore');
+    expect(key('E')).toBe('europe');
+    expect(KEYMAP.find((k) => k.context === 'map' && k.keys === 'Shift-E')).toMatchObject({ command: 'explore', action: expect.stringMatching(/^Explore: the active scout or ship/) });
     expect(key('d')).toBeNull();
     expect(key('F1')).toBe('report');
     expect(key('F10')).toBe('report');
@@ -54,6 +58,7 @@ describe('keyboard map', () => {
       if (c) reachable.add(c);
     }
     reachable.add(key('D', { shiftKey: true }) ?? '');
+    reachable.add(key('E', { shiftKey: true }) ?? '');
     reachable.add(key('I', { shiftKey: true }) ?? '');
     reachable.add(key('R', { shiftKey: true }) ?? '');
     reachable.add(key('g', { altKey: true, code: 'KeyG' }) ?? '');

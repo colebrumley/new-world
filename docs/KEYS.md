@@ -26,6 +26,7 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | P | Pioneer: clear forest or plow | works |
 | R | Pioneer: build a road | works |
 | G | Go to: choose a colony from the list (a ship that can reach the Sea Lane is offered Europe first), or pick a square with the arrows or the mouse and Enter | works |
+| Shift-E | Explore: the active scout or ship explores on its own until nothing is left in reach | works |
 | L | Load the most valuable cargo in this colony | works |
 | U | Unload cargo into this colony | works |
 | O | Dump cargo overboard | works |

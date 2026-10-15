@@ -3,7 +3,7 @@
 export type KeyContext = 'title' | 'map' | 'colony' | 'europe' | 'dialog';
 
 export type MapCommand =
-  | 'move' | 'activate' | 'wait' | 'skip' | 'fortify' | 'sentry' | 'buildColony' | 'plow' | 'road' | 'goTo'
+  | 'move' | 'activate' | 'wait' | 'skip' | 'fortify' | 'sentry' | 'buildColony' | 'plow' | 'road' | 'goTo' | 'explore'
   | 'load' | 'unload' | 'dump' | 'tradeRoute' | 'disband' | 'declare' | 'retire' | 'viewMode' | 'moveMode' | 'europe' | 'zoomIn'
   | 'zoomOut' | 'hiddenTerrain' | 'center' | 'endTurn' | 'report' | 'menu' | 'cancel';
 
@@ -33,6 +33,7 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'map', keys: 'P', action: 'Pioneer: clear forest or plow', command: 'plow' },
   { context: 'map', keys: 'R', action: 'Pioneer: build a road', command: 'road' },
   { context: 'map', keys: 'G', action: 'Go to: choose a colony from the list (a ship that can reach the Sea Lane is offered Europe first), or pick a square with the arrows or the mouse and Enter', command: 'goTo' },
+  { context: 'map', keys: 'Shift-E', action: 'Explore: the active scout or ship explores on its own until nothing is left in reach', command: 'explore' },
   { context: 'map', keys: 'L', action: 'Load the most valuable cargo in this colony', command: 'load' },
   { context: 'map', keys: 'U', action: 'Unload cargo into this colony', command: 'unload' },
   { context: 'map', keys: 'O', action: 'Dump cargo overboard', command: 'dump' },
@@ -140,6 +141,7 @@ export function mapCommandFor(event: { key: string; code: string; shiftKey: bool
   if (/^F([1-9]|10)$/.test(event.key)) return 'report';
   const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
   if (event.shiftKey && key === 'd') return 'disband';
+  if (event.shiftKey && key === 'e') return 'explore';
   if (event.shiftKey && key === 'i') return 'declare';
   if (event.shiftKey && key === 'r') return 'retire';
   switch (key) {

@@ -47,7 +47,15 @@ describe('unit queue', () => {
   it('gives each order its letter', () => {
     const s = base();
     const letter = (orders: Unit['orders']): string => orderLetter({ ...(s.units['u1'] as Unit), orders });
-    expect((['none', 'sentry', 'goto', 'fortify', 'fortified', 'plow', 'road'] as const).map(letter)).toEqual(['-', 'S', 'G', 'F', 'F', 'P', 'R']);
+    expect((['none', 'sentry', 'goto', 'fortify', 'fortified', 'plow', 'road', 'trade', 'explore'] as const).map(letter)).toEqual(['-', 'S', 'G', 'F', 'F', 'P', 'R', 'T', 'X']);
+  });
+
+  it('passes over an exploring unit: it has its orders', () => {
+    const s = base();
+    const exploring = { ...(s.units['u1'] as Unit), orders: 'explore' as const };
+    expect(needsOrders(exploring, 'a')).toBe(false);
+    const rest = { ...s, units: { ...s.units, u1: exploring } };
+    expect(ids(nextUnit(rest, 'a', null, new Set()))).not.toBe('u1');
   });
 
   it('shows the active unit on top of a stack, never a carried one', () => {

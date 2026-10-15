@@ -9,6 +9,7 @@ import { UNIT_TYPES } from '../engine/data/units';
 import { VILLAGE_ACTION_NAMES } from '../engine/data/village';
 import { landlord, landPrice } from '../engine/land';
 import { isShipUnit, laneFor } from '../engine/movement';
+import { mayExplore } from '../engine/explore-order';
 import { incitePrice } from '../engine/missions';
 import type { ParleyReply } from '../engine/native-trade';
 import { settlementAt, tribeOfOwner } from '../engine/settlements';
@@ -51,6 +52,7 @@ import { editRoute } from '../ui/trade-routes';
 import { createTileCache } from '../ui/tiles';
 import { placeTooltip, slipUnits, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_UNIT_LIMIT } from '../ui/tile-tooltip';
 import { needsOrders, nextUnit } from '../ui/unit-queue';
+import { chiefSpokeText } from '../ui/village-text';
 import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, viewCenter, zoomAt, zoomBy, type View } from '../ui/view';
 import { readHintsSeen, readOptions, writeAutosave, writeHintsSeen, writeOptions } from './storage';
 import { COLONY_OPTIONS, GAME_OPTIONS, SOUND_OPTIONS, type Options } from '../ui/options';
@@ -488,15 +490,25 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     }
     // a treasure train that has just come into one of our colonies, by a move, a Go To or being put ashore there
     const arrived = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'endTurn' || action.type === 'goAshore' ? treasuresArrived(before, session.state) : [];
-    const moving = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'foundColony' || action.type === 'endTurn';
+    const moving = action.type === 'moveUnit' || action.type === 'goTo' || action.type === 'goToEurope' || action.type === 'explore' || action.type === 'foundColony' || action.type === 'endTurn';
+    // our scouts that spoke with a chief on their own, under the Explore order (the owner as it was: a scout put to death is gone)
+    const chiefs = action.type === 'explore' || action.type === 'endTurn'
+      ? new Set(stepped.events.flatMap((e) => (e.type === 'chiefSpoke' && (before.units[e.unitId] ?? session.state.units[e.unitId])?.owner === me() ? [e.unitId] : [])))
+      : new Set<string>();
+    // an exploring unit that has run out of places to go
+    for (const e of stepped.events) {
+      if (e.type !== 'exploreDone') continue;
+      const done = session.state.units[e.unitId];
+      if (done?.owner === me()) record(`${unitLabel(done)} at (${e.x}, ${e.y}): nothing left to explore.`);
+    }
     if (session.state.over) {
       // the end page comes up in place of anything the turn would have asked: no answer could be given now
       announceEnd();
     } else if (turnEnded) {
       // the turn's questions come one after another (both ask for audiences); then the player is taken to each colony with a finished project
-      void royalBusiness().then(() => (moving ? afterMoving(stepped.events, arrived, false) : undefined)).then(visitFinished);
+      void royalBusiness().then(() => (moving ? afterMoving(stepped.events, arrived, false, chiefs) : undefined)).then(visitFinished);
     } else if (moving) {
-      void afterMoving(stepped.events, arrived, true);
+      void afterMoving(stepped.events, arrived, true, chiefs);
     } else if (arrived.length > 0) {
       // put ashore from the colony screen: ask once that screen has redrawn and taken focus, so the question keeps it
       queueMicrotask(() => void offerTreasures(arrived, false));
@@ -663,10 +675,17 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     survivors: 'Survivors of a lost colony have joined our party.',
   };
 
-  /** What moving about has turned up: a rumor explored, mounds to decide on, the Fountain's followers, a tribe met. */
-  const afterMoving = async (events: readonly GameEvent[], treasures: readonly UnitId[] = [], byOrders = false): Promise<void> => {
+  /**
+   * What moving about has turned up: a rumor explored, a chief our exploring scouts (`chiefs`, by
+   * unit) spoke with on their own, mounds to decide on, the Fountain's followers, a tribe met.
+   */
+  const afterMoving = async (events: readonly GameEvent[], treasures: readonly UnitId[] = [], byOrders = false, chiefs: ReadonlySet<string> = new Set()): Promise<void> => {
     const mine = (): (typeof session.state.players)[number] | undefined => session.state.players.find((p) => p.id === me());
     for (const e of events) {
+      if (e.type === 'chiefSpoke' && chiefs.has(e.unitId)) {
+        await ask(screen, { text: chiefSpokeText(e), choices: ['Continue'], escape: 0 });
+        continue;
+      }
       if (e.type !== 'rumorExplored' || e.player !== me()) continue;
       const gold = e.gold > 0 ? ` We gained ${e.gold} gold.` : '';
       await ask(screen, { text: `${RUMOR_TEXT[e.outcome] ?? ''}${gold}`, choices: ['Continue'], escape: 0 });
@@ -704,7 +723,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   const LOG_KEPT = 200;
   const HINT_MARK = '\u0001';
   /** Orders that can use up the last unit's turn. */
-  const UNIT_ORDER_ACTIONS: ReadonlySet<Action['type']> = new Set(['moveUnit', 'goTo', 'goToEurope', 'setOrders', 'skipUnit', 'attack', 'pioneerWork', 'foundColony', 'joinColony', 'disbandUnit', 'enterSettlement']);
+  const UNIT_ORDER_ACTIONS: ReadonlySet<Action['type']> = new Set(['moveUnit', 'goTo', 'goToEurope', 'explore', 'setOrders', 'skipUnit', 'attack', 'pioneerWork', 'foundColony', 'joinColony', 'disbandUnit', 'enterSettlement']);
   const record = (text: string, hint = false): void => {
     if (!text) return;
     log.push(hint ? `${HINT_MARK}${text}` : text);
@@ -957,16 +976,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     const events = stepSession(before, action).events;
     for (const e of events) {
       if (e.type === 'chiefSpoke') {
-        const wants = e.wants.map((g) => GOOD_NAMES[g]).join(', ');
-        const told = `${wants ? ` His people would trade for ${wants}.` : ''} They can teach the trade of the ${PROFESSIONS[e.skill].name}.`;
-        const result = {
-          killed: 'The scout was put to death as a spy.',
-          nothing: 'The chief had little to say.',
-          promotion: 'The chief taught our scout the ways of the land: a Seasoned Scout.',
-          tales: 'The chief told tales of the lands around, now marked on our map.',
-          gift: `The chief sent us away with gifts worth ${e.gold} gold.`,
-        }[e.outcome];
-        await ask(screen, { text: `${result}${e.outcome === 'killed' ? '' : told}`, choices: ['Continue'], escape: 0 });
+        await ask(screen, { text: chiefSpokeText(e), choices: ['Continue'], escape: 0 });
       } else if (e.type === 'battle') {
         await ask(screen, { text: battleReport(events), choices: ['Continue'], escape: 0 });
       } else if (e.type === 'hostileEntry' && e.outcome !== 'admitted') {
@@ -1432,6 +1442,10 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       case 'sentry':
         dispatch({ type: 'setOrders', unitId: unit.id, orders: command });
         return;
+      case 'explore':
+        if (!mayExplore(unit)) say(`${unitLabel(unit)} cannot explore: only a scout or a ship can.`);
+        else dispatch({ type: 'explore', unitId: unit.id });
+        return;
       case 'plow':
       case 'road': {
         // clearing a forest or laying a road on the natives' land: they ask us to stop
@@ -1894,7 +1908,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     const focus = mode !== 'move' || !unit || unit.x < 0 ? cursor : { x: unit.x, y: unit.y };
     const status = notice || (session.state.over ? END_STATUS : unit ? '' : 'End of turn. Press Enter.');
     sidebar.update(sidebarModel(session.state, mode === 'view' ? null : unit, focus, revealAll, status));
-    commandBar.update(unit !== null && mode !== 'view', mode === 'goto', europeCall(session.state, me()), session.state.over !== null);
+    commandBar.update(unit !== null && mode !== 'view', mode === 'goto', europeCall(session.state, me()), session.state.over !== null, unit !== null && mayExplore(unit));
   };
 
   const frame = (time: number): void => {

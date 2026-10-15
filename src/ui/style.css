@@ -284,6 +284,12 @@ canvas.minimap {
   padding: 1px 0;
 }
 
+/* a button kept from a unit it is no use to (Explore) keeps its place, so the others do not shift */
+.command-bar button[hidden] {
+  display: block;
+  visibility: hidden;
+}
+
 .command-bar .command-wide {
   grid-column: 1 / -1;
   background: var(--plate-brass);
