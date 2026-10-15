@@ -66,12 +66,19 @@ export function chiefWelcomes(state: GameState, owner: string, settlement: Settl
   return settlement.scouted.length === 0 && attitude(state, settlement.tribe, owner) < EXPLORE.chiefAttitudeBelow && !isHostile(settlement, owner);
 }
 
+/** A welcoming chief this scout has not already spoken with under its present order. */
+const chiefFor = (state: GameState, unit: Unit, settlement: Settlement): boolean =>
+  !(unit.heard ?? []).includes(settlement.id) && chiefWelcomes(state, unit.owner, settlement);
+
+/** While a burial question waits, the power's exploring scouts keep off rumours (one question at a time). */
+const burialWaits = (state: GameState, unit: Unit): boolean => playerOf(state, unit.owner)?.pendingBurial != null;
+
 const scoutOnLand = (state: GameState, unit: Unit): boolean => unit.type === 'scout' && canExplore(state, unit);
 
 /** The settlement beside the scout whose chief it would speak with now, if any (the lowest id first). */
 function chiefBeside(state: GameState, unit: Unit): Settlement | null {
   const near = Object.values(state.settlements)
-    .filter((s) => Math.max(Math.abs(s.x - unit.x), Math.abs(s.y - unit.y)) === 1 && chiefWelcomes(state, unit.owner, s))
+    .filter((s) => Math.max(Math.abs(s.x - unit.x), Math.abs(s.y - unit.y)) === 1 && chiefFor(state, unit, s))
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   return near.find((s) => checkVillageAction(state, unit, s.id, 'speakWithChief').ok) ?? null;
 }
@@ -134,10 +141,11 @@ export function exploreTarget(state: GameState, unit: Unit): Target | null {
   const besideChief = new Set<number>();
   if (scout) {
     for (const s of Object.values(state.settlements)) {
-      if (!isExploredBy(map.tiles[s.y * map.width + s.x] as Tile, index) || !chiefWelcomes(state, unit.owner, s)) continue;
+      if (!isExploredBy(map.tiles[s.y * map.width + s.x] as Tile, index) || !chiefFor(state, unit, s)) continue;
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx !== 0 || dy !== 0) besideChief.add((s.y + dy) * map.width + s.x + dx);
     }
   }
+  const rumours = scout && !burialWaits(state, unit);
   let plain: Omit<Target, 'steps'> | null = null;
   let special: Omit<Target, 'steps'> | null = null;
   for (let i = 0; i < reach.cost.length; i++) {
@@ -148,7 +156,7 @@ export function exploreTarget(state: GameState, unit: Unit): Target | null {
     const shows = unexploredAround(state, index, x, y, radius);
     const here = { x, y, cost, shows };
     if (shows > 0 && better(here, plain)) plain = here;
-    if (scout && ((map.tiles[i] as Tile).rumor || besideChief.has(i)) && better(here, special)) special = here;
+    if (scout && ((rumours && (map.tiles[i] as Tile).rumor) || besideChief.has(i)) && better(here, special)) special = here;
   }
   const pick = special && (!plain || special.cost <= plain.cost + EXPLORE.preferWithin * MOVE_THIRDS) ? special : plain;
   if (!pick) return null;
@@ -180,6 +188,9 @@ export function advanceExplore(state: GameState, unitId: UnitId, watch: SailWatc
         next = contactAt(next, unit.owner, unit.x, unit.y, heard);
         next = speakWithChief(next, next.units[unitId] as Unit, chief, heard);
         events.push(...heard);
+        // it does not go back to the same chief, whatever he said
+        const after = next.units[unitId];
+        if (after) next = withUnit(next, { ...after, heard: [...(after.heard ?? []), chief.id] });
         break;
       }
     }
@@ -193,6 +204,8 @@ export function advanceExplore(state: GameState, unitId: UnitId, watch: SailWatc
       route = { steps: target.steps, at: 0 };
     }
     const [sx, sy] = route.steps[route.at] as readonly [number, number];
+    // a rumour in the way waits until the burial question already found has been answered
+    if (scoutOnLand(next, unit) && tileAt(next.map, sx, sy)?.rumor && burialWaits(next, unit)) break;
     const check = planMove(next, unit, sx - unit.x, sy - unit.y, { sail: false, landfall: false });
     // something stands in the way now: try again next turn
     if (!check.ok || (check.plan.kind !== 'land' && check.plan.kind !== 'sail')) break;

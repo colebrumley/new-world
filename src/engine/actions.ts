@@ -1089,7 +1089,8 @@ function applyCore(state: GameState, action: Action): ActionResult {
     }
     case 'explore': {
       const unit = state.units[action.unitId] as Unit;
-      const ordered = replaceUnit(state, { ...unit, orders: 'explore', destination: null, workTurns: 0, route: null });
+      const { heard: _heard, ...rest } = unit;
+      const ordered = replaceUnit(state, { ...rest, orders: 'explore', destination: null, workTurns: 0, route: null });
       const advanced = advanceExplore(ordered, unit.id, patrolAndForts);
       return { state: advanced.state, events: [{ type: 'ordersChanged', unitId: unit.id, orders: 'explore' }, ...advanced.events] };
     }

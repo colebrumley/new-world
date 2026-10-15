@@ -163,6 +163,25 @@ describe('where an exploring unit goes', () => {
   });
 });
 
+describe('one burial question at a time', () => {
+  it('while one waits, a scout neither aims for a rumour nor steps onto one', () => {
+    let s = withUnit(world({ rows: PLAIN }), { id: 'x', type: 'scout', x: 6, y: 2 });
+    s = fogWhere(s, (x) => x >= 10);
+    s = setTile(s, 5, 2, { rumor: true });
+    s = { ...s, players: s.players.map((p) => (p.id === 'a' ? { ...p, pendingBurial: { unitId: 'y', x: 1, y: 1, q: 50, skill: 1 } } : p)) };
+    expect(exploreTarget(s, u(s, 'x'))).toMatchObject({ x: 8 });
+    const r = explore(s);
+    expect(r.events.some((e) => e.type === 'rumorExplored')).toBe(false);
+    expect(r.state.players[0]?.pendingBurial).toMatchObject({ unitId: 'y' });
+    // the only way on lies over the rumour: the scout waits
+    const lane = fogWhere(withUnit(setTile(world({ rows: ['~~~~~~~~', '~......~', '~~~~~~~~'] }), 3, 1, { rumor: true }), { id: 'x', type: 'scout', x: 1, y: 1 }), (x) => x >= 6);
+    const waiting = { ...lane, players: lane.players.map((p) => (p.id === 'a' ? { ...p, pendingBurial: { unitId: 'y', x: 1, y: 1, q: 50, skill: 1 } } : p)) };
+    const stuck = explore(waiting);
+    expect(u(stuck.state, 'x')).toMatchObject({ x: 2, orders: 'explore' });
+    expect(stuck.state.map.tiles[1 * 8 + 3]?.rumor).toBe(true);
+  });
+});
+
 describe('chiefs', () => {
   const beside = (extra: Partial<Settlement> = {}, alarm = 0, seed = 1): GameState => {
     let s = withUnit(world({ rows: PLAIN, seed }), { id: 'x', type: 'scout', x: 3, y: 2 });
@@ -182,6 +201,22 @@ describe('chiefs', () => {
       expect(u(r.state, 'x')).toMatchObject({ movesLeft: 0, orders: 'explore', x: 3, y: 2 });
       expect(r.state.settlements['v']?.scouted).toEqual(['a']);
       expect(r.events.some((e) => e.type === 'tributeDemanded' || e.type === 'battle')).toBe(false);
+      checked = true;
+    }
+    expect(checked).toBe(true);
+  });
+
+  it('does not go back to a chief it has spoken with, even when he said nothing', () => {
+    let checked = false;
+    for (let seed = 1; seed < 400 && !checked; seed++) {
+      const r = explore(beside({}, 40, seed));
+      const said = r.events.find((e) => e.type === 'chiefSpoke');
+      if (!said || said.type !== 'chiefSpoke' || said.outcome !== 'nothing' || !r.state.units['x']) continue;
+      expect(r.state.settlements['v']?.scouted).toEqual([]);
+      expect(u(r.state, 'x').heard).toEqual(['v']);
+      const next = endRound(r.state);
+      expect(next.events.some((e) => e.type === 'chiefSpoke')).toBe(false);
+      expect(u(next.state, 'x').x).toBeGreaterThan(3);
       checked = true;
     }
     expect(checked).toBe(true);

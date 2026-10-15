@@ -251,6 +251,8 @@ export interface Unit {
   /** Gold a treasure train carries (0 for everything else). */
   readonly treasure: number;
   readonly voyage: Voyage | null;
+  /** An exploring scout: settlements whose chief it has spoken with since it was given the order. */
+  readonly heard?: readonly string[];
   /** A computer power's scout: the way it last stepped, 0 north round to 7 north-west. */
   readonly heading?: number;
   /** A computer power's ship: turns she has lain in one of its ports with a foreign frigate near. */

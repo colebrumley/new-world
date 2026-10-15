@@ -165,11 +165,15 @@ on the rim of the map do not count as Sea Lane for this, as for a returning ship
   is at most `preferWithin` moves more than the cheapest plain target's, or when no plain target
   is left. A scout that steps onto a rumour, on the way or as its target, explores it at once and
   stops there for the turn. A burial mound leaves the question to the player and the order
-  standing; a party that vanishes is gone.
+  standing; a party that vanishes is gone. While a burial question waits unanswered, the power's
+  exploring scouts neither aim for a rumour nor step onto one (a scout whose way lies over one
+  waits), so that a second find cannot overwrite the first.
 - A scout with moves left beside a settlement nobody has spoken with (`scouted` empty), whose
   tribe's attitude toward its owner is below Angry and which is not at War with it (the
   settlement's own alarm below the hostile mark), is first met by the tribe and then speaks with
-  the chief, which spends its moves. It never demands tribute, attacks or trades.
+  the chief, which spends its moves. It never demands tribute, attacks or trades. A scout does
+  not go back under the same order to a chief it has spoken with, even one who gave it nothing;
+  given the order afresh, it may.
 - The order clears, and an `exploreDone` event names the unit and its square, when nothing
   reachable is left to explore. It also clears, without an event, when at the start of its turn
   a unit of a power at war with its owner (by stance; the Crown during the War of Independence)
