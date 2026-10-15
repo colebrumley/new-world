@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`explore order table > matches the snapshot and is whole numbers 1`] = `
+{
+  "chiefAttitudeBelow": 3,
+  "maxSteps": 64,
+  "preferWithin": 3,
+}
+`;

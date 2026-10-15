@@ -216,8 +216,8 @@ export interface GameMap {
   readonly tiles: readonly Tile[];
 }
 
-/** Standing orders, by their order letters: - S G F F P R T. */
-export type UnitOrders = 'none' | 'sentry' | 'goto' | 'fortify' | 'fortified' | 'plow' | 'road' | 'trade';
+/** Standing orders, by their order letters: - S G F F P R T X. */
+export type UnitOrders = 'none' | 'sentry' | 'goto' | 'fortify' | 'fortified' | 'plow' | 'road' | 'trade' | 'explore';
 
 /** Movement is counted in thirds of a move so that roads (one third) stay integral. */
 export const MOVE_THIRDS = 3;

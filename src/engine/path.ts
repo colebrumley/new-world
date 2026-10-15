@@ -103,3 +103,66 @@ export function findPath(map: GameMap, sx: number, sy: number, gx: number, gy: n
   steps.reverse();
   return { steps, cost: g[goal] as number };
 }
+
+/** What `costsFrom` found: the cheapest cost to every tile (Infinity where unreachable) and the way back. */
+export interface Reach {
+  readonly width: number;
+  readonly start: number;
+  readonly cost: Float64Array;
+  readonly cameFrom: Int32Array;
+}
+
+/**
+ * Cheapest cost from (sx, sy) to every tile it can reach (Dijkstra over the same step costs as
+ * `findPath`). Ties keep the first way found, scanning north first and round by east, so the
+ * result depends on nothing but the map and the step cost.
+ */
+export function costsFrom(map: GameMap, sx: number, sy: number, stepCost: StepCost): Reach {
+  const { width, height } = map;
+  const n = width * height;
+  const start = sy * width + sx;
+  const cost = new Float64Array(n).fill(Infinity);
+  const cameFrom = new Int32Array(n).fill(-1);
+  const closed = new Uint8Array(n);
+  // the heap orders by cost, then by tile index, so equal costs come out in a fixed order
+  const key = new Float64Array(n);
+  const open: number[] = [];
+  cost[start] = 0;
+  key[start] = 0;
+  push(open, key, start);
+  while (open.length > 0) {
+    const current = pop(open, key);
+    if (closed[current]) continue;
+    closed[current] = 1;
+    const cx = current % width;
+    const cy = (current - cx) / width;
+    for (const [dx, dy] of DIRS) {
+      const nx = cx + dx;
+      const ny = cy + dy;
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+      const next = ny * width + nx;
+      if (closed[next]) continue;
+      const step = stepCost(cx, cy, nx, ny);
+      if (step === null) continue;
+      const tentative = (cost[current] as number) + step;
+      if (tentative < (cost[next] as number)) {
+        cost[next] = tentative;
+        cameFrom[next] = current;
+        key[next] = tentative + next / n;
+        push(open, key, next);
+      }
+    }
+  }
+  return { width, start, cost, cameFrom };
+}
+
+/** The steps from the start of a `costsFrom` search to (gx, gy), or null if it cannot be reached. */
+export function pathIn(reach: Reach, gx: number, gy: number): Path | null {
+  const goal = gy * reach.width + gx;
+  if (goal === reach.start) return { steps: [], cost: 0 };
+  if (reach.cameFrom[goal] === -1) return null;
+  const steps: [number, number][] = [];
+  for (let i = goal; i !== reach.start; i = reach.cameFrom[i] as number) steps.push([i % reach.width, Math.floor(i / reach.width)]);
+  steps.reverse();
+  return { steps, cost: reach.cost[goal] as number };
+}

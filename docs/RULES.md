@@ -147,6 +147,41 @@ with R-900.
 **Notes:** the entry reads "Europe" rather than the name of the power's home port. The squares
 on the rim of the map do not count as Sea Lane for this, as for a returning ship.
 
+### Exploring (R-1066)
+**Numbers:** `EXPLORE` in `src/engine/data/explore.ts`
+**Rule:**
+- A scout on land (not aboard a ship) or a ship not on a voyage, with moves left, may be given
+  the Explore order. It clears any Go To destination and route and the unit sets off at once
+  with the moves it has; at the start of each of its owner's turns it moves again with its full
+  moves.
+- It plans only over squares its owner has explored, never through another power's unit or
+  colony nor a native settlement; a ship keeps to the open sea (no inland lake, no colony) and is
+  never asked to sail for Europe on the Sea Lane. A target is a square it can reach from which
+  its sight radius would show at least one unexplored square. It goes for the cheapest target;
+  ties go to the one showing more unexplored squares, then the lower `y`, then the lower `x`.
+  It thinks again whenever a step shows new squares or it reaches its target.
+- A scout also weighs every visible rumour it can reach and every square beside a settlement
+  whose chief it would speak with. The cheapest of those (by the same ties) is taken when its cost
+  is at most `preferWithin` moves more than the cheapest plain target's, or when no plain target
+  is left. A scout that steps onto a rumour, on the way or as its target, explores it at once and
+  stops there for the turn. A burial mound leaves the question to the player and the order
+  standing; a party that vanishes is gone.
+- A scout with moves left beside a settlement nobody has spoken with (`scouted` empty), whose
+  tribe's attitude toward its owner is below Angry and which is not at War with it (the
+  settlement's own alarm below the hostile mark), is first met by the tribe and then speaks with
+  the chief, which spends its moves. It never demands tribute, attacks or trades.
+- The order clears, and an `exploreDone` event names the unit and its square, when nothing
+  reachable is left to explore. It also clears, without an event, when at the start of its turn
+  a unit of a power at war with its owner (by stance; the Crown during the War of Independence)
+  or of a tribe whose attitude is Angry stands within one square. A manual move or Activate
+  clears it as any other order.
+
+**Notes:** this game's own rule throughout; the owner settled that a scout enters every rumour
+(burial question still asked), speaks only with chiefs nobody has seen and not where the people
+are Angry or at War, and wakes when done. Planning over explored squares only keeps the fog
+honest. A step that cannot be made (another unit now in the way) ends the unit's turn without
+clearing the order; it tries again next turn.
+
 ### Pioneer work (R-204)
 **Compare:** Revolution Now `config/rcl/command.rcl`.
 **Rule:**

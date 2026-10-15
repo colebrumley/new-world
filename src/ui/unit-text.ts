@@ -38,7 +38,7 @@ export function formatMoves(thirds: number): string {
 }
 
 export const ORDER_NAMES: Readonly<Record<Unit['orders'], string>> = {
-  none: 'No orders', sentry: 'Sentry', goto: 'Go to', fortify: 'Fortifying', fortified: 'Fortified', plow: 'Clear / plow', road: 'Build road', trade: 'Trade route',
+  none: 'No orders', sentry: 'Sentry', goto: 'Go to', fortify: 'Fortifying', fortified: 'Fortified', plow: 'Clear / plow', road: 'Build road', trade: 'Trade route', explore: 'Exploring',
 };
 
 /** What a unit carries: passengers (named by `name`, their label unless told otherwise), cargo lots, a pioneer's tools. */

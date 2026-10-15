@@ -42,6 +42,7 @@ import { UNIT_TYPES, type UnitTypeId } from './data/units';
 import { GOOD_IDS, type GoodId } from './data/goods';
 import { assignJob, checkAssign, type JobErrorCode } from './jobs';
 import { heldByBlockade } from './computer';
+import { advanceExplore, checkExplore, exploreTurn, type ExploreErrorCode, type ExploreEvent } from './explore-order';
 import { EUROPE_BOUND, advanceGoto, boundForEurope, executeMove, isShipUnit, laneFor, planMove, sailWatched, turnMoves, routeFor, type MoveChoices, type MoveErrorCode, type MoveEvent } from './movement';
 import {
   bidPrice, buyGoods, checkBuyGoods, checkPayBackTaxes, checkSellGoods, evaluateMarket, payBackTaxes, sellGoods,
@@ -125,6 +126,8 @@ export type Action =
   | { readonly type: 'goTo'; readonly unitId: UnitId; readonly x: number; readonly y: number }
   /** Go To Europe: a ship makes for the nearest Sea Lane and sets sail from it. */
   | { readonly type: 'goToEurope'; readonly unitId: UnitId }
+  /** Explore: a scout or a ship moves on its own, each turn, until nothing in reach is left unexplored. */
+  | { readonly type: 'explore'; readonly unitId: UnitId }
   /** B on open land: found a colony where the unit stands. The name defaults to the next on the nation's list. */
   | { readonly type: 'foundColony'; readonly unitId: UnitId; readonly name?: string }
   /** B inside one of your colonies: the unit moves in and takes up work. */
@@ -204,6 +207,7 @@ export type GameEvent =
   | ColonyEvent
   | VoyageEvent
   | PioneerEvent
+  | ExploreEvent
   | { readonly type: 'ordersChanged'; readonly unitId: UnitId; readonly orders: Unit['orders'] }
   /** Unloading left more of a good in the colony than its warehouse will keep past the end of the turn. */
   | { readonly type: 'warehouseFull'; readonly colonyId: ColonyId; readonly good: GoodId; readonly amount: number; readonly capacity: number }
@@ -216,7 +220,7 @@ export type GameEvent =
   | CheatAppliedEvent
   | { readonly type: 'gameEnded'; readonly reason: GameOverReason; readonly player: PlayerId; readonly turn: number; readonly year: number };
 
-export type ActionErrorCode = 'gameOver' | 'notAboard' | CheatErrorCode | IndependenceErrorCode | DiplomacyErrorCode | CongressErrorCode | NavalErrorCode | 'underRepair' | AssaultErrorCode | BattleErrorCode | LandErrorCode | RumorErrorCode | NativeWarErrorCode | VillageErrorCode | RoyalErrorCode | CustomHouseErrorCode | TaxErrorCode | MarketErrorCode | EuropeErrorCode | TradeRouteErrorCode | 'notYourColony' | ConstructionErrorCode | MoveErrorCode | ColonyErrorCode | JobErrorCode | CargoErrorCode | PioneerErrorCode | 'atSea' | 'notInEurope' | 'notAtSea' | 'unknownAction' | 'noSuchUnit' | 'notYourUnit' | 'noPath' | 'badOrders';
+export type ActionErrorCode = 'gameOver' | 'notAboard' | CheatErrorCode | IndependenceErrorCode | DiplomacyErrorCode | CongressErrorCode | NavalErrorCode | 'underRepair' | AssaultErrorCode | BattleErrorCode | LandErrorCode | RumorErrorCode | NativeWarErrorCode | VillageErrorCode | RoyalErrorCode | CustomHouseErrorCode | TaxErrorCode | MarketErrorCode | EuropeErrorCode | TradeRouteErrorCode | 'notYourColony' | ConstructionErrorCode | MoveErrorCode | ColonyErrorCode | JobErrorCode | CargoErrorCode | PioneerErrorCode | 'atSea' | 'notInEurope' | 'notAtSea' | 'unknownAction' | 'noSuchUnit' | 'notYourUnit' | 'noPath' | 'badOrders' | ExploreErrorCode;
 
 export interface ActionError {
   readonly code: ActionErrorCode;
@@ -551,6 +555,12 @@ export function validateAction(state: GameState, action: Action): Validation {
       if (!open.ok) return fail(open.code, open.message);
       return laneFor(state, unit) ? OK : fail('noPath', 'no Sea Lane can be reached from here');
     }
+    case 'explore': {
+      const unit = ownUnit(state, action.unitId);
+      if (isValidation(unit)) return unit;
+      const check = checkExplore(unit);
+      return check.ok ? OK : fail(check.code, check.message);
+    }
     case 'skipUnit':
     case 'disbandUnit': {
       const unit = ownUnitOnMap(state, action.unitId);
@@ -711,6 +721,12 @@ function unitPhase(state: GameState, playerId: PlayerId, events: GameEvent[]): G
     next = advanced.state;
     events.push(...advanced.events);
   }
+  for (const u of Object.values(next.units)) {
+    if (u.owner !== playerId || u.orders !== 'explore' || u.voyage) continue;
+    const explored = exploreTurn(next, u.id, patrolAndForts);
+    next = explored.state;
+    events.push(...explored.events);
+  }
   return next;
 }
 
@@ -791,7 +807,7 @@ function rumorsFor(result: ActionResult): ActionResult {
   return events.length === 0 ? result : { state: next, events: [...result.events, ...events] };
 }
 
-const CONTACT_ACTIONS: ReadonlySet<Action['type']> = new Set(['moveUnit', 'goTo', 'goToEurope', 'foundColony', 'endTurn']);
+const CONTACT_ACTIONS: ReadonlySet<Action['type']> = new Set(['moveUnit', 'goTo', 'goToEurope', 'explore', 'foundColony', 'endTurn']);
 
 function applyCore(state: GameState, action: Action): ActionResult {
   const check = validateAction(state, action);
@@ -1070,6 +1086,12 @@ function applyCore(state: GameState, action: Action): ActionResult {
       const ordered = replaceUnit(state, { ...unit, orders: 'goto', destination: EUROPE_BOUND, workTurns: 0, route: null });
       const advanced = carryOn(ordered, unit.id);
       return { state: advanced.state, events: [{ type: 'ordersChanged', unitId: unit.id, orders: 'goto' }, ...advanced.events] };
+    }
+    case 'explore': {
+      const unit = state.units[action.unitId] as Unit;
+      const ordered = replaceUnit(state, { ...unit, orders: 'explore', destination: null, workTurns: 0, route: null });
+      const advanced = advanceExplore(ordered, unit.id, patrolAndForts);
+      return { state: advanced.state, events: [{ type: 'ordersChanged', unitId: unit.id, orders: 'explore' }, ...advanced.events] };
     }
     case 'skipUnit': {
       const unit = state.units[action.unitId] as Unit;
