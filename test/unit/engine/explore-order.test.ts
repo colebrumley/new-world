@@ -179,6 +179,14 @@ describe('one burial question at a time', () => {
     const stuck = explore(waiting);
     expect(u(stuck.state, 'x')).toMatchObject({ x: 2, orders: 'explore' });
     expect(stuck.state.map.tiles[1 * 8 + 3]?.rumor).toBe(true);
+    // with nothing else left, the rumour keeps the order standing until the question is answered
+    const known = setTile(withUnit(world({ rows: PLAIN }), { id: 'x', type: 'scout', x: 6, y: 2 }), 2, 2, { rumor: true });
+    const held = { ...known, players: known.players.map((p) => (p.id === 'a' ? { ...p, pendingBurial: { unitId: 'y', x: 1, y: 1, q: 50, skill: 1 } } : p)) };
+    const r2 = explore(held);
+    expect(u(r2.state, 'x')).toMatchObject({ orders: 'explore', x: 6, y: 2 });
+    expect(r2.events.some((e) => e.type === 'exploreDone')).toBe(false);
+    const answered = applyAction(r2.state, { type: 'answerBurial', search: false }).state;
+    expect(u(endRound(answered).state, 'x')).toMatchObject({ x: 2, y: 2 });
   });
 });
 

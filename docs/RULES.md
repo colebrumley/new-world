@@ -167,7 +167,8 @@ on the rim of the map do not count as Sea Lane for this, as for a returning ship
   stops there for the turn. A burial mound leaves the question to the player and the order
   standing; a party that vanishes is gone. While a burial question waits unanswered, the power's
   exploring scouts neither aim for a rumour nor step onto one (a scout whose way lies over one
-  waits), so that a second find cannot overwrite the first.
+  waits), so that a second find cannot overwrite the first. A scout whose only targets left are
+  such rumours keeps its order and goes on once the question is answered.
 - A scout with moves left beside a settlement nobody has spoken with (`scouted` empty), whose
   tribe's attitude toward its owner is below Angry and which is not at War with it (the
   settlement's own alarm below the hostile mark), is first met by the tribe and then speaks with

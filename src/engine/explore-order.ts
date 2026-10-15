@@ -131,7 +131,7 @@ function unexploredAround(state: GameState, index: number, x: number, y: number,
 }
 
 /** Where the unit goes next, or null when nothing reachable is left to explore. */
-export function exploreTarget(state: GameState, unit: Unit): Target | null {
+export function exploreTarget(state: GameState, unit: Unit, heedBurial = true): Target | null {
   const { map } = state;
   const index = playerIndexOf(state, unit.owner);
   const reach = costsFrom(map, unit.x, unit.y, exploreStep(state, unit));
@@ -145,7 +145,7 @@ export function exploreTarget(state: GameState, unit: Unit): Target | null {
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx !== 0 || dy !== 0) besideChief.add((s.y + dy) * map.width + s.x + dx);
     }
   }
-  const rumours = scout && !burialWaits(state, unit);
+  const rumours = scout && !(heedBurial && burialWaits(state, unit));
   let plain: Omit<Target, 'steps'> | null = null;
   let special: Omit<Target, 'steps'> | null = null;
   for (let i = 0; i < reach.cost.length; i++) {
@@ -197,6 +197,8 @@ export function advanceExplore(state: GameState, unitId: UnitId, watch: SailWatc
     if (!route || route.at >= route.steps.length) {
       const target = exploreTarget(next, unit);
       if (!target) {
+        // a rumour still in reach waits for the burial question to be answered; the order stands
+        if (scoutOnLand(next, unit) && burialWaits(next, unit) && exploreTarget(next, unit, false)) break;
         next = withUnit(next, { ...unit, orders: 'none' });
         events.push({ type: 'exploreDone', unitId, x: unit.x, y: unit.y });
         break;
