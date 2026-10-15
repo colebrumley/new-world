@@ -501,6 +501,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       const done = session.state.units[e.unitId];
       if (done?.owner === me()) record(`${unitLabel(done)} at (${e.x}, ${e.y}): nothing left to explore.`);
     }
+    /** What the move turned up, being shown: the turn may end by itself only once it is all answered. */
+    let shown: Promise<void> | null = null;
     if (session.state.over) {
       // the end page comes up in place of anything the turn would have asked: no answer could be given now
       announceEnd();
@@ -508,7 +510,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       // the turn's questions come one after another (both ask for audiences); then the player is taken to each colony with a finished project
       void royalBusiness().then(() => (moving ? afterMoving(stepped.events, arrived, false, chiefs) : undefined)).then(visitFinished);
     } else if (moving) {
-      void afterMoving(stepped.events, arrived, true, chiefs);
+      shown = afterMoving(stepped.events, arrived, true, chiefs);
     } else if (arrived.length > 0) {
       // put ashore from the colony screen: ask once that screen has redrawn and taken focus, so the question keeps it
       queueMicrotask(() => void offerTreasures(arrived, false));
@@ -517,8 +519,12 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     canvas.dataset['cues'] = audio.played.slice(-6).join(',');
     offerHint({ where: colonyScreen ? 'colony' : europeScreen ? 'europe' : 'map', activeUnitId: activeId, colonyId: canvas.dataset['colony'] || null });
     // with "End of turn" off, the turn ends by itself once the last unit has had its orders
-    // (a treasure's question comes first: afterMoving ends the turn once it is answered)
-    if (!turnEnded && arrived.length === 0 && UNIT_ORDER_ACTIONS.has(action.type)) queueMicrotask(endTurnIfDone);
+    // (a treasure's question comes first: afterMoving ends the turn once it is answered; a rumour's or a chief's
+    // dialog is closed first, so the check is made once afterMoving is done)
+    if (!turnEnded && arrived.length === 0 && UNIT_ORDER_ACTIONS.has(action.type)) {
+      if (shown) void shown.then(endTurnIfDone);
+      else queueMicrotask(endTurnIfDone);
+    }
     return stepped.events;
   };
 

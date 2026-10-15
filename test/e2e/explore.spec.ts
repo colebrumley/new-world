@@ -103,3 +103,20 @@ test('a unit that may not explore: Shift-E says why, and no Explore button is sh
   await expect(field(page, 'status')).toContainText('only a scout or a ship can');
   await expect(field(page, 'unit')).toHaveText('Free Colonist');
 });
+
+test('with End of turn off, the turn ends by itself once the chief\'s dialog after Shift-E is closed', async ({ page }) => {
+  await load(page, crafted(3), 'Scout');
+  await page.keyboard.press('Alt+G');
+  const game = page.getByRole('dialog', { name: 'Game Options' });
+  await game.getByLabel('End of turn').uncheck();
+  await page.keyboard.press('Escape');
+  await expect(field(page, 'date')).toHaveText('1492');
+  await page.keyboard.press('Shift+E');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText(/chief/);
+  await expect(field(page, 'date')).toHaveText('1492'); // nothing ends while the dialog is up
+  await dialog.getByRole('button', { name: 'Continue' }).click();
+  // the scout was the last unit: the turn ends, and next turn it enters the rumour
+  await expect(dialog).toContainText(RUMOUR);
+  await expect(field(page, 'date')).not.toHaveText('1492');
+});
