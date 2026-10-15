@@ -8,6 +8,7 @@ export * from './crosses';
 export * from './education';
 export * from './equipment';
 export * from './europe';
+export * from './explore';
 export * from './fathers';
 export * from './food';
 export * from './goods';

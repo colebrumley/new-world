@@ -57,6 +57,7 @@ export function checkInvariants(state: GameState): string[] {
       problems.push(`unit ${u.id} is on impassable terrain at ${u.x},${u.y}`);
     }
     if (u.orders === 'goto' && !u.destination) problems.push(`unit ${u.id} has a Go To order without a destination`);
+    if (u.orders === 'explore' && u.destination) problems.push(`unit ${u.id} explores with a destination set`);
     if ((u.orders === 'trade') !== (u.route !== null)) problems.push(`unit ${u.id} trade orders and route disagree`);
     if (u.route && !state.tradeRoutes[u.route.routeId]) problems.push(`unit ${u.id} follows a route that does not exist`);
   }

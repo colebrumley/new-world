@@ -363,3 +363,4 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-802 | the gun bought on the docks while an armed man waits | (10 - level) x 100, from turn 40 | — | high | |
 | R-802 | a scout keeps its heading | a step turning t eighths from its last scores 2 x t x t less | — | high | |
 | R-1038 | when the Crown offers to carry a treasure | the owner has no galleon anywhere (map, at sea or in Europe), or has Cortes; colony touches open sea, not a lake | — | medium | the open-source reading, chosen by the owner over "always offered"; a treasure landed in Europe by the owner's own ship pays whole, no fee or tax (owner's choice; the sources are silent on a tax) |
+| R-1066 | Explore order: a scout prefers a rumour or unvisited chief within this many moves of the nearest plain target | 3 | ours | low | owner asked that scouts prefer ruins; the margin is this game's own choice |

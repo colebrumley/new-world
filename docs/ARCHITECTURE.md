@@ -19,7 +19,10 @@ the only way to change it: `validateAction` / `applyAction` over a discriminated
 returning `GameEvent`s. `movement.ts` holds the movement rules (step cost in thirds of a move,
 ships and inland lakes, boarding, landfall, Go To) and `path.ts` the A* search they use. The Go To
 and trade-route loops take a `SailWatch` that `actions.ts` sets to the naval zone-of-patrol and fort
-rule, so movement need not depend on `naval.ts`.
+rule, so movement need not depend on `naval.ts`. `explore-order.ts` is the Explore order of scouts
+and ships: it chooses the cheapest square from which the unit's sight shows unexplored squares
+(planning over the owner's explored squares only, with `costsFrom` in `path.ts`), turns a scout
+aside for rumours and unvisited chiefs, and runs the order each turn beside Go To.
 `market.ts` is the Europe price model with buying, selling and boycotts; `europe.ts` the docks,
 the Royal University and purchases. `immigration.ts` is the immigrant pool, recruit prices and
 crosses. `settlements.ts` holds native settlements and whose land is whose (placement is

@@ -299,7 +299,7 @@ export function executeMove(state: GameState, unitId: UnitId, plan: MovePlan): M
   const tracked = unit.type === 'scout' && state.players.find((p) => p.id === unit.owner)?.kind === 'ai';
   const moved: Unit = {
     ...unit, x: tx, y: ty, aboard: null, movesLeft: spent ? 0 : Math.max(0, unit.movesLeft - plan.cost),
-    orders: unit.orders === 'goto' || unit.orders === 'trade' ? unit.orders : 'none', workTurns: 0,
+    orders: unit.orders === 'goto' || unit.orders === 'trade' || unit.orders === 'explore' ? unit.orders : 'none', workTurns: 0,
     ...(tracked ? { heading: HEADINGS.findIndex(([hx, hy]) => hx === Math.sign(tx - unit.x) && hy === Math.sign(ty - unit.y)) } : {}),
   };
   const changed: Unit[] = [moved];
