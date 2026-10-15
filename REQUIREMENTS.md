@@ -1453,6 +1453,8 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1063 Cheats: a cheated game marked in the score report and the Hall of Fame; the manual** — docs/specs/cheats.md, item W6, size S.
 - [x] **R-1064 A power with nothing left is dismissed at once** — docs/specs/game-ending.md, item W1, size S.
 - [x] **R-1065 The end page: what happened, the reckoning, and every way on** — docs/specs/game-ending.md, item W2, size M.
+- [ ] **R-1066 The Explore order in the engine** — docs/specs/auto-explore.md, item W1, size M.
+- [ ] **R-1067 Explore in the interface** — docs/specs/auto-explore.md, item W2, size S.
 
 ---
 
