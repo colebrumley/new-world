@@ -1,7 +1,8 @@
 // The colony screen (R-308): settlement view, area view, people, transport, warehouse and the
 // multi-function panel, all drawn from colonyView(). People, units and goods are moved by
 // dragging, by clicking them and then where they should go, or with the keyboard; clicking
-// someone already selected opens the jobs menu. A thing being dragged travels under the pointer
+// someone already selected opens the jobs menu, and clicking the ship or wagon train already picked
+// opens its orders. A thing being dragged travels under the pointer
 // as a ghost (R-1035), and the place under it is lit by what letting go there would come to.
 // It is drawn as a town plan (R-1013): every building is its picture with the people who work in
 // it standing on it, goods are their icons with a count, and the head of the sheet carries the
@@ -10,6 +11,7 @@ import { squareStatus } from '../engine/jobs';
 import { landPrice } from '../engine/land';
 import type { Action } from '../engine/actions';
 import { COLONIST_ROLES } from '../engine/data/equipment';
+import { UNIT_TYPES } from '../engine/data/units';
 import type { GoodId } from '../engine/data/goods';
 import type { GameState, Job, Unit } from '../engine/state';
 import { checkCashTreasure, treasureQuote } from '../engine/royal';
@@ -259,14 +261,15 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   async function ordersMenu(unitId: string): Promise<void> {
     const unit = host.state().units[unitId];
     const treasure = unit?.type === 'treasure';
-    const options: { label: string; action: Action }[] = treasure ? [] : [{ label: 'Join the colony', action: { type: 'joinColony', unitId } }];
+    const carrier = unit !== undefined && UNIT_TYPES[unit.type].holds > 0;
+    const options: { label: string; action: Action }[] = treasure || carrier ? [] : [{ label: 'Join the colony', action: { type: 'joinColony', unitId } }];
     if (unit && treasure) {
       const label = treasureEntry(host.state(), unit);
       if (label) options.push({ label, action: { type: 'cashTreasure', unitId } });
     }
     const aboard = Boolean(unit?.aboard);
     if (aboard) options.push({ label: 'Go ashore', action: { type: 'goAshore', unitId } });
-    for (const role of aboard ? [] : COLONIST_ROLES) {
+    for (const role of aboard || carrier ? [] : COLONIST_ROLES) {
       const action: Action = { type: 'equip', unitId, role };
       if (host.refusal(action) === null) options.push({ label: role === 'colonist' ? 'Lay down equipment' : `Equip as ${role}`, action });
     }
@@ -574,7 +577,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     if (kind === 'unit') return `${name} selected: click a square or a building to have them join the colony there, or click them again for orders.`;
     if (kind === 'good') return `${name} selected: click a ship or wagon train to load a hold of it (Shift for part).`;
     if (kind === 'cargo') return `${name} selected: click the warehouse to unload it, or another ship or wagon train to move it (Shift for part).`;
-    return 'Click a colonist, then a square or a building, to put them to work there (or drag them); click them again for the jobs menu. Move goods between the warehouse and a hold the same way. Right-click anything to look it up.';
+    return 'Click a colonist, then a square or a building, to put them to work there (or drag them); click them again for the jobs menu. Move goods between the warehouse and a hold the same way; click a ship or wagon train twice for its orders. Right-click anything to look it up.';
   }
 
   // --- pointer: press, move, release ----------------------------------------------------------
@@ -736,6 +739,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       if (kind === 'carrier') {
         const cargo = selected.startsWith('good:') || (selected.startsWith('cargo:') && !selected.startsWith(`cargo:${id}:`));
         if (cargo) void drop(selected, `carrier:${id}`, event.shiftKey);
+        else if (carrierId === id) void ordersMenu(id);
         else {
           carrierId = id;
           render();
@@ -805,6 +809,10 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
         void ordersMenu(drag[1] ?? '');
       } else if (drag[0] === 'carrier') {
         handled();
+        if (carrierId === drag[1]) {
+          void ordersMenu(drag[1]);
+          return;
+        }
         carrierId = drag[1] ?? null;
         render();
       }
