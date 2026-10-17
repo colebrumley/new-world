@@ -321,10 +321,29 @@ describe('ships', () => {
     expect(steps.slice(steps.indexOf('ocean'))).not.toContain('seaLane');
   });
 
-  it('wakes on the Sea Lane when only the Sea Lane is left unseen', () => {
+  it('wakes, without sailing onto it, when only the Sea Lane is left unseen', () => {
     let s = withUnit(world({ rows: SEA }), { id: 'x', type: 'caravel', x: 8, y: 3 });
     s = fogWhere(s, (x) => x >= 10);
-    expect(exploreTarget(s, u(s, 'x'))).toBeNull();
+    const r = explore(s);
+    expect(u(r.state, 'x')).toMatchObject({ x: 8, y: 3, orders: 'none' });
+    expect(r.events).toContainEqual({ type: 'exploreDone', unitId: 'x', x: 8, y: 3 });
+  });
+
+  it('a ship deep in the Sea Lane with only the Sea Lane in sight explores along it, then leaves it for other water', () => {
+    // x: 0123456789
+    const DEEP = ['~~~~~~~~~~', ...Array.from({ length: 7 }, () => '~~~~sssss~'), '~~~~~~~~~~'];
+    let s = withUnit(world({ rows: DEEP }), { id: 'x', type: 'caravel', x: 7, y: 4 });
+    s = fogWhere(s, (x, y) => Math.max(Math.abs(x - 7), Math.abs(y - 4)) > 1);
+    let r = explore(s);
+    const seen: GameEvent[] = [...r.events];
+    for (let round = 0; round < 6 && u(r.state, 'x').orders === 'explore'; round++) {
+      r = endRound(r.state);
+      seen.push(...r.events);
+    }
+    const bases = moves(seen).map(([x, y]) => tileAtXY(r.state.map, x, y).base);
+    expect(bases).toContain('ocean');
+    // once off the Sea Lane it does not go back onto it
+    expect(bases.slice(bases.indexOf('ocean'))).not.toContain('seaLane');
   });
 
   it('never enters a foreign colony', () => {

@@ -226,7 +226,11 @@ describe('America map', () => {
 
   it('starts the four powers at sea in the listed spots, north to south France, England, Netherlands, Spain', () => {
     const starts = americaStarts();
-    for (const [nation, p] of Object.entries(starts)) expect(isWater(at(map, p)), nation).toBe(true);
+    for (const [nation, p] of Object.entries(starts)) {
+      expect(at(map, p).base, nation).toBe('seaLane');
+      // Ocean in sight, so that an exploring ship has somewhere to go off the Sea Lane
+      expect(around([p[0] - 1, p[1] - 1]).some((q) => square(q).base === 'ocean'), nation).toBe(true);
+    }
     expect(Object.keys(AMERICA_STARTS)).toEqual(['england', 'france', 'spain', 'netherlands']);
     expect(starts.france[1]).toBeLessThan(starts.england[1]);
     expect(starts.england[1]).toBeLessThan(starts.netherlands[1]);

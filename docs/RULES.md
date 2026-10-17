@@ -177,7 +177,9 @@ wide, as does a wide bay whose only way out is too near land.
   never asked to sail for Europe on the Sea Lane. A ship also keeps off the Sea Lane: it never
   sails from other water onto a Sea Lane square, never makes for one, and does not count unseen
   Sea Lane squares among what its sight would show. One that starts on the Sea Lane may sail
-  across it to reach other water. The player may still sail a ship onto the Sea Lane by hand.
+  across it to reach other water; one with no such target, out on the Sea Lane with only Sea Lane
+  in sight, explores along the Sea Lane by the ordinary rule until it sights other water. The
+  player may still sail a ship onto the Sea Lane by hand.
   A target is a square it can reach from which its sight radius would show at least one
   unexplored square. It goes for the cheapest target;
   ties go to the one showing more unexplored squares, then the lower `y`, then the lower `x`.

@@ -101,8 +101,8 @@ function better(a: Omit<Target, 'steps'>, b: Omit<Target, 'steps'> | null): bool
   return a.y !== b.y ? a.y < b.y : a.x < b.x;
 }
 
-/** The step costs an exploring unit plans with: explored squares only, never into another power's square; a ship never from other water onto the Sea Lane. */
-function exploreStep(state: GameState, unit: Unit): StepCost {
+/** The step costs an exploring unit plans with: explored squares only, never into another power's square; a ship keeping `offLane` never from other water onto the Sea Lane. */
+function exploreStep(state: GameState, unit: Unit, offLane: boolean): StepCost {
   const { map } = state;
   const index = playerIndexOf(state, unit.owner);
   const blocked = new Set<number>();
@@ -117,20 +117,20 @@ function exploreStep(state: GameState, unit: Unit): StepCost {
     if (ship) {
       if (!isWater(tile) || isInlandLake(map, tx, ty)) return null;
       // one already on the Sea Lane may sail off it, but none sails out onto it
-      return tile.base === 'seaLane' && tileAt(map, fx, fy)?.base !== 'seaLane' ? null : MOVEMENT.shipCost;
+      return offLane && tile.base === 'seaLane' && tileAt(map, fx, fy)?.base !== 'seaLane' ? null : MOVEMENT.shipCost;
     }
     return isWater(tile) ? null : landStepCost(state, fx, fy, tx, ty);
   };
 }
 
-/** How many squares within `radius` of (x, y) the player has not explored (for a ship, leaving out the Sea Lane). */
-function unexploredAround(state: GameState, index: number, x: number, y: number, radius: number, ship: boolean): number {
+/** How many squares within `radius` of (x, y) the player has not explored (leaving out the Sea Lane when `offLane`). */
+function unexploredAround(state: GameState, index: number, x: number, y: number, radius: number, offLane: boolean): number {
   const { map } = state;
   let n = 0;
   for (let ty = Math.max(0, y - radius); ty <= Math.min(map.height - 1, y + radius); ty++) {
     for (let tx = Math.max(0, x - radius); tx <= Math.min(map.width - 1, x + radius); tx++) {
       const tile = map.tiles[ty * map.width + tx] as Tile;
-      if (!isExploredBy(tile, index) && !(ship && tile.base === 'seaLane')) n++;
+      if (!isExploredBy(tile, index) && !(offLane && tile.base === 'seaLane')) n++;
     }
   }
   return n;
@@ -148,11 +148,20 @@ function besideKnownLand(state: GameState, index: number, x: number, y: number):
   return false;
 }
 
-/** Where the unit goes next, or null when nothing reachable is left to explore. */
+/**
+ * Where the unit goes next, or null when nothing reachable is left to explore. A ship keeps off
+ * the Sea Lane; one out on it with nothing else in sight explores along it until it sights other water.
+ */
 export function exploreTarget(state: GameState, unit: Unit, heedBurial = true): Target | null {
+  const ship = isShipUnit(unit);
+  const target = targetFor(state, unit, heedBurial, ship);
+  return target === null && ship && tileAt(state.map, unit.x, unit.y)?.base === 'seaLane' ? targetFor(state, unit, heedBurial, false) : target;
+}
+
+function targetFor(state: GameState, unit: Unit, heedBurial: boolean, offLane: boolean): Target | null {
   const { map } = state;
   const index = playerIndexOf(state, unit.owner);
-  const reach = costsFrom(map, unit.x, unit.y, exploreStep(state, unit));
+  const reach = costsFrom(map, unit.x, unit.y, exploreStep(state, unit, offLane));
   const radius = sightRadius(unit.type, hasFather(state, unit.owner, SIGHT.deSoto));
   const scout = scoutOnLand(state, unit);
   // squares beside a chief the scout would go to
@@ -174,8 +183,8 @@ export function exploreTarget(state: GameState, unit: Unit, heedBurial = true): 
     const x = i % map.width;
     const y = (i - x) / map.width;
     // a ship never makes for a square of the Sea Lane
-    if (ship && (map.tiles[i] as Tile).base === 'seaLane') continue;
-    const shows = unexploredAround(state, index, x, y, radius, ship);
+    if (offLane && (map.tiles[i] as Tile).base === 'seaLane') continue;
+    const shows = unexploredAround(state, index, x, y, radius, offLane);
     const here = { x, y, cost, shows };
     if (shows > 0 && better(here, plain)) plain = here;
     if (scout && ((rumours && (map.tiles[i] as Tile).rumor) || besideChief.has(i)) && better(here, special)) special = here;

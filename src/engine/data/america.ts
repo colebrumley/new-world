@@ -394,6 +394,6 @@ export const AMERICA_TRIBE_REGIONS = {
 export const AMERICA_STARTS = {
   england: [34, 20],
   france: [39, 10],
-  spain: [47, 61],
-  netherlands: [50, 33],
+  spain: [45, 61],
+  netherlands: [49, 33],
 } as const satisfies Record<string, Point>;
