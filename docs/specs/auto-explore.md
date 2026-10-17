@@ -1,6 +1,6 @@
 # Auto-explore for scouts and ships: spec for R-1066 to R-1067
 
-Written by `/plan` on 2026-10-14. Status: proposed.
+Written by `/plan` on 2026-10-14. Status: built.
 
 **The request, in the owner's words (lightly trimmed):** "I want to add auto-explore to scouts and
 ships. Scouts when set on auto should prefer exploring ruins and should auto speak-with-chief on
