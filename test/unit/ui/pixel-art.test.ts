@@ -466,6 +466,17 @@ describe('colonies and settlements', () => {
     expect([1, 2, 3, 4, 5].map((y) => at(angry, 13, y) - 1)).toEqual([INK.red, INK.red, INK.red, INK.ink, INK.red]);
     expect(inks(settlementArt(INK.purple, 0, false, null))).not.toContain(INK.red);
   });
+
+  it('a settlement with a mission shows a cross in the colour of the power that keeps it, on any kind of settlement', () => {
+    for (const tech of [0, 1, 2]) for (const capital of [false, true]) {
+      const kept = settlementArt(INK.purple, tech, capital, INK.green, INK.blue);
+      // the upright, then the arm, at the left
+      expect([5, 6, 7, 8, 9].map((y) => at(kept, 2, y) - 1)).toEqual(Array(5).fill(INK.blue));
+      expect([1, 2, 3].map((x) => at(kept, x, 6) - 1)).toEqual(Array(3).fill(INK.blue));
+      expect(inks(settlementArt(INK.purple, tech, capital, INK.green))).not.toContain(INK.blue);
+    }
+    expect(at(settlementArt(INK.purple, 1, false, null, INK.yellow), 2, 5) - 1).toBe(INK.yellow);
+  });
 });
 
 describe('detailed terrain', () => {
@@ -1139,6 +1150,16 @@ describe('detailed places', () => {
     const angry = detailedSettlementArt(INK.purple, 0, false, INK.red) as Sprite;
     expect([1, 2, 3, 4, 5, 6, 7].map((y) => at(angry, DETAIL - 3, y) - 1)).toEqual([INK.red, INK.red, INK.red, INK.red, INK.ink, INK.red, INK.red]);
     expect(inks(looks[0] as Sprite)).not.toContain(INK.red);
+  });
+
+  it('a settlement with a mission shows a cross in its keeper\'s colour below where a capital\'s star stands', () => {
+    for (let tech = 0; tech < VILLAGE_LOOKS.length; tech++) for (const capital of [false, true]) {
+      const kept = detailedSettlementArt(INK.purple, tech, capital, INK.green, INK.blue) as Sprite;
+      expect([9, 10, 11, 12, 13, 14, 15].map((y) => at(kept, 3, y) - 1)).toEqual(Array(7).fill(INK.blue));
+      expect([1, 2, 3, 4, 5].map((x) => at(kept, x, 11) - 1)).toEqual(Array(5).fill(INK.blue));
+      if (capital) expect(at(kept, 3, 3) - 1).toBe(INK.yellow);
+      expect(inks(detailedSettlementArt(INK.purple, tech, capital, INK.green) as Sprite)).not.toContain(INK.blue);
+    }
   });
 });
 

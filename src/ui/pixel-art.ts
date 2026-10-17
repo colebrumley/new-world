@@ -1081,9 +1081,10 @@ export function detailedColonyArt(color: InkId, population: number, numberInk: I
 
 /**
  * A native settlement drawn large, in its people's colour, by tech level (0 to 3). A capital carries a gold
- * star at the top left; the mark at the top right shows how its people feel about the viewer.
+ * star at the top left; the mark at the top right shows how its people feel about the viewer; a mission
+ * shows as a cross in the colour of the power that keeps it, on the left below the star.
  */
-export function detailedSettlementArt(color: InkId, tech: number, capital: boolean, mood: InkId | null): Sprite | null {
+export function detailedSettlementArt(color: InkId, tech: number, capital: boolean, mood: InkId | null, mission: InkId | null = null): Sprite | null {
   const s = placeArt(VILLAGE_LOOKS[Math.min(3, Math.max(0, tech))], color);
   if (!s) return null;
   if (capital) {
@@ -1093,6 +1094,10 @@ export function detailedSettlementArt(color: InkId, tech: number, capital: boole
   if (mood !== null) {
     box(s, DETAIL - 5, 0, 5, 9, INK.ink);
     stamp(s, DETAIL - 4, 1, ['mmm', 'mmm', 'mmm', 'mmm', '...', 'mmm', 'mmm'], { m: mood });
+  }
+  if (mission !== null) {
+    box(s, 0, 8, 7, 9, INK.ink);
+    stamp(s, 1, 9, ['..m..', '..m..', 'mmmmm', '..m..', '..m..', '..m..', '..m..'], { m: mission });
   }
   return s;
 }
@@ -1134,9 +1139,9 @@ export function colonyArt(color: InkId, population: number, numberInk: InkId): S
 /**
  * A native settlement in its people's colour: a tent for a camp, a longhouse for a village, a
  * stepped pyramid for a city. A capital flies a white pennant; the mark at the top right shows
- * how its people feel about the viewer.
+ * how its people feel about the viewer; a mission shows as a cross in its keeper's colour at the left.
  */
-export function settlementArt(color: InkId, tech: number, capital: boolean, mood: InkId | null): Sprite {
+export function settlementArt(color: InkId, tech: number, capital: boolean, mood: InkId | null, mission: InkId | null = null): Sprite {
   const s = blank();
   if (tech === 0) {
     stamp(s, 2, 3, ['.....kk.....', '....kcck....', '....kcck....', '...kcccck...', '...kcccck...', '..kcccccck..', '..kcckkcck..', '.kccckkccck.', '.kccckkccck.', 'kkkkkkkkkkkk'], { k: INK.ink, c: color });
@@ -1149,6 +1154,10 @@ export function settlementArt(color: InkId, tech: number, capital: boolean, mood
   if (mood !== null) {
     box(s, 12, 0, 4, 7, INK.ink);
     stamp(s, 13, 1, ['mm', 'mm', 'mm', '..', 'mm'], { m: mood });
+  }
+  if (mission !== null) {
+    box(s, 0, 4, 5, 7, INK.ink);
+    stamp(s, 1, 5, ['.m.', 'mmm', '.m.', '.m.', '.m.'], { m: mission });
   }
   return s;
 }
