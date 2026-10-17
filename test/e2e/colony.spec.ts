@@ -328,10 +328,23 @@ test('a unit outside the gates or a worker dragged onto a docked ship goes aboar
   await expect(ship.locator('.token-unit')).toHaveCount(2);
   await expect(ship).toContainText('2/2 holds');
   await expect(colony.locator('.idle-row .token')).toHaveCount(1);
-  // the caravel is full, and the last colonist would be abandoning the colony: the drop does nothing
+  // the last colonist would be abandoning the colony: the drop does nothing
   await colony.locator('.idle-row .token').dragTo(ship);
   await expect(ship.locator('.token-unit')).toHaveCount(2);
   await expect(colony.locator('.idle-row .token')).toHaveCount(1);
+});
+
+test('a worker dropped on a full ship or a wagon train stays at work in the colony', async ({ page }) => {
+  const colony = await openJamestown(page, {}, (s) => withUnit(withUnit(withUnit(s,
+    { id: 'ship', owner: 'p0', type: 'caravel', profession: null, x: 2, y: 3, cargo: { furs: 100, food: 100 } }),
+    { id: 'cart', owner: 'p0', type: 'wagonTrain', profession: null, x: 2, y: 3 }),
+    { id: 'gun', owner: 'p0', type: 'artillery', profession: null, x: 2, y: 3 }));
+  for (const carrier of ['ship', 'cart']) {
+    await colony.locator('.idle-row .token').first().dragTo(colony.locator(`.carrier[data-carrier="${carrier}"]`));
+    await expect(colony.locator('.idle-row .token')).toHaveCount(2);
+    await expect(colony.locator('.outside-row .token-unit')).toHaveCount(2);
+    await expect(colony.locator('.carrier .token-unit')).toHaveCount(0);
+  }
 });
 
 test('a fortified unit in the colony can be given back its orders from the colony screen', async ({ page }) => {

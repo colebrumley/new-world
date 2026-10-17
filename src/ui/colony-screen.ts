@@ -15,7 +15,7 @@ import { UNIT_TYPES } from '../engine/data/units';
 import type { GoodId } from '../engine/data/goods';
 import type { GameState, Job, Unit } from '../engine/state';
 import { checkCashTreasure, treasureQuote } from '../engine/royal';
-import { abandonQuestion, colonyView, dropVerdict, jobChoices, leaveAction, type ColonyView, type DropVerdict, type PersonView } from './colony-model';
+import { abandonQuestion, boardingRefusal, colonyView, dropVerdict, jobChoices, leaveAction, type ColonyView, type DropVerdict, type PersonView } from './colony-model';
 import { ask, askText } from './dialog';
 import { buildingArt, figureArt, flagArt, goodArt, type Sprite } from './pixel-art';
 import { lookOf as unitLookOf, type LookId } from './unit-looks';
@@ -162,10 +162,11 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     if (kind === 'colonist') {
       if (target === 'outside') await leave(id);
       else if (target.startsWith('carrier:')) {
-        // a worker let go on a ship steps out of the colony and goes aboard; the last one stays (that would be abandoning it)
-        const action = leaveAction(host.state(), colonyId, id);
-        if (action.type === 'abandonColony') tell('The last colonist cannot leave without abandoning the colony.');
-        else if (attempt(action)) attempt({ type: 'boardShip', unitId: id, shipId: target.slice('carrier:'.length) });
+        // a worker let go on a ship steps out of the colony and goes aboard, but only if both may be done
+        const shipId = target.slice('carrier:'.length);
+        const refused = boardingRefusal(host.state(), colonyId, id, shipId, host.refusal);
+        if (refused !== null) tell(refused);
+        else if (attempt({ type: 'leaveColony', colonyId, colonistId: id })) attempt({ type: 'boardShip', unitId: id, shipId });
       } else {
         const ours = await settleLand(target);
         const job = ours ? jobForTarget(target, id) : null;
@@ -744,9 +745,9 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       // a plain click selects; a click on a ship or wagon train picks it, or loads what is selected
       if (kind === 'carrier') {
         const cargo = selected.startsWith('good:') || (selected.startsWith('cargo:') && !selected.startsWith(`cargo:${id}:`));
-        // someone selected goes aboard, unless they are already aboard this one
-        const [held, heldId = ''] = selected.split(':');
-        const passenger = held === 'colonist' || (held === 'unit' && host.state().units[heldId]?.aboard !== id);
+        // someone selected goes aboard if they may; otherwise the click picks the ship, or asks its orders, as usual
+        const held = selected.split(':')[0];
+        const passenger = (held === 'colonist' || held === 'unit') && dropVerdict(host.state(), colonyId, selected, `carrier:${id}`, host.refusal, jobForTarget) === 'ok';
         if (cargo || passenger) void drop(selected, `carrier:${id}`, event.shiftKey);
         else if (carrierId === id) void ordersMenu(id);
         else {

@@ -313,6 +313,18 @@ export function homeOf(state: GameState, colonyId: string, source: string): stri
   return null;
 }
 
+/** Why a colonist may not step out of the colony and go aboard the ship `shipId`, or null if they may.
+ *  The leaving is asked of `refusal`; the boarding of the game, on the colony as it would be once they are out. */
+export function boardingRefusal(state: GameState, colonyId: string, colonistId: string, shipId: string, refusal: (action: Action) => string | null): string | null {
+  const colony = state.colonies[colonyId];
+  const leave = leaveAction(state, colonyId, colonistId);
+  if (!colony || leave.type !== 'leaveColony') return 'The last colonist cannot leave without abandoning the colony.';
+  const left = refusal(leave);
+  if (left !== null) return left;
+  const board = validateAction(leaveColony(state, colony, colonistId, []), { type: 'boardShip', unitId: colonistId, shipId });
+  return board.ok ? null : board.error.message;
+}
+
 /** What dropping `source` on `target` would come to, mirroring the colony screen's drop().
  *  `source` and `target` are the screen's data-drag and data-drop strings; `refusal` is the game's
  *  own validation and `jobFor` the screen's reading of a place as a job. */
@@ -329,12 +341,7 @@ export function dropVerdict(
 
   if (kind === 'colonist') {
     if (target === 'outside') return probe(leaveAction(state, colonyId, id));
-    if (carrier !== null) {
-      // they step out and then go aboard: the boarding is asked of the colony as it would be once they are out
-      const leave = leaveAction(state, colonyId, id);
-      if (leave.type !== 'leaveColony' || !colony || probe(leave) === 'bad') return 'bad';
-      return validateAction(leaveColony(state, colony, id, []), { type: 'boardShip', unitId: id, shipId: carrier }).ok ? 'ok' : 'bad';
-    }
+    if (carrier !== null) return boardingRefusal(state, colonyId, id, carrier, refusal) === null ? 'ok' : 'bad';
     const field = target.startsWith('field:');
     if (!field && target !== 'idle' && !target.startsWith('trade:')) return 'bad';
     if (field && colony) {
