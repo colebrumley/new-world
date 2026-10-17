@@ -6,6 +6,7 @@ import type { Rng } from '../rng';
 import type { GameMap } from '../state';
 import { isWater, makeTile, terrainOf, type BaseTerrain, type Relief, type River, type Tile } from '../tile';
 import { fractalNoise } from './noise';
+import { seaLaneMask } from './sea-lane';
 
 const W = MAP_WIDTH;
 const H = MAP_HEIGHT;
@@ -94,8 +95,8 @@ function shuffled<T>(rng: Rng, items: readonly T[]): T[] {
 // --- land shape -------------------------------------------------------------------------
 
 function shapeLand(rng: Rng, options: WorldOptions): boolean[] {
-  const xMin = 1 + MAPGEN.westLaneColumns + MAPGEN.laneLandGap;
-  const xMax = W - 2 - MAPGEN.eastLaneColumns - MAPGEN.laneLandGap;
+  const xMin = 1 + MAPGEN.westLaneColumns + MAPGEN.laneNearLand - 1;
+  const xMax = W - 2 - MAPGEN.eastLaneColumns - MAPGEN.laneNearLand + 1;
   const yMin = 3;
   const yMax = H - 4;
   const eligible = (i: number): boolean => {
@@ -310,14 +311,10 @@ function detailWorld(rng: Rng, land: readonly boolean[], options: WorldOptions):
     if (id !== -1 && (riverParts.sizes[id] as number) < 2) river[i] = 'none';
   }
 
-  // Sea Lanes down both edges, kept away from land.
+  // Sea Lane: the open sea a fixed distance out from the land, toward both sides.
   const toLand = distanceFrom((i) => land[i] === true, N8);
-  for (let i = 0; i < N; i++) {
-    if (isLandAt(i)) continue;
-    const x = i % W;
-    const lane = x <= MAPGEN.westLaneColumns || x >= W - 1 - MAPGEN.eastLaneColumns;
-    if (lane && (toLand[i] as number) > MAPGEN.laneLandGap) base[i] = 'seaLane';
-  }
+  const lane = seaLaneMask(W, H, (x, y) => land[at(x, y)] === true, (x, y) => !isLandAt(at(x, y)));
+  for (let i = 0; i < N; i++) if (lane[i]) base[i] = 'seaLane';
 
   const tiles: Tile[] = [];
   for (let i = 0; i < N; i++) {

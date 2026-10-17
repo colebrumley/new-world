@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, validateAction, type Action, type GameEvent } from '../../../src/engine/actions';
 import { settlementPopulation } from '../../../src/engine/data/tribes';
 import { exploreTarget } from '../../../src/engine/explore-order';
+import { createGame } from '../../../src/engine/game';
 import { checkInvariants } from '../../../src/engine/invariants';
 import { isInlandLake } from '../../../src/engine/movement';
 import { loadGame } from '../../../src/engine/save';
@@ -13,6 +14,7 @@ import { deepFreeze } from '../../helpers/freeze';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
 const u = (s: GameState, id: string): Unit => s.units[id] as Unit;
+const tileAtXY = (map: GameState['map'], x: number, y: number): Tile => map.tiles[y * map.width + x] as Tile;
 const code = (s: GameState, a: Action): string => {
   const v = validateAction(s, a);
   return v.ok ? 'ok' : v.error.code;
@@ -260,7 +262,7 @@ describe('ships', () => {
     '~~~~~~~~~ss~',
     '~~~~~~~~~~~~',
   ];
-  it('explores the open sea with cargo and passengers aboard, never sailing for Europe or into a lake, and wakes when done', () => {
+  it('explores the open sea with cargo and passengers aboard, never sailing for Europe, onto the Sea Lane or into a lake, and wakes when done', () => {
     let s = withUnit(world({ rows: SEA, seed: 2 }), { id: 'x', type: 'merchantman', x: 2, y: 5, cargo: { furs: 50 } });
     s = withUnit(s, { id: 'p', x: 2, y: 5, aboard: 'x', orders: 'sentry' });
     s = fogWhere(s, (x, y) => x >= 6 || y <= 1);
@@ -277,11 +279,11 @@ describe('ships', () => {
     expect(u(r.state, 'p')).toMatchObject({ aboard: 'x', x: ship.x, y: ship.y });
     for (const [x, y] of moves(seen)) expect(isInlandLake(r.state.map, x, y)).toBe(false);
     expect(seen.some((e) => e.type === 'shipSailed')).toBe(false);
-    // it did go out along the Sea Lane, and came back from it
-    expect(moves(seen).some(([x]) => x >= 9)).toBe(true);
-    // and left no open water unseen (the rim behind the headland cannot be seen from the sea)
+    // it kept off the Sea Lane
+    for (const [x, y] of moves(seen)) expect(tileAtXY(r.state.map, x, y).base, `${x},${y}`).not.toBe('seaLane');
+    // and left no Ocean unseen (the rim behind the headland cannot be seen from the sea)
     const unseen: [number, number][] = [];
-    for (let y = 1; y < SEA.length - 1; y++) for (let x = 1; x < 11; x++) if (!known(r.state, x, y) && (SEA[y] as string)[x] !== '.') unseen.push([x, y]);
+    for (let y = 1; y < SEA.length - 1; y++) for (let x = 1; x < 11; x++) if (!known(r.state, x, y) && (SEA[y] as string)[x] === '~') unseen.push([x, y]);
     expect(unseen).toEqual([]);
     expect(ship.orders).toBe('none');
     expect(seen).toContainEqual({ type: 'exploreDone', unitId: 'x', x: ship.x, y: ship.y });
@@ -306,6 +308,57 @@ describe('ships', () => {
   it('but not when the coast is more than the preference farther than the open sea', () => {
     const s = shore(9, 11);
     expect(exploreTarget(s, u(s, 'x'))).toMatchObject({ x: 10, cost: MOVE_THIRDS });
+  });
+
+  it('a ship on the Sea Lane sails off it to explore, and never makes for an unseen stretch of it', () => {
+    let s = withUnit(world({ rows: SEA }), { id: 'x', type: 'caravel', x: 10, y: 3 });
+    s = fogWhere(s, (x, y) => x <= 7 || (x >= 9 && y >= 5));
+    const target = exploreTarget(s, u(s, 'x'));
+    expect(target).not.toBeNull();
+    const t = target as NonNullable<typeof target>;
+    expect(tileAtXY(s.map, t.x, t.y).base).toBe('ocean');
+    // off the lane at once, and never back onto it
+    const steps = t.steps.map(([x, y]) => tileAtXY(s.map, x, y).base);
+    expect(steps.slice(steps.indexOf('ocean'))).not.toContain('seaLane');
+  });
+
+  it('wakes, without sailing onto it, when only the Sea Lane is left unseen', () => {
+    let s = withUnit(world({ rows: SEA }), { id: 'x', type: 'caravel', x: 8, y: 3 });
+    s = fogWhere(s, (x) => x >= 10);
+    const r = explore(s);
+    expect(u(r.state, 'x')).toMatchObject({ x: 8, y: 3, orders: 'none' });
+    expect(r.events).toContainEqual({ type: 'exploreDone', unitId: 'x', x: 8, y: 3 });
+  });
+
+  it('wakes on the Sea Lane with Ocean in sight and only Sea Lane left unseen', () => {
+    let s = withUnit(world({ rows: SEA }), { id: 'x', type: 'caravel', x: 9, y: 3 });
+    s = fogWhere(s, (x, y) => x === 10 && y === 5);
+    const r = explore(s);
+    expect(u(r.state, 'x')).toMatchObject({ x: 9, y: 3, orders: 'none' });
+    expect(r.events).toContainEqual({ type: 'exploreDone', unitId: 'x', x: 9, y: 3 });
+  });
+
+  it('a ship deep in the Sea Lane with only the Sea Lane in sight explores along it, then leaves it for other water', () => {
+    // x: 0123456789
+    const DEEP = ['~~~~~~~~~~', ...Array.from({ length: 7 }, () => '~~~~sssss~'), '~~~~~~~~~~'];
+    let s = withUnit(world({ rows: DEEP }), { id: 'x', type: 'caravel', x: 7, y: 4 });
+    s = fogWhere(s, (x, y) => Math.max(Math.abs(x - 7), Math.abs(y - 4)) > 1);
+    let r = explore(s);
+    const seen: GameEvent[] = [...r.events];
+    for (let round = 0; round < 6 && u(r.state, 'x').orders === 'explore'; round++) {
+      r = endRound(r.state);
+      seen.push(...r.events);
+    }
+    const bases = moves(seen).map(([x, y]) => tileAtXY(r.state.map, x, y).base);
+    expect(bases).toContain('ocean');
+    // once off the Sea Lane it does not go back onto it
+    expect(bases.slice(bases.indexOf('ocean'))).not.toContain('seaLane');
+  });
+
+  it.each(['england', 'france', 'spain', 'netherlands'] as const)('on the America map %s\'s first ship has somewhere to explore', (nation) => {
+    const s = createGame({ seed: 1, scenario: 'america', players: [{ id: 'a', name: 'a', kind: 'human', nation }] });
+    const ship = Object.values(s.units).find((x) => x.aboard === null) as Unit;
+    expect(exploreTarget(s, ship)).not.toBeNull();
   });
 
   it('never enters a foreign colony', () => {

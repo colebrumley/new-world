@@ -8,6 +8,7 @@ import { RESOURCE_TERRAINS } from '../../../../src/engine/data/resources';
 import { createGame } from '../../../../src/engine/game';
 import { americaMap, americaStarts, chartsOf, readCharts, toGrid } from '../../../../src/engine/mapgen/america';
 import { worldStats } from '../../../../src/engine/mapgen/generate';
+import { seaLaneMask } from '../../../../src/engine/mapgen/sea-lane';
 import { isSettlementGround } from '../../../../src/engine/mapgen/settlements';
 import type { GameMap } from '../../../../src/engine/state';
 import { isLand, isWater, makeTile, terrainOf, type Tile } from '../../../../src/engine/tile';
@@ -179,13 +180,12 @@ describe('America map', () => {
     expect(river.map(key).filter((k) => !reaches.has(k))).toEqual([]);
   });
 
-  it('marks Sea Lane exactly in the lane columns away from land', () => {
-    const lane = (x: number): boolean => x < MAPGEN.westLaneColumns || x >= COLUMNS - MAPGEN.eastLaneColumns;
+  it('marks Sea Lane exactly where the generator puts it: the outer open sea from the set distance off land, or nearer in the side columns', () => {
+    const lane = seaLaneMask(MAP_WIDTH, MAP_HEIGHT, (x, y) => solid(at(map, [x, y])), (x, y) => isWater(at(map, [x, y])));
     for (const p of SQUARES) {
-      const t = square(p);
-      if (!isWater(t)) continue;
-      const want = lane(p[0]) && toSolid(p) > MAPGEN.laneLandGap;
-      expect(t.base === 'seaLane', key(p)).toBe(want);
+      const [gx, gy] = toGrid(p);
+      expect(square(p).base === 'seaLane', key(p)).toBe(lane[gy * MAP_WIDTH + gx]);
+      if (square(p).base === 'seaLane') expect(toSolid(p), key(p)).toBeGreaterThanOrEqual(MAPGEN.laneNearLand);
     }
   });
 

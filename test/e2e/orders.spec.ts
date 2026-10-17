@@ -68,14 +68,15 @@ test('Go To picks a destination with the cursor and sails there over turns', asy
   await page.getByRole('dialog').getByRole('button', { name: 'Pick a square on the map' }).click();
   await expect(page.locator('canvas.map')).toHaveAttribute('data-mode', 'goto');
   await expect(field(page, 'status')).toContainText('Go to where?');
-  for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowLeft');
-  await expect(field(page, 'location')).toHaveText(`(${x - 6}, ${y})`);
+  // east along the Sea Lane: the ship starts on its inner edge, a few squares off the land
+  for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowRight');
+  await expect(field(page, 'location')).toHaveText(`(${x + 6}, ${y})`);
   await page.keyboard.press('Enter');
   await expect(page.locator('canvas.map')).toHaveAttribute('data-mode', 'move');
   await expect(field(page, 'unit')).toHaveText('No active unit'); // four squares sailed, order still standing
   await page.keyboard.press('Enter');
   await expect(field(page, 'unit')).toHaveText('Caravel'); // arrived: the order is cleared and it asks again
-  await expect(field(page, 'location')).toHaveText(`(${x - 6}, ${y})`);
+  await expect(field(page, 'location')).toHaveText(`(${x + 6}, ${y})`);
   await expect(field(page, 'moves')).toHaveText('Moves: 2');
 
   await page.keyboard.press('g');

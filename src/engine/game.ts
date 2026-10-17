@@ -1,5 +1,5 @@
 import { STARTING_GOLD } from './data/europe';
-import { MAPGEN, type WorldOptions } from './data/mapgen';
+import type { WorldOptions } from './data/mapgen';
 import { NATION_IDS, NATIONS, STARTING_FORCE, type NationId } from './data/nations';
 import type { ProfessionId } from './data/professions';
 import { UNIT_TYPES, type UnitTypeId } from './data/units';
@@ -17,7 +17,7 @@ import { createRng, type Rng } from './rng';
 import { startingRef } from './royal';
 import { markHomelands } from './settlements';
 import { SCHEMA_VERSION, type GameMap, type GameState, type Player, type Settlement, type TribeState, type Unit } from './state';
-import { isLand, isWater, makeTile, type Tile } from './tile';
+import { isLand, makeTile, type Tile } from './tile';
 
 export interface NewGameOptions {
   readonly seed: number | string;
@@ -84,15 +84,21 @@ function placeholderMap(width: number, height: number): GameMap {
 
 /** Starting sea squares on a random map: the inner edge of the eastern Sea Lane, spread north to south. */
 function randomStarts(map: GameMap, rng: Rng, count: number): [number, number][] {
-  const x = map.width - 1 - MAPGEN.eastLaneColumns;
   const top = Math.floor(map.height * 0.2);
   const band = Math.floor((map.height * 0.6) / count);
+  // the westmost square of the unbroken Sea Lane running in from the east side of row y, if any
+  const laneEdge = (y: number): number | null => {
+    let x = map.width - 2;
+    if ((map.tiles[y * map.width + x] as Tile).base !== 'seaLane') return null;
+    while (x > 1 && (map.tiles[y * map.width + x - 1] as Tile).base === 'seaLane') x--;
+    return x;
+  };
   const starts: [number, number][] = [];
   for (let i = 0; i < count; i++) {
     let y = top + i * band + rng.int(0, Math.max(0, band - 1));
-    // slide along the lane until the square is open water
-    for (let tries = 0; tries < map.height && !isWater(map.tiles[y * map.width + x] as Tile); tries++) y = (y % (map.height - 2)) + 1;
-    starts.push([x, y]);
+    // slide along the lane until the row has one
+    for (let tries = 0; tries < map.height && laneEdge(y) === null; tries++) y = (y % (map.height - 2)) + 1;
+    starts.push([laneEdge(y) ?? map.width - 2, y]);
   }
   return starts;
 }
