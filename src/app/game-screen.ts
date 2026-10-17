@@ -211,6 +211,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   let mode: Mode = 'move';
   let cursor: { x: number; y: number } | null = null;
   let activeId: UnitId | null = null;
+  /** The unit each held direction key (by code) began moving; that key's repeats move no other. */
+  const heldFor = new Map<string, UnitId | null>();
   const waiting = new Set<UnitId>();
   let notice = '';
   let dirty = true;
@@ -1556,6 +1558,9 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       }
       if (mode === 'move') {
         const unit = activeUnit();
+        // a key held down past the end of one unit's moves does not carry on with the next one
+        if (!event.repeat) heldFor.set(event.code, unit?.id ?? null);
+        else if (unit === null || heldFor.get(event.code) !== unit.id) return;
         if (unit) void tryMove(unit.id, step[0], step[1]);
         else say('No unit is waiting for orders. Press Enter to end the turn.');
         return;
@@ -1574,6 +1579,9 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     hideTip();
     void runCommand(command, command === 'menu' ? event.code.replace('Key', '').toLowerCase() : key);
   });
+
+  canvas.addEventListener('keyup', (event) => heldFor.delete(event.code));
+  canvas.addEventListener('blur', () => heldFor.clear());
 
   const local = (event: MouseEvent, el: HTMLElement): { x: number; y: number } => {
     const box = el.getBoundingClientRect();
