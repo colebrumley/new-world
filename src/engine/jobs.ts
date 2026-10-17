@@ -1,6 +1,6 @@
 // Who works where around a colony (R-302): which of the eight surrounding squares are
 // available, what a colonist would produce on each, and the colony square's own output.
-import { isNativeLand } from './settlements';
+import { isNativeLand, settlementAt } from './settlements';
 import { NEIGHBORS } from './colony';
 import { chainLevel } from './data/buildings';
 import { WORK_SQUARE_BLOCKERS } from './data/colony';
@@ -51,7 +51,7 @@ export function squareStatus(state: GameState, colony: Colony, dx: number, dy: n
   const x = colony.x + dx;
   const y = colony.y + dy;
   const tile = tileAt(state.map, x, y);
-  if (!tile || colonyAt(state, x, y)) return 'blocked';
+  if (!tile || colonyAt(state, x, y) || settlementAt(state, x, y)) return 'blocked';
   if (workerAt(colony, dx, dy)) return 'worked';
   for (const other of Object.values(state.colonies)) {
     if (other.id !== colony.id && workerAt(other, x - other.x, y - other.y)) return 'otherColony';

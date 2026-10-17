@@ -79,6 +79,12 @@ describe('which squares can be worked', () => {
     expect(squareStatus(withUnit(computer, pioneer), col(computer), 1, 0)).toBe('free');
   });
 
+  it('a native settlement is never worked, even with its land claimed and no brave at home', () => {
+    const s = setTile(town([person('a')]), 3, 2, { homeland: 'sioux', claim: 'a' });
+    const village = { ...s, settlements: { v: { id: 'v', tribe: 'sioux', x: 3, y: 2 } as GameState['settlements'][string] } };
+    expect(squareStatus(village, col(village), 1, 0)).toBe('blocked');
+  });
+
   it('a fortified foreign ship does not hold a sea square', () => {
     const s = town([person('a')]);
     expect(squareStatus(withUnit(s, { id: 'w', owner: 'b', type: 'frigate', orders: 'fortified', x: 1, y: 2 }), col(s), -1, 0)).toBe('free');
