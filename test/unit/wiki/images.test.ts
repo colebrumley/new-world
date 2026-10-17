@@ -14,7 +14,7 @@ import { ABSTRACT_GOOD_IDS, GOOD_IDS } from '../../../src/engine/data/goods';
 import { BUILDING_IDS } from '../../../src/engine/data/buildings';
 import { RESOURCE_IDS, RESOURCE_TERRAINS } from '../../../src/engine/data/resources';
 import { TERRAIN_IDS, type TerrainId } from '../../../src/engine/data/terrain';
-import { UNIT_TYPE_IDS } from '../../../src/engine/data/units';
+import { UNIT_TYPE_IDS, type UnitTypeId } from '../../../src/engine/data/units';
 import { CHART_MARK_KINDS } from '../../../src/ui/chart';
 import { paintingRgba } from '../../../src/ui/frontispiece';
 import {
@@ -23,6 +23,7 @@ import {
 } from '../../../src/ui/pixel-art';
 import { PORTRAIT_IDS, portraitRgba } from '../../../src/ui/portraits';
 import { TITLE_HEIGHT, TITLE_WIDTH } from '../../../src/ui/title-art';
+import { UNIT_ART } from '../../../src/ui/unit-art';
 import { decodePng, encodePng, pngSize } from '../../helpers/wiki/png';
 
 const ART_DIR = join(__dirname, '../../../wiki/images/art');
@@ -63,6 +64,11 @@ const bare = (terrain: TerrainId): TileLook => ({
 function pictures(): Map<string, () => Picture> {
   const all = new Map<string, () => Picture>();
   for (const type of UNIT_TYPE_IDS.filter(hasFigure)) all.set(`units/${type}`, () => sprite(detailedPieceArt({ type, color: INK.red, label: '-', stacked: false })));
+  // a profession's own figure (R-1069), drawn on the same base as a unit type's
+  const types: readonly string[] = UNIT_TYPE_IDS;
+  for (const look of Object.keys(UNIT_ART).filter((id) => !types.includes(id))) {
+    all.set(`units/${look}`, () => sprite(detailedPieceArt({ type: look as UnitTypeId, color: INK.red, label: '-', stacked: false })));
+  }
   for (const terrain of TERRAIN_IDS) all.set(`terrain/${terrain}`, () => sprite(detailedTileArt(bare(terrain))));
   const plains = bare('plains');
   // a river or road running through the square: north to south, and east to west

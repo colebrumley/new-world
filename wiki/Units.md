@@ -78,6 +78,32 @@ An expert is a colonist with a skill. At his own work he does about twice what a
 
 A colonist who is an expert at the wrong job can have his specialty cleared on the colony screen, making him a free colonist again.
 
+## Telling colonists apart
+
+On the map, on the colony screen and on the docks, an expert shows his trade: each skill has a figure of its own, told apart by what he carries and the colour of his coat. A free colonist carries a pack and a staff. Once given equipment, an expert looks like anyone else in that job (the hover text still names his skill).
+
+|  | Colonist | Trademark |
+| :--- | :--- | :--- |
+| ![Colonist](images/art/units/colonist.png) | Free colonist | A pack and a staff |
+| ![Expert Farmer](images/art/units/expertFarmer.png) | Expert Farmer | A pitchfork and a wide straw hat, in leaf green |
+| ![Master Sugar Planter](images/art/units/masterSugarPlanter.png) | Master Sugar Planter | A cane knife and a bundle of cane on the shoulder, in white |
+| ![Master Tobacco Planter](images/art/units/masterTobaccoPlanter.png) | Master Tobacco Planter | An armful of broad tobacco leaves, in savannah green |
+| ![Master Cotton Planter](images/art/units/masterCottonPlanter.png) | Master Cotton Planter | A sack spilling white cotton, in sand |
+| ![Expert Fur Trapper](images/art/units/expertFurTrapper.png) | Expert Fur Trapper | A fur cap, a steel trap and pelts, in brown buckskin |
+| ![Expert Lumberjack](images/art/units/expertLumberjack.png) | Expert Lumberjack | A two-handed saw, in a red shirt |
+| ![Expert Ore Miner](images/art/units/expertOreMiner.png) | Expert Ore Miner | A pick and a lamp on the cap, in dark grey |
+| ![Expert Silver Miner](images/art/units/expertSilverMiner.png) | Expert Silver Miner | A pick and a bright lump of silver held up, in light grey |
+| ![Expert Fisherman](images/art/units/expertFisherman.png) | Expert Fisherman | A fish on a line and a rain hat, in sea blue |
+| ![Master Distiller](images/art/units/masterDistiller.png) | Master Distiller | A small cask under the arm and an apron, in purple |
+| ![Master Tobacconist](images/art/units/masterTobacconist.png) | Master Tobacconist | A long clay pipe and a roll of leaf, in earth brown |
+| ![Master Weaver](images/art/units/masterWeaver.png) | Master Weaver | A bolt of cloth over the arm, in bright blue |
+| ![Master Fur Trader](images/art/units/masterFurTrader.png) | Master Fur Trader | A bale of furs, a coin purse and a tricorn, in dark green |
+| ![Master Carpenter](images/art/units/masterCarpenter.png) | Master Carpenter | Sawing at a sawhorse, in tan |
+| ![Master Blacksmith](images/art/units/masterBlacksmith.png) | Master Blacksmith | A hammer and an anvil, in orange |
+| ![Master Gunsmith](images/art/units/masterGunsmith.png) | Master Gunsmith | A musket stock across the chest, in swamp green |
+| ![Firebrand Preacher](images/art/units/firebrandPreacher.png) | Firebrand Preacher | A book raised high and white bands, in deep blue |
+| ![Elder Statesman](images/art/units/elderStatesman.png) | Elder Statesman | A quill, a scroll and a white wig, in parchment |
+
 ## Pioneers
 
 ![A pioneer](images/art/units/pioneer.png) A pioneer is a colonist carrying tools. He clears forest, plows open land and builds roads. Each job takes a number of turns that depends on the ground, and uses up twenty tools when it is finished. A pioneer carries tools in lots of twenty, up to a hundred; one who runs out becomes a plain colonist again. A Hardy Pioneer does every job in half the turns, and clearing a forest near a colony sends its lumber there. The turns for each kind of ground are on [[The Map]]. If the land belongs to a native people they may ask you to pay for it first.

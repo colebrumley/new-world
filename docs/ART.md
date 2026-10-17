@@ -57,7 +57,7 @@ painting, which is 8 to 5. The older pictures in `art/` are 1254 pixels square.
 | `art/features` | What stands on the ground: one picture for each of the eight forests, for hills and for mountains, named by its terrain id, cut out on magenta: a dense clump that fills its square, since a forest or mountains must cover at least six tenths of it and hills nearly half. Mountains are a massif that reaches both sides of the square and stands on its bottom edge ("What a mountain needs" below). It is baked once, as it stands: where two of a kind meet, the map draws the picture again half a square over (`joinMask`), so the wood or the ridge runs on. | 32 px, one palette of 32 for the folder; then a 16 px copy in the same colours (`--palette-name`) | `src/ui/feature-art.ts` (`FEATURE_ART`, `FEATURE_ART_16`) |
 | `art/resources` | One marker per special resource, named by its id in `src/engine/data/resources.ts`: a picture of the thing itself, cut out on magenta: one bold, compact silhouette with few parts, since it is shrunk further than anything else; a marker that lies on a ground of its own colours is told from it by dark against light, as silver on mountains is bright metal in near-black rock. | 24 px, one palette of 24 for the folder, the subject centred in its square with a twelfth of the square clear round it (`centre`), and the near-black outline colours folded into one ink (`one_ink`); then a 12 px copy in the same colours (`--palette-name`), with an outline of that ink drawn round it after shrinking, as the painted one is too thin to survive | `src/ui/resource-art.ts` (`RESOURCE_ART`, `RESOURCE_ART_12`) |
 | `art/places` | A colony at each state of its walls and a native settlement at each level of advancement, cut out on magenta, roofs in cyan. | 32 px, one palette of 24 for the folder | `src/ui/place-art.ts` |
-| `art/units` | One figure per unit type, named by its id, cut out on magenta. | 30 px, one palette of 32 for the folder | `src/ui/unit-art.ts` |
+| `art/units` | One figure per look of a unit, named by its look id (`src/ui/unit-looks.ts`: a unit type's id, or a profession's own look such as `expertFarmer`), cut out on magenta. | 30 px, one palette of 48 for the folder | `src/ui/unit-art.ts` |
 | `art/portraits` | A head and shoulders for each adviser, the King and each founding father, on plain parchment, an adviser's coat in cyan. The faces are invented: none is a likeness of a historical person. | 64 px, in the map palette alone | `src/ui/portrait-art.ts` |
 | `art/title` | The painting behind the title screen, 8 to 5. | 320 x 200, in the map palette alone | `src/ui/title-art.ts` |
 | `art/chart` | The explorer's chart the unexplored map is drawn as: the vellum floor, the compass rose and the chart's creatures, at 32, 16 and 8 pixels to the square. These are not generated: `scripts/draw-chart.py` draws them at their final size in six inks of the palette (parchment, sand, hill, earth, wood, ink). | as they are | `src/ui/chart-art.ts` |
@@ -290,8 +290,8 @@ being wrong. When a bake of an untouched folder differs from what is committed, 
 `pixelforge --version` first; when the version has moved on, say so in the pull request and update
 this line.
 
-Only `floor-art.ts`, `feature-art.ts`, `title-art.ts`, `portrait-art.ts` and `resource-art.ts` have been baked at that version so far.
-`unit-art.ts`, `place-art.ts`, `building-art.ts` and `goods-art.ts` were baked
+Only `floor-art.ts`, `feature-art.ts`, `title-art.ts`, `portrait-art.ts`, `resource-art.ts` and `unit-art.ts` (R-1069) have been baked at that version so far.
+`place-art.ts`, `building-art.ts` and `goods-art.ts` were baked
 before this line was kept, and baking those folders again at this version changes every one of them
 with no change to their sources. An item that re-bakes one of them
 should expect that, look at the result, and say so in its pull request.
