@@ -160,6 +160,9 @@ on the rim of the map do not count as Sea Lane for this, as for a returning ship
   its sight radius would show at least one unexplored square. It goes for the cheapest target;
   ties go to the one showing more unexplored squares, then the lower `y`, then the lower `x`.
   It thinks again whenever a step shows new squares or it reaches its target.
+- A ship also weighs every target beside a land square its owner has explored. The cheapest of
+  those (by the same ties) is taken when its cost is at most `coastWithin` moves more than the
+  cheapest target's, so that it follows the coastline before it strikes out across open sea.
 - A scout also weighs every visible rumour it can reach and every square beside a settlement
   whose chief it would speak with. The cheapest of those (by the same ties) is taken when its cost
   is at most `preferWithin` moves more than the cheapest plain target's, or when no plain target
