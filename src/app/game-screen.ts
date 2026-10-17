@@ -51,7 +51,7 @@ import { PINCH_STEP, WHEEL_LINE, WHEEL_STEP, dragBlocked, mapClick, mapCursor, m
 import { editRoute } from '../ui/trade-routes';
 import { createTileCache } from '../ui/tiles';
 import { placeTooltip, slipUnits, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_UNIT_LIMIT } from '../ui/tile-tooltip';
-import { needsOrders, nextUnit } from '../ui/unit-queue';
+import { needsOrders, nextUnit, standsOnMap } from '../ui/unit-queue';
 import { chiefSpokeText } from '../ui/village-text';
 import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, viewCenter, zoomAt, zoomBy, type View } from '../ui/view';
 import { readHintsSeen, readOptions, writeAutosave, writeHintsSeen, writeOptions } from './storage';
@@ -1831,7 +1831,10 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       const tile = screenToTile(view, session.state.map, p.x, p.y);
       const under = tile ? session.state.map.tiles[tile.y * session.state.map.width + tile.x] : undefined;
       if (!tile || !under || !isExploredBy(under, session.state.players.findIndex((pl) => pl.id === me()))) return null;
-      const unit = Object.values(session.state.units).find((u) => u.x === tile.x && u.y === tile.y && u.voyage === null && u.aboard === null);
+      const inColony = Object.values(session.state.colonies).some((c) => c.x === tile.x && c.y === tile.y);
+      // the piece the map draws there: the active one first, which in a colony may be aboard a ship
+      const here = Object.values(session.state.units).filter((u) => u.x === tile.x && u.y === tile.y && standsOnMap(u, activeId, inColony));
+      const unit = here.find((u) => u.id === activeId) ?? here[0];
       return unit ? { category: 'units', id: unit.type } : { category: 'terrain', id: terrainOf(under) };
     }
     const building = hit?.closest<HTMLElement>('[data-building]');
