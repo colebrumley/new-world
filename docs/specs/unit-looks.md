@@ -1,6 +1,6 @@
 # A look for every kind of colonist: spec for R-1068 to R-1070
 
-Written by `/plan` on 2026-10-16. Status: proposed.
+Written by `/plan` on 2026-10-16. Status: built.
 
 **The request, in the owner's words:** "I want to generate either unique art or unique color
 variations where appropriate for each unit type. Right now most colonist specialties look the same,
