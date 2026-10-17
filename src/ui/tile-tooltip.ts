@@ -14,7 +14,7 @@ import { tileAt, type GameState, type Unit, type UnitId } from '../engine/state'
 import { isExploredBy, terrainOf, type Tile } from '../engine/tile';
 import { countWaterNeighbors, FREE_COLONIST, tileYield } from '../engine/yields';
 import { viewerIndex } from './render';
-import { topUnit } from './unit-queue';
+import { standsOnMap, topUnit } from './unit-queue';
 import { formatMoves, manifest, ORDER_NAMES, unitFullName } from './unit-text';
 
 export interface UnitTip {
@@ -141,12 +141,13 @@ function foreignUnitTip(state: GameState, unit: Unit): UnitTip {
 function unitTips(state: GameState, x: number, y: number, revealAll: boolean, activeUnitId: UnitId | null): UnitTip[] {
   const viewer = viewerIndex(state);
   const me = state.players[viewer]?.id;
-  const stack = (revealAll ? Object.values(state.units) : visibleUnits(state, viewer)).filter((u) => u.x === x && u.y === y && u.aboard === null && u.voyage === null);
-  const top = topUnit(stack, activeUnitId);
-  if (!top) return [];
+  const inColony = Object.values(state.colonies).some((c) => c.x === x && c.y === y);
+  const stack = (revealAll ? Object.values(state.units) : visibleUnits(state, viewer)).filter((u) => u.x === x && u.y === y && standsOnMap(u, activeUnitId, inColony));
   const describe = (unit: Unit): UnitTip => (unit.owner === me ? ownUnitTip(state, unit) : foreignUnitTip(state, unit));
   // inside a colony the map draws the active piece only
-  if (Object.values(state.colonies).some((c) => c.x === x && c.y === y)) return top.id === activeUnitId ? [describe(top)] : [];
+  if (inColony) return stack.filter((u) => u.id === activeUnitId).map(describe);
+  const top = topUnit(stack, activeUnitId);
+  if (!top) return [];
   if (top.owner === me) return [top, ...stack.filter((u) => u.owner === me && u.id !== top.id)].map(describe);
   return stack.length > 1 ? [describe(top), { line: 'and others', carried: '' }] : [describe(top)];
 }

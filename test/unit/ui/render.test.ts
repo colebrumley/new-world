@@ -53,6 +53,19 @@ describe('the map renderer, against a plain pixel buffer', () => {
     expect(fingerprint(shot(scene(), 960, 768, 3, { dragged: { unitId: 'u', x: 101, y: 203 } }).rgb)).not.toBe(base);
   });
 
+  it('draws the active unit over its colony, even one aboard a ship lying there', () => {
+    // a caravel in the colony at (2, 2) with a colonist aboard; the soldier at (4, 3) stays in view
+    const docked = (aboard: string | null): GameState =>
+      withUnit(withUnit(scene(), { id: 'boat', type: 'caravel', profession: null, x: 2, y: 2 }), { id: 'p', x: 2, y: 2, aboard });
+    const at = (state: GameState, activeUnitId: string | null): string => fingerprint(shot(state, 960, 768, 3, { activeUnitId }).rgb);
+    // while the soldier is active the colony hides the ship and its passenger
+    expect(at(docked('boat'), 'u')).toBe(at(scene(), 'u'));
+    // the passenger, once active, is drawn on the colony with its frame, as it would be standing there
+    const carried = at(docked('boat'), 'p');
+    expect(carried).not.toBe(at(docked('boat'), null));
+    expect(carried).toBe(at(docked(null), 'p'));
+  });
+
   it('marks a square the dragged unit cannot go to in red', () => {
     const count = (rgb: Uint8Array, ink: number): number => {
       const hex = PALETTE[ink] as string;
