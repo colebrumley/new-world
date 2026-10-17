@@ -1,6 +1,7 @@
 // The Explore order (R-1066; docs/RULES.md "Exploring"). A scout or a ship given it moves on its
 // own, each turn, toward the cheapest place from which its sight shows squares its owner has not
-// seen. A scout turns aside for rumours and for chiefs nobody has spoken with. It plans over the
+// seen. A scout turns aside for rumours and for chiefs nobody has spoken with; a ship keeps to the
+// coast it knows rather than the open sea. It plans over the
 // squares its owner has explored only, and wakes when nothing reachable is left.
 import { attitude, isHostile, tribalAlarm } from './alarm';
 import { EXPLORE } from './data/explore';
@@ -130,6 +131,18 @@ function unexploredAround(state: GameState, index: number, x: number, y: number,
   return n;
 }
 
+/** Is (x, y) beside a land square the player has explored? */
+function besideKnownLand(state: GameState, index: number, x: number, y: number): boolean {
+  const { map } = state;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const tile = tileAt(map, x + dx, y + dy);
+      if ((dx !== 0 || dy !== 0) && tile && isExploredBy(tile, index) && !isWater(tile)) return true;
+    }
+  }
+  return false;
+}
+
 /** Where the unit goes next, or null when nothing reachable is left to explore. */
 export function exploreTarget(state: GameState, unit: Unit, heedBurial = true): Target | null {
   const { map } = state;
@@ -145,9 +158,11 @@ export function exploreTarget(state: GameState, unit: Unit, heedBurial = true): 
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx !== 0 || dy !== 0) besideChief.add((s.y + dy) * map.width + s.x + dx);
     }
   }
+  const ship = isShipUnit(unit);
   const rumours = scout && !(heedBurial && burialWaits(state, unit));
   let plain: Omit<Target, 'steps'> | null = null;
   let special: Omit<Target, 'steps'> | null = null;
+  let coast: Omit<Target, 'steps'> | null = null;
   for (let i = 0; i < reach.cost.length; i++) {
     const cost = reach.cost[i] as number;
     if (i === reach.start || cost === Infinity) continue;
@@ -157,8 +172,10 @@ export function exploreTarget(state: GameState, unit: Unit, heedBurial = true): 
     const here = { x, y, cost, shows };
     if (shows > 0 && better(here, plain)) plain = here;
     if (scout && ((rumours && (map.tiles[i] as Tile).rumor) || besideChief.has(i)) && better(here, special)) special = here;
+    if (ship && shows > 0 && better(here, coast) && besideKnownLand(state, index, x, y)) coast = here;
   }
-  const pick = special && (!plain || special.cost <= plain.cost + EXPLORE.preferWithin * MOVE_THIRDS) ? special : plain;
+  const pick = special && (!plain || special.cost <= plain.cost + EXPLORE.preferWithin * MOVE_THIRDS) ? special
+    : coast && plain && coast.cost <= plain.cost + EXPLORE.coastWithin * MOVE_THIRDS ? coast : plain;
   if (!pick) return null;
   const path = pathIn(reach, pick.x, pick.y);
   return path ? { ...pick, steps: path.steps } : null;

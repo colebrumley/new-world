@@ -288,6 +288,26 @@ describe('ships', () => {
     expect(checkInvariants(r.state)).toEqual([]);
   });
 
+  // x: 0123456789ABCDEF
+  const SHORE = [
+    '~~~~~~~~~~~~~~~~',
+    ...Array.from({ length: 10 }, () => '~..~~~~~~~~~~~~~'),
+    '~~~~~~~~~~~~~~~~',
+  ];
+  // the coast north of (3, 3) is unseen, and so is the open sea from `sea` eastward
+  const shore = (shipX: number, sea: number): GameState =>
+    fogWhere(withUnit(world({ rows: SHORE }), { id: 'x', type: 'caravel', x: shipX, y: 6 }), (x, y) => x >= sea || (x <= 3 && y <= 2));
+
+  it('keeps to the coast it knows rather than the nearer open sea', () => {
+    const s = shore(6, 9);
+    expect(exploreTarget(s, u(s, 'x'))).toMatchObject({ x: 3, y: 3, cost: 3 * MOVE_THIRDS });
+  });
+
+  it('but not when the coast is more than the preference farther than the open sea', () => {
+    const s = shore(9, 11);
+    expect(exploreTarget(s, u(s, 'x'))).toMatchObject({ x: 10, cost: MOVE_THIRDS });
+  });
+
   it('never enters a foreign colony', () => {
     let s = withUnit(world({ rows: SEA }), { id: 'x', type: 'caravel', x: 2, y: 5 });
     s = withColony(s, { id: 'theirs', owner: 'b', x: 3, y: 3 });

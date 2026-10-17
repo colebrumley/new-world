@@ -3,6 +3,7 @@
 exports[`explore order table > matches the snapshot and is whole numbers 1`] = `
 {
   "chiefAttitudeBelow": 3,
+  "coastWithin": 4,
   "maxSteps": 64,
   "preferWithin": 3,
 }
