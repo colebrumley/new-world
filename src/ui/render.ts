@@ -335,7 +335,9 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
     const mood = met && me !== undefined ? (MOOD_INK[isHostile(village, me) ? 4 : attitude(state, village.tribe, me)] as InkId) : null;
     const ink = TRIBE_INK[village.tribe];
     const tech = TRIBES[village.tribe].tech;
-    place(`village|${ink}|${tech}|${village.capital ? 1 : 0}|${mood ?? '-'}`, () => detailedSettlementArt(ink, tech, village.capital, mood), () => settlementArt(ink, Math.min(2, tech), village.capital, mood), village.x, village.y);
+    // a mission is shown to everyone, in the colour of the power that keeps it
+    const mission = village.mission ? inkOf(state, village.mission.owner) : null;
+    place(`village|${ink}|${tech}|${village.capital ? 1 : 0}|${mood ?? '-'}|${mission ?? '-'}`, () => detailedSettlementArt(ink, tech, village.capital, mood, mission), () => settlementArt(ink, Math.min(2, tech), village.capital, mood, mission), village.x, village.y);
   }
   const pieces = (view.revealAll ? Object.values(state.units) : visibleUnits(state, viewer)).filter((u) => u.aboard === null && u.voyage === null);
   const bySquare = new Map<number, Unit[]>();
