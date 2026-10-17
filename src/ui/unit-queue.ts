@@ -35,6 +35,15 @@ export function orderLetter(unit: Unit): string {
   }
 }
 
+/**
+ * Whether the map draws a unit as a piece: one not carried and not at sea between continents.
+ * In a colony the colony hides every piece but the active one, so the active unit is drawn there
+ * even when it is aboard a ship lying in the colony.
+ */
+export function standsOnMap(unit: Unit, activeId: UnitId | null, inColony: boolean): boolean {
+  return unit.voyage === null && (unit.aboard === null || (inColony && unit.id === activeId));
+}
+
 /** The unit drawn for a square that holds several: the active one, else the first not carried. */
 export function topUnit(units: readonly Unit[], activeId: UnitId | null): Unit | null {
   const shown = units.filter((u) => u.aboard === null && u.voyage === null);

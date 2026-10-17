@@ -175,6 +175,10 @@ describe('tileTip units', () => {
     expect(units(s, 1, 1)).toEqual([]);
     expect(units(s, 1, 1, false, 'elsewhere')).toEqual([]);
     expect(lines(s, 1, 1, false, 'u2')).toEqual(['Free Colonist · Moves 1 · No orders']);
+    // the active unit aboard a ship lying in the colony is the one the map draws there
+    const docked = withUnit(withUnit(s, { id: 'ship', type: 'caravel', profession: null, x: 1, y: 1 }), { id: 'u3', type: 'colonist', x: 1, y: 1, aboard: 'ship' });
+    expect(lines(docked, 1, 1, false, 'u3')).toEqual(['Free Colonist · Moves 1 · No orders']);
+    expect(units(docked, 1, 1)).toEqual([]);
     // another power's colony, seen with the viewer's unit beside it
     let f = withColony(four(), { id: 'ville', owner: 'b', x: 3, y: 0 });
     f = withUnit(f, { id: 'f1', owner: 'b', type: 'soldier', x: 3, y: 0 });

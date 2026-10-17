@@ -16,7 +16,7 @@ import { isExploredBy, isWater, terrainOf, type Tile } from '../engine/tile';
 import { activeFrameArt, colonyArt, chartMarkArt, blockedCursorArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, joins, LABEL_LENGTH, LABEL_SIZE, LABEL_STEP, labelArt, labelText, openOf, PALETTE, pieceArt, settlementArt, VELLUM, vellumArt, type InkId, type Sprite } from './pixel-art';
 import { lookOf as unitLookOf } from './unit-looks';
 import { blendLayer, chartGrid, coastLayer, DETAIL_FROM, drawArt, floorLayer, lookOf, overLayer, TILE_VARIANTS, type TileCache } from './tiles';
-import { orderLetter, topUnit } from './unit-queue';
+import { orderLetter, standsOnMap, topUnit } from './unit-queue';
 import type { View } from './view';
 
 /** What lies beyond the map's edge: the page's own dark. */
@@ -340,7 +340,8 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
     const mission = village.mission ? inkOf(state, village.mission.owner) : null;
     place(`village|${ink}|${tech}|${village.capital ? 1 : 0}|${mood ?? '-'}|${mission ?? '-'}`, () => detailedSettlementArt(ink, tech, village.capital, mood, mission), () => settlementArt(ink, Math.min(2, tech), village.capital, mood, mission), village.x, village.y);
   }
-  const pieces = (view.revealAll ? Object.values(state.units) : visibleUnits(state, viewer)).filter((u) => u.aboard === null && u.voyage === null);
+  const active = extras.activeUnitId ?? null;
+  const pieces = (view.revealAll ? Object.values(state.units) : visibleUnits(state, viewer)).filter((u) => standsOnMap(u, active, colonySquares.has(u.y * map.width + u.x)));
   const bySquare = new Map<number, Unit[]>();
   for (const unit of pieces) {
     if (unit.x < x0 || unit.x >= x1 || unit.y < y0 || unit.y >= y1) continue;
@@ -363,10 +364,10 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
     else drawArt(ctx, art(`piece|${look}|${ink}|${label}|${stacked ? 1 : 0}`, () => pieceArt(piece)), px, py, t);
   };
   for (const stack of bySquare.values()) {
-    const unit = topUnit(stack, extras.activeUnitId ?? null);
-    if (!unit) continue;
     // Inside a colony only the active piece is drawn, so the settlement itself stays visible.
-    if (colonySquares.has(unit.y * map.width + unit.x) && unit.id !== extras.activeUnitId) continue;
+    const inColony = colonySquares.has((stack[0] as Unit).y * map.width + (stack[0] as Unit).x);
+    const unit = inColony ? stack.find((u) => u.id === active) : topUnit(stack, active);
+    if (!unit) continue;
     const stacked = stack.length > 1;
     // a piece on the move is drawn part of the way there
     const slide = extras.slide && extras.slide.unitId === unit.id ? extras.slide : null;
@@ -374,7 +375,7 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
     const py = oy + Math.round((unit.y + (slide?.dy ?? 0)) * t);
     drawPiece(unit, px, py, stacked);
     // the piece awaiting orders blinks its frame
-    if (unit.id === extras.activeUnitId && extras.blinkOn !== false) drawArt(ctx, art('active', activeFrameArt), px, py, t);
+    if (unit.id === active && extras.blinkOn !== false) drawArt(ctx, art('active', activeFrameArt), px, py, t);
   }
   // each colony's name under its square, over the pieces: only where an art pixel of the 32 grid is a whole number of pixels
   const fine = Math.floor(t / DETAIL);
