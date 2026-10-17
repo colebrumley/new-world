@@ -19,6 +19,7 @@ import { warehouseCapacity } from '../engine/pioneer';
 import { hasFather, type BuildItem, type Colonist, type Colony, type GameState, type Job, type Unit } from '../engine/state';
 import { PROFESSIONS } from '../engine/data/professions';
 import { unitLabel } from './sidebar';
+import { lookOf, type LookId } from './unit-looks';
 import { unitFullName } from './unit-text';
 
 export interface PersonView {
@@ -28,6 +29,8 @@ export interface PersonView {
   readonly fullName: string;
   /** What they are doing, e.g. "5 Food" or "3 Cloth". */
   readonly doing: string;
+  /** The figure they are drawn as: a colonist at work by profession, a unit as the map draws it. */
+  readonly look: LookId;
 }
 
 export interface BuildingView {
@@ -52,6 +55,7 @@ export interface SquareView {
 export interface CarrierView {
   readonly id: string;
   readonly label: string;
+  readonly look: LookId;
   readonly holds: number;
   readonly used: number;
   readonly cargo: readonly { readonly good: GoodId; readonly name: string; readonly amount: number }[];
@@ -116,8 +120,10 @@ function doing(state: GameState, colony: Colony, c: Colonist): string {
   return 'Idle';
 }
 
-const person = (state: GameState, colony: Colony, c: Colonist): PersonView => ({ id: c.id, label: profession(c), fullName: profession(c), doing: doing(state, colony, c) });
-const unitPerson = (u: Unit): PersonView => ({ id: u.id, label: unitLabel(u), fullName: unitFullName(u), doing: u.type === 'pioneer' ? `${u.tools} Tools` : '' });
+const person = (state: GameState, colony: Colony, c: Colonist): PersonView => ({
+  id: c.id, label: profession(c), fullName: profession(c), doing: doing(state, colony, c), look: lookOf('colonist', c.profession),
+});
+const unitPerson = (u: Unit): PersonView => ({ id: u.id, label: unitLabel(u), fullName: unitFullName(u), doing: u.type === 'pioneer' ? `${u.tools} Tools` : '', look: lookOf(u.type, u.profession) });
 
 function tradeOf(chain: BuildingChain): TradeId | null {
   return TRADE_IDS.find((t) => TRADES[t].chain === chain) ?? null;
@@ -160,6 +166,7 @@ export function colonyView(state: GameState, colonyId: string): ColonyView | nul
   const carriers: CarrierView[] = here.filter((u) => UNIT_TYPES[u.type].holds > 0).map((u) => ({
     id: u.id,
     label: UNIT_TYPES[u.type].name,
+    look: lookOf(u.type, u.profession),
     holds: UNIT_TYPES[u.type].holds,
     used: holdsUsed(state, u),
     cargo: GOOD_IDS.filter((g) => (u.cargo[g] ?? 0) > 0).map((g) => ({ good: g, name: GOOD_NAMES[g], amount: u.cargo[g] ?? 0 })),

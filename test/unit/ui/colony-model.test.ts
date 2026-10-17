@@ -49,7 +49,7 @@ describe('colonyView', () => {
     ]);
     const weaver = v.buildings.find((b) => b.chain === 'weaver')!;
     expect(weaver).toMatchObject({ id: 'weaversShop', trade: 'weaver', capacity: 3 });
-    expect(weaver.workers).toEqual([{ id: 'b', label: 'Master Weaver', fullName: 'Master Weaver', doing: '12 Cloth' }]);
+    expect(weaver.workers).toEqual([{ id: 'b', label: 'Master Weaver', fullName: 'Master Weaver', doing: '12 Cloth', look: 'masterWeaver' }]);
     expect(v.buildings.find((b) => b.id === 'docks')).toMatchObject({ trade: null, capacity: 0, workers: [] });
   });
 
@@ -63,22 +63,34 @@ describe('colonyView', () => {
   });
 
   it('separates the idle, the units outside, and the carriers with their holds', () => {
-    expect(v.idle).toEqual([{ id: 'c', label: 'Petty Criminal', fullName: 'Petty Criminal', doing: 'Idle' }]);
-    expect(v.outside).toEqual([{ id: 'sol', label: 'Veteran Soldier', fullName: 'Veteran Soldier', doing: '' }]);
+    expect(v.idle).toEqual([{ id: 'c', label: 'Petty Criminal', fullName: 'Petty Criminal', doing: 'Idle', look: 'pettyCriminal' }]);
+    expect(v.outside).toEqual([{ id: 'sol', label: 'Veteran Soldier', fullName: 'Veteran Soldier', doing: '', look: 'expertSoldier' }]);
     // a unit outside the gates is named in full for its hover title; its label and second line read as before
     let armed = withUnit(town(), { id: 'dig', type: 'pioneer', x: 2, y: 2, profession: 'freeColonist' });
     armed = withUnit(armed, { id: 'arm', type: 'soldier', x: 2, y: 2, profession: 'expertFarmer' });
     expect(colonyView(armed, 'col')!.outside.filter((p) => p.id !== 'sol')).toEqual([
-      { id: 'dig', label: 'Pioneer', fullName: 'Pioneer (Free Colonist)', doing: '100 Tools' },
-      { id: 'arm', label: 'Soldier', fullName: 'Soldier (Expert Farmer)', doing: '' },
+      { id: 'dig', label: 'Pioneer', fullName: 'Pioneer (Free Colonist)', doing: '100 Tools', look: 'pioneer' },
+      { id: 'arm', label: 'Soldier', fullName: 'Soldier (Expert Farmer)', doing: '', look: 'soldier' },
     ]);
     // a colonist at work has no more to say than the label
     for (const p of [...v.idle, ...v.buildings.flatMap((b) => b.workers)]) expect(p.fullName, p.id).toBe(p.label);
     expect(v.carriers).toEqual([{
-      id: 'ship', label: 'Caravel', holds: 2, used: 2,
+      id: 'ship', label: 'Caravel', look: 'caravel', holds: 2, used: 2,
       cargo: [{ good: 'tools', name: 'Tools', amount: 60 }],
-      passengers: [{ id: 'p', label: 'Free Colonist', fullName: 'Free Colonist', doing: '' }],
+      passengers: [{ id: 'p', label: 'Free Colonist', fullName: 'Free Colonist', doing: '', look: 'colonist' }],
     }]);
+  });
+
+  it('gives each person and unit the look it is drawn as: a colonist at work by profession, a unit as on the map', () => {
+    // an expert farmer at work in the fields, and a veteran soldier under arms on the square
+    expect(v.squares[0]?.worker?.look).toBe('expertFarmer');
+    expect(v.outside.find((p) => p.id === 'sol')?.look).toBe('expertSoldier');
+    // the same two disarmed, on the square and aboard a ship there
+    let s = withUnit(town(), { id: 'vet', x: 2, y: 2, profession: 'veteranSoldier' });
+    s = withUnit(s, { id: 'farmer', x: 2, y: 2, profession: 'expertFarmer', aboard: 'ship' });
+    const w = colonyView(s, 'col')!;
+    expect(w.outside.find((p) => p.id === 'vet')?.look).toBe('veteranSoldier');
+    expect(w.carriers[0]?.passengers.find((p) => p.id === 'farmer')?.look).toBe('expertFarmer');
   });
 
   it('lists the warehouse, the food line and the production table', () => {

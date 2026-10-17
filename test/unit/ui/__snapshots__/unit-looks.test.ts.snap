@@ -1,0 +1,288 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`lookOf > matches the snapshot of the look table 1`] = `
+{
+  "LOOKS": {
+    "armedBrave": {
+      "coat": "ink",
+      "type": "armedBrave",
+    },
+    "artillery": {
+      "coat": "ink",
+      "type": "artillery",
+    },
+    "brave": {
+      "coat": "ink",
+      "type": "brave",
+    },
+    "caravel": {
+      "coat": "ink",
+      "type": "caravel",
+    },
+    "cavalry": {
+      "coat": "ink",
+      "type": "cavalry",
+    },
+    "colonist": {
+      "coat": "prairie",
+      "type": "colonist",
+    },
+    "continentalArmy": {
+      "coat": "ink",
+      "type": "continentalArmy",
+    },
+    "continentalCavalry": {
+      "coat": "ink",
+      "type": "continentalCavalry",
+    },
+    "damagedArtillery": {
+      "coat": "ink",
+      "type": "damagedArtillery",
+    },
+    "dragoon": {
+      "coat": "ink",
+      "type": "dragoon",
+    },
+    "elderStatesman": {
+      "coat": "parchment",
+      "type": "colonist",
+    },
+    "expertDragoon": {
+      "coat": "blue",
+      "type": "dragoon",
+    },
+    "expertFarmer": {
+      "coat": "leaf",
+      "type": "colonist",
+    },
+    "expertFisherman": {
+      "coat": "wave",
+      "type": "colonist",
+    },
+    "expertFurTrapper": {
+      "coat": "wood",
+      "type": "colonist",
+    },
+    "expertLumberjack": {
+      "coat": "red",
+      "type": "colonist",
+    },
+    "expertMissionary": {
+      "coat": "ink",
+      "type": "missionary",
+    },
+    "expertOreMiner": {
+      "coat": "darkGrey",
+      "type": "colonist",
+    },
+    "expertPioneer": {
+      "coat": "tundra",
+      "type": "pioneer",
+    },
+    "expertScout": {
+      "coat": "green",
+      "type": "scout",
+    },
+    "expertSilverMiner": {
+      "coat": "lightGrey",
+      "type": "colonist",
+    },
+    "expertSoldier": {
+      "coat": "blue",
+      "type": "soldier",
+    },
+    "firebrandPreacher": {
+      "coat": "deepSea",
+      "type": "colonist",
+    },
+    "frigate": {
+      "coat": "ink",
+      "type": "frigate",
+    },
+    "galleon": {
+      "coat": "ink",
+      "type": "galleon",
+    },
+    "hardyPioneer": {
+      "coat": "tundra",
+      "type": "colonist",
+    },
+    "indenturedServant": {
+      "coat": "grey",
+      "type": "colonist",
+    },
+    "indianConvert": {
+      "coat": "grass",
+      "type": "colonist",
+    },
+    "jesuitMissionary": {
+      "coat": "ink",
+      "type": "colonist",
+    },
+    "manOWar": {
+      "coat": "ink",
+      "type": "manOWar",
+    },
+    "masterBlacksmith": {
+      "coat": "orange",
+      "type": "colonist",
+    },
+    "masterCarpenter": {
+      "coat": "hill",
+      "type": "colonist",
+    },
+    "masterCottonPlanter": {
+      "coat": "sand",
+      "type": "colonist",
+    },
+    "masterDistiller": {
+      "coat": "purple",
+      "type": "colonist",
+    },
+    "masterFurTrader": {
+      "coat": "deepForest",
+      "type": "colonist",
+    },
+    "masterGunsmith": {
+      "coat": "swamp",
+      "type": "colonist",
+    },
+    "masterSugarPlanter": {
+      "coat": "white",
+      "type": "colonist",
+    },
+    "masterTobaccoPlanter": {
+      "coat": "savannah",
+      "type": "colonist",
+    },
+    "masterTobacconist": {
+      "coat": "earth",
+      "type": "colonist",
+    },
+    "masterWeaver": {
+      "coat": "brightBlue",
+      "type": "colonist",
+    },
+    "merchantman": {
+      "coat": "ink",
+      "type": "merchantman",
+    },
+    "missionary": {
+      "coat": "ink",
+      "type": "missionary",
+    },
+    "mountedBrave": {
+      "coat": "ink",
+      "type": "mountedBrave",
+    },
+    "mountedWarrior": {
+      "coat": "ink",
+      "type": "mountedWarrior",
+    },
+    "pettyCriminal": {
+      "coat": "marsh",
+      "type": "colonist",
+    },
+    "pioneer": {
+      "coat": "ink",
+      "type": "pioneer",
+    },
+    "privateer": {
+      "coat": "ink",
+      "type": "privateer",
+    },
+    "regular": {
+      "coat": "ink",
+      "type": "regular",
+    },
+    "scout": {
+      "coat": "ink",
+      "type": "scout",
+    },
+    "seasonedScout": {
+      "coat": "green",
+      "type": "colonist",
+    },
+    "soldier": {
+      "coat": "ink",
+      "type": "soldier",
+    },
+    "treasure": {
+      "coat": "ink",
+      "type": "treasure",
+    },
+    "veteranSoldier": {
+      "coat": "blue",
+      "type": "colonist",
+    },
+    "wagonTrain": {
+      "coat": "ink",
+      "type": "wagonTrain",
+    },
+  },
+  "PROFESSION_LOOKS": {
+    "elderStatesman": "elderStatesman",
+    "expertFarmer": "expertFarmer",
+    "expertFisherman": "expertFisherman",
+    "expertFurTrapper": "expertFurTrapper",
+    "expertLumberjack": "expertLumberjack",
+    "expertOreMiner": "expertOreMiner",
+    "expertSilverMiner": "expertSilverMiner",
+    "expertTeacher": "colonist",
+    "firebrandPreacher": "firebrandPreacher",
+    "freeColonist": "colonist",
+    "hardyPioneer": "hardyPioneer",
+    "indenturedServant": "indenturedServant",
+    "indianConvert": "indianConvert",
+    "jesuitMissionary": "jesuitMissionary",
+    "masterBlacksmith": "masterBlacksmith",
+    "masterCarpenter": "masterCarpenter",
+    "masterCottonPlanter": "masterCottonPlanter",
+    "masterDistiller": "masterDistiller",
+    "masterFurTrader": "masterFurTrader",
+    "masterGunsmith": "masterGunsmith",
+    "masterSugarPlanter": "masterSugarPlanter",
+    "masterTobaccoPlanter": "masterTobaccoPlanter",
+    "masterTobacconist": "masterTobacconist",
+    "masterWeaver": "masterWeaver",
+    "pettyCriminal": "pettyCriminal",
+    "seasonedScout": "seasonedScout",
+    "veteranDragoon": "veteranSoldier",
+    "veteranSoldier": "veteranSoldier",
+  },
+  "ROLE_EXPERT_LOOKS": {
+    "dragoon": {
+      "experts": [
+        "veteranSoldier",
+        "veteranDragoon",
+      ],
+      "look": "expertDragoon",
+    },
+    "missionary": {
+      "experts": [
+        "jesuitMissionary",
+      ],
+      "look": "expertMissionary",
+    },
+    "pioneer": {
+      "experts": [
+        "hardyPioneer",
+      ],
+      "look": "expertPioneer",
+    },
+    "scout": {
+      "experts": [
+        "seasonedScout",
+      ],
+      "look": "expertScout",
+    },
+    "soldier": {
+      "experts": [
+        "veteranSoldier",
+        "veteranDragoon",
+      ],
+      "look": "expertSoldier",
+    },
+  },
+}
+`;

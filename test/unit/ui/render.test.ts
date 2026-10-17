@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { GameState, Settlement } from '../../../src/engine/state';
 import { chartMarks } from '../../../src/ui/chart';
 import { ART_COLORS, at, COAST_MASKS, EDGE_MASKS, floorArt, INK, overArt, PALETTE, rotate, type Sprite, type TileGrid } from '../../../src/ui/pixel-art';
-import { joinMask, landBeside, mouthMask, renderGround } from '../../../src/ui/render';
+import { joinMask, landBeside, mouthMask, renderGround, renderPieces } from '../../../src/ui/render';
 import { terrainOf } from '../../../src/engine/tile';
 import { lookKey, lookOf, tileSprite, type TileCache } from '../../../src/ui/tiles';
 import { makeView, type View } from '../../../src/ui/view';
@@ -648,5 +648,30 @@ describe('the map renderer, against a plain pixel buffer', () => {
     const state = chart((x, y) => Math.abs(x - 20) <= 2 && Math.abs(y - 20) <= 1);
     const at = (zoom: number): string => fingerprint(referencePixels(state, makeView(state.map, 960, 768, 20, 20, { zoom }), { activeUnitId: null, cursor: null }).rgb);
     expect(Object.fromEntries([3, 2, 1, 0].map((zoom) => [`zoom${zoom}`, at(zoom)]))).toMatchSnapshot();
+  });
+});
+
+describe('the pieces drawn by their looks', () => {
+  /** The sprite keys renderPieces asks the cache for, with every square `grid` pixels. */
+  const keys = (state: GameState, grid: number): string[] => {
+    const asked: string[] = [];
+    const ctx = { fillStyle: '', imageSmoothingEnabled: true, fillRect: (): void => {}, drawImage: (): void => {} };
+    const cache = { get: () => ({}), sprite: (key: string) => (asked.push(key), {}), size: 0 };
+    const view: View = { width: state.map.width * grid, height: state.map.height * grid, zoom: 0, tileSize: grid, originX: 0, originY: 0, showHidden: false, revealAll: true };
+    renderPieces(ctx as unknown as CanvasRenderingContext2D, state, view, cache as unknown as TileCache, { activeUnitId: null, cursor: null });
+    return asked.filter((k) => /(^|\|)(piece|figure)\|/.test(k));
+  };
+
+  it('keys a unit\'s sprite on its look, so two looks of one type get two sprites, at the far zoom and the near', () => {
+    let s = world({ rows: ['~~~~~', '~...~', '~~~~~'], players: [{ id: 'a' }] });
+    s = withUnit(s, { id: 'free', x: 1, y: 1, profession: 'freeColonist' });
+    s = withUnit(s, { id: 'farmer', x: 2, y: 1, profession: 'expertFarmer' });
+    s = withUnit(s, { id: 'vet', type: 'soldier', x: 3, y: 1, profession: 'veteranSoldier' });
+    for (const grid of [8, 16, 32, 64]) {
+      const asked = keys(s, grid);
+      const looks = asked.map((k) => k.replace(/^half\|/, '').split('|')[1]);
+      expect(looks, `grid ${grid}`).toEqual(expect.arrayContaining(['colonist', 'expertFarmer', 'expertSoldier']));
+      expect(new Set(asked).size, `grid ${grid}`).toBe(3);
+    }
   });
 });

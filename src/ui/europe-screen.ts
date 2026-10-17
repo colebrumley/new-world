@@ -34,7 +34,7 @@ const FIGURE_SCALE = 2;
 const GOOD_SCALE = 2;
 const CREST_SCALE = 2;
 
-/** The palette art by kind and name, made once each: a unit's figure, a good's icon, a flag. */
+/** The palette art by kind and name, made once each: a unit's figure (by its look), a good's icon, a flag. */
 const drawn = new Map<string, Sprite | null>();
 function artOf(kind: 'figure' | 'good' | 'flag', name: string): Sprite | null {
   const key = `${kind}:${name}`;
@@ -256,7 +256,7 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
       box.append(el('span', 'row-title', title));
       for (const s of ships) {
         const berth = el('span', 'lane-berth');
-        const art = picture('figure', s.type, `ship-art heads-${name === 'out' ? 'west' : 'east'}`, SHIP_SCALE);
+        const art = picture('figure', s.look, `ship-art heads-${name === 'out' ? 'west' : 'east'}`, SHIP_SCALE);
         if (art) berth.append(art);
         berth.append(el('span', 'lane-ship', `${s.label}, ${s.turns} ${s.turns === 1 ? 'turn' : 'turns'}`));
         berth.append(button('Turn back', `turn:${s.id}`, () => {
@@ -278,7 +278,7 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
       box.dataset['ship'] = ship.id;
       const water = el('div', 'ship-water');
       const laidUp = ship.repair > 0 ? `, under repair, ${ship.repair} ${ship.repair === 1 ? 'turn' : 'turns'}` : '';
-      water.append(token('token-carrier', `ship:${ship.id}`, picture('figure', ship.type, 'ship-art heads-east', BERTH_SCALE), `${ship.label} (${ship.used}/${ship.holds} holds)${laidUp}`, '', () => {
+      water.append(token('token-carrier', `ship:${ship.id}`, picture('figure', ship.look, 'ship-art heads-east', BERTH_SCALE), `${ship.label} (${ship.used}/${ship.holds} holds)${laidUp}`, '', () => {
         shipId = ship.id;
         focusKey = `ship:${ship.id}`;
         render();
@@ -291,7 +291,7 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
         }));
       }
       for (const rider of ship.passengers) {
-        quay.append(token('token-unit', `rider:${rider.id}`, picture('figure', rider.type, 'figure-art', FIGURE_SCALE), rider.label, '', () => {
+        quay.append(token('token-unit', `rider:${rider.id}`, picture('figure', rider.look, 'figure-art', FIGURE_SCALE), rider.label, '', () => {
           attempt({ type: 'landInEurope', unitId: rider.id });
           render();
         }, rider.fullName));
@@ -314,7 +314,7 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
     fill(harbor, ...berths);
 
     const waiting: HTMLElement[] = view.docks.map((unit) =>
-      token('token-unit', `dock:${unit.id}`, picture('figure', unit.type, 'figure-art', FIGURE_SCALE), `${unit.label}${unit.boarding ? '' : ' (staying)'}`, '', () => void dockMenu(unit.id), unit.fullName));
+      token('token-unit', `dock:${unit.id}`, picture('figure', unit.look, 'figure-art', FIGURE_SCALE), `${unit.label}${unit.boarding ? '' : ' (staying)'}`, '', () => void dockMenu(unit.id), unit.fullName));
     if (waiting.length === 0) waiting.push(el('p', 'empty', 'Nobody is waiting.'));
     fill(docks, ...waiting);
 

@@ -1455,7 +1455,7 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1065 The end page: what happened, the reckoning, and every way on** — docs/specs/game-ending.md, item W2, size M.
 - [x] **R-1066 The Explore order in the engine** — docs/specs/auto-explore.md, item W1, size M.
 - [x] **R-1067 Explore in the interface** — docs/specs/auto-explore.md, item W2, size S.
-- [ ] **R-1068 Draw each unit by its look** — docs/specs/unit-looks.md, item W1, size M.
+- [x] **R-1068 Draw each unit by its look** — docs/specs/unit-looks.md, item W1, size M.
 - [ ] **R-1069 The craftsmen's and planters' pictures** — docs/specs/unit-looks.md, item W2, size L.
 - [ ] **R-1070 The experts of the roles and the unskilled** — docs/specs/unit-looks.md, item W3, size M.
 

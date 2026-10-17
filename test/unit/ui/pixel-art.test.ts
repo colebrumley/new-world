@@ -369,27 +369,27 @@ describe('pieces', () => {
   it('every unit type has its own figure in a box of its owner\'s colour', () => {
     const seen = new Set<string>();
     for (const type of UNIT_TYPE_IDS) {
-      const s = pieceArt({ type, color: INK.red, label: '-', stacked: false });
+      const s = pieceArt({ look: type, color: INK.red, label: '-', stacked: false });
       expect(inks(s), type).toContain(INK.red);
       expect(inks(s), type).toContain(INK.ink);
       // something other than the box and its outline is drawn in it
-      expect([...inks(s)].some((i) => i !== INK.red && i !== INK.ink) || text(s) !== text(pieceArt({ type: 'colonist', color: INK.red, label: '-', stacked: false })), type).toBe(true);
+      expect([...inks(s)].some((i) => i !== INK.red && i !== INK.ink) || text(s) !== text(pieceArt({ look: 'colonist', color: INK.red, label: '-', stacked: false })), type).toBe(true);
       seen.add(text(s));
     }
     expect(seen.size).toBe(UNIT_TYPE_IDS.length);
   });
 
   it('takes the owner\'s colour, carries the order on a plate in that colour, and shows when it stands on others', () => {
-    const red = pieceArt({ type: 'soldier', color: INK.red, label: 'F', stacked: false });
-    const blue = pieceArt({ type: 'soldier', color: INK.blue, label: 'F', stacked: false });
+    const red = pieceArt({ look: 'soldier', color: INK.red, label: 'F', stacked: false });
+    const blue = pieceArt({ look: 'soldier', color: INK.blue, label: 'F', stacked: false });
     expect(inks(red)).toContain(INK.red);
     expect(inks(blue)).not.toContain(INK.red);
     expect(at(red, 0, 0) - 1).toBe(INK.ink); // the plate's outline
     expect(at(red, 2, 5) - 1).toBe(INK.red); // inside the plate, clear of the letter F
-    expect(differ(red, pieceArt({ type: 'soldier', color: INK.red, label: 'S', stacked: false }))).toBe(true);
-    expect(differ(red, pieceArt({ type: 'soldier', color: INK.red, label: 'F', stacked: true }))).toBe(true);
+    expect(differ(red, pieceArt({ look: 'soldier', color: INK.red, label: 'S', stacked: false }))).toBe(true);
+    expect(differ(red, pieceArt({ look: 'soldier', color: INK.red, label: 'F', stacked: true }))).toBe(true);
     // a native band has no plate
-    expect(at(pieceArt({ type: 'brave', color: INK.purple, label: '', stacked: false }), 0, 0)).toBe(0);
+    expect(at(pieceArt({ look: 'brave', color: INK.purple, label: '', stacked: false }), 0, 0)).toBe(0);
     // the active frame runs round the edge and leaves the middle alone
     expect(at(activeFrameArt(), 0, 7) - 1).toBe(INK.white);
     expect(at(activeFrameArt(), 7, 7)).toBe(0);
@@ -411,7 +411,7 @@ describe('detailed pieces', () => {
     expect(figured).toEqual([...UNIT_TYPE_IDS]);
     const seen = new Set<string>();
     for (const type of figured) {
-      const s = detailedPieceArt({ type, color: INK.red, label: '', stacked: false });
+      const s = detailedPieceArt({ look: type, color: INK.red, label: '', stacked: false });
       expect(s?.size, type).toBe(DETAIL);
       if (s) seen.add(text(s));
     }
@@ -419,7 +419,7 @@ describe('detailed pieces', () => {
   });
 
   it('stands on a base of its owner\'s colour, carries its orders on a tab at the foot, shows a stack, and turns into colours', () => {
-    const look = { type: 'soldier', color: INK.red, label: 'F', stacked: false } as const;
+    const look = { look: 'soldier', color: INK.red, label: 'F', stacked: false } as const;
     const red = detailedPieceArt(look) as Sprite;
     expect(inks(red)).toContain(INK.red); // the base
     expect(at(red, 15, 30) - 1).toBe(INK.ink); // its outline, below the figure's feet
@@ -1293,8 +1293,8 @@ describe('helpers', () => {
   it('matches the art snapshot', () => {
     expect({
       plains: text(tileArt(look())), forest: text(tileArt(look({ terrain: 'conifer' }))), mountains: text(tileArt(look({ terrain: 'mountains' }))),
-      caravel: text(pieceArt({ type: 'caravel', color: INK.red, label: '-', stacked: false })),
-      dragoon: text(pieceArt({ type: 'dragoon', color: INK.blue, label: 'F', stacked: true })),
+      caravel: text(pieceArt({ look: 'caravel', color: INK.red, label: '-', stacked: false })),
+      dragoon: text(pieceArt({ look: 'dragoon', color: INK.blue, label: 'F', stacked: true })),
       colony: text(colonyArt(INK.red, 7, INK.green)), village: text(settlementArt(INK.orange, 2, true, INK.yellow)),
     }).toMatchSnapshot();
   });

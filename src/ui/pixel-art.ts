@@ -6,7 +6,6 @@ import type { AbstractGoodId, GoodId } from '../engine/data/goods';
 import type { NationId } from '../engine/data/nations';
 import type { ResourceId } from '../engine/data/resources';
 import type { TerrainId } from '../engine/data/terrain';
-import type { UnitTypeId } from '../engine/data/units';
 import { BUILDING_ART, BUILDING_CODES, BUILDING_COLORS, BUILDING_SIZE } from './building-art';
 import { CHART_ART, CHART_CODES, CHART_COLORS } from './chart-art';
 import type { ChartMarkKind } from './chart';
@@ -16,6 +15,7 @@ import { GOODS_ART, GOODS_CODES, GOODS_COLORS, GOODS_SIZE } from './goods-art';
 import { PLACE_ART, PLACE_CODES, PLACE_COLORS, PLACE_SIZE } from './place-art';
 import { RESOURCE_ART, RESOURCE_ART_12, RESOURCE_CODES, RESOURCE_COLORS, RESOURCE_SIZE, RESOURCE_SIZE_12 } from './resource-art';
 import { FIGURE_SIZE, UNIT_ART, UNIT_CODES, UNIT_COLORS } from './unit-art';
+import { isLook, LOOKS, type LookId } from './unit-looks';
 
 /** The 32 colours everything on the map is drawn in: a palette in the spirit of 256-colour VGA art. */
 export const PALETTE = [
@@ -528,16 +528,23 @@ export function chartMarkArt(kind: ChartMarkKind, grid: ChartGrid): Sprite {
 
 const FIGURE_KEY = { k: INK.ink, w: INK.white, g: INK.lightGrey, d: INK.darkGrey, b: INK.wood, y: INK.yellow, p: INK.parchment, r: INK.red, e: INK.earth } as const;
 
-const PERSON = ['.pp.', '.pp.', 'kkkk', 'kkkk', '.kk.', '.kk.', 'k..k', 'k..k'];
+// The coat (c) of a person and of a rider takes the look's coat colour; everything else is in FIGURE_KEY.
+const PERSON = ['.pp.', '.pp.', 'cccc', 'cccc', '.kk.', '.kk.', 'k..k', 'k..k'];
 const HORSE = ['......bb', '.....bbb', 'bbbbbbb.', 'bbbbbb..', 'b....b..', 'b....b..'];
-const RIDER = ['.pp.', '.kk.', 'kkkk'];
+const RIDER = ['.pp.', '.cc.', 'cccc'];
 
-/** What stands in the box for each kind of unit: nine columns by ten rows at most, drawn over the owner's colour. */
-function figure(s: Sprite, type: UnitTypeId): void {
-  const person = (x: number): void => stamp(s, x, 5, PERSON, FIGURE_KEY);
+/**
+ * What stands in the box for each look: its unit type's figure, nine columns by ten rows at most, drawn over the
+ * owner's colour, with the person's or rider's coat in the look's coat colour.
+ */
+function figure(s: Sprite, look: LookId): void {
+  const { type, coat } = LOOKS[look];
+  const key = { ...FIGURE_KEY, c: INK[coat] };
+  const person = (x: number): void => stamp(s, x, 5, PERSON, key);
+  const rider = (): void => stamp(s, 6, 4, RIDER, key);
   const mounted = (): void => {
     stamp(s, 4, 7, HORSE, FIGURE_KEY);
-    stamp(s, 6, 4, RIDER, FIGURE_KEY);
+    rider();
   };
   const hull = (masts: number, guns: boolean): void => {
     stamp(s, 4, 10, ['bbbbbbbbb', '.bbbbbbb.', '..bbbbb..'], FIGURE_KEY);
@@ -571,8 +578,7 @@ function figure(s: Sprite, type: UnitTypeId): void {
       box(s, 9, 5, 3, 1, INK.white); // the cross
       break;
     case 'scout':
-      stamp(s, 4, 7, HORSE, FIGURE_KEY);
-      stamp(s, 6, 4, RIDER, FIGURE_KEY);
+      mounted();
       break;
     case 'dragoon':
     case 'cavalry':
@@ -627,7 +633,8 @@ function figure(s: Sprite, type: UnitTypeId): void {
 }
 
 export interface PieceLook {
-  readonly type: UnitTypeId;
+  /** Which figure the unit shows (src/ui/unit-looks.ts); its unit type is the look's. */
+  readonly look: LookId;
   /** The owner's colour. */
   readonly color: InkId;
   /** What the orders plate carries: an order letter, or a count of holds; empty for none (native pieces). */
@@ -642,7 +649,7 @@ export function pieceArt(look: PieceLook): Sprite {
   if (look.stacked) box(s, 4, 2, 11, 12, INK.ink);
   box(s, 3, 3, 11, 12, look.color);
   frame(s, 3, 3, 11, 12, INK.ink);
-  figure(s, look.type);
+  figure(s, look.look);
   if (look.label !== '') {
     box(s, 0, 0, 5, 7, look.color);
     frame(s, 0, 0, 5, 7, INK.ink);
@@ -675,8 +682,15 @@ const RESOURCE_KEY: Readonly<Record<string, number>> = Object.fromEntries(
 const PLACE_KEY: Readonly<Record<string, number>> = Object.fromEntries(PLACE_COLORS.map((_, i) => [PLACE_CODES[i] as string, PALETTE.length + UNIT_COLORS.length + i]));
 const DETAIL_KEY: Readonly<Record<string, number>> = Object.fromEntries(UNIT_COLORS.map((_, i) => [UNIT_CODES[i] as string, PALETTE.length + i]));
 
-/** Whether this kind of unit has a detailed figure (an experiment for R-1006). */
-export const hasFigure = (type: UnitTypeId): boolean => Object.hasOwn(UNIT_ART, type);
+/** Whether a look has a picture of its own in the units folder. */
+export const hasPicture = (look: LookId): boolean => Object.hasOwn(UNIT_ART, look);
+
+/** The baked rows a look is drawn from at the near zoom: its own picture, or else its unit type's (none for a type without one). */
+const pictureOf = (look: LookId): readonly string[] | undefined =>
+  hasPicture(look) ? UNIT_ART[look] : Object.hasOwn(UNIT_ART, LOOKS[look].type) ? UNIT_ART[LOOKS[look].type] : undefined;
+
+/** Whether a look has a detailed figure to draw at the near zoom: its own picture or its unit type's. */
+export const hasFigure = (look: LookId): boolean => pictureOf(look) !== undefined;
 
 // A 5 x 7 face for the orders tab of a detailed piece: the order letters, the digits of a hold count, and a question mark for anything else.
 const TAB_GLYPHS: Readonly<Record<string, readonly string[]>> = {
@@ -753,8 +767,8 @@ export function labelText(name: string): string {
  * hides least of the figure; a unit with none ('-') has no tab. Null for a kind that has no detailed figure.
  */
 export function detailedPieceArt(look: PieceLook): Sprite | null {
-  const rows = UNIT_ART[look.type];
-  if (!rows || !hasFigure(look.type)) return null;
+  const rows = pictureOf(look.look);
+  if (!rows) return null;
   const s = blank(DETAIL);
   if (look.stacked) box(s, 3, 28, DETAIL - 3, 4, INK.ink);
   box(s, 1, 26, DETAIL - 2, 5, look.color);
@@ -1156,8 +1170,8 @@ export function settlementArt(color: InkId, tech: number, capital: boolean, mood
 // --- the colony screen (R-1013): buildings, goods and flags ---------------------------------------
 
 /** A unit's detailed figure alone, with no base under it, on its own grid of FIGURE_SIZE; null for a kind that has none. */
-export function figureArt(type: string): Sprite | null {
-  const rows = Object.hasOwn(UNIT_ART, type) ? UNIT_ART[type] : undefined;
+export function figureArt(name: string): Sprite | null {
+  const rows = isLook(name) ? pictureOf(name) : Object.hasOwn(UNIT_ART, name) ? UNIT_ART[name] : undefined;
   if (!rows) return null;
   const s = blank(FIGURE_SIZE);
   stamp(s, 0, 0, rows, DETAIL_KEY);
