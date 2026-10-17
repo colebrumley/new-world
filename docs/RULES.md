@@ -274,6 +274,16 @@ and the native-land dialog belong to R-510.
 **Notes:** founding is immediate, so there is no refusal for a colony being built next door.
 The first build item (Warehouse, or Docks in a port colony) is set by R-303.
 
+### Which squares a colony works (R-302)
+**Numbers:** `WORK_SQUARE_BLOCKERS` in `src/engine/data/colony.ts`.
+**Rule:** a colony works the eight squares around it. A square cannot be taken when one of
+this colony's colonists or a neighbouring colony's already works it, when another settlement
+stands on it, or when it is native land not yet bought or taken. A unit standing on a land
+square holds it against the colony only when it belongs to another European power, is under
+Fortify or Fortified orders, and either fights (attack above 1: soldiers, dragoons, artillery,
+the regulars) or is a pioneer of a human power. War or peace does not matter. Any other unit on
+the square, the colony's own units, a tribe's braves and every ship leave it free to work.
+
 ### Indoor production (R-301)
 **Compare:** Revolution Now `production.rcl` and `doc/production-bonuses.txt`.
 **Rule:**
