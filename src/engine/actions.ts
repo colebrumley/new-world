@@ -1,6 +1,6 @@
 // The action pipeline: every change to a GameState goes through applyAction (R-003).
 import {
-  addGoods, checkEquip, checkLoad, checkTransfer, checkUnload, equip, loadCargo, mostValuableLoad, transferCargo, unloadCargo,
+  addGoods, checkEquip, checkLoad, holdsFree, checkTransfer, checkUnload, equip, loadCargo, mostValuableLoad, transferCargo, unloadCargo,
   type CargoErrorCode,
 } from './cargo';
 import { buyConstruction, checkBuy, checkSetConstruction, type ConstructionErrorCode, type ConstructionEvent } from './construction';
@@ -134,6 +134,8 @@ export type Action =
   | { readonly type: 'joinColony'; readonly unitId: UnitId }
   /** Someone aboard a ship or wagon train lying in one of our colonies steps ashore there. */
   | { readonly type: 'goAshore'; readonly unitId: UnitId }
+  /** Someone in one of our colonies, outside the gates or aboard another ship there, goes aboard a ship lying in it. */
+  | { readonly type: 'boardShip'; readonly unitId: UnitId; readonly shipId: UnitId }
   /** A colonist steps outside the colony and becomes a unit again. */
   | { readonly type: 'leaveColony'; readonly colonyId: ColonyId; readonly colonistId: UnitId }
   /** Give a colony up for good. */
@@ -220,7 +222,7 @@ export type GameEvent =
   | CheatAppliedEvent
   | { readonly type: 'gameEnded'; readonly reason: GameOverReason; readonly player: PlayerId; readonly turn: number; readonly year: number };
 
-export type ActionErrorCode = 'gameOver' | 'notAboard' | CheatErrorCode | IndependenceErrorCode | DiplomacyErrorCode | CongressErrorCode | NavalErrorCode | 'underRepair' | AssaultErrorCode | BattleErrorCode | LandErrorCode | RumorErrorCode | NativeWarErrorCode | VillageErrorCode | RoyalErrorCode | CustomHouseErrorCode | TaxErrorCode | MarketErrorCode | EuropeErrorCode | TradeRouteErrorCode | 'notYourColony' | ConstructionErrorCode | MoveErrorCode | ColonyErrorCode | JobErrorCode | CargoErrorCode | PioneerErrorCode | 'atSea' | 'notInEurope' | 'notAtSea' | 'unknownAction' | 'noSuchUnit' | 'notYourUnit' | 'noPath' | 'badOrders' | ExploreErrorCode;
+export type ActionErrorCode = 'gameOver' | 'notAboard' | 'cannotBoard' | CheatErrorCode | IndependenceErrorCode | DiplomacyErrorCode | CongressErrorCode | NavalErrorCode | 'underRepair' | AssaultErrorCode | BattleErrorCode | LandErrorCode | RumorErrorCode | NativeWarErrorCode | VillageErrorCode | RoyalErrorCode | CustomHouseErrorCode | TaxErrorCode | MarketErrorCode | EuropeErrorCode | TradeRouteErrorCode | 'notYourColony' | ConstructionErrorCode | MoveErrorCode | ColonyErrorCode | JobErrorCode | CargoErrorCode | PioneerErrorCode | 'atSea' | 'notInEurope' | 'notAtSea' | 'unknownAction' | 'noSuchUnit' | 'notYourUnit' | 'noPath' | 'badOrders' | ExploreErrorCode;
 
 export interface ActionError {
   readonly code: ActionErrorCode;
@@ -475,6 +477,16 @@ export function validateAction(state: GameState, action: Action): Validation {
       if (isValidation(unit)) return unit;
       if (unit.aboard === null) return fail('notAboard', 'that unit is not aboard anything');
       return colonyAt(state, unit.x, unit.y)?.owner === unit.owner ? OK : fail('noColonyHere', 'there is no colony of ours here');
+    }
+    case 'boardShip': {
+      const unit = ownUnitOnMap(state, action.unitId);
+      if (isValidation(unit)) return unit;
+      const ship = ownUnitOnMap(state, action.shipId);
+      if (isValidation(ship)) return ship;
+      if (isShipUnit(unit) || !isShipUnit(ship)) return fail('cannotBoard', 'only a ship carries people, and not other ships');
+      if (unit.aboard === ship.id) return fail('cannotBoard', 'that unit is already aboard');
+      if (unit.x !== ship.x || unit.y !== ship.y || colonyAt(state, ship.x, ship.y)?.owner !== unit.owner) return fail('noColonyHere', 'the ship is not lying in a colony of ours with them');
+      return UNIT_TYPES[unit.type].size > holdsFree(state, ship) ? fail('shipFull', 'no room aboard') : OK;
     }
     case 'leaveColony':
     case 'abandonColony':
@@ -1001,6 +1013,14 @@ function applyCore(state: GameState, action: Action): ActionResult {
       return {
         state: replaceUnit(state, { ...unit, aboard: null, orders: 'none', destination: null }),
         events: [{ type: 'unitLanded', unitId: unit.id, carrierId: unit.aboard as UnitId, to: [unit.x, unit.y] }],
+      };
+    }
+    case 'boardShip': {
+      const unit = state.units[action.unitId] as Unit;
+      // going aboard in port costs nothing; aboard, they wait for the ship to sail
+      return {
+        state: replaceUnit(state, { ...unit, aboard: action.shipId, orders: 'sentry', destination: null, route: null, workTurns: 0 }),
+        events: [{ type: 'unitBoarded', unitId: unit.id, carrierId: action.shipId }],
       };
     }
     case 'leaveColony': {

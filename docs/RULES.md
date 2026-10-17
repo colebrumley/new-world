@@ -108,6 +108,9 @@ to the SoL% used here, capped at 100.
   is at one end: stepping from a colony onto a ship alongside costs one move.
 - A unit aboard ship may not step onto a square occupied by another power.
 - Sentried land units on a ship's square go aboard when the ship moves off, while holds remain.
+- In one of the power's colonies a land unit, or a colonist stepping out of it, may also be put
+  aboard a ship lying there at once, while she has room for it: it costs nothing and the unit is
+  sentried aboard. A wagon train carries no people.
 - Fortify ends the unit's turn; it becomes Fortified at its next turn. A sentry wakes when a
   foreign unit is adjacent.
 **Notes:** the river rate applies to every land unit. "Main ocean" is implemented as water

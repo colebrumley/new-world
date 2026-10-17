@@ -15,7 +15,7 @@ import { UNIT_TYPES } from '../engine/data/units';
 import type { GoodId } from '../engine/data/goods';
 import type { GameState, Job, Unit } from '../engine/state';
 import { checkCashTreasure, treasureQuote } from '../engine/royal';
-import { abandonQuestion, colonyView, dropVerdict, jobChoices, leaveAction, type ColonyView, type DropVerdict, type PersonView } from './colony-model';
+import { abandonQuestion, boardingRefusal, colonyView, dropVerdict, jobChoices, leaveAction, type ColonyView, type DropVerdict, type PersonView } from './colony-model';
 import { ask, askText } from './dialog';
 import { buildingArt, figureArt, flagArt, goodArt, type Sprite } from './pixel-art';
 import { lookOf as unitLookOf, type LookId } from './unit-looks';
@@ -161,16 +161,23 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     const [kind, id, extra] = source.split(':') as [string, string, string | undefined];
     if (kind === 'colonist') {
       if (target === 'outside') await leave(id);
-      else {
+      else if (target.startsWith('carrier:')) {
+        // a worker let go on a ship steps out of the colony and goes aboard, but only if both may be done
+        const shipId = target.slice('carrier:'.length);
+        const refused = boardingRefusal(host.state(), colonyId, id, shipId, host.refusal);
+        if (refused !== null) tell(refused);
+        else if (attempt({ type: 'leaveColony', colonyId, colonistId: id })) attempt({ type: 'boardShip', unitId: id, shipId });
+      } else {
         const ours = await settleLand(target);
         const job = ours ? jobForTarget(target, id) : null;
         if (job) attempt({ type: 'assignJob', colonyId, colonistId: id, job });
         else tell(ours ? 'Nothing can be produced there.' : 'The land stays with the natives.');
       }
     } else if (kind === 'unit') {
-      // a unit dragged into the colony joins it, then takes the job it was dropped on
-      if (target === 'warehouse' || target.startsWith('carrier')) return;
-      if (target === 'outside') {
+      // a unit dragged into the colony joins it, then takes the job it was dropped on; one let go on a ship goes aboard
+      if (target === 'warehouse') return;
+      if (target.startsWith('carrier:')) attempt({ type: 'boardShip', unitId: id, shipId: target.slice('carrier:'.length) });
+      else if (target === 'outside') {
         // a passenger dropped outside the gates steps off the ship
         if (host.state().units[id]?.aboard) attempt({ type: 'goAshore', unitId: id });
       } else if (attempt({ type: 'joinColony', unitId: id })) {
@@ -572,12 +579,12 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
 
   function helpFor(name: string): string {
     const kind = selected.split(':')[0];
-    if (kind === 'colonist') return `${name} selected: click a square or a building to put them to work there, or click them again for the jobs menu.`;
-    if (kind === 'unit' && host.state().units[selected.split(':')[1] ?? '']?.aboard) return `${name} selected: click a square or a building to have them join the colony there, or "Outside the gates" to put them ashore; click them again for orders.`;
-    if (kind === 'unit') return `${name} selected: click a square or a building to have them join the colony there, or click them again for orders.`;
+    if (kind === 'colonist') return `${name} selected: click a square or a building to put them to work there, or a ship to put them aboard; click them again for the jobs menu.`;
+    if (kind === 'unit' && host.state().units[selected.split(':')[1] ?? '']?.aboard) return `${name} selected: click a square or a building to have them join the colony there, "Outside the gates" to put them ashore, or another ship to move them to it; click them again for orders.`;
+    if (kind === 'unit') return `${name} selected: click a square or a building to have them join the colony there, or a ship to put them aboard; click them again for orders.`;
     if (kind === 'good') return `${name} selected: click a ship or wagon train to load a hold of it (Shift for part).`;
     if (kind === 'cargo') return `${name} selected: click the warehouse to unload it, or another ship or wagon train to move it (Shift for part).`;
-    return 'Click a colonist, then a square or a building, to put them to work there (or drag them); click them again for the jobs menu. Move goods between the warehouse and a hold the same way; click a ship or wagon train twice for its orders. Right-click anything to look it up.';
+    return 'Click a colonist, then a square or a building, to put them to work there, or a ship to put them aboard (or drag them); click them again for the jobs menu. Move goods between the warehouse and a hold the same way; click a ship or wagon train twice for its orders. Right-click anything to look it up.';
   }
 
   // --- pointer: press, move, release ----------------------------------------------------------
@@ -738,7 +745,10 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       // a plain click selects; a click on a ship or wagon train picks it, or loads what is selected
       if (kind === 'carrier') {
         const cargo = selected.startsWith('good:') || (selected.startsWith('cargo:') && !selected.startsWith(`cargo:${id}:`));
-        if (cargo) void drop(selected, `carrier:${id}`, event.shiftKey);
+        // someone selected goes aboard if they may; otherwise the click picks the ship, or asks its orders, as usual
+        const held = selected.split(':')[0];
+        const passenger = (held === 'colonist' || held === 'unit') && dropVerdict(host.state(), colonyId, selected, `carrier:${id}`, host.refusal, jobForTarget) === 'ok';
+        if (cargo || passenger) void drop(selected, `carrier:${id}`, event.shiftKey);
         else if (carrierId === id) void ordersMenu(id);
         else {
           carrierId = id;

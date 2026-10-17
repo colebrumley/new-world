@@ -979,11 +979,11 @@ canvas.minimap {
 .colony-warehouse .construction-change { grid-column: 1 / -1; justify-self: start; }
 
 /* with someone or something in hand, the places it can go are lit */
-.colony-screen[data-holding='colonist'] :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row),
-.colony-screen[data-holding='unit'] :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row),
+.colony-screen[data-holding='colonist'] :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row, .carrier),
+.colony-screen[data-holding='unit'] :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row, .carrier),
 .colony-screen[data-holding='good'] .carrier,
 .colony-screen[data-holding='cargo'] :is(.carrier, .colony-warehouse) { outline: 1px dashed var(--ink-good); outline-offset: -2px; cursor: pointer; }
-.colony-screen:is([data-holding='colonist'], [data-holding='unit']) :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row):hover,
+.colony-screen:is([data-holding='colonist'], [data-holding='unit']) :is(.square[data-drop], .building[data-drop], .idle-row, .outside-row, .carrier):hover,
 .colony-screen[data-holding='good'] .carrier:hover,
 .colony-screen[data-holding='cargo'] :is(.carrier, .colony-warehouse):hover { outline-style: solid; outline-width: 2px; background-color: var(--parchment-shade); }
 /* a drag (R-1035): the token lifted is dimmed where it stood, its ghost travels under the pointer, and the

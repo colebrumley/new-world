@@ -1,10 +1,10 @@
 // Everything the colony screen shows, worked out from the game state as plain data so it can
 // be tested without a browser and rendered without further rule knowledge.
-import type { Action } from '../engine/actions';
+import { validateAction, type Action } from '../engine/actions';
 import { hasCustomHouse } from '../engine/custom-house';
 import { CALENDAR } from '../engine/calendar';
 import { holdsFree, holdsUsed } from '../engine/cargo';
-import { abandonColony, type ColonyEvent } from '../engine/colony';
+import { abandonColony, leaveColony, type ColonyEvent } from '../engine/colony';
 import { availableItems, buyQuote, itemCost, itemName } from '../engine/construction';
 import { BUILDING_CHAINS, BUILDINGS, chainLevel, type BuildingChain, type BuildingId } from '../engine/data/buildings';
 import { GOOD_IDS, GOOD_NAMES, HOLD_CAPACITY, type GoodId } from '../engine/data/goods';
@@ -313,6 +313,18 @@ export function homeOf(state: GameState, colonyId: string, source: string): stri
   return null;
 }
 
+/** Why a colonist may not step out of the colony and go aboard the ship `shipId`, or null if they may.
+ *  The leaving is asked of `refusal`; the boarding of the game, on the colony as it would be once they are out. */
+export function boardingRefusal(state: GameState, colonyId: string, colonistId: string, shipId: string, refusal: (action: Action) => string | null): string | null {
+  const colony = state.colonies[colonyId];
+  const leave = leaveAction(state, colonyId, colonistId);
+  if (!colony || leave.type !== 'leaveColony') return 'The last colonist cannot leave without abandoning the colony.';
+  const left = refusal(leave);
+  if (left !== null) return left;
+  const board = validateAction(leaveColony(state, colony, colonistId, []), { type: 'boardShip', unitId: colonistId, shipId });
+  return board.ok ? null : board.error.message;
+}
+
 /** What dropping `source` on `target` would come to, mirroring the colony screen's drop().
  *  `source` and `target` are the screen's data-drag and data-drop strings; `refusal` is the game's
  *  own validation and `jobFor` the screen's reading of a place as a job. */
@@ -329,6 +341,7 @@ export function dropVerdict(
 
   if (kind === 'colonist') {
     if (target === 'outside') return probe(leaveAction(state, colonyId, id));
+    if (carrier !== null) return boardingRefusal(state, colonyId, id, carrier, refusal) === null ? 'ok' : 'bad';
     const field = target.startsWith('field:');
     if (!field && target !== 'idle' && !target.startsWith('trade:')) return 'bad';
     if (field && colony) {
@@ -340,8 +353,9 @@ export function dropVerdict(
     return job ? probe({ type: 'assignJob', colonyId, colonistId: id, job }) : 'bad';
   }
   if (kind === 'unit') {
-    // the drop ignores a unit let go on the warehouse or a hold
-    if (target === 'warehouse' || carrier !== null) return 'bad';
+    // the drop ignores a unit let go on the warehouse; one let go on a ship goes aboard
+    if (target === 'warehouse') return 'bad';
+    if (carrier !== null) return probe({ type: 'boardShip', unitId: id, shipId: carrier });
     if (target === 'outside') return state.units[id]?.aboard ? probe({ type: 'goAshore', unitId: id }) : 'bad';
     // Only joining is asked about: the job taken after it cannot be probed without a trial state
     // in which the unit is already a colonist, so a square that offers them nothing is still green.
