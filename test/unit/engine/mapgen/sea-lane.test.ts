@@ -13,23 +13,23 @@ const sea = (width: number, height: number, land: readonly (readonly [number, nu
   Array.from({ length: height }, (_, y) => Array.from({ length: width }, (_, x) => (land.some(([lx, ly]) => lx === x && ly === y) ? '#' : '.')).join(''));
 
 describe('seaLaneMask', () => {
-  it('is set at ten squares from land, three in the side columns', () => {
-    expect([MAPGEN.laneFromLand, MAPGEN.laneNearLand, MAPGEN.westLaneColumns, MAPGEN.eastLaneColumns]).toEqual([10, 3, 3, 7]);
+  it('is set at six squares from land, three in the side columns', () => {
+    expect([MAPGEN.laneFromLand, MAPGEN.laneNearLand, MAPGEN.westLaneColumns, MAPGEN.eastLaneColumns]).toEqual([6, 3, 3, 7]);
   });
 
   it('starts the set distance out from the nearest land, on both sides of the land', () => {
     const out = lanes(sea(40, 25, [[19, 12], [20, 12]]));
-    // on the land's own row: nine squares of Ocean, then the lane, on either side
-    expect(out[12]).toBe(`${'~'.repeat(10)}${'.'.repeat(9)}##${'.'.repeat(9)}${'~'.repeat(10)}`);
-    // seven rows off, the nearest land is still that island
-    expect(out[5]).toBe(`${'~'.repeat(10)}${'.'.repeat(20)}${'~'.repeat(10)}`);
+    // on the land's own row: five squares of Ocean, then the lane, on either side
+    expect(out[12]).toBe(`${'~'.repeat(14)}${'.'.repeat(5)}##${'.'.repeat(5)}${'~'.repeat(14)}`);
+    // four rows off, the lane begins as far out
+    expect(out[8]).toBe(`${'~'.repeat(14)}${'.'.repeat(12)}${'~'.repeat(14)}`);
     // a row far enough from all land is lane right across
     expect(out[0]).toBe('~'.repeat(40));
   });
 
   it('comes nearer, to three squares, where land lies close to a side', () => {
     const out = lanes(sea(30, 13, [[24, 6]]));
-    expect(out[6]).toBe(`${'~'.repeat(15)}${'.'.repeat(9)}#..~~~`);
+    expect(out[6]).toBe(`${'~'.repeat(19)}${'.'.repeat(5)}#..~~~`);
   });
 
   it('leaves the sea between two lands Ocean, however wide', () => {

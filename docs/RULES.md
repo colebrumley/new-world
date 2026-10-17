@@ -164,10 +164,9 @@ number of squares, unless that coast lies so near the side that the lane only be
 columns. The random generator marks the Sea Lane with this rule (`seaLaneMask` in
 `src/engine/mapgen/sea-lane.ts`) and the America chart is drawn to it. The generator keeps land
 far enough from each side that the side columns always hold some Sea Lane.
-**Notes:** our own rule and numbers; the owner asked for ten squares. A sea between two lands of
+**Notes:** our own rule and numbers; the owner asked for six squares. A sea between two lands of
 one row stays Ocean however wide, as does a wide bay whose only way out is too near land. On the
-America map the Atlantic is narrower than twenty squares, so there the lane keeps to the side
-columns.
+America map the Atlantic is narrow, so there the lane keeps mostly to the side columns.
 
 ### Exploring (R-1066)
 **Numbers:** `EXPLORE` in `src/engine/data/explore.ts`

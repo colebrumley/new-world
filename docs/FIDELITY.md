@@ -32,7 +32,7 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-102 | land share by Land Mass | small 17%, normal 25%, large 33% of playable tiles | derived | low | tune in R-1009 |
 | R-102 | Land Form | noise cell 7 / 11 / 17 tiles | derived | low | |
 | R-102 | forest share | 60% of flat land (arid -10, wet +10 points) | backlog | low | |
-| R-102 | Sea Lane | open sea 10 squares or more from land (3 within 3 columns of the west side and 7 of the east), outside the land of its row, joined to a side | ours | low | owner asked for a set distance of about ten squares from the coast to the Sea Lane |
+| R-102 | Sea Lane | open sea 6 squares or more from land (3 within 3 columns of the west side and 7 of the east), outside the land of its row, joined to a side | ours | low | owner asked for a set distance of six squares from the coast to the Sea Lane |
 | R-102 | max land masses | 15 including the two polar caps | — | high | the limit; generator keeps 13 non-polar |
 | R-102 | resource density | 7% of legal land tiles, 3% of coastal ocean | derived | low | Revolution Now uses a fixed positional pattern, about 1 tile in 8 before terrain filtering; revisit |
 | R-102 | rumor count | land/45 clamped to 10..25, at least 3 tiles apart | backlog | low | |

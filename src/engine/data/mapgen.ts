@@ -30,7 +30,7 @@ export const MAPGEN = {
   maxLandMasses: 15,
   maxNonPolarMasses: 13,
   /** Open sea this many squares from the nearest land (diagonal steps count one) is Sea Lane, on the outer side of a row's land. */
-  laneFromLand: 10,
+  laneFromLand: 6,
   /** Within this many columns of each playable side the Sea Lane comes nearer, to `laneNearLand` squares from land. */
   westLaneColumns: 3,
   eastLaneColumns: 7,
