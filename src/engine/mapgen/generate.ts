@@ -95,8 +95,8 @@ function shuffled<T>(rng: Rng, items: readonly T[]): T[] {
 // --- land shape -------------------------------------------------------------------------
 
 function shapeLand(rng: Rng, options: WorldOptions): boolean[] {
-  const xMin = 1 + MAPGEN.westSeaColumns + MAPGEN.laneFromLand - 1;
-  const xMax = W - 2 - MAPGEN.eastSeaColumns - MAPGEN.laneFromLand + 1;
+  const xMin = 1 + MAPGEN.westLaneColumns + MAPGEN.laneNearLand - 1;
+  const xMax = W - 2 - MAPGEN.eastLaneColumns - MAPGEN.laneNearLand + 1;
   const yMin = 3;
   const yMax = H - 4;
   const eligible = (i: number): boolean => {

@@ -151,19 +151,23 @@ with R-900.
 on the rim of the map do not count as Sea Lane for this, as for a returning ship.
 
 ### Sea Lane (R-102)
-**Numbers:** `MAPGEN.laneFromLand`, `westSeaColumns`, `eastSeaColumns` in `src/engine/data/mapgen.ts`
+**Numbers:** `MAPGEN.laneFromLand`, `westLaneColumns`, `eastLaneColumns` in `src/engine/data/mapgen.ts`
 **Rule:** a water square is Sea Lane when all three hold:
 - it is at least `laneFromLand` squares from every land square, counting a diagonal step as one
-  (arctic does not count as land);
+  (arctic does not count as land); within `westLaneColumns` of the west side or `eastLaneColumns`
+  of the east side (the rim column too), `laneNearLand` squares are enough;
 - on its row, no land lies between it and the west side of the map, or none between it and the
   east side;
 - it is joined, through such squares (diagonals too), to one in the outermost two columns.
 So a ship leaving any coast that faces a side of the map reaches the Sea Lane after the same
-number of squares, wherever that coast lies. The random generator marks the Sea Lane with this
-rule (`seaLaneMask` in `src/engine/mapgen/sea-lane.ts`) and the America chart is drawn to it. The
-generator keeps land `westSeaColumns` and `eastSeaColumns` (plus the gap) clear of each side.
-**Notes:** our own rule and numbers. A sea between two lands of one row stays Ocean however
-wide, as does a wide bay whose only way out is too near land.
+number of squares, unless that coast lies so near the side that the lane only begins in the side
+columns. The random generator marks the Sea Lane with this rule (`seaLaneMask` in
+`src/engine/mapgen/sea-lane.ts`) and the America chart is drawn to it. The generator keeps land
+far enough from each side that the side columns always hold some Sea Lane.
+**Notes:** our own rule and numbers; the owner asked for ten squares. A sea between two lands of
+one row stays Ocean however wide, as does a wide bay whose only way out is too near land. On the
+America map the Atlantic is narrower than twenty squares, so there the lane keeps to the side
+columns.
 
 ### Exploring (R-1066)
 **Numbers:** `EXPLORE` in `src/engine/data/explore.ts`

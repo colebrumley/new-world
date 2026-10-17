@@ -180,12 +180,12 @@ describe('America map', () => {
     expect(river.map(key).filter((k) => !reaches.has(k))).toEqual([]);
   });
 
-  it('marks Sea Lane exactly where the generator puts it: the outer open sea from the set distance off land', () => {
+  it('marks Sea Lane exactly where the generator puts it: the outer open sea from the set distance off land, or nearer in the side columns', () => {
     const lane = seaLaneMask(MAP_WIDTH, MAP_HEIGHT, (x, y) => solid(at(map, [x, y])), (x, y) => isWater(at(map, [x, y])));
     for (const p of SQUARES) {
       const [gx, gy] = toGrid(p);
       expect(square(p).base === 'seaLane', key(p)).toBe(lane[gy * MAP_WIDTH + gx]);
-      if (square(p).base === 'seaLane') expect(toSolid(p), key(p)).toBeGreaterThanOrEqual(MAPGEN.laneFromLand);
+      if (square(p).base === 'seaLane') expect(toSolid(p), key(p)).toBeGreaterThanOrEqual(MAPGEN.laneNearLand);
     }
   });
 
@@ -226,11 +226,7 @@ describe('America map', () => {
 
   it('starts the four powers at sea in the listed spots, north to south France, England, Netherlands, Spain', () => {
     const starts = americaStarts();
-    for (const [nation, p] of Object.entries(starts)) {
-      expect(at(map, p).base, nation).toBe('seaLane');
-      // Ocean in sight, so that an exploring ship has somewhere to go off the Sea Lane
-      expect(around([p[0] - 1, p[1] - 1]).some((q) => square(q).base === 'ocean'), nation).toBe(true);
-    }
+    for (const [nation, p] of Object.entries(starts)) expect(isWater(at(map, p)), nation).toBe(true);
     expect(Object.keys(AMERICA_STARTS)).toEqual(['england', 'france', 'spain', 'netherlands']);
     expect(starts.france[1]).toBeLessThan(starts.england[1]);
     expect(starts.england[1]).toBeLessThan(starts.netherlands[1]);
@@ -255,7 +251,7 @@ describe('America map', () => {
   });
 
   it('lets a ship round Cape Horn on rows 60 to 68', () => {
-    const lane = (x: number, east: boolean): boolean => (east ? x >= COLUMNS - MAPGEN.eastSeaColumns : x < MAPGEN.westSeaColumns);
+    const lane = (x: number, east: boolean): boolean => (east ? x >= COLUMNS - MAPGEN.eastLaneColumns : x < MAPGEN.westLaneColumns);
     const rows = (p: readonly [number, number]): boolean => p[1] >= 60 && p[1] <= 68;
     const start = SQUARES.filter((p) => rows(p) && lane(p[0], true) && square(p).base === 'seaLane');
     const seen = new Set(start.map(key));
@@ -310,8 +306,8 @@ describe('America map', () => {
       for (let x = x0; x <= x1; x++) if (square([x, y]).base === 'seaLane') return true;
       return false;
     };
-    for (let y = 30; y <= 68; y++) expect(has(y, 0, MAPGEN.westSeaColumns - 1), `west ${y}`).toBe(true);
-    for (let y = 1; y <= 68; y++) expect(has(y, COLUMNS - MAPGEN.eastSeaColumns, COLUMNS - 1), `east ${y}`).toBe(true);
+    for (let y = 30; y <= 68; y++) expect(has(y, 0, MAPGEN.westLaneColumns - 1), `west ${y}`).toBe(true);
+    for (let y = 1; y <= 68; y++) expect(has(y, COLUMNS - MAPGEN.eastLaneColumns, COLUMNS - 1), `east ${y}`).toBe(true);
   });
 
   it('puts every listed site on settlement ground, none touching another, with mountains by the cities', () => {

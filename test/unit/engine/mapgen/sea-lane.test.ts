@@ -9,37 +9,41 @@ const lanes = (rows: readonly string[]): string[] => {
   const mask = seaLaneMask(width, rows.length, (x, y) => cell(x, y) === '#', (x, y) => cell(x, y) === '.');
   return rows.map((row, y) => [...row].map((c, x) => (c === '#' ? '#' : mask[y * width + x] ? '~' : '.')).join(''));
 };
+const sea = (width: number, height: number, land: readonly (readonly [number, number])[]): string[] =>
+  Array.from({ length: height }, (_, y) => Array.from({ length: width }, (_, x) => (land.some(([lx, ly]) => lx === x && ly === y) ? '#' : '.')).join(''));
 
 describe('seaLaneMask', () => {
-  it('is set at three squares from land', () => {
-    expect(MAPGEN.laneFromLand).toBe(3);
+  it('is set at ten squares from land, three in the side columns', () => {
+    expect([MAPGEN.laneFromLand, MAPGEN.laneNearLand, MAPGEN.westLaneColumns, MAPGEN.eastLaneColumns]).toEqual([10, 3, 3, 7]);
   });
 
   it('starts the set distance out from the nearest land, on both sides of the land', () => {
-    const rows = Array.from({ length: 9 }, (_, y) => (y === 4 ? '.........##.........' : '....................'));
-    const out = lanes(rows);
-    // on the land's own row: two squares of Ocean, then the lane, on either side
-    expect(out[4]).toBe('~~~~~~~..##..~~~~~~~');
-    // a row with no land is lane wherever it is far enough from land
-    expect(out[0]).toBe('~~~~~~~~~~~~~~~~~~~~');
-    expect(out[2]).toBe('~~~~~~~......~~~~~~~');
+    const out = lanes(sea(40, 25, [[19, 12], [20, 12]]));
+    // on the land's own row: nine squares of Ocean, then the lane, on either side
+    expect(out[12]).toBe(`${'~'.repeat(10)}${'.'.repeat(9)}##${'.'.repeat(9)}${'~'.repeat(10)}`);
+    // seven rows off, the nearest land is still that island
+    expect(out[5]).toBe(`${'~'.repeat(10)}${'.'.repeat(20)}${'~'.repeat(10)}`);
+    // a row far enough from all land is lane right across
+    expect(out[0]).toBe('~'.repeat(40));
+  });
+
+  it('comes nearer, to three squares, where land lies close to a side', () => {
+    const out = lanes(sea(30, 13, [[24, 6]]));
+    expect(out[6]).toBe(`${'~'.repeat(15)}${'.'.repeat(9)}#..~~~`);
   });
 
   it('leaves the sea between two lands Ocean, however wide', () => {
-    const rows = Array.from({ length: 13 }, (_, y) => (y === 6 ? '..#..............#..' : '....................'));
-    const out = lanes(rows);
-    expect(out[6]).toBe('..#..............#..');
-    // the land is too near the sides for a lane on its own row
-    expect(out[6]?.includes('~')).toBe(false);
+    const out = lanes(sea(40, 21, [[5, 10], [34, 10]]));
+    expect(out[10]).toBe(`~~~..#${'.'.repeat(28)}#..~~~`);
   });
 
   it('leaves a patch cut off from the sides Ocean', () => {
-    const walled = '#..........#####';
-    const rows = ['################', walled, walled, walled, '#...............', walled, walled, walled, walled, '################'];
-    // the middle of the channel's row is far from land with none east of it, but the narrow way out is too near land
+    // a wide basin far from land, whose only way out is a one-row channel too near land
+    const rows = Array.from({ length: 30 }, (_, y) => {
+      if (y === 0 || y === 29) return '#'.repeat(40);
+      if (y === 15) return `#${'.'.repeat(39)}`;
+      return `#${'.'.repeat(30)}${'#'.repeat(9)}`;
+    });
     expect(lanes(rows).join('').includes('~')).toBe(false);
-    // widen the way out and the lane runs in from the side
-    const open = lanes(rows.map((row, y) => (y >= 2 && y <= 6 ? '#...............' : row)));
-    expect(open[4]).toBe('#..~~~~~~~~~~~~~');
   });
 });

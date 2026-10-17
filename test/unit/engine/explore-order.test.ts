@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, validateAction, type Action, type GameEvent } from '../../../src/engine/actions';
 import { settlementPopulation } from '../../../src/engine/data/tribes';
 import { exploreTarget } from '../../../src/engine/explore-order';
+import { createGame } from '../../../src/engine/game';
 import { checkInvariants } from '../../../src/engine/invariants';
 import { isInlandLake } from '../../../src/engine/movement';
 import { loadGame } from '../../../src/engine/save';
@@ -329,6 +330,14 @@ describe('ships', () => {
     expect(r.events).toContainEqual({ type: 'exploreDone', unitId: 'x', x: 8, y: 3 });
   });
 
+  it('wakes on the Sea Lane with Ocean in sight and only Sea Lane left unseen', () => {
+    let s = withUnit(world({ rows: SEA }), { id: 'x', type: 'caravel', x: 9, y: 3 });
+    s = fogWhere(s, (x, y) => x === 10 && y === 5);
+    const r = explore(s);
+    expect(u(r.state, 'x')).toMatchObject({ x: 9, y: 3, orders: 'none' });
+    expect(r.events).toContainEqual({ type: 'exploreDone', unitId: 'x', x: 9, y: 3 });
+  });
+
   it('a ship deep in the Sea Lane with only the Sea Lane in sight explores along it, then leaves it for other water', () => {
     // x: 0123456789
     const DEEP = ['~~~~~~~~~~', ...Array.from({ length: 7 }, () => '~~~~sssss~'), '~~~~~~~~~~'];
@@ -344,6 +353,12 @@ describe('ships', () => {
     expect(bases).toContain('ocean');
     // once off the Sea Lane it does not go back onto it
     expect(bases.slice(bases.indexOf('ocean'))).not.toContain('seaLane');
+  });
+
+  it.each(['england', 'france', 'spain', 'netherlands'] as const)('on the America map %s\'s first ship has somewhere to explore', (nation) => {
+    const s = createGame({ seed: 1, scenario: 'america', players: [{ id: 'a', name: 'a', kind: 'human', nation }] });
+    const ship = Object.values(s.units).find((x) => x.aboard === null) as Unit;
+    expect(exploreTarget(s, ship)).not.toBeNull();
   });
 
   it('never enters a foreign colony', () => {

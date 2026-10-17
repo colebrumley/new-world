@@ -33,6 +33,6 @@ describe('nations', () => {
     expect(createGame({ seed: 1, players: [p('a'), p('b', 'spain'), p('c')] }).players.map((x) => x.nation)).toEqual(['england', 'spain', 'france']);
     const america = createGame({ seed: 1, scenario: 'america', players: [p('a', 'spain'), p('b')] });
     const ships = Object.values(america.units).filter((u) => u.type === 'caravel');
-    expect(ships.map((s) => [s.x, s.y])).toEqual([[46, 62], [35, 21]]); // Spain's start, then England's
+    expect(ships.map((s) => [s.x, s.y])).toEqual([[48, 62], [35, 21]]); // Spain's start, then England's
   });
 });

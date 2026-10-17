@@ -1,12 +1,13 @@
 // Where the Sea Lane lies (R-102; docs/RULES.md "Sea Lane"): the open sea a fixed number of squares
-// out from the nearest land, toward either side of the map. The random generator marks it with this
+// out from the nearest land, toward either side of the map, or nearer in the side columns. The random generator marks it with this
 // rule and the America chart is drawn to it.
 import { MAPGEN } from '../data/mapgen';
 
 /**
  * For each square of a `width` x `height` grid (row by row), whether it is Sea Lane: water at
- * least `MAPGEN.laneFromLand` squares from every land square (counting diagonal steps as one),
- * with no land between it and the west side or the east side of the map on its row, and joined
+ * least `MAPGEN.laneFromLand` squares from every land square (counting diagonal steps as one), or
+ * `laneNearLand` within the side columns (`westLaneColumns` and `eastLaneColumns` of the playable
+ * area, the rim column too), with no land between it and the west side or the east side of the map on its row, and joined
  * (diagonals too) through such squares to one beside a side of the map. `land` says which squares count as land; arctic is left out by the callers.
  */
 export function seaLaneMask(width: number, height: number, land: (x: number, y: number) => boolean, water: (x: number, y: number) => boolean): boolean[] {
@@ -50,7 +51,9 @@ export function seaLaneMask(width: number, height: number, land: (x: number, y: 
     }
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
-      if ((x < first || x > last) && water(x, y) && (toLand[i] as number) >= MAPGEN.laneFromLand) lane[i] = true;
+      const side = x <= MAPGEN.westLaneColumns || x >= width - 1 - MAPGEN.eastLaneColumns;
+      const near = side ? MAPGEN.laneNearLand : MAPGEN.laneFromLand;
+      if ((x < first || x > last) && water(x, y) && (toLand[i] as number) >= near) lane[i] = true;
     }
   }
   // a patch cut off from both sides (a wide bay or strait) stays Ocean

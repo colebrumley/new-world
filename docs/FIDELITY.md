@@ -32,11 +32,11 @@ Every rule value marked `[VERIFY]` in REQUIREMENTS.md gets a row when implemente
 | R-102 | land share by Land Mass | small 17%, normal 25%, large 33% of playable tiles | derived | low | tune in R-1009 |
 | R-102 | Land Form | noise cell 7 / 11 / 17 tiles | derived | low | |
 | R-102 | forest share | 60% of flat land (arid -10, wet +10 points) | backlog | low | |
-| R-102 | Sea Lane | open sea 3 squares or more from land, outside the land of its row, joined to a side; land kept 3 columns clear of the west side and 7 of the east | ours | low | owner asked for a set distance from the coast to the Sea Lane |
+| R-102 | Sea Lane | open sea 10 squares or more from land (3 within 3 columns of the west side and 7 of the east), outside the land of its row, joined to a side | ours | low | owner asked for a set distance of about ten squares from the coast to the Sea Lane |
 | R-102 | max land masses | 15 including the two polar caps | — | high | the limit; generator keeps 13 non-polar |
 | R-102 | resource density | 7% of legal land tiles, 3% of coastal ocean | derived | low | Revolution Now uses a fixed positional pattern, about 1 tile in 8 before terrain filtering; revisit |
 | R-102 | rumor count | land/45 clamped to 10..25, at least 3 tiles apart | backlog | low | |
-| R-103 | European start positions, America map | England 34,20 · France 39,10 · Spain 45,61 · Netherlands 49,33 (playable coords) | — | medium | each on the Sea Lane with Ocean in sight, so that an exploring ship has somewhere to go. Pair-to-nation order is assumed |
+| R-103 | European start positions, America map | England 34,20 · France 39,10 · Spain 47,61 · Netherlands 50,33 (playable coords) | — | medium | backlog expected starts on the eastern Sea Lane; these are near shore. Pair-to-nation order is assumed |
 | R-103 | tribe settlement sites | the rule table's lists, 0-based playable coordinates | — | medium | 26,34 is listed under both Aztec and Tupi; kept for Aztec. Coordinate origin assumed 0-based (3,1 must clear the polar row) |
 | R-103 | coastline and every square | four authored charts in data/america.ts (ground, relief, rivers, extras), the same map every game; nothing generated | own work | n/a | drawn for this project (C1) after the real Americas around the listed sites and starts: Cape Horn open, the Mississippi, St Lawrence, Amazon and Paraná as major rivers, the Great Lakes and Titicaca as lakes |
 | R-104 | sight radius | 1; scouts 2; Galleon, Privateer, Frigate 2 (Caravel, Merchantman, Man-O-War 1) | Revolution Now config/rcl/unit-type.rcl `visibility` | medium | backlog had all ships 2 |

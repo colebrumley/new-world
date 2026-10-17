@@ -155,7 +155,19 @@ function besideKnownLand(state: GameState, index: number, x: number, y: number):
 export function exploreTarget(state: GameState, unit: Unit, heedBurial = true): Target | null {
   const ship = isShipUnit(unit);
   const target = targetFor(state, unit, heedBurial, ship);
-  return target === null && ship && tileAt(state.map, unit.x, unit.y)?.base === 'seaLane' ? targetFor(state, unit, heedBurial, false) : target;
+  return target === null && ship && onlyLaneInSight(state, unit) ? targetFor(state, unit, heedBurial, false) : target;
+}
+
+/** Is all the water within the ship's sight Sea Lane? */
+function onlyLaneInSight(state: GameState, unit: Unit): boolean {
+  const radius = sightRadius(unit.type, hasFather(state, unit.owner, SIGHT.deSoto));
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      const tile = tileAt(state.map, unit.x + dx, unit.y + dy);
+      if (tile && isWater(tile) && tile.base !== 'seaLane' && !isBorder(state.map, unit.x + dx, unit.y + dy)) return false;
+    }
+  }
+  return true;
 }
 
 function targetFor(state: GameState, unit: Unit, heedBurial: boolean, offLane: boolean): Target | null {
