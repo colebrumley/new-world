@@ -80,7 +80,7 @@ A colonist who is an expert at the wrong job can have his specialty cleared on t
 
 ## Telling colonists apart
 
-On the map, on the colony screen and on the docks, an expert shows his trade: each skill has a figure of its own, told apart by what he carries and the colour of his coat. A free colonist carries a pack and a staff. Once given equipment, an expert looks like anyone else in that job (the hover text still names his skill).
+On the map, on the colony screen and on the docks, an expert shows his trade: each skill has a figure of its own, told apart by what he carries and the colour of his coat. A free colonist carries a pack and a staff. An expert given equipment for another job looks like anyone else in that job (the hover text still names his skill); the expert of that job (a veteran soldier or dragoon, a hardy pioneer, a seasoned scout, a Jesuit missionary) keeps a figure of his own, shown under Experts in their roles below.
 
 |  | Colonist | Trademark |
 | :--- | :--- | :--- |
@@ -103,6 +103,25 @@ On the map, on the colony screen and on the docks, an expert shows his trade: ea
 | ![Master Gunsmith](images/art/units/masterGunsmith.png) | Master Gunsmith | A musket stock across the chest, in swamp green |
 | ![Firebrand Preacher](images/art/units/firebrandPreacher.png) | Firebrand Preacher | A book raised high and white bands, in deep blue |
 | ![Elder Statesman](images/art/units/elderStatesman.png) | Elder Statesman | A quill, a scroll and a white wig, in parchment |
+| ![Hardy Pioneer](images/art/units/hardyPioneer.png) | Hardy Pioneer | An axe on the shoulder, a coonskin cap and a fringed coat, in grey-green buckskin |
+| ![Veteran Soldier](images/art/units/veteranSoldier.png) | Veteran Soldier (or Veteran Dragoon) | A sword at the hip, a cocked hat and white cross belts, in blue |
+| ![Seasoned Scout](images/art/units/seasonedScout.png) | Seasoned Scout | A spyglass held to the eye and a feathered hat, in green |
+| ![Jesuit Missionary](images/art/units/jesuitMissionary.png) | Jesuit Missionary | A rosary and a book, a white surplice over a black cassock |
+| ![Indentured Servant](images/art/units/indenturedServant.png) | Indentured Servant | Buckets on a yoke, in grey |
+| ![Petty Criminal](images/art/units/pettyCriminal.png) | Petty Criminal | Locked in the stocks, ragged, in marsh green |
+| ![Indian Convert](images/art/units/indianConvert.png) | Indian Convert | A small cross on a cord and a basket, in grass green |
+
+## Experts in their roles
+
+A colonist given equipment looks like anyone else in that job unless the job is his own: a veteran under arms, a hardy pioneer with tools, a seasoned scout on horseback and a Jesuit blessed as a missionary each have a figure of their own.
+
+| Ordinary | Expert | Role |
+| :--- | :--- | :--- |
+| ![Soldier](images/art/units/soldier.png) | ![Veteran soldier](images/art/units/expertSoldier.png) | Soldier: a veteran in a blue coat and a tall grenadier cap |
+| ![Dragoon](images/art/units/dragoon.png) | ![Veteran dragoon](images/art/units/expertDragoon.png) | Dragoon: a veteran in a blue coat and a crested brass helmet |
+| ![Pioneer](images/art/units/pioneer.png) | ![Hardy pioneer](images/art/units/expertPioneer.png) | Pioneer: a hardy pioneer with a shovel and a coil of rope |
+| ![Scout](images/art/units/scout.png) | ![Seasoned scout](images/art/units/expertScout.png) | Scout: a seasoned scout with a long rifle and a feathered hat |
+| ![Missionary](images/art/units/missionary.png) | ![Jesuit missionary](images/art/units/expertMissionary.png) | Missionary: a Jesuit in a white surplice with a gold cross |
 
 ## Pioneers
 

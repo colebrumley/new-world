@@ -290,7 +290,7 @@ being wrong. When a bake of an untouched folder differs from what is committed, 
 `pixelforge --version` first; when the version has moved on, say so in the pull request and update
 this line.
 
-Only `floor-art.ts`, `feature-art.ts`, `title-art.ts`, `portrait-art.ts`, `resource-art.ts` and `unit-art.ts` (R-1069) have been baked at that version so far.
+Only `floor-art.ts`, `feature-art.ts`, `title-art.ts`, `portrait-art.ts`, `resource-art.ts` and `unit-art.ts` (R-1069, R-1070) have been baked at that version so far.
 `place-art.ts`, `building-art.ts` and `goods-art.ts` were baked
 before this line was kept, and baking those folders again at this version changes every one of them
 with no change to their sources. An item that re-bakes one of them

@@ -14,7 +14,7 @@ The painting that hangs behind the title screen, shrunk to 320 by 200 squares.
 
 ## Units
 
-One painting for each kind of unit, on land and at sea.
+One painting for each kind of unit, on land and at sea, and for each colonist's trade and each role's expert.
 
 | Painting | Sprite | What it is |
 | :---: | :---: | :--- |
@@ -28,19 +28,49 @@ One painting for each kind of unit, on land and at sea.
 | <img src="images/paintings/units/continentalCavalry.png" width="160" alt="Painting: Continental Cavalry"> | <img src="images/art/units/continentalCavalry.png" alt="Sprite: Continental Cavalry"> | Continental Cavalry |
 | <img src="images/paintings/units/damagedArtillery.png" width="160" alt="Painting: Damaged Artillery"> | <img src="images/art/units/damagedArtillery.png" alt="Sprite: Damaged Artillery"> | Damaged Artillery |
 | <img src="images/paintings/units/dragoon.png" width="160" alt="Painting: Dragoon"> | <img src="images/art/units/dragoon.png" alt="Sprite: Dragoon"> | Dragoon |
+| <img src="images/paintings/units/elderStatesman.png" width="160" alt="Painting: Elder Statesman"> | <img src="images/art/units/elderStatesman.png" alt="Sprite: Elder Statesman"> | Elder Statesman |
+| <img src="images/paintings/units/expertDragoon.png" width="160" alt="Painting: Veteran Dragoon"> | <img src="images/art/units/expertDragoon.png" alt="Sprite: Veteran Dragoon"> | Veteran Dragoon |
+| <img src="images/paintings/units/expertFarmer.png" width="160" alt="Painting: Expert Farmer"> | <img src="images/art/units/expertFarmer.png" alt="Sprite: Expert Farmer"> | Expert Farmer |
+| <img src="images/paintings/units/expertFisherman.png" width="160" alt="Painting: Expert Fisherman"> | <img src="images/art/units/expertFisherman.png" alt="Sprite: Expert Fisherman"> | Expert Fisherman |
+| <img src="images/paintings/units/expertFurTrapper.png" width="160" alt="Painting: Expert Fur Trapper"> | <img src="images/art/units/expertFurTrapper.png" alt="Sprite: Expert Fur Trapper"> | Expert Fur Trapper |
+| <img src="images/paintings/units/expertLumberjack.png" width="160" alt="Painting: Expert Lumberjack"> | <img src="images/art/units/expertLumberjack.png" alt="Sprite: Expert Lumberjack"> | Expert Lumberjack |
+| <img src="images/paintings/units/expertMissionary.png" width="160" alt="Painting: Jesuit Missionary, blessed"> | <img src="images/art/units/expertMissionary.png" alt="Sprite: Jesuit Missionary, blessed"> | Jesuit Missionary, blessed |
+| <img src="images/paintings/units/expertOreMiner.png" width="160" alt="Painting: Expert Ore Miner"> | <img src="images/art/units/expertOreMiner.png" alt="Sprite: Expert Ore Miner"> | Expert Ore Miner |
+| <img src="images/paintings/units/expertPioneer.png" width="160" alt="Painting: Hardy Pioneer with tools"> | <img src="images/art/units/expertPioneer.png" alt="Sprite: Hardy Pioneer with tools"> | Hardy Pioneer with tools |
+| <img src="images/paintings/units/expertScout.png" width="160" alt="Painting: Seasoned Scout on horseback"> | <img src="images/art/units/expertScout.png" alt="Sprite: Seasoned Scout on horseback"> | Seasoned Scout on horseback |
+| <img src="images/paintings/units/expertSilverMiner.png" width="160" alt="Painting: Expert Silver Miner"> | <img src="images/art/units/expertSilverMiner.png" alt="Sprite: Expert Silver Miner"> | Expert Silver Miner |
+| <img src="images/paintings/units/expertSoldier.png" width="160" alt="Painting: Veteran Soldier under arms"> | <img src="images/art/units/expertSoldier.png" alt="Sprite: Veteran Soldier under arms"> | Veteran Soldier under arms |
+| <img src="images/paintings/units/firebrandPreacher.png" width="160" alt="Painting: Firebrand Preacher"> | <img src="images/art/units/firebrandPreacher.png" alt="Sprite: Firebrand Preacher"> | Firebrand Preacher |
 | <img src="images/paintings/units/frigate.png" width="160" alt="Painting: Frigate"> | <img src="images/art/units/frigate.png" alt="Sprite: Frigate"> | Frigate |
 | <img src="images/paintings/units/galleon.png" width="160" alt="Painting: Galleon"> | <img src="images/art/units/galleon.png" alt="Sprite: Galleon"> | Galleon |
+| <img src="images/paintings/units/hardyPioneer.png" width="160" alt="Painting: Hardy Pioneer"> | <img src="images/art/units/hardyPioneer.png" alt="Sprite: Hardy Pioneer"> | Hardy Pioneer |
+| <img src="images/paintings/units/indenturedServant.png" width="160" alt="Painting: Indentured Servant"> | <img src="images/art/units/indenturedServant.png" alt="Sprite: Indentured Servant"> | Indentured Servant |
+| <img src="images/paintings/units/indianConvert.png" width="160" alt="Painting: Indian Convert"> | <img src="images/art/units/indianConvert.png" alt="Sprite: Indian Convert"> | Indian Convert |
+| <img src="images/paintings/units/jesuitMissionary.png" width="160" alt="Painting: Jesuit Missionary"> | <img src="images/art/units/jesuitMissionary.png" alt="Sprite: Jesuit Missionary"> | Jesuit Missionary |
 | <img src="images/paintings/units/manOWar.png" width="160" alt="Painting: Man-O-War"> | <img src="images/art/units/manOWar.png" alt="Sprite: Man-O-War"> | Man-O-War |
+| <img src="images/paintings/units/masterBlacksmith.png" width="160" alt="Painting: Master Blacksmith"> | <img src="images/art/units/masterBlacksmith.png" alt="Sprite: Master Blacksmith"> | Master Blacksmith |
+| <img src="images/paintings/units/masterCarpenter.png" width="160" alt="Painting: Master Carpenter"> | <img src="images/art/units/masterCarpenter.png" alt="Sprite: Master Carpenter"> | Master Carpenter |
+| <img src="images/paintings/units/masterCottonPlanter.png" width="160" alt="Painting: Master Cotton Planter"> | <img src="images/art/units/masterCottonPlanter.png" alt="Sprite: Master Cotton Planter"> | Master Cotton Planter |
+| <img src="images/paintings/units/masterDistiller.png" width="160" alt="Painting: Master Distiller"> | <img src="images/art/units/masterDistiller.png" alt="Sprite: Master Distiller"> | Master Distiller |
+| <img src="images/paintings/units/masterFurTrader.png" width="160" alt="Painting: Master Fur Trader"> | <img src="images/art/units/masterFurTrader.png" alt="Sprite: Master Fur Trader"> | Master Fur Trader |
+| <img src="images/paintings/units/masterGunsmith.png" width="160" alt="Painting: Master Gunsmith"> | <img src="images/art/units/masterGunsmith.png" alt="Sprite: Master Gunsmith"> | Master Gunsmith |
+| <img src="images/paintings/units/masterSugarPlanter.png" width="160" alt="Painting: Master Sugar Planter"> | <img src="images/art/units/masterSugarPlanter.png" alt="Sprite: Master Sugar Planter"> | Master Sugar Planter |
+| <img src="images/paintings/units/masterTobacconist.png" width="160" alt="Painting: Master Tobacconist"> | <img src="images/art/units/masterTobacconist.png" alt="Sprite: Master Tobacconist"> | Master Tobacconist |
+| <img src="images/paintings/units/masterTobaccoPlanter.png" width="160" alt="Painting: Master Tobacco Planter"> | <img src="images/art/units/masterTobaccoPlanter.png" alt="Sprite: Master Tobacco Planter"> | Master Tobacco Planter |
+| <img src="images/paintings/units/masterWeaver.png" width="160" alt="Painting: Master Weaver"> | <img src="images/art/units/masterWeaver.png" alt="Sprite: Master Weaver"> | Master Weaver |
 | <img src="images/paintings/units/merchantman.png" width="160" alt="Painting: Merchantman"> | <img src="images/art/units/merchantman.png" alt="Sprite: Merchantman"> | Merchantman |
 | <img src="images/paintings/units/missionary.png" width="160" alt="Painting: Missionary"> | <img src="images/art/units/missionary.png" alt="Sprite: Missionary"> | Missionary |
 | <img src="images/paintings/units/mountedBrave.png" width="160" alt="Painting: Mounted Braves"> | <img src="images/art/units/mountedBrave.png" alt="Sprite: Mounted Braves"> | Mounted Braves |
 | <img src="images/paintings/units/mountedWarrior.png" width="160" alt="Painting: Mounted Warriors"> | <img src="images/art/units/mountedWarrior.png" alt="Sprite: Mounted Warriors"> | Mounted Warriors |
+| <img src="images/paintings/units/pettyCriminal.png" width="160" alt="Painting: Petty Criminal"> | <img src="images/art/units/pettyCriminal.png" alt="Sprite: Petty Criminal"> | Petty Criminal |
 | <img src="images/paintings/units/pioneer.png" width="160" alt="Painting: Pioneer"> | <img src="images/art/units/pioneer.png" alt="Sprite: Pioneer"> | Pioneer |
 | <img src="images/paintings/units/privateer.png" width="160" alt="Painting: Privateer"> | <img src="images/art/units/privateer.png" alt="Sprite: Privateer"> | Privateer |
 | <img src="images/paintings/units/regular.png" width="160" alt="Painting: King's Regular"> | <img src="images/art/units/regular.png" alt="Sprite: King's Regular"> | King's Regular |
 | <img src="images/paintings/units/scout.png" width="160" alt="Painting: Scout"> | <img src="images/art/units/scout.png" alt="Sprite: Scout"> | Scout |
+| <img src="images/paintings/units/seasonedScout.png" width="160" alt="Painting: Seasoned Scout"> | <img src="images/art/units/seasonedScout.png" alt="Sprite: Seasoned Scout"> | Seasoned Scout |
 | <img src="images/paintings/units/soldier.png" width="160" alt="Painting: Soldier"> | <img src="images/art/units/soldier.png" alt="Sprite: Soldier"> | Soldier |
 | <img src="images/paintings/units/treasure.png" width="160" alt="Painting: Treasure Train"> | <img src="images/art/units/treasure.png" alt="Sprite: Treasure Train"> | Treasure Train |
+| <img src="images/paintings/units/veteranSoldier.png" width="160" alt="Painting: Veteran Soldier"> | <img src="images/art/units/veteranSoldier.png" alt="Sprite: Veteran Soldier"> | Veteran Soldier |
 | <img src="images/paintings/units/wagonTrain.png" width="160" alt="Painting: Wagon Train"> | <img src="images/art/units/wagonTrain.png" alt="Sprite: Wagon Train"> | Wagon Train |
 
 ## Colonies and settlements
