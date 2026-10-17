@@ -85,6 +85,7 @@ test('a scout already exploring speaks with the chief on its own after End Turn,
 
   // Activate on the scout's square wakes it, as for any other order
   await page.keyboard.press('v');
+  await expect(field(page, 'location')).toHaveText(/\d/);
   const [cx, cy] = (await field(page, 'location').textContent())!.match(/\d+/g)!.map(Number) as [number, number];
   for (let i = cx; i > 2; i--) await page.keyboard.press('ArrowLeft');
   for (let i = cx; i < 2; i++) await page.keyboard.press('ArrowRight');
