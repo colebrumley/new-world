@@ -318,6 +318,22 @@ test('a passenger on a docked ship can be picked in the colony and put ashore or
   await expect(colony.locator('.building[data-building="townHall"] .token')).toHaveCount(1);
 });
 
+test('a unit outside the gates or a worker dragged onto a docked ship goes aboard it, while it has room', async ({ page }) => {
+  const colony = await openJamestown(page, {}, (s) => withUnit(s, { id: 'ship', owner: 'p0', type: 'caravel', profession: null, x: 2, y: 3 }));
+  const ship = colony.locator('.carrier');
+  await colony.locator('.outside-row .token-unit').dragTo(ship);
+  await expect(ship.locator('.token-unit')).toHaveCount(1);
+  await expect(colony.locator('.outside-row .token-unit')).toHaveCount(0);
+  await colony.locator('.idle-row .token').first().dragTo(ship);
+  await expect(ship.locator('.token-unit')).toHaveCount(2);
+  await expect(ship).toContainText('2/2 holds');
+  await expect(colony.locator('.idle-row .token')).toHaveCount(1);
+  // the caravel is full, and the last colonist would be abandoning the colony: the drop does nothing
+  await colony.locator('.idle-row .token').dragTo(ship);
+  await expect(ship.locator('.token-unit')).toHaveCount(2);
+  await expect(colony.locator('.idle-row .token')).toHaveCount(1);
+});
+
 test('a fortified unit in the colony can be given back its orders from the colony screen', async ({ page }) => {
   const rows = Array.from({ length: 8 }, (_, y) => (y === 0 || y === 7 ? '~'.repeat(10) : '~~......~~'));
   let state = world({ rows, seed: 5, players: [{ id: 'p0', kind: 'human', nation: 'england' }] });

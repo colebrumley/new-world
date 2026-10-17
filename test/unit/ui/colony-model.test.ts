@@ -238,13 +238,26 @@ describe('drop verdicts', () => {
     // a square where nothing can be raised, and the places that are not for people, without asking
     expect(one('colonist:c', 'field:1,1')).toEqual(['bad', null]);
     expect(one('colonist:c', 'warehouse')).toEqual(['bad', null]);
-    expect(one('colonist:c', 'carrier:ship')).toEqual(['bad', null]);
 
     const strict = probes(port(), 'assignJob');
     expect(strict.one('colonist:c', 'trade:statesman')[0]).toBe('bad');
     expect(strict.one('colonist:c', 'field:0,-1')[0]).toBe('bad');
     expect(strict.one('colonist:a', 'outside')[0]).toBe('ok');
     expect(probes(port(), 'leaveColony').one('colonist:a', 'outside')[0]).toBe('bad');
+  });
+
+  it('lets a colonist let go on a ship leave and go aboard, but not the last one, nor onto a wagon train', () => {
+    const { one } = probes(port());
+    // the leaving is asked of the game; the boarding is judged on the colony as it would be once they are out
+    expect(one('colonist:c', 'carrier:ship')).toEqual(['ok', { type: 'leaveColony', colonyId: 'col', colonistId: 'c' }]);
+    expect(one('colonist:c', 'carrier:wagon')[0]).toBe('bad');
+    expect(probes(port(), 'leaveColony').one('colonist:c', 'carrier:ship')[0]).toBe('bad');
+    const s = port();
+    const alone = { ...s, colonies: { col: { ...s.colonies['col']!, colonists: s.colonies['col']!.colonists.filter((c) => c.id === 'c') } } };
+    expect(probes(alone).one('colonist:c', 'carrier:ship')).toEqual(['bad', null]);
+    // a ship with every hold taken has no room for them
+    const full = { ...s, units: { ...s.units, ship: { ...s.units['ship']!, cargo: { furs: 100, sugar: 100, tobacco: 100, cotton: 100, coats: 100 } } } };
+    expect(probes(full).one('colonist:c', 'carrier:ship')[0]).toBe('bad');
   });
 
   it('asks whether the colony may be abandoned when the last colonist is dragged outside', () => {
@@ -261,11 +274,12 @@ describe('drop verdicts', () => {
     expect(one('colonist:c', 'field:1,0')).toEqual(['ok', null]);
   });
 
-  it('asks whether a unit may join, or step ashore, and refuses it the warehouse and the holds', () => {
+  it('asks whether a unit may join, step ashore or go aboard, and refuses it the warehouse', () => {
     const { one } = probes(port());
     expect(one('unit:sol', 'warehouse')).toEqual(['bad', null]);
-    expect(one('unit:sol', 'carrier:ship')).toEqual(['bad', null]);
-    expect(one('unit:p', 'carrier:wagon')).toEqual(['bad', null]);
+    expect(one('unit:sol', 'carrier:ship')).toEqual(['ok', { type: 'boardShip', unitId: 'sol', shipId: 'ship' }]);
+    expect(one('unit:p', 'carrier:wagon')).toEqual(['ok', { type: 'boardShip', unitId: 'p', shipId: 'wagon' }]);
+    expect(probes(port(), 'boardShip').one('unit:sol', 'carrier:ship')[0]).toBe('bad');
     expect(one('unit:p', 'warehouse')).toEqual(['bad', null]);
     expect(one('unit:p', 'outside')).toEqual(['ok', { type: 'goAshore', unitId: 'p' }]);
     for (const target of ['idle', 'trade:statesman', 'field:0,-1', 'field:1,1']) expect(one('unit:sol', target), target).toEqual(['ok', { type: 'joinColony', unitId: 'sol' }]);

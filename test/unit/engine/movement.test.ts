@@ -305,6 +305,29 @@ describe('boarding and landing', () => {
     const atSea = withUnit(withUnit(world({ rows: COAST }), { id: 'ship', type: 'caravel', x: 3, y: 2 }), { id: 'p', x: 3, y: 2, aboard: 'ship' });
     expect(code(atSea, { type: 'goAshore', unitId: 'p' })).toBe('noColonyHere');
   });
+
+  it('a unit in a colony can go aboard a ship lying there, sentried and at no cost, while it has room', () => {
+    let s = withColony(world({ rows: COAST }), { id: 'col', x: 4, y: 2 });
+    s = withUnit(withUnit(s, { id: 'ship', type: 'caravel', x: 4, y: 2 }), { id: 'other', type: 'caravel', x: 4, y: 2 });
+    s = withUnit(withUnit(s, { id: 'p', x: 4, y: 2, movesLeft: 3 }), { id: 'wagon', type: 'wagonTrain', x: 4, y: 2 });
+    const r = applyAction(deepFreeze(s), { type: 'boardShip', unitId: 'p', shipId: 'ship' });
+    expect(u(r.state, 'p')).toMatchObject({ x: 4, y: 2, aboard: 'ship', orders: 'sentry', movesLeft: 3 });
+    expect(r.events).toEqual([{ type: 'unitBoarded', unitId: 'p', carrierId: 'ship' }]);
+    expect(checkInvariants(r.state)).toEqual([]);
+    expect(code(r.state, { type: 'boardShip', unitId: 'p', shipId: 'ship' })).toBe('cannotBoard');
+    // from one ship to another in the same port
+    expect(u(applyAction(r.state, { type: 'boardShip', unitId: 'p', shipId: 'other' }).state, 'p').aboard).toBe('other');
+    // a wagon train carries no people, and a ship boards no ship
+    expect(code(s, { type: 'boardShip', unitId: 'p', shipId: 'wagon' })).toBe('cannotBoard');
+    expect(code(s, { type: 'boardShip', unitId: 'other', shipId: 'ship' })).toBe('cannotBoard');
+    expect(code(s, { type: 'boardShip', unitId: 'wagon', shipId: 'ship' })).toBe('shipFull');
+    // a full ship has no room
+    const full = withUnit(withUnit(s, { id: 'q', x: 4, y: 2, aboard: 'ship' }), { id: 'r', x: 4, y: 2, aboard: 'ship' });
+    expect(code(full, { type: 'boardShip', unitId: 'p', shipId: 'ship' })).toBe('shipFull');
+    // outside a colony there is no quay to board from
+    const atSea = withUnit(withUnit(world({ rows: COAST }), { id: 'ship', type: 'caravel', x: 3, y: 2 }), { id: 'p', x: 3, y: 2, aboard: 'ship' });
+    expect(code(withUnit(atSea, { id: 'ship2', type: 'caravel', x: 3, y: 2 }), { type: 'boardShip', unitId: 'p', shipId: 'ship2' })).toBe('noColonyHere');
+  });
 });
 
 describe('orders', () => {
