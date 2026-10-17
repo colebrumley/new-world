@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`which squares can be worked > the blockers table 1`] = `
+{
+  "humanTypes": [
+    "pioneer",
+  ],
+  "minAttack": 1,
+  "orders": [
+    "fortify",
+    "fortified",
+  ],
+}
+`;

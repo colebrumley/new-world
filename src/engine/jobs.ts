@@ -1,14 +1,16 @@
 // Who works where around a colony (R-302): which of the eight surrounding squares are
 // available, what a colonist would produce on each, and the colony square's own output.
-import { isNativeLand } from './settlements';
+import { isNativeLand, settlementAt } from './settlements';
 import { NEIGHBORS } from './colony';
 import { chainLevel } from './data/buildings';
+import { WORK_SQUARE_BLOCKERS } from './data/colony';
 import { PRODUCTION, TRADE_IDS, TRADES } from './data/production';
 import { PROFESSIONS } from './data/professions';
 import { RAW_GOODS, type RawGood } from './data/terrain';
+import { UNIT_TYPES } from './data/units';
 import { teacherProblem } from './education';
 import { toryPenalty } from './liberty';
-import { colonyAt, hasFather, tileAt, type Colonist, type Colony, type GameState, type Job, type UnitId } from './state';
+import { colonyAt, hasFather, tileAt, type Colonist, type Colony, type GameState, type Job, type Unit, type UnitId } from './state';
 import { isWater, type Tile } from './tile';
 import { colonyCenterYield, countWaterNeighbors, tileYield, type CenterYield, type OutdoorWorker, type YieldContext } from './yields';
 
@@ -21,7 +23,7 @@ export type SquareStatus =
   | 'otherColony'
   /** Native land that has not been bought or taken. */
   | 'nativeLand'
-  /** A foreign unit stands on it. */
+  /** A fortified soldier (or a human's fortified pioneer) of another European power holds it. */
   | 'foreignUnit'
   /** Another settlement stands there, or it is off the map. */
   | 'blocked';
@@ -35,17 +37,26 @@ export function workerAt(colony: Colony, dx: number, dy: number): Colonist | nul
   return colony.colonists.find((c) => c.job.kind === 'field' && c.job.dx === dx && c.job.dy === dy) ?? null;
 }
 
+/** Whether this unit, standing on a land square by the colony, keeps the colony from working it. */
+function holdsWorkSquare(state: GameState, colony: Colony, unit: Unit): boolean {
+  const owner = state.players.find((p) => p.id === unit.owner);
+  if (!owner || owner.id === colony.owner) return false; // a tribe's units and the colony's own never do
+  if (!(WORK_SQUARE_BLOCKERS.orders as readonly string[]).includes(unit.orders)) return false;
+  return UNIT_TYPES[unit.type].attack > WORK_SQUARE_BLOCKERS.minAttack
+    || (owner.kind === 'human' && (WORK_SQUARE_BLOCKERS.humanTypes as readonly string[]).includes(unit.type));
+}
+
 export function squareStatus(state: GameState, colony: Colony, dx: number, dy: number): SquareStatus {
   if (Math.max(Math.abs(dx), Math.abs(dy)) !== 1) return 'blocked';
   const x = colony.x + dx;
   const y = colony.y + dy;
   const tile = tileAt(state.map, x, y);
-  if (!tile || colonyAt(state, x, y)) return 'blocked';
+  if (!tile || colonyAt(state, x, y) || settlementAt(state, x, y)) return 'blocked';
   if (workerAt(colony, dx, dy)) return 'worked';
   for (const other of Object.values(state.colonies)) {
     if (other.id !== colony.id && workerAt(other, x - other.x, y - other.y)) return 'otherColony';
   }
-  if (Object.values(state.units).some((u) => u.x === x && u.y === y && u.owner !== colony.owner)) return 'foreignUnit';
+  if (!isWater(tile) && Object.values(state.units).some((u) => u.x === x && u.y === y && holdsWorkSquare(state, colony, u))) return 'foreignUnit';
   if (isNativeLand(state, tile, colony.owner)) return 'nativeLand';
   return 'free';
 }
@@ -112,7 +123,7 @@ const REASONS: Readonly<Record<Exclude<SquareStatus, 'free'>, string>> = {
   worked: 'another colonist already works that square',
   otherColony: 'a neighbouring colony works that square',
   nativeLand: 'that land belongs to the natives',
-  foreignUnit: 'a foreign unit occupies that square',
+  foreignUnit: 'a foreign unit is fortified on that square',
   blocked: 'that square cannot be worked',
 };
 
