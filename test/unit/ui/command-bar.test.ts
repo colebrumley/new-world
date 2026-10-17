@@ -13,6 +13,7 @@ describe('command bar', () => {
         "Wait [W] unit",
         "Skip [Space] unit",
         "Go to [G] unit",
+        "Explore [Shift-E] unit",
         "Fortify [F] unit",
         "Sentry [S] unit",
         "Build [B] unit",

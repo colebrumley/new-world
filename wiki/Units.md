@@ -139,7 +139,7 @@ When a dragoon loses a fight he loses his horses and becomes a soldier; a soldie
 
 ## Orders
 
-A unit with moves left and no orders asks for them: it is the active unit, and its frame blinks on the map. The game goes round your units one by one; when none is left waiting, press Enter to end the turn. Every order is on a key and on a button in the sidebar. The letter on a unit's piece shows its orders: S sentry, F fortified, G going somewhere, P plowing or clearing, R building a road, T on a trade route.
+A unit with moves left and no orders asks for them: it is the active unit, and its frame blinks on the map. The game goes round your units one by one; when none is left waiting, press Enter to end the turn. Every order is on a key and on a button in the sidebar. The letter on a unit's piece shows its orders: S sentry, F fortified, G going somewhere, P plowing or clearing, R building a road, T on a trade route, X exploring.
 
 | Key | Order | What it does |
 | :--- | :--- | :--- |
@@ -150,6 +150,7 @@ A unit with moves left and no orders asks for them: it is the active unit, and i
 | Space | Skip | No orders this turn |
 | A | Activate | Clear the orders of the unit under the cursor, or of the active unit |
 | G | Go to | Choose one of your colonies, Europe for a ship that can reach the Sea Lane, or any square; the unit goes there over as many turns as it takes |
+| Shift-E | Explore | A scout or a ship only. Each turn it heads for the nearest place that shows it land or sea you have not seen, over squares you know; a scout enters every Lost City Rumour it sees and speaks with every chief nobody has spoken with whose people are not angry with you. You see what it found as if you had moved it there. When nothing in reach is left, it wakes and the log says so |
 | L | Load | Load the most valuable cargo in this colony |
 | U | Unload | Unload cargo into this colony |
 | O | Dump | Throw cargo overboard (outside a colony) |

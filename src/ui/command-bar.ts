@@ -29,6 +29,7 @@ export const COMMAND_BUTTONS: readonly CommandButton[] = [
   order('wait', 'Wait', 'W', 'w'),
   order('skip', 'Skip', 'Space', ' '),
   order('goTo', 'Go to', 'G', 'g'),
+  order('explore', 'Explore', 'Shift-E', 'e'),
   order('fortify', 'Fortify', 'F', 'f'),
   order('sentry', 'Sentry', 'S', 's'),
   order('buildColony', 'Build', 'B', 'b'),
@@ -80,9 +81,10 @@ export interface CommandBar {
    * Europe button shows whether a ship in port is ready, or ships are at sea or under repair, by
    * its `data-europe` and its title. Once the game is `over` no order can be given: the orders, End
    * turn's own work and Europe are shut, and the End turn button reads The end and brings the end
-   * page back; looking (the terrain, the zoom, the reports and the menus) goes on.
+   * page back; looking (the terrain, the zoom, the reports and the menus) goes on. The Explore
+   * button is shown only while the active unit is one that may explore (a scout or a ship).
    */
-  update(hasUnit: boolean, targeting: boolean, europe?: EuropeCall, over?: boolean): void;
+  update(hasUnit: boolean, targeting: boolean, europe?: EuropeCall, over?: boolean, explorer?: boolean): void;
 }
 
 export function createCommandBar(onPick: (button: CommandButton) => void): CommandBar {
@@ -94,6 +96,7 @@ export function createCommandBar(onPick: (button: CommandButton) => void): Comma
   let goTo: HTMLButtonElement | null = null;
   let europeButton: HTMLButtonElement | null = null;
   let endTurn: HTMLButtonElement | null = null;
+  let explore: HTMLButtonElement | null = null;
   for (const button of COMMAND_BUTTONS) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -108,16 +111,18 @@ export function createCommandBar(onPick: (button: CommandButton) => void): Comma
     if (button.id === 'goTo') goTo = b;
     if (button.id === 'europe') europeButton = b;
     if (button.id === 'endTurn') endTurn = b;
+    if (button.id === 'explore') explore = b;
     element.append(b);
   }
   let shown: string | null = null;
   return {
     element,
-    update(hasUnit, targeting, europe = { state: 'none', note: '' }, over = false) {
-      const state = `${hasUnit}|${targeting}|${europe.state}|${europe.note}|${over}`;
+    update(hasUnit, targeting, europe = { state: 'none', note: '' }, over = false, explorer = false) {
+      const state = `${hasUnit}|${targeting}|${europe.state}|${europe.note}|${over}|${explorer}`;
       if (shown === state) return;
       shown = state;
       for (const b of orders) b.disabled = !hasUnit || over;
+      if (explore) explore.hidden = !(hasUnit && explorer);
       if (endTurn) {
         const label = over ? END_BUTTON : (COMMAND_BUTTONS.find((c) => c.id === 'endTurn')?.label ?? '');
         endTurn.textContent = label;
