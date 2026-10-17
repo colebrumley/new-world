@@ -1156,8 +1156,9 @@ export function settlementArt(color: InkId, tech: number, capital: boolean, mood
     stamp(s, 13, 1, ['mm', 'mm', 'mm', '..', 'mm'], { m: mood });
   }
   if (mission !== null) {
-    box(s, 0, 4, 5, 7, INK.ink);
-    stamp(s, 1, 5, ['.m.', 'mmm', '.m.', '.m.', '.m.'], { m: mission });
+    // its strokes lie on odd pixels, so that halve() keeps a cross for the smallest zoom
+    box(s, 0, 4, 7, 9, INK.ink);
+    stamp(s, 1, 5, ['..m..', '..m..', 'mmmmm', '..m..', '..m..', '..m..', '..m..'], { m: mission });
   }
   return s;
 }

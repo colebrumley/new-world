@@ -471,11 +471,16 @@ describe('colonies and settlements', () => {
     for (const tech of [0, 1, 2]) for (const capital of [false, true]) {
       const kept = settlementArt(INK.purple, tech, capital, INK.green, INK.blue);
       // the upright, then the arm, at the left
-      expect([5, 6, 7, 8, 9].map((y) => at(kept, 2, y) - 1)).toEqual(Array(5).fill(INK.blue));
-      expect([1, 2, 3].map((x) => at(kept, x, 6) - 1)).toEqual(Array(3).fill(INK.blue));
+      expect([5, 6, 7, 8, 9, 10, 11].map((y) => at(kept, 3, y) - 1)).toEqual(Array(7).fill(INK.blue));
+      expect([1, 2, 3, 4, 5].map((x) => at(kept, x, 7) - 1)).toEqual(Array(5).fill(INK.blue));
+      // and it is still a cross when halved for the smallest zoom
+      const half = halve(kept);
+      expect([2, 3, 4, 5].map((y) => at(half, 1, y) - 1)).toEqual(Array(4).fill(INK.blue));
+      expect([0, 1, 2].map((x) => at(half, x, 3) - 1)).toEqual(Array(3).fill(INK.blue));
+      expect([at(half, 0, 2), at(half, 2, 2), at(half, 0, 4), at(half, 2, 5)].map((c) => c - 1)).toEqual(Array(4).fill(INK.ink));
       expect(inks(settlementArt(INK.purple, tech, capital, INK.green))).not.toContain(INK.blue);
     }
-    expect(at(settlementArt(INK.purple, 1, false, null, INK.yellow), 2, 5) - 1).toBe(INK.yellow);
+    expect(at(settlementArt(INK.purple, 1, false, null, INK.yellow), 3, 5) - 1).toBe(INK.yellow);
   });
 });
 
