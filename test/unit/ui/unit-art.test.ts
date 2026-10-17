@@ -1,5 +1,6 @@
-// The baked unit figures (R-1069): every craftsman's and planter's look has a picture of its own, and no two
-// colonist figures are near copies of one another.
+// The baked unit figures (R-1069, R-1070): every craftsman's and planter's look, every unskilled colonist's and every
+// role's expert has a picture of its own; no two colonist figures are near copies of one another, and each expert
+// differs from his role's ordinary figure.
 import { describe, expect, it } from 'vitest';
 import { FIGURE_SIZE, UNIT_ART } from '../../../src/ui/unit-art';
 
@@ -9,6 +10,19 @@ const CRAFT_LOOKS = [
   'expertOreMiner', 'expertSilverMiner', 'expertFisherman', 'masterDistiller', 'masterTobacconist', 'masterWeaver',
   'masterFurTrader', 'masterCarpenter', 'masterBlacksmith', 'masterGunsmith', 'firebrandPreacher', 'elderStatesman',
 ] as const;
+
+/** The unequipped looks W3 (R-1070) gives a picture: the role experts off duty and the unskilled. */
+const UNSKILLED_LOOKS = [
+  'hardyPioneer', 'veteranSoldier', 'seasonedScout', 'jesuitMissionary', 'indenturedServant', 'pettyCriminal', 'indianConvert',
+] as const;
+
+/** Each role's expert look and the ordinary figure of that role. */
+const EXPERTS = [
+  ['expertSoldier', 'soldier'], ['expertDragoon', 'dragoon'], ['expertPioneer', 'pioneer'], ['expertScout', 'scout'],
+  ['expertMissionary', 'missionary'],
+] as const;
+
+const NEW_LOOKS = [...UNSKILLED_LOOKS, ...EXPERTS.map(([expert]) => expert)];
 
 /**
  * How much two figures differ: of the cells where either is opaque, the share where their letters differ (one
@@ -39,6 +53,31 @@ describe('unit figures', () => {
       const rows = UNIT_ART[look] ?? [];
       expect(rows.length, look).toBe(FIGURE_SIZE);
       for (const row of rows) expect(row.length, look).toBe(FIGURE_SIZE);
+    }
+  });
+
+  it('has a picture for every unskilled colonist and every role expert', () => {
+    for (const look of NEW_LOOKS) expect(Object.hasOwn(UNIT_ART, look), look).toBe(true);
+    for (const look of NEW_LOOKS) {
+      const rows = UNIT_ART[look] ?? [];
+      expect(rows.length, look).toBe(FIGURE_SIZE);
+      for (const row of rows) expect(row.length, look).toBe(FIGURE_SIZE);
+    }
+  });
+
+  it('keeps each expert at least a fifth from his role\'s ordinary figure', () => {
+    for (const [expert, ordinary] of EXPERTS) {
+      expect(difference(UNIT_ART[expert] ?? [], UNIT_ART[ordinary] ?? []), `${expert} and ${ordinary}`).toBeGreaterThanOrEqual(0.2);
+    }
+  });
+
+  it('keeps each unskilled look at least a fifth from every other colonist figure', () => {
+    const colonists = ['colonist', ...CRAFT_LOOKS, ...UNSKILLED_LOOKS];
+    for (const a of UNSKILLED_LOOKS) {
+      for (const b of colonists) {
+        if (a === b) continue;
+        expect(difference(UNIT_ART[a] ?? [], UNIT_ART[b] ?? []), `${a} and ${b}`).toBeGreaterThanOrEqual(0.2);
+      }
     }
   });
 
