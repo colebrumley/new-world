@@ -14,7 +14,7 @@ PATH, or at the path PIXELFORGE names if it is set. uv gives the script the Pill
 above. With folder names
 (chart, units, places, features, floors, resources, title, buildings, goods, portraits) only those are baked.
 
-art/units holds one square picture per unit type (colonist.png, soldier.png, ...), art/places one
+art/units holds one square picture per look of a unit (colonist.png, soldier.png, expertFarmer.png, ...), art/places one
 per look of a colony or native settlement, and art/features one per forest, hills and mountains,
 each a single subject on a flat magenta ground (a feature is baked once, as it stands: where two of a kind
 meet, pixel-art.ts draws the picture again half a square over, so the wood or the ridge runs on). art/floors holds one ground texture per open
@@ -152,6 +152,10 @@ def floor(path: Path) -> Image.Image:
 # marks are a cell or two across, and in a palette worked out from the pictures such marks fall between its colours
 # and are lost to the ground, so that drifted snow comes out as one flat white.)
 FEATURE_PALETTE = 32
+
+# How many colours the unit figures share: one figure per look of a unit (a unit type, or a profession's own
+# picture, src/ui/unit-looks.ts), so that the many figures do not muddy one another's colours (R-1069).
+UNIT_PALETTE = 48
 
 
 def bake(folder: str, size: int, palette: int, owner_key: bool = False, prepare=cut_out, shared: bool = True,
@@ -473,9 +477,9 @@ def main() -> None:
     if wanted('chart'):
         chart()
     if wanted('units'):
-        colours, figures = bake('art/units', 30, 32)
+        colours, figures = bake('art/units', 30, UNIT_PALETTE)
         write('src/ui/unit-art.ts', 'Unit figures for the map', 'UNIT', 'FIGURE_SIZE', 30, colours, figures,
-              'One figure per unit type: rows of letters from UNIT_CODES; a full stop is see-through.')
+              'One figure per look of a unit (a unit type, or a profession of its own): rows of letters from UNIT_CODES; a full stop is see-through.')
     if wanted('places'):
         colours, figures = bake('art/places', 32, 24, owner_key=True)
         write('src/ui/place-art.ts', 'Colonies and native settlements for the map', 'PLACE', 'PLACE_SIZE', 32, colours, figures,
