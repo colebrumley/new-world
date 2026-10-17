@@ -80,7 +80,7 @@ A colonist who is an expert at the wrong job can have his specialty cleared on t
 
 ## Telling colonists apart
 
-On the map, on the colony screen and on the docks, an expert shows his trade: each skill has a figure of its own, told apart by what he carries and the colour of his coat. A free colonist carries a pack and a staff. An expert given equipment for another job looks like anyone else in that job (the hover text still names his skill); the expert of that job (a veteran soldier or dragoon, a hardy pioneer, a seasoned scout, a Jesuit missionary) keeps a figure of his own, shown under Experts in their roles below.
+On the map, on the colony screen and on the docks, an expert shows his trade: each skill has a figure of its own, told apart by what he carries and the colour of his coat. A free colonist carries a pack and a staff. An expert given equipment for another job looks like anyone else in that job (the hover text still names his skill); the expert of that job (a veteran soldier or a veteran dragoon, under arms or mounted alike; a hardy pioneer; a seasoned scout; a Jesuit missionary) keeps a figure of his own, shown under Experts in their roles below.
 
 |  | Colonist | Trademark |
 | :--- | :--- | :--- |
