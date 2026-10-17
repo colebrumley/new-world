@@ -16,6 +16,7 @@ import { checkCashTreasure, treasureQuote } from '../engine/royal';
 import { abandonQuestion, colonyView, dropVerdict, jobChoices, leaveAction, type ColonyView, type DropVerdict, type PersonView } from './colony-model';
 import { ask, askText } from './dialog';
 import { buildingArt, figureArt, flagArt, goodArt, type Sprite } from './pixel-art';
+import { lookOf as unitLookOf, type LookId } from './unit-looks';
 import { inkOf } from './render';
 import { lookOf, paintTile, spriteCanvas } from './tiles';
 
@@ -336,12 +337,21 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     return b;
   }
 
-  /** The figure a person or a unit here is drawn as: a colonist at work in the colony is a colonist, a unit is its own kind. */
-  const figure = (kind: 'colonist' | 'unit' | 'carrier', id: string): HTMLCanvasElement | null =>
-    picture(figureArt(kind === 'colonist' ? 'colonist' : (host.state().units[id]?.type ?? '')), 'token-art token-figure');
+  /** The figure of a look: a colonist at work shows its profession, a unit here the figure the map draws it as. */
+  const figure = (look: LookId): HTMLCanvasElement | null => picture(figureArt(look), 'token-art token-figure');
+  /** The look of a person in the colony or of a unit here, from the state, for a token's ghost. */
+  const lookFor = (kind: 'colonist' | 'unit', id: string): LookId | null => {
+    const state = host.state();
+    if (kind === 'unit') {
+      const unit = state.units[id];
+      return unit ? unitLookOf(unit.type, unit.profession) : null;
+    }
+    const colonist = state.colonies[colonyId]?.colonists.find((c) => c.id === id);
+    return colonist ? unitLookOf('colonist', colonist.profession) : null;
+  };
   const goodIcon = (good: string): HTMLCanvasElement | null => picture(goodArt(good), 'token-art good-art', GOOD_SCALE);
 
-  const personToken = (kind: 'colonist' | 'unit', p: PersonView): HTMLButtonElement => token(kind, p.id, p.label, p.doing, '', figure(kind, p.id), p.fullName);
+  const personToken = (kind: 'colonist' | 'unit', p: PersonView): HTMLButtonElement => token(kind, p.id, p.label, p.doing, '', figure(p.look), p.fullName);
 
   function region(name: string, title: string): HTMLElement {
     const box = el('div', `colony-${name}`);
@@ -469,7 +479,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       const box = el('div', `carrier${c.id === carrierId ? ' carrier-active' : ''}`);
       box.dataset['drop'] = `carrier:${c.id}`;
       box.dataset['carrier'] = c.id;
-      const pick = token('carrier', c.id, c.label, `${c.used}/${c.holds} holds`, '', figure('carrier', c.id));
+      const pick = token('carrier', c.id, c.label, `${c.used}/${c.holds} holds`, '', figure(c.look));
       box.append(pick);
       for (const lot of c.cargo) box.append(token('cargo', c.id, lot.name, String(lot.amount), lot.good, goodIcon(lot.good)));
       for (const p of c.passengers) box.append(personToken('unit', p));
@@ -597,7 +607,8 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     const [kind = '', id = '', extra = ''] = grip.source.split(':');
     const ghost = el('div', `drag-ghost token token-${kind}`);
     ghost.setAttribute('aria-hidden', 'true');
-    const art = kind === 'colonist' || kind === 'unit' ? figure(kind, id) : goodIcon(kind === 'cargo' ? extra : id);
+    const look = kind === 'colonist' || kind === 'unit' ? lookFor(kind, id) : null;
+    const art = kind === 'colonist' || kind === 'unit' ? (look ? figure(look) : null) : goodIcon(kind === 'cargo' ? extra : id);
     if (art) ghost.append(art);
     ghost.append(el('span', 'token-label', grip.from.querySelector('.token-label')?.textContent ?? ''));
     const sub = grip.from.querySelector('.token-sub')?.textContent ?? '';

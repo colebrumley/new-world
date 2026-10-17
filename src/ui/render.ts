@@ -14,6 +14,7 @@ import { tribeOfOwner } from '../engine/settlements';
 import type { TerrainId } from '../engine/data/terrain';
 import { isExploredBy, isWater, terrainOf, type Tile } from '../engine/tile';
 import { activeFrameArt, colonyArt, chartMarkArt, blockedCursorArt, cursorArt, DETAIL, detailedColonyArt, detailedPieceArt, detailedSettlementArt, halve, hasFigure, INK, joins, LABEL_LENGTH, LABEL_SIZE, LABEL_STEP, labelArt, labelText, openOf, PALETTE, pieceArt, settlementArt, VELLUM, vellumArt, type InkId, type Sprite } from './pixel-art';
+import { lookOf as unitLookOf } from './unit-looks';
 import { blendLayer, chartGrid, coastLayer, DETAIL_FROM, drawArt, floorLayer, lookOf, overLayer, TILE_VARIANTS, type TileCache } from './tiles';
 import { orderLetter, topUnit } from './unit-queue';
 import type { View } from './view';
@@ -354,11 +355,12 @@ export function renderPieces(ctx: CanvasRenderingContext2D, state: GameState, vi
     // A foreign ship shows how many of its holds are filled instead of its orders; native bands carry no plate.
     const foreignShip = unit.owner !== me && UNIT_TYPES[unit.type].domain === 'sea';
     const label = UNIT_TYPES[unit.type].native ? '' : foreignShip ? String(holdsUsed(state, unit)) : orderLetter(unit);
-    const piece = { type: unit.type, color: ink, label, stacked };
-    // a kind with a detailed figure is drawn from it once a square can hold it, as large as whole pixels allow, standing on the square's foot
-    const large = hasFigure(unit.type) ? Math.floor(t / DETAIL) * DETAIL : 0;
-    if (large > 0) drawArt(ctx, cache.sprite(`figure|${unit.type}|${ink}|${label}|${stacked ? 1 : 0}`, () => detailedPieceArt(piece) ?? pieceArt(piece)), px + (t - large) / 2, py + t - large, large);
-    else drawArt(ctx, art(`piece|${unit.type}|${ink}|${label}|${stacked ? 1 : 0}`, () => pieceArt(piece)), px, py, t);
+    const look = unitLookOf(unit.type, unit.profession);
+    const piece = { look, color: ink, label, stacked };
+    // a look with a detailed figure is drawn from it once a square can hold it, as large as whole pixels allow, standing on the square's foot
+    const large = hasFigure(look) ? Math.floor(t / DETAIL) * DETAIL : 0;
+    if (large > 0) drawArt(ctx, cache.sprite(`figure|${look}|${ink}|${label}|${stacked ? 1 : 0}`, () => detailedPieceArt(piece) ?? pieceArt(piece)), px + (t - large) / 2, py + t - large, large);
+    else drawArt(ctx, art(`piece|${look}|${ink}|${label}|${stacked ? 1 : 0}`, () => pieceArt(piece)), px, py, t);
   };
   for (const stack of bySquare.values()) {
     const unit = topUnit(stack, extras.activeUnitId ?? null);

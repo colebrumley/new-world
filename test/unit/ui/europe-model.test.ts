@@ -35,8 +35,8 @@ describe('europeView', () => {
     const s = port();
     const v = europeView(s, 'a')!;
     expect(v).toMatchObject({ port: 'London', gold: 900, taxRate: 7 });
-    expect(v.expected).toEqual([{ id: 'in', type: 'caravel', label: 'Caravel', turns: 2 }]);
-    expect(v.outbound).toEqual([{ id: 'out', type: 'galleon', label: 'Galleon', turns: 1 }]);
+    expect(v.expected).toEqual([{ id: 'in', type: 'caravel', look: 'caravel', label: 'Caravel', turns: 2 }]);
+    expect(v.outbound).toEqual([{ id: 'out', type: 'galleon', look: 'galleon', label: 'Galleon', turns: 1 }]);
     expect(v.inPort).toHaveLength(1);
     expect(v.inPort[0]).toMatchObject({ id: 'ship', label: 'Merchantman', holds: 4, used: 3, repair: 0, passengers: [{ id: 'rider', label: 'Free Colonist' }] });
     expect(v.inPort[0]?.cargo.map((c) => [c.good, c.amount])).toEqual([['furs', 100], ['tools', 30]]);
@@ -52,8 +52,21 @@ describe('europeView', () => {
     armed('rider', { type: 'soldier', profession: 'expertFarmer' });
     armed('man', { type: 'dragoon', profession: 'pettyCriminal' });
     const v = europeView(s, 'a')!;
-    expect(v.inPort[0]?.passengers).toEqual([{ id: 'rider', type: 'soldier', label: 'Soldier', fullName: 'Soldier (Expert Farmer)' }]);
+    expect(v.inPort[0]?.passengers).toEqual([{ id: 'rider', type: 'soldier', look: 'soldier', label: 'Soldier', fullName: 'Soldier (Expert Farmer)' }]);
     expect(v.docks.map((d) => [d.id, d.label, d.fullName])).toEqual([['man', 'Dragoon', 'Dragoon (Petty Criminal)'], ['idler', 'Veteran Soldier', 'Veteran Soldier']]);
+  });
+
+  it('gives the docks, the quay and the ships their looks: an expert farmer his own, a veteran soldier under arms the expert soldier', () => {
+    let s = port();
+    const set = (id: string, patch: Partial<Unit>): void => {
+      s = { ...s, units: { ...s.units, [id]: { ...(s.units[id] as Unit), ...patch } } };
+    };
+    set('rider', { profession: 'expertFarmer' });
+    set('man', { profession: 'veteranSoldier' });
+    const v = europeView(s, 'a')!;
+    expect(v.inPort[0]?.look).toBe('merchantman');
+    expect(v.inPort[0]?.passengers.map((p) => p.look)).toEqual(['expertFarmer']);
+    expect(v.docks.map((d) => [d.id, d.look])).toEqual([['man', 'veteranSoldier'], ['idler', 'expertSoldier']]);
   });
 
   it('quotes bid and ask for all sixteen goods and marks the boycotted', () => {
