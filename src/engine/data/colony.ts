@@ -1,4 +1,6 @@
+import type { UnitOrders } from '../state';
 import type { NationId } from './nations';
+import type { UnitTypeId } from './units';
 
 // Default colony names per nation, in the order they are handed out.
 // Historical place names; a few repeat within a list.
@@ -54,6 +56,17 @@ export const COLONY_LIMITS = {
   /** With this Founding Father, a colony reaching three colonists gets a Stockade free. */
   freeStockadeFather: 'laSalle',
 } as const;
+
+/**
+ * Who keeps a colony from working a land square by standing on it: a unit of another European
+ * power (never a tribe's), under Fortify or Fortified orders, that either fights (attack above
+ * `minAttack`) or is a pioneer of a human power. Other units on the square do not block it.
+ */
+export const WORK_SQUARE_BLOCKERS = {
+  orders: ['fortify', 'fortified'],
+  minAttack: 1,
+  humanTypes: ['pioneer'],
+} as const satisfies { orders: readonly UnitOrders[]; minAttack: number; humanTypes: readonly UnitTypeId[] };
 
 /** Buildings every new colony starts with. */
 export const STARTING_BUILDINGS = [

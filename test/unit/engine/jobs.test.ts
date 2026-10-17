@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, validateAction, type Action } from '../../../src/engine/actions';
 import { checkInvariants } from '../../../src/engine/invariants';
 import { centerOutput, fieldOutput, jobOptions, squareStatus, workerAt } from '../../../src/engine/jobs';
+import { WORK_SQUARE_BLOCKERS } from '../../../src/engine/data/colony';
 import type { Colonist, Colony, GameState } from '../../../src/engine/state';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
@@ -43,13 +44,51 @@ describe('which squares can be worked', () => {
     expect(squareStatus(s, col(s, 'east'), -1, 1)).toBe('free');
   });
 
-  it('native land, foreign units and other settlements block a square', () => {
+  it('native land blocks a square until it is bought', () => {
     const s = town([person('a')]);
     expect(squareStatus(setTile(s, 3, 2, { homeland: 'sioux' }), col(s), 1, 0)).toBe('nativeLand');
     expect(squareStatus(setTile(s, 3, 2, { homeland: 'sioux', claim: 'a' }), col(s), 1, 0)).toBe('free'); // bought
     expect(squareStatus(setTile(s, 3, 2, { homeland: 'sioux', claim: 'b' }), col(s), 1, 0)).toBe('nativeLand');
-    expect(squareStatus(withUnit(s, { id: 'e', owner: 'b', x: 3, y: 2 }), col(s), 1, 0)).toBe('foreignUnit');
-    expect(squareStatus(withUnit(s, { id: 'f', owner: 'a', x: 3, y: 2 }), col(s), 1, 0)).toBe('free');
+  });
+
+  it('only a fortified fighting unit of another European power holds a land square', () => {
+    const s = town([person('a')]);
+    const at = (unit: Omit<Parameters<typeof withUnit>[1], 'x' | 'y'>, state = s): string => squareStatus(withUnit(state, { ...unit, x: 3, y: 2 }), col(state), 1, 0);
+    expect(at({ id: 'e', owner: 'b', type: 'soldier', orders: 'fortified' })).toBe('foreignUnit');
+    expect(at({ id: 'e', owner: 'b', type: 'dragoon', orders: 'fortify' })).toBe('foreignUnit');
+    expect(at({ id: 'e', owner: 'b', type: 'artillery', orders: 'fortified' })).toBe('foreignUnit');
+    // not fortified, or not a fighter: the colony works round it
+    expect(at({ id: 'e', owner: 'b', type: 'soldier', orders: 'none' })).toBe('free');
+    expect(at({ id: 'e', owner: 'b', type: 'soldier', orders: 'sentry' })).toBe('free');
+    expect(at({ id: 'e', owner: 'b', type: 'colonist', orders: 'fortified' })).toBe('free');
+    expect(at({ id: 'e', owner: 'b', type: 'scout', orders: 'fortified' })).toBe('free'); // attack 1
+    // the colony's own units never block it, nor do a tribe's
+    expect(at({ id: 'f', owner: 'a', type: 'soldier', orders: 'fortified' })).toBe('free');
+    expect(at({ id: 'n', owner: 'tribe:sioux', type: 'armedBrave', orders: 'fortified' })).toBe('free');
+  });
+
+  it('the blockers table', () => {
+    expect(WORK_SQUARE_BLOCKERS).toMatchSnapshot();
+  });
+
+  it("a fortified pioneer holds a square for a human power, not for a computer one", () => {
+    const human = town([person('a')]);
+    const computer = town([person('a')], {}, [{ id: 'a' }, { id: 'b', kind: 'ai' }]);
+    const pioneer = { id: 'p', owner: 'b', type: 'pioneer', orders: 'fortified', x: 3, y: 2 } as const;
+    expect(squareStatus(withUnit(human, pioneer), col(human), 1, 0)).toBe('foreignUnit');
+    expect(squareStatus(withUnit(computer, pioneer), col(computer), 1, 0)).toBe('free');
+  });
+
+  it('a fortified foreign ship does not hold a sea square', () => {
+    const s = town([person('a')]);
+    expect(squareStatus(withUnit(s, { id: 'w', owner: 'b', type: 'frigate', orders: 'fortified', x: 1, y: 2 }), col(s), -1, 0)).toBe('free');
+  });
+
+  it('a colonist cannot be put to work on a held square, and can once it is only passed through', () => {
+    const s = town([person('a')]);
+    const assign: Action = { type: 'assignJob', colonyId: 'col', colonistId: 'a', job: { kind: 'field', dx: 1, dy: 0, good: 'food' } };
+    expect(code(withUnit(s, { id: 'e', owner: 'b', type: 'soldier', orders: 'fortified', x: 3, y: 2 }), assign)).toBe('squareTaken');
+    expect(code(withUnit(s, { id: 'e', owner: 'b', type: 'soldier', orders: 'none', x: 3, y: 2 }), assign)).toBe('ok');
   });
 });
 
