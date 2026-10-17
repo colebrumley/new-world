@@ -211,6 +211,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   let mode: Mode = 'move';
   let cursor: { x: number; y: number } | null = null;
   let activeId: UnitId | null = null;
+  /** The unit a held direction key began moving; the key's repeats move no other. */
+  let heldFor: UnitId | null = null;
   const waiting = new Set<UnitId>();
   let notice = '';
   let dirty = true;
@@ -1556,6 +1558,9 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       }
       if (mode === 'move') {
         const unit = activeUnit();
+        // a key held down past the end of one unit's moves does not carry on with the next one
+        if (!event.repeat) heldFor = unit?.id ?? null;
+        else if (unit?.id !== heldFor) return;
         if (unit) void tryMove(unit.id, step[0], step[1]);
         else say('No unit is waiting for orders. Press Enter to end the turn.');
         return;

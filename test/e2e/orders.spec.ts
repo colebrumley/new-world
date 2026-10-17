@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { startNewGame } from './helpers';
+import { settled, startNewGame } from './helpers';
 
 const field = (page: Page, name: string) => page.locator(`[data-field="${name}"]`);
 
@@ -145,4 +145,42 @@ test('with no colony by 1600 the charter is withdrawn and the game stops', async
   await page.keyboard.press('Enter');
   await expect(end).toBeVisible();
   await expect(field(page, 'date')).toHaveText('Spring 1600');
+});
+
+test('a held direction key moves only the unit it began with', async ({ page }) => {
+  await page.goto('/?seed=7');
+  await startNewGame(page, 'america');
+  await expect(field(page, 'unit')).toHaveText('Caravel');
+  const [x, y] = (await field(page, 'location').textContent())!.match(/\d+/g)!.map(Number) as [number, number];
+  // held down, the key repeats and the caravel goes on sailing
+  await page.keyboard.down('ArrowLeft');
+  await page.keyboard.down('ArrowLeft'); // a repeat
+  await page.keyboard.up('ArrowLeft');
+  await expect(field(page, 'location')).toHaveText(`(${x - 2}, ${y})`);
+
+  // sail on to the shore and land the soldier
+  const dialog = page.getByRole('dialog');
+  for (let step = 0; step < 12 && !(await dialog.isVisible()); step++) {
+    if ((await field(page, 'unit').textContent()) === 'No active unit') {
+      await page.keyboard.press('Enter');
+      await settled(page);
+    }
+    await page.keyboard.press('ArrowLeft');
+    await settled(page);
+  }
+  await dialog.getByRole('button', { name: 'Make landfall' }).click();
+  await expect(field(page, 'unit')).toHaveText('Soldier');
+  // going ashore ends the soldier's turn; the key still held must not walk the pioneer after him
+  await page.keyboard.down('ArrowLeft');
+  await expect(field(page, 'unit')).toHaveText('Pioneer');
+  const pioneerAt = (await field(page, 'location').textContent())!;
+  await page.keyboard.down('ArrowLeft'); // a repeat
+  await page.keyboard.down('ArrowLeft');
+  await settled(page);
+  await page.keyboard.up('ArrowLeft');
+  await expect(field(page, 'unit')).toHaveText('Pioneer');
+  await expect(field(page, 'location')).toHaveText(pioneerAt);
+  // a fresh press takes it ashore, which ends its turn too, and the caravel comes up
+  await page.keyboard.press('ArrowLeft');
+  await expect(field(page, 'unit')).toHaveText('Caravel');
 });
