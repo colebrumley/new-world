@@ -150,6 +150,21 @@ with R-900.
 **Notes:** the entry reads "Europe" rather than the name of the power's home port. The squares
 on the rim of the map do not count as Sea Lane for this, as for a returning ship.
 
+### Sea Lane (R-102)
+**Numbers:** `MAPGEN.laneFromLand`, `westSeaColumns`, `eastSeaColumns` in `src/engine/data/mapgen.ts`
+**Rule:** a water square is Sea Lane when all three hold:
+- it is at least `laneFromLand` squares from every land square, counting a diagonal step as one
+  (arctic does not count as land);
+- on its row, no land lies between it and the west side of the map, or none between it and the
+  east side;
+- it is joined, through such squares (diagonals too), to one in the outermost two columns.
+So a ship leaving any coast that faces a side of the map reaches the Sea Lane after the same
+number of squares, wherever that coast lies. The random generator marks the Sea Lane with this
+rule (`seaLaneMask` in `src/engine/mapgen/sea-lane.ts`) and the America chart is drawn to it. The
+generator keeps land `westSeaColumns` and `eastSeaColumns` (plus the gap) clear of each side.
+**Notes:** our own rule and numbers. A sea between two lands of one row stays Ocean however
+wide, as does a wide bay whose only way out is too near land.
+
 ### Exploring (R-1066)
 **Numbers:** `EXPLORE` in `src/engine/data/explore.ts`
 **Rule:**
@@ -159,8 +174,12 @@ on the rim of the map do not count as Sea Lane for this, as for a returning ship
   moves.
 - It plans only over squares its owner has explored, never through another power's unit or
   colony nor a native settlement; a ship keeps to the open sea (no inland lake, no colony) and is
-  never asked to sail for Europe on the Sea Lane. A target is a square it can reach from which
-  its sight radius would show at least one unexplored square. It goes for the cheapest target;
+  never asked to sail for Europe on the Sea Lane. A ship also keeps off the Sea Lane: it never
+  sails from other water onto a Sea Lane square, never makes for one, and does not count unseen
+  Sea Lane squares among what its sight would show. One that starts on the Sea Lane may sail
+  across it to reach other water. The player may still sail a ship onto the Sea Lane by hand.
+  A target is a square it can reach from which its sight radius would show at least one
+  unexplored square. It goes for the cheapest target;
   ties go to the one showing more unexplored squares, then the lower `y`, then the lower `x`.
   It thinks again whenever a step shows new squares or it reaches its target.
 - A ship also weighs every target beside a land square its owner has explored. The cheapest of

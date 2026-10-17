@@ -2,8 +2,8 @@
 
 exports[`generateWorld > draws the same random maps as before (digest of every square for seeds 1 to 3) 1`] = `
 [
-  "c8c16095e5962e6c61330e2e9abe684ea0206870",
-  "a89261c17beec8a8c8ec7f769d0528a77645b5c4",
-  "d7766dd61d3717520ab1e521fd9a6695b316abdb",
+  "8bae9af1dc17885364cd92cf5a9055c435e8d388",
+  "0c867f602c36a7aebba821c7b5c9239143711648",
+  "3ebad0ae55d77b820499675beec939eb6d8e559f",
 ]
 `;

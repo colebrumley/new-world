@@ -68,7 +68,7 @@ nothing of the text a player types: turning a line into a command is the UI's bu
 ## `src/engine/mapgen/`
 The random New World generator: seeded value noise (`noise.ts`) and `generateWorld(rng, options)`
 (`generate.ts`), which shapes land, climate, relief, forest, rivers, sea lanes, resources and
-rumors, plus `worldStats` for tests and AI. Tunables live in `src/engine/data/mapgen.ts`. The
+rumors, plus `worldStats` for tests and AI; `sea-lane.ts` holds the Sea Lane rule both maps follow. Tunables live in `src/engine/data/mapgen.ts`. The
 America map is not generated: `america.ts` reads it from four authored charts in
 `src/engine/data/america.ts` (ground, relief, rivers, extras; one letter per playable square, with a
 legend per chart) through `readCharts`, and `chartsOf` turns any map back into charts.

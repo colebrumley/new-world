@@ -1,7 +1,7 @@
 // The Explore order (R-1066; docs/RULES.md "Exploring"). A scout or a ship given it moves on its
 // own, each turn, toward the cheapest place from which its sight shows squares its owner has not
 // seen. A scout turns aside for rumours and for chiefs nobody has spoken with; a ship keeps to the
-// coast it knows rather than the open sea. It plans over the
+// coast it knows rather than the open sea, and off the Sea Lane. It plans over the
 // squares its owner has explored only, and wakes when nothing reachable is left.
 import { attitude, isHostile, tribalAlarm } from './alarm';
 import { EXPLORE } from './data/explore';
@@ -101,7 +101,7 @@ function better(a: Omit<Target, 'steps'>, b: Omit<Target, 'steps'> | null): bool
   return a.y !== b.y ? a.y < b.y : a.x < b.x;
 }
 
-/** The step costs an exploring unit plans with: explored squares only, never into another power's square. */
+/** The step costs an exploring unit plans with: explored squares only, never into another power's square; a ship never from other water onto the Sea Lane. */
 function exploreStep(state: GameState, unit: Unit): StepCost {
   const { map } = state;
   const index = playerIndexOf(state, unit.owner);
@@ -114,18 +114,23 @@ function exploreStep(state: GameState, unit: Unit): StepCost {
     if (isBorder(map, tx, ty)) return null;
     const tile = tileAt(map, tx, ty) as Tile;
     if (!isExploredBy(tile, index) || blocked.has(ty * map.width + tx)) return null;
-    if (ship) return isWater(tile) && !isInlandLake(map, tx, ty) ? MOVEMENT.shipCost : null;
+    if (ship) {
+      if (!isWater(tile) || isInlandLake(map, tx, ty)) return null;
+      // one already on the Sea Lane may sail off it, but none sails out onto it
+      return tile.base === 'seaLane' && tileAt(map, fx, fy)?.base !== 'seaLane' ? null : MOVEMENT.shipCost;
+    }
     return isWater(tile) ? null : landStepCost(state, fx, fy, tx, ty);
   };
 }
 
-/** How many squares within `radius` of (x, y) the player has not explored. */
-function unexploredAround(state: GameState, index: number, x: number, y: number, radius: number): number {
+/** How many squares within `radius` of (x, y) the player has not explored (for a ship, leaving out the Sea Lane). */
+function unexploredAround(state: GameState, index: number, x: number, y: number, radius: number, ship: boolean): number {
   const { map } = state;
   let n = 0;
   for (let ty = Math.max(0, y - radius); ty <= Math.min(map.height - 1, y + radius); ty++) {
     for (let tx = Math.max(0, x - radius); tx <= Math.min(map.width - 1, x + radius); tx++) {
-      if (!isExploredBy(map.tiles[ty * map.width + tx] as Tile, index)) n++;
+      const tile = map.tiles[ty * map.width + tx] as Tile;
+      if (!isExploredBy(tile, index) && !(ship && tile.base === 'seaLane')) n++;
     }
   }
   return n;
@@ -168,7 +173,9 @@ export function exploreTarget(state: GameState, unit: Unit, heedBurial = true): 
     if (i === reach.start || cost === Infinity) continue;
     const x = i % map.width;
     const y = (i - x) / map.width;
-    const shows = unexploredAround(state, index, x, y, radius);
+    // a ship never makes for a square of the Sea Lane
+    if (ship && (map.tiles[i] as Tile).base === 'seaLane') continue;
+    const shows = unexploredAround(state, index, x, y, radius, ship);
     const here = { x, y, cost, shows };
     if (shows > 0 && better(here, plain)) plain = here;
     if (scout && ((rumours && (map.tiles[i] as Tile).rumor) || besideChief.has(i)) && better(here, special)) special = here;

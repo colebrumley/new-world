@@ -29,11 +29,11 @@ export const MAPGEN = {
   /** MAPEDIT warns above 15 continents. The two polar caps count, so the rest get 13. */
   maxLandMasses: 15,
   maxNonPolarMasses: 13,
-  /** Sea Lane columns counted from each playable edge. */
-  westLaneColumns: 3,
-  eastLaneColumns: 7,
-  /** Sea Lane never comes closer than this to land. */
-  laneLandGap: 2,
+  /** Columns along each playable side the generator keeps free of land. */
+  westSeaColumns: 3,
+  eastSeaColumns: 7,
+  /** Open sea this many squares from the nearest land (diagonal steps count one) is Sea Lane, on the outer side of a row's land. */
+  laneFromLand: 3,
   /** Inland water bodies larger than this are filled in. */
   maxLakeTiles: 6,
   forestRatio: 0.6,

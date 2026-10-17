@@ -6,6 +6,7 @@ import {
 } from '../../../../src/engine/data/mapgen';
 import { RESOURCE_TERRAINS } from '../../../../src/engine/data/resources';
 import { generateWorld, isPlayable, worldStats } from '../../../../src/engine/mapgen/generate';
+import { seaLaneMask } from '../../../../src/engine/mapgen/sea-lane';
 import { createRng } from '../../../../src/engine/rng';
 import type { GameMap } from '../../../../src/engine/state';
 import { isWater, terrainOf, type Tile } from '../../../../src/engine/tile';
@@ -76,6 +77,10 @@ describe('generateWorld', () => {
     }
     expect(laneWest).toBeGreaterThan(MAP_HEIGHT);
     expect(laneEast).toBeGreaterThan(MAP_HEIGHT * 3);
+    // the Sea Lane is where its rule puts it: the outer open sea from the set distance off land
+    const solid = (x: number, y: number): boolean => !isWater(tileAtXY(map, x, y)) && tileAtXY(map, x, y).base !== 'arctic';
+    const lane = seaLaneMask(MAP_WIDTH, MAP_HEIGHT, solid, (x, y) => isWater(tileAtXY(map, x, y)));
+    for (let i = 0; i < map.tiles.length; i++) expect((map.tiles[i] as Tile).base === 'seaLane', `${i % MAP_WIDTH},${Math.floor(i / MAP_WIDTH)}`).toBe(lane[i]);
     for (let x = 1; x < MAP_WIDTH - 1; x++) {
       expect(tileAtXY(map, x, 1).base).toBe('arctic');
       expect(tileAtXY(map, x, MAP_HEIGHT - 2).base).toBe('arctic');
@@ -153,6 +158,9 @@ describe('createGame with a generated world', () => {
       expect(mine.map((u) => u.type)).toEqual(['caravel', 'soldier', 'pioneer']);
       const ship = mine[0]!;
       expect(tileAtXY(state.map, ship.x, ship.y).base).toBe('seaLane');
+      // on the inner edge of the eastern Sea Lane: the next square west is not lane, all east of it are
+      expect(tileAtXY(state.map, ship.x - 1, ship.y).base).not.toBe('seaLane');
+      for (let x = ship.x; x < MAP_WIDTH - 1; x++) expect(tileAtXY(state.map, x, ship.y).base, `${x},${ship.y}`).toBe('seaLane');
       expect(mine.slice(1).every((u) => u.aboard === ship.id && u.x === ship.x && u.y === ship.y)).toBe(true);
       expect(ship.movesLeft).toBe(12);
     }
