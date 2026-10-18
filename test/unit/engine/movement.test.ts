@@ -224,6 +224,17 @@ describe('boarding and landing', () => {
     expect(checkInvariants(ashore)).toEqual([]);
   });
 
+  it('passengers woken by landfall or a colony go back to sleep when their ship sails on', () => {
+    const woken = applyAction(loaded, { type: 'moveUnit', unitId: 'ship', dx: 1, dy: 0, landfall: true }).state;
+    const sailed = move(woken, 'ship', -1, 0);
+    for (const id of ['c1', 'c2']) expect(u(sailed, id)).toMatchObject({ x: 2, y: 2, aboard: 'ship', orders: 'sentry' });
+    const docked = move(withColony(loaded, { id: 'col', x: 4, y: 2 }), 'ship', 1, 0);
+    expect(u(docked, 'c1')).toMatchObject({ x: 4, y: 2, orders: 'none' });
+    const leaving = move(endRound(docked), 'ship', -1, 0);
+    for (const id of ['c1', 'c2']) expect(u(leaving, id)).toMatchObject({ x: 3, y: 2, aboard: 'ship', orders: 'sentry' });
+    expect(checkInvariants(leaving)).toEqual([]);
+  });
+
   it('there is no landfall to make once every passenger has spent its turn', () => {
     const tired = { ...loaded, units: { ...loaded.units, c1: { ...u(loaded, 'c1'), movesLeft: 0 }, c2: { ...u(loaded, 'c2'), movesLeft: 0 } } };
     expect(code(tired, { type: 'moveUnit', unitId: 'ship', dx: 1, dy: 0, landfall: true })).toBe('impassable');

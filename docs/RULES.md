@@ -104,6 +104,8 @@ to the SoL% used here, capped at 100.
 - Moving a ship onto empty land (no settlement, no foreign occupant) offers landfall if a
   passenger still has moves. Accepting wakes all land passengers; the ship neither moves nor
   spends anything. Each passenger then steps ashore itself.
+- Passengers still aboard when their ship or wagon train moves on (anywhere but into a colony)
+  go back on sentry, so they do not ask for orders while being carried.
 - A step across the shoreline (ship to land, land to ship) ends the unit's turn, unless a colony
   is at one end: stepping from a colony onto a ship alongside costs one move.
 - A unit aboard ship may not step onto a square occupied by another power.
