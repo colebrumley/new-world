@@ -303,8 +303,8 @@ export function executeMove(state: GameState, unitId: UnitId, plan: MovePlan): M
     ...(tracked ? { heading: HEADINGS.findIndex(([hx, hy]) => hx === Math.sign(tx - unit.x) && hy === Math.sign(ty - unit.y)) } : {}),
   };
   const changed: Unit[] = [moved];
-  // cargo rides along; arriving in a colony wakes the passengers
-  for (const passenger of cargoOf(next, unit.id)) changed.push({ ...passenger, x: tx, y: ty, orders: docking ? 'none' : passenger.orders });
+  // cargo rides along; arriving in a colony wakes the passengers, and putting to sea puts them back to sleep
+  for (const passenger of cargoOf(next, unit.id)) changed.push({ ...passenger, x: tx, y: ty, orders: docking ? 'none' : 'sentry' });
   next = withUnits(next, changed);
   if (plan.kind === 'disembark') events.push({ type: 'unitLanded', unitId: unit.id, carrierId: unit.aboard as UnitId, to: plan.to });
   else events.push({ type: 'unitMoved', unitId: unit.id, from, to: plan.to });
