@@ -1,7 +1,7 @@
 import { expect, test, type CDPSession, type Locator, type Page } from '@playwright/test';
 import { saveGame } from '../../src/engine/save';
 import { MOVE_THIRDS, OFF_MAP, type GameState } from '../../src/engine/state';
-import { withColony, withUnit, world } from '../helpers/world';
+import { setTile, withColony, withUnit, world } from '../helpers/world';
 import { field, settled } from './helpers';
 import { longPress, pinch, POSTURES, tap, touchDrag } from './postures';
 
@@ -12,6 +12,7 @@ import { longPress, pinch, POSTURES, tap, touchDrag } from './postures';
 const SOLDIER = { x: 20, y: 15 };
 const OTHER = { x: 24, y: 15 };
 const COLONY = { x: 16, y: 15 };
+const POND = { x: 20, y: 12 }; // a square of sea in the land, three north of the soldier
 
 /** A plain `width` by `height`, the sea two squares deep round it. */
 function land(width = 40, height = 30): GameState {
@@ -20,6 +21,7 @@ function land(width = 40, height = 30): GameState {
   // (moves enough for every step a test asks of him in one turn)
   state = withUnit(state, { id: 'u0', type: 'soldier', owner: 'p0', profession: null, ...SOLDIER, movesLeft: 20 * MOVE_THIRDS });
   state = withUnit(state, { id: 'u1', type: 'soldier', owner: 'p0', profession: null, ...OTHER, orders: 'sentry', movesLeft: 20 * MOVE_THIRDS });
+  state = setTile(state, POND.x, POND.y, { base: 'ocean' });
   state = withColony(state, { id: 'c0', owner: 'p0', name: 'Hope', ...COLONY, buildings: ['townHall'] });
   state = withUnit(state, { id: 'ship', type: 'caravel', owner: 'p0', profession: null, x: OFF_MAP, y: OFF_MAP });
   return { ...state, units: { ...state.units, ship: { ...state.units['ship']!, voyage: { phase: 'inEurope', turnsLeft: 0, origin: [0, 15] } } } };
@@ -148,12 +150,9 @@ test.describe('fingers on the map', () => {
     for (let i = 1; i <= 8; i++) await touch('touchMove', [{ x: unit.x + ((target.x - unit.x) * i) / 8, y: unit.y }]);
     await expect(canvas).toHaveAttribute('data-aim', `${SOLDIER.x + 4},${SOLDIER.y},ok`);
     // the sea is refused, as the mouse's drag shows it
-    const sea = await at(canvas, { x: SOLDIER.x, y: 1 });
+    await touch('touchMove', [await at(canvas, POND)]);
+    await expect(canvas).toHaveAttribute('data-aim', `${POND.x},${POND.y},blocked`);
     const box = (await canvas.boundingBox())!;
-    if (sea.y > box.y + 50) {
-      await touch('touchMove', [sea]);
-      await expect(canvas).toHaveAttribute('data-aim', `${SOLDIER.x},1,blocked`);
-    }
     // within --tap of the right edge the view scrolls
     const before = await viewOf(canvas);
     await touch('touchMove', [{ x: box.x + box.width - 20, y: unit.y }]);
@@ -173,6 +172,22 @@ test.describe('fingers on the map', () => {
     await page.waitForTimeout(400);
     expect((await viewOf(canvas)).originX).toBe(resting.originX);
     await touch('touchEnd');
+  });
+
+  test('a finger from the active unit let go off the map sends it nowhere', async ({ page }) => {
+    const { canvas } = await start(page);
+    const touch = await hand(page);
+    const unit = await at(canvas, SOLDIER);
+    const box = (await canvas.boundingBox())!;
+    await touch('touchStart', [unit]);
+    for (let i = 1; i <= 6; i++) await touch('touchMove', [{ x: unit.x + i * 30, y: unit.y }]);
+    await expect(canvas).not.toHaveAttribute('data-aim', '');
+    // over the sidebar, and let go there
+    await touch('touchMove', [{ x: box.x + box.width + 60, y: unit.y }]);
+    await expect(canvas).toHaveAttribute('data-aim', '');
+    await touch('touchEnd');
+    await settled(page);
+    await expect(location(page)).toHaveText(`(${SOLDIER.x}, ${SOLDIER.y})`);
   });
 
   test('a finger from the active unit to its neighbour steps it', async ({ page }) => {
@@ -285,7 +300,18 @@ test.describe('fingers on the map', () => {
     await tap(page, await at(canvas, COLONY));
     const colony = page.locator('.colony-screen');
     await expect(colony).toBeVisible();
-    await longPress(page, colony.locator('[data-building="townHall"] .building-name'));
+    const townHall = colony.locator('[data-building="townHall"] .building-name');
+    // held across a change of the window's size, it looks nothing up
+    const touch = await hand(page);
+    const hall = (await townHall.boundingBox())!;
+    await touch('touchStart', [{ x: hall.x + hall.width / 2, y: hall.y + hall.height / 2 }]);
+    await page.waitForTimeout(150);
+    await page.setViewportSize({ width: 1280, height: 790 });
+    await page.waitForTimeout(700);
+    await expect(pedia(page)).toHaveCount(0);
+    await touch('touchEnd');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await longPress(page, townHall);
     await expect(pedia(page)).toHaveAttribute('data-entry', 'buildings:townHall');
     await tap(page, pedia(page).locator('.report-close'));
     await expect(pedia(page)).toHaveCount(0);

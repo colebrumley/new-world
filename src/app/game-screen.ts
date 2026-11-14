@@ -1795,6 +1795,11 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     }
     gesture = fingers.size > 0 ? { id: -1, x: 0, y: 0, kind: 'off', unitId: null } : null;
   };
+  /** Whether a canvas pixel is on the canvas. */
+  const onCanvas = (p: { x: number; y: number }): boolean => p.x >= 0 && p.y >= 0 && p.x < canvas.clientWidth && p.y < canvas.clientHeight;
+  /** When the one finger down went down, and when the window last changed size: a long press held across a change is dropped. */
+  let fingerDownAt = 0;
+  let resizedAt = -Infinity;
   const onFingerDown = (event: PointerEvent): void => {
     lastDownKind = event.pointerType;
     if (event.pointerType === 'mouse' || stopped) return;
@@ -1808,6 +1813,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       return;
     }
     gesture = null;
+    fingerDownAt = performance.now();
     if (event.target !== canvas) return;
     // the browser makes up no mouse events from this touch: the finger's own handling is here
     event.preventDefault();
@@ -1831,6 +1837,14 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       fingerEdge = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tap')) || FINGER_EDGE;
     }
     if (gesture.kind === 'aim') {
+      // off the map the aim is dropped, as when the mouse leaves it; back on, it is taken up again
+      if (!onCanvas(p)) {
+        if (aimAt || draggedNow()) dirty = true;
+        pointer = null;
+        aimAt = null;
+        aimBlocked = false;
+        return;
+      }
       pointer = p;
       retarget();
       if (draggedNow()) dirty = true;
@@ -1855,7 +1869,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     const p = local(event, canvas);
     if (was.kind === 'aim') {
       pointer = null;
-      letGo(p, true, true, was.unitId);
+      // let go off the map, as the mouse's button cannot be, sends the unit nowhere
+      letGo(p, onCanvas(p), true, was.unitId);
     } else if (was.kind === 'press') {
       // a tap: a click, and the end of the hidden-terrain look, as a key ends it
       if (view.showHidden) setView({ ...view, showHidden: false });
@@ -1868,7 +1883,10 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     fingerAt = performance.now();
     dropGesture();
   };
-  const onWindowResize = (): void => dropGesture();
+  const onWindowResize = (): void => {
+    resizedAt = performance.now();
+    dropGesture();
+  };
   const capture = { capture: true } as const;
   window.addEventListener('pointerdown', onFingerDown, capture);
   window.addEventListener('pointermove', onFingerMove, capture);
@@ -1888,7 +1906,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   // a long press on a square shows its slip, whatever the option says, and nothing else; on what a
   // right-click looks up elsewhere it opens the encyclopedia; what the colony screen drags is its own
   const stopLongPress = onLongPress(screen, (target, clientX, clientY) => {
-    if (stopped) return;
+    if (stopped || resizedAt >= fingerDownAt) return;
     if (target !== canvas) {
       if (!target.closest('[data-drag]')) lookUp(target, clientX, clientY);
       return;
