@@ -96,6 +96,8 @@ export interface TextDialogOptions {
   readonly text: string;
   readonly initial: string;
   readonly maxLength?: number;
+  /** Asks for a number: a phone shows its number pad for it. */
+  readonly numeric?: boolean;
 }
 
 /** Ask for a line of text. Resolves with the text on Enter, or null on Escape. */
@@ -114,6 +116,7 @@ export function askText(host: HTMLElement, options: TextDialogOptions): Promise<
     input.type = 'text';
     input.value = options.initial;
     input.maxLength = options.maxLength ?? 24;
+    if (options.numeric) input.inputMode = 'numeric';
     label.append(input);
     const ok = document.createElement('button');
     ok.type = 'submit';

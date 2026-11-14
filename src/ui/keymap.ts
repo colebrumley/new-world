@@ -99,6 +99,11 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'colony', keys: 'Drag (Shift-drag for part)', action: 'Move people between squares, buildings and the gates; goods between warehouse and holds. A ghost of the thing follows the pointer, red where it cannot go' },
   { context: 'colony', keys: 'Click, then click a place', action: 'Select a colonist, unit or cargo, then send it to the square, building, hold or warehouse clicked' },
   { context: 'colony', keys: 'Click the selected colonist or unit', action: 'Jobs menu / orders menu' },
+  { context: 'colony', keys: 'A finger swiped', action: 'Scrolls the screen, from a token too; nothing is picked up' },
+  { context: 'colony', keys: 'A finger held on a thing', action: 'Picks it up: its ghost rides above the finger and follows it; let go on a place to send it there, or over none to put it back. Held at the top or bottom edge, the screen scrolls' },
+  { context: 'colony', keys: 'A finger held and let go in place', action: 'Looks the thing up in the encyclopedia' },
+  { context: 'colony', keys: 'Tap, then tap a place', action: 'As click, then click; a tap on a square that cannot be worked, a building or a refused button says its title in the help line' },
+  { context: 'colony', keys: 'Part', action: 'With a good or cargo selected (shown in the compact layout or with a finger): the next placement asks how much, as Shift does' },
 
   { context: 'europe', keys: 'R or 1', action: 'Recruit' },
   { context: 'europe', keys: 'P or 2', action: 'Purchase' },
@@ -107,6 +112,8 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'europe', keys: 'U / - / _', action: 'Sell the selected cargo, or the first aboard (_ asks how many)' },
   { context: 'europe', keys: 'Arrows', action: 'Move the highlight' },
   { context: 'europe', keys: 'Esc or E', action: 'Leave Europe' },
+  { context: 'europe', keys: 'Part', action: 'In the market (shown in the compact layout or with a finger): the next stall or cargo tapped asks how much, as + and _ do' },
+  { context: 'europe', keys: 'Tap a thing with a title', action: "Its title becomes the harbour-master's note" },
 ];
 
 /** Each context's heading, in the order docs/KEYS.md (and the manual's Controls page) lists them. */

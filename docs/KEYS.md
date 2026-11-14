@@ -100,6 +100,11 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | Drag (Shift-drag for part) | Move people between squares, buildings and the gates; goods between warehouse and holds. A ghost of the thing follows the pointer, red where it cannot go | works |
 | Click, then click a place | Select a colonist, unit or cargo, then send it to the square, building, hold or warehouse clicked | works |
 | Click the selected colonist or unit | Jobs menu / orders menu | works |
+| A finger swiped | Scrolls the screen, from a token too; nothing is picked up | works |
+| A finger held on a thing | Picks it up: its ghost rides above the finger and follows it; let go on a place to send it there, or over none to put it back. Held at the top or bottom edge, the screen scrolls | works |
+| A finger held and let go in place | Looks the thing up in the encyclopedia | works |
+| Tap, then tap a place | As click, then click; a tap on a square that cannot be worked, a building or a refused button says its title in the help line | works |
+| Part | With a good or cargo selected (shown in the compact layout or with a finger): the next placement asks how much, as Shift does | works |
 
 ## Europe screen
 
@@ -112,3 +117,5 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | U / - / _ | Sell the selected cargo, or the first aboard (_ asks how many) | works |
 | Arrows | Move the highlight | works |
 | Esc or E | Leave Europe | works |
+| Part | In the market (shown in the compact layout or with a finger): the next stall or cargo tapped asks how much, as + and _ do | works |
+| Tap a thing with a title | Its title becomes the harbour-master's note | works |

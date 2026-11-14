@@ -62,6 +62,8 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
   let shipId: string | null = null;
   let monitor = '';
   let focusKey = '';
+  /** The market's Part button is pressed: the next stall or cargo tapped asks how much, as + and _ do. */
+  let part = false;
 
   const attempt = (action: Action): readonly GameEvent[] | null => {
     const why = host.refusal(action);
@@ -82,7 +84,7 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
   };
 
   async function howMany(question: string, most: number): Promise<number> {
-    const answer = await askText(root, { text: `${question} (up to ${most})`, initial: String(most), maxLength: 4 });
+    const answer = await askText(root, { text: `${question} (up to ${most})`, initial: String(most), maxLength: 4, numeric: true });
     const n = Math.floor(Number(answer));
     return answer !== null && Number.isFinite(n) && n > 0 ? Math.min(n, most) : 0;
   }
@@ -216,6 +218,20 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
   const harbor = group('harbor', 'In port');
   const docks = group('docks', 'On the docks');
   const market = group('market', 'Market (bid / ask)');
+  // Part (R-1075), in the market's heading: Shift's + and _ for a finger, pressed for the next stall or cargo only
+  const partButton = button('Part', 'part', () => {
+    part = !part;
+    monitor = part ? 'Tap a stall or a cargo to say how much to buy or sell.' : '';
+    render();
+  }, 'europe-button europe-part');
+  partButton.title = 'Buy or sell only part: the next stall or cargo tapped asks how much';
+  market.firstElementChild?.append(partButton);
+  /** Whether the next purchase or sale asks how much: once, then the Part button lets go. */
+  const takePart = (): boolean => {
+    const was = part;
+    part = false;
+    return was;
+  };
   const stalls = new Map<GoodId, { stall: HTMLButtonElement; tag: HTMLElement }>();
   const office = group('office', 'Offices');
   const door = (label: string, key: string, onClick: () => void): HTMLButtonElement => {
@@ -287,7 +303,7 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
       for (const lot of ship.cargo) {
         quay.append(token('token-cargo', `cargo:${ship.id}:${lot.good}`, picture('good', lot.good, 'good-art', GOOD_SCALE), lot.name, String(lot.amount), () => {
           shipId = ship.id;
-          void sell(lot.good, false);
+          void sell(lot.good, takePart());
         }));
       }
       for (const rider of ship.passengers) {
@@ -322,7 +338,7 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
     for (const p of view.prices) {
       let made = stalls.get(p.good);
       if (!made) {
-        const stall = button('', `good:${p.good}`, () => void buy(p.good, false), 'token token-good');
+        const stall = button('', `good:${p.good}`, () => void buy(p.good, takePart()), 'token token-good');
         stall.dataset['good'] = p.good;
         const art = picture('good', p.good, 'good-art', GOOD_SCALE);
         if (art) stall.append(art);
@@ -336,10 +352,21 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
       write(made.tag, p.boycotted ? 'boycott' : `${p.bid}/${p.ask}`);
     }
 
+    partButton.setAttribute('aria-pressed', String(part));
     write(line, monitor);
     const again = focusKey ? root.querySelector<HTMLElement>(`[data-key="${focusKey}"]`) : null;
     (again ?? root.querySelector<HTMLElement>('.token-good') ?? root).focus();
   }
+
+  // A tap tells what resting the mouse on a thing tells: its title goes into the harbour-master's
+  // note, before whatever the tap itself does there (which may write over it).
+  root.addEventListener('pointerup', (event) => {
+    if (event.pointerType === 'mouse' || !(event.target instanceof Element) || event.target.closest('.dialog')) return;
+    const titled = event.target.closest<HTMLElement>('[title]');
+    if (!titled || !root.contains(titled) || titled === partButton) return;
+    monitor = titled.title;
+    write(line, monitor);
+  });
 
   root.addEventListener('keydown', (event) => {
     if ((event.target as HTMLElement).closest('.dialog')) return;

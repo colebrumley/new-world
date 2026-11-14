@@ -19,9 +19,10 @@ describe('keyboard map', () => {
       expect(map, want).toContain(want);
     }
     const colony = KEYMAP.filter((k) => k.context === 'colony').map((k) => k.keys);
-    expect(colony).toEqual(['Tab', 'Arrows', 'Enter', 'L / = / +', 'U / - / _', 'M', '1 / 2 / 3', 'N', 'C', 'B', 'X', 'F1', 'Esc', 'Drag (Shift-drag for part)', 'Click, then click a place', 'Click the selected colonist or unit']);
+    expect(colony).toEqual(['Tab', 'Arrows', 'Enter', 'L / = / +', 'U / - / _', 'M', '1 / 2 / 3', 'N', 'C', 'B', 'X', 'F1', 'Esc', 'Drag (Shift-drag for part)', 'Click, then click a place', 'Click the selected colonist or unit',
+      'A finger swiped', 'A finger held on a thing', 'A finger held and let go in place', 'Tap, then tap a place', 'Part']);
     const europe = KEYMAP.filter((k) => k.context === 'europe').map((k) => k.keys);
-    expect(europe).toEqual(['R or 1', 'P or 2', 'T or 3', 'L / = / +', 'U / - / _', 'Arrows', 'Esc or E']);
+    expect(europe).toEqual(['R or 1', 'P or 2', 'T or 3', 'L / = / +', 'U / - / _', 'Arrows', 'Esc or E', 'Part', 'Tap a thing with a title']);
   });
 
   it('maps key presses to commands', () => {

@@ -107,6 +107,11 @@ The keyboard is quicker once you know it. The tables below list every key, and e
 | Drag (Shift-drag for part) | Move people between squares, buildings and the gates; goods between warehouse and holds. A ghost of the thing follows the pointer, red where it cannot go |
 | Click, then click a place | Select a colonist, unit or cargo, then send it to the square, building, hold or warehouse clicked |
 | Click the selected colonist or unit | Jobs menu / orders menu |
+| A finger swiped | Scrolls the screen, from a token too; nothing is picked up |
+| A finger held on a thing | Picks it up: its ghost rides above the finger and follows it; let go on a place to send it there, or over none to put it back. Held at the top or bottom edge, the screen scrolls |
+| A finger held and let go in place | Looks the thing up in the encyclopedia |
+| Tap, then tap a place | As click, then click; a tap on a square that cannot be worked, a building or a refused button says its title in the help line |
+| Part | With a good or cargo selected (shown in the compact layout or with a finger): the next placement asks how much, as Shift does |
 
 ### Europe screen
 
@@ -119,6 +124,8 @@ The keyboard is quicker once you know it. The tables below list every key, and e
 | U / - / _ | Sell the selected cargo, or the first aboard (_ asks how many) |
 | Arrows | Move the highlight |
 | Esc or E | Leave Europe |
+| Part | In the market (shown in the compact layout or with a finger): the next stall or cargo tapped asks how much, as + and _ do |
+| Tap a thing with a title | Its title becomes the harbour-master's note |
 
 <!-- /table -->
 
