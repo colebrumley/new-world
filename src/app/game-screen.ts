@@ -46,6 +46,7 @@ import { createMagnifiedNotice } from '../ui/magnified';
 import { minimapLayout, minimapToTile, renderMinimap } from '../ui/minimap';
 import { viewerIndex, renderGround, renderPieces } from '../ui/render';
 import { createSidebar, formatMoves, sidebarModel, unitLabel } from '../ui/sidebar';
+import { createDock, createSheet } from '../ui/dock';
 import { MENU_CHOICES, REPORT_CHOICES, createCommandBar, type BarChoice } from '../ui/command-bar';
 import { PINCH_STEP, WHEEL_LINE, WHEEL_STEP, dragBlocked, mapClick, mapCursor, mapDrag, pinchTravel, wheelStep, type PointerMode } from '../ui/pointer';
 import { editRoute } from '../ui/trade-routes';
@@ -145,6 +146,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   const stopGame = (): void => {
     stopped = true;
     window.removeEventListener('resize', onResize);
+    resized.disconnect();
     magnified.stop();
     hideTip();
     overMap.disconnect();
@@ -196,14 +198,23 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   tooltip.className = 'map-tooltip';
   tooltip.setAttribute('role', 'tooltip');
   tooltip.hidden = true;
-  screen.append(canvas, sidebar.element, magnified.element, tooltip);
+  // the compact layout (docs/specs/phone-play.md W2): the dock in the sidebar's place, and the
+  // sidebar itself in the sheet its More opens; a dock button presses the sidebar's own
+  const sheet = createSheet(screen, sidebar.element, sidebar.minimap, () => resize());
+  const dock = createDock((button) => sidebar.element.querySelector<HTMLButtonElement>(`.command-bar [data-command="${button.id}"]`)?.click(), () => sheet.open());
+  screen.append(canvas, sheet.element, dock.element, sheet.backdrop, magnified.element, tooltip);
   root.replaceChildren(screen);
+  // the canvas's box changes with the layout, the posture and the sheet, not only with the window
+  const resized = new ResizeObserver(() => {
+    if (canvas.clientWidth !== view.width || canvas.clientHeight !== view.height || (window.devicePixelRatio || 1) !== dpr) resize();
+  });
 
   const ctx = canvas.getContext('2d');
   const miniCtx = sidebar.minimap.getContext('2d');
   if (!ctx || !miniCtx) throw new Error('Canvas 2D is not available');
 
-  const dpr = window.devicePixelRatio || 1;
+  /** Device pixels to a CSS pixel: read again at each resize, since a fold or a move to another screen changes it. */
+  let dpr = window.devicePixelRatio || 1;
   const cache = createTileCache();
   const revealAll = new URLSearchParams(location.search).has('reveal');
 
@@ -346,6 +357,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   };
 
   const resize = (): void => {
+    dpr = window.devicePixelRatio || 1;
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
     canvas.width = Math.round(width * dpr);
@@ -355,7 +367,13 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     mini.width = Math.round(mini.clientWidth * dpr);
     mini.height = Math.round(mini.clientHeight * dpr);
     miniCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const changed = width !== view.width || height !== view.height;
     view = resizeView(view, session.state.map, width, height);
+    // a window turned or folded about the middle of the view may leave the active unit outside it
+    // (only then: a view the player has moved away from the unit is theirs to keep)
+    const unit = activeUnit();
+    if (changed && unit && unit.x >= 0 && !isTileInView(view, unit.x, unit.y)) view = centerOn(view, session.state.map, unit.x, unit.y);
+    canvas.dataset['view'] = JSON.stringify(view);
     dirty = true;
     hideTip();
   };
@@ -1921,11 +1939,15 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(ground, 0, 0, view.width, view.height);
     renderPieces(ctx, session.state, view, cache, { activeUnitId: unit?.id ?? null, cursor: showCursor, dragged, blinkOn: shownBlink, waterPhase: shownWater, slide: slideAt(time) });
-    renderMinimap(miniCtx, session.state, view, sidebar.minimap.clientWidth, sidebar.minimap.clientHeight, unit?.id ?? null);
+    // (a chart in a closed sheet has no box, and nothing to paint)
+    if (sidebar.minimap.clientWidth > 0) renderMinimap(miniCtx, session.state, view, sidebar.minimap.clientWidth, sidebar.minimap.clientHeight, unit?.id ?? null);
     const focus = mode !== 'move' || !unit || unit.x < 0 ? cursor : { x: unit.x, y: unit.y };
     const status = notice || (session.state.over ? END_STATUS : unit ? '' : 'End of turn. Press Enter.');
-    sidebar.update(sidebarModel(session.state, mode === 'view' ? null : unit, focus, revealAll, status));
-    commandBar.update(unit !== null && mode !== 'view', mode === 'goto', europeCall(session.state, me()), session.state.over !== null, unit !== null && mayExplore(unit));
+    const model = sidebarModel(session.state, mode === 'view' ? null : unit, focus, revealAll, status);
+    const bar = [unit !== null && mode !== 'view', mode === 'goto', europeCall(session.state, me()), session.state.over !== null, unit !== null && mayExplore(unit)] as const;
+    sidebar.update(model);
+    commandBar.update(...bar);
+    dock.update(model, ...bar);
   };
 
   const frame = (time: number): void => {
@@ -1968,6 +1990,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   };
 
   window.addEventListener('resize', onResize);
+  resized.observe(canvas);
   resize();
   save();
   requestAnimationFrame(frame);

@@ -1,5 +1,6 @@
 // The command bar: a button in the sidebar for every map command, for play with the mouse.
 // Each button runs the same command as its key; the lists of reports and menus come from the keyboard table.
+// The dock (src/ui/dock.ts) is made of the same buttons, standing by the same rules.
 import { END_BUTTON } from './end-page';
 import type { EuropeCall } from './europe-model';
 import { KEYMAP, type MapCommand } from './keymap';
@@ -50,6 +51,9 @@ export const COMMAND_BUTTONS: readonly CommandButton[] = [
   { id: 'menus', label: 'Menu…', keys: 'Alt+letter', run: 'menus', needsUnit: false },
 ];
 
+/** The commands the dock carries in the compact layout (docs/specs/phone-play.md W2); the rest are under its More. */
+export const DOCK_COMMANDS: readonly string[] = ['wait', 'skip', 'goTo', 'fortify', 'sentry', 'buildColony', 'endTurn'];
+
 export interface BarChoice extends BarCommand {
   readonly label: string;
 }
@@ -73,45 +77,92 @@ export const MENU_CHOICES: readonly BarChoice[] = [
   { label: 'Retire', command: 'retire', key: 'r' },
 ];
 
+/** What the bar is told at each drawing; see `buttonLook`. */
+export interface BarState {
+  readonly hasUnit: boolean;
+  readonly targeting: boolean;
+  readonly europe: EuropeCall;
+  readonly over: boolean;
+  readonly explorer: boolean;
+}
+
+/** How a button stands in a state of the bar, wherever it is shown: the sidebar or the dock. */
+export interface ButtonLook {
+  readonly label: string;
+  readonly title: string;
+  readonly disabled: boolean;
+  readonly hidden: boolean;
+  /** The Europe button's `data-europe`: absent in the plain state. */
+  readonly europe?: 'sea' | 'port';
+}
+
+/** A title naming `name`, then what the Europe button has to say, if anything. */
+export const europeTitle = (name: string, europe: EuropeCall): string => (europe.note ? `${name}: ${europe.note}` : name);
+
+/**
+ * The orders are disabled unless a unit is waiting for them. While a Go To destination is being
+ * picked the Go to button reads Cancel, and gives the targeting up. The Europe button shows whether
+ * a ship in port is ready, or ships are at sea or under repair, by its `data-europe` and its title.
+ * Once the game is `over` no order can be given: the orders, End turn's own work and Europe are
+ * shut, and the End turn button reads The end and brings the end page back; looking (the terrain,
+ * the zoom, the reports and the menus) goes on. The Explore button is shown only while the active
+ * unit is one that may explore (a scout or a ship).
+ */
+export function buttonLook(button: CommandButton, { hasUnit, targeting, europe, over, explorer }: BarState): ButtonLook {
+  const plain: ButtonLook = { label: button.label, title: `${button.label} (${button.keys})`, disabled: button.needsUnit && (!hasUnit || over), hidden: false };
+  switch (button.id) {
+    case 'explore':
+      return { ...plain, hidden: !(hasUnit && explorer) };
+    case 'endTurn': {
+      const label = over ? END_BUTTON : button.label;
+      return { ...plain, label, title: `${label} (Enter)` };
+    }
+    case 'goTo':
+      return targeting
+        ? { ...plain, label: CANCEL_LABEL, title: `${CANCEL_LABEL} (Esc)`, disabled: over }
+        : { ...plain, disabled: over || !hasUnit };
+    case 'europe':
+      return { ...plain, title: europeTitle('Europe (E)', europe), disabled: over, ...(europe.state === 'none' ? {} : { europe: europe.state }) };
+    default:
+      return plain;
+  }
+}
+
 export interface CommandBar {
   readonly element: HTMLElement;
-  /**
-   * Enable or disable the orders, according to whether a unit is waiting for them. While a Go To
-   * destination is being picked the Go to button reads Cancel, and gives the targeting up. The
-   * Europe button shows whether a ship in port is ready, or ships are at sea or under repair, by
-   * its `data-europe` and its title. Once the game is `over` no order can be given: the orders, End
-   * turn's own work and Europe are shut, and the End turn button reads The end and brings the end
-   * page back; looking (the terrain, the zoom, the reports and the menus) goes on. The Explore
-   * button is shown only while the active unit is one that may explore (a scout or a ship).
-   */
+  /** Show each button as `buttonLook` says for this state. */
   update(hasUnit: boolean, targeting: boolean, europe?: EuropeCall, over?: boolean, explorer?: boolean): void;
 }
 
-export function createCommandBar(onPick: (button: CommandButton) => void): CommandBar {
+export interface BarOptions {
+  /** Only these commands, in the bar's own order; every one when left out. */
+  readonly only?: readonly string[];
+  readonly className?: string;
+  readonly label?: string;
+  /** The data attribute (by its dataset name) each button carries its command in. */
+  readonly attribute?: string;
+}
+
+export function createCommandBar(onPick: (button: CommandButton) => void, { only, className = 'command-bar', label = 'Commands', attribute = 'command' }: BarOptions = {}): CommandBar {
   const element = document.createElement('div');
-  element.className = 'command-bar';
+  element.className = className;
   element.setAttribute('role', 'toolbar');
-  element.setAttribute('aria-label', 'Commands');
-  const orders: HTMLButtonElement[] = [];
-  let goTo: HTMLButtonElement | null = null;
-  let europeButton: HTMLButtonElement | null = null;
-  let endTurn: HTMLButtonElement | null = null;
-  let explore: HTMLButtonElement | null = null;
+  element.setAttribute('aria-label', label);
+  const made: [CommandButton, HTMLButtonElement][] = [];
   for (const button of COMMAND_BUTTONS) {
+    if (only && !only.includes(button.id)) continue;
     const b = document.createElement('button');
     b.type = 'button';
     b.textContent = button.label;
     b.title = `${button.label} (${button.keys})`;
-    b.dataset['command'] = button.id;
+    b.dataset[attribute] = button.id;
+    // the compact layout keeps these in the dock, and shows the rest under its More
+    if (DOCK_COMMANDS.includes(button.id)) b.dataset['docked'] = '';
     if (button.wide) b.className = 'command-wide';
     // the map keeps the keyboard: a press on a button must not take the focus from it
     b.addEventListener('mousedown', (event) => event.preventDefault());
     b.addEventListener('click', () => onPick(button));
-    if (button.needsUnit) orders.push(b);
-    if (button.id === 'goTo') goTo = b;
-    if (button.id === 'europe') europeButton = b;
-    if (button.id === 'endTurn') endTurn = b;
-    if (button.id === 'explore') explore = b;
+    made.push([button, b]);
     element.append(b);
   }
   let shown: string | null = null;
@@ -121,24 +172,14 @@ export function createCommandBar(onPick: (button: CommandButton) => void): Comma
       const state = `${hasUnit}|${targeting}|${europe.state}|${europe.note}|${over}|${explorer}`;
       if (shown === state) return;
       shown = state;
-      for (const b of orders) b.disabled = !hasUnit || over;
-      if (explore) explore.hidden = !(hasUnit && explorer);
-      if (endTurn) {
-        const label = over ? END_BUTTON : (COMMAND_BUTTONS.find((c) => c.id === 'endTurn')?.label ?? '');
-        endTurn.textContent = label;
-        endTurn.title = `${label} (Enter)`;
-      }
-      if (goTo) {
-        const label = targeting ? CANCEL_LABEL : (COMMAND_BUTTONS.find((c) => c.id === 'goTo')?.label ?? '');
-        goTo.textContent = label;
-        goTo.title = targeting ? `${CANCEL_LABEL} (Esc)` : `${label} (G)`;
-        goTo.disabled = over || (!hasUnit && !targeting);
-      }
-      if (europeButton) {
-        europeButton.disabled = over;
-        if (europe.state === 'none') delete europeButton.dataset['europe'];
-        else europeButton.dataset['europe'] = europe.state;
-        europeButton.title = europe.note ? `Europe (E): ${europe.note}` : 'Europe (E)';
+      for (const [button, b] of made) {
+        const look = buttonLook(button, { hasUnit, targeting, europe, over, explorer });
+        if (b.textContent !== look.label) b.textContent = look.label;
+        b.title = look.title;
+        b.disabled = look.disabled;
+        b.hidden = look.hidden;
+        if (look.europe) b.dataset['europe'] = look.europe;
+        else delete b.dataset['europe'];
       }
     },
   };
