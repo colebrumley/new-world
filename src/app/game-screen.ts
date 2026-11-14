@@ -1707,6 +1707,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   });
   canvas.addEventListener('mousemove', (event) => {
     if (fromFinger()) return;
+    // a long press's slip is the finger's: the mouse moving takes it back for its own
+    if (tipPress) hideTip();
     const p = local(event, canvas);
     pointer = p;
     if (!drag) {
@@ -1827,8 +1829,14 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     drag = null;
     gesture = { id: event.pointerId, ...p, kind: 'press', unitId: aim ? unit.id : null };
   };
+  /** A question, a report, the colony screen or Europe over the map: a finger already down on it does nothing more. */
+  const mapCovered = (): boolean => screen.querySelector('[role="dialog"]') !== null;
   const onFingerMove = (event: PointerEvent): void => {
     if (event.pointerType === 'mouse' || !gesture || gesture.id !== event.pointerId) return;
+    if (mapCovered()) {
+      dropGesture();
+      return;
+    }
     const p = local(event, canvas);
     const was = gesture.kind;
     gesture.kind = fingerAfterMove(was, gesture, p, gesture.unitId !== null);
@@ -1865,12 +1873,16 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       return;
     }
     if (!was || was.id !== event.pointerId) return;
-    gesture = null;
     const p = local(event, canvas);
+    // under a dialog, or let go off the map (as the mouse's button cannot be), it does nothing at all
+    if (mapCovered() || (was.kind === 'aim' && !onCanvas(p))) {
+      dropGesture();
+      return;
+    }
+    gesture = null;
     if (was.kind === 'aim') {
       pointer = null;
-      // let go off the map, as the mouse's button cannot be, sends the unit nowhere
-      letGo(p, onCanvas(p), true, was.unitId);
+      letGo(p, true, true, was.unitId);
     } else if (was.kind === 'press') {
       // a tap: a click, and the end of the hidden-terrain look, as a key ends it
       if (view.showHidden) setView({ ...view, showHidden: false });
@@ -1916,7 +1928,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       lookUp(target, clientX, clientY);
       return;
     }
-    if (gesture?.kind !== 'press') return;
+    if (gesture?.kind !== 'press' || mapCovered()) return;
     gesture.kind = 'held';
     const box = canvas.getBoundingClientRect();
     hideTip();

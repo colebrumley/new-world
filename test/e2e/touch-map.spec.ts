@@ -179,14 +179,64 @@ test.describe('fingers on the map', () => {
     const touch = await hand(page);
     const unit = await at(canvas, SOLDIER);
     const box = (await canvas.boundingBox())!;
+    const before = await viewOf(canvas);
     await touch('touchStart', [unit]);
     for (let i = 1; i <= 6; i++) await touch('touchMove', [{ x: unit.x + i * 30, y: unit.y }]);
     await expect(canvas).not.toHaveAttribute('data-aim', '');
-    // over the sidebar, and let go there
+    // over the sidebar, and let go there: nothing at all happens
     await touch('touchMove', [{ x: box.x + box.width + 60, y: unit.y }]);
     await expect(canvas).toHaveAttribute('data-aim', '');
     await touch('touchEnd');
     await settled(page);
+    await expect(location(page)).toHaveText(`(${SOLDIER.x}, ${SOLDIER.y})`);
+    await expect(canvas).toHaveAttribute('data-active', 'u0');
+    expect(await viewOf(canvas)).toEqual(before);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+
+  test('a finger already down when a dialog comes over the map does nothing more: no tap, no pan, no order', async ({ page }) => {
+    const { canvas } = await start(page);
+    const touch = await hand(page);
+    const dialog = page.getByRole('dialog');
+    // a tap begun on an empty square, the Go To question asked before it lifts
+    const before = await viewOf(canvas);
+    await touch('touchStart', [await at(canvas, { x: SOLDIER.x + 3, y: SOLDIER.y + 3 })]);
+    await page.keyboard.press('g');
+    await expect(dialog).toContainText('Go to which place?');
+    await touch('touchEnd');
+    await settled(page);
+    expect(await viewOf(canvas)).toEqual(before);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+
+    // a pan under way
+    const middle = await at(canvas, { x: SOLDIER.x + 2, y: SOLDIER.y + 2 });
+    await touch('touchStart', [middle]);
+    await touch('touchMove', [{ x: middle.x - 40, y: middle.y }]);
+    await touch('touchMove', [{ x: middle.x - 80, y: middle.y }]);
+    await page.keyboard.press('g');
+    await expect(dialog).toContainText('Go to which place?');
+    const panned = await viewOf(canvas);
+    await touch('touchMove', [{ x: middle.x - 300, y: middle.y }]);
+    await touch('touchEnd');
+    await settled(page);
+    expect(await viewOf(canvas)).toEqual(panned);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+
+    // a drag from the unit under way, let go beside it
+    const unit = await at(canvas, SOLDIER);
+    const next = await at(canvas, { x: SOLDIER.x + 1, y: SOLDIER.y });
+    await touch('touchStart', [unit]);
+    await touch('touchMove', [{ x: (unit.x + next.x) / 2, y: unit.y }]);
+    await touch('touchMove', [next]);
+    await expect(canvas).not.toHaveAttribute('data-aim', '');
+    await page.keyboard.press('g');
+    await expect(dialog).toContainText('Go to which place?');
+    await touch('touchEnd');
+    await settled(page);
+    await expect(canvas).toHaveAttribute('data-aim', '');
+    await page.keyboard.press('Escape');
     await expect(location(page)).toHaveText(`(${SOLDIER.x}, ${SOLDIER.y})`);
   });
 
@@ -262,6 +312,15 @@ test.describe('fingers on the map', () => {
     await expect(slip.locator('.map-tooltip-title')).toHaveText('Plains');
     await expect(canvas).toHaveAttribute('data-active', 'u0');
     await tap(page, await at(canvas, plain));
+    await expect(slip).toBeHidden();
+
+    // the mouse moving over the map takes a long press's slip back (its own is off here)
+    await longPress(page, await at(canvas, plain));
+    await expect(slip).toBeVisible();
+    await page.waitForTimeout(900);
+    const spot = await at(canvas, { x: plain.x + 1, y: plain.y });
+    await page.mouse.move(spot.x, spot.y);
+    await page.mouse.move(spot.x + 3, spot.y + 3);
     await expect(slip).toBeHidden();
 
     // near the top of the map the slip stands below the finger instead
