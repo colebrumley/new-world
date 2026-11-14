@@ -845,6 +845,8 @@ canvas.minimap {
 /* the units the map shows on the square come last, under a thin rule; what each carries is said fainter beneath it */
 .map-tooltip-ground + .map-tooltip-unit { margin-top: 3px; padding-top: 2px; border-top: var(--rule); }
 .map-tooltip-carried { color: var(--ink-faded); }
+/* a long press's slip under a finger: the one thing on it to tap, a fingertip high */
+.map-tooltip-lookup { display: block; width: 100%; min-height: var(--tap); margin-top: 4px; pointer-events: auto; }
 
 /* --- adviser reports --------------------------------------------------------------------- */
 /* The end page (R-1065): one sheet over the whole game, its words down the middle. The headline and
