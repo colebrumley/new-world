@@ -1326,6 +1326,55 @@ canvas.minimap {
 .colony-screen[data-holding] [data-drop][data-drop-state='home']:hover { outline: 1px dashed var(--ink-good); outline-offset: -2px; }
 .colony-screen[data-holding] :is(.square, .building, .idle-row, .outside-row, .carrier)[data-drop-state='home']:hover { background-color: transparent; }
 
+/* The compact layout (R-1074): the sheet is as long as it need be and scrolls down, never across.
+   Upright it is one column. Sideways the settlement and the squares lie side by side, and the
+   warehouse stands under the squares beside the rest of the settlement, so that a colony of many
+   buildings does not push it down a whole settlement's height. The head of the sheet and the way
+   out stay in the window, lying over what scrolls beneath them, and every region is as tall as
+   what it holds. */
+:root[data-layout='compact'] .colony-screen {
+  padding-top: 0; padding-bottom: 0; overflow: hidden auto; overscroll-behavior: contain;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: none; grid-auto-rows: max-content; align-content: start;
+  grid-template-areas: 'header' 'settlement' 'area' 'people' 'transport' 'multi' 'warehouse' 'help' 'exit';
+}
+:root[data-layout='compact'][data-posture='sideways'] .colony-screen {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 290px);
+  grid-template-areas: 'header header' 'settlement area' 'settlement warehouse' 'people multi' 'transport transport' 'help help' 'exit exit';
+}
+:root[data-layout='compact'] .colony-screen [data-region] { min-height: auto; overflow: visible; }
+:root[data-layout='compact'] .colony-header {
+  position: sticky; top: 0; z-index: 3; flex-wrap: wrap; gap: 0 10px; padding: 2px 8px;
+  margin: 0 calc(-1 * var(--frame)); border-width: 0 0 1px;
+}
+:root[data-layout='compact'] .colony-header h2 { font-size: 1.4rem; min-width: 0; overflow-wrap: anywhere; /* a name of 24 letters with no break still fits */ }
+:root[data-layout='compact'] .liberty-bar { width: clamp(60px, 16vw, 160px); }
+:root[data-layout='compact'] .colony-screen .colony-commands {
+  position: sticky; bottom: 0; z-index: 3; justify-self: stretch; justify-content: flex-end;
+  margin: 0 calc(-1 * var(--frame)); padding: 4px calc(var(--frame) + 4px); background: var(--table); border-top: var(--edge-brass);
+}
+/* the buildings and the squares are never drawn larger than in the full layout, and shrink to the column where it is narrower */
+:root[data-layout='compact'] .colony-settlement { grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); }
+:root[data-layout='compact'] .building-art { max-width: 100%; height: auto !important; /* over the size the picture is given inline */ }
+/* sideways the window is low, so the buildings are drawn at the size a crowded colony's are, and more stand to a row */
+:root[data-layout='compact'][data-posture='sideways'] .colony-settlement { grid-template-columns: repeat(auto-fill, minmax(min(96px, 100%), 1fr)); }
+:root[data-layout='compact'][data-posture='sideways'] .building-art { max-width: min(100%, 64px); }
+:root[data-layout='compact'] .area-grid { max-width: min(100%, 272px); }
+:root[data-layout='compact'] .colony-warehouse { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); }
+/* in the narrow column under the squares a good is its icon and its count (its name is its title), and the Custom
+   House's button takes two places in the rows rather than a row of its own, so the warehouse stays short */
+:root[data-layout='compact'][data-posture='sideways'] .colony-warehouse { grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); }
+:root[data-layout='compact'][data-posture='sideways'] .colony-warehouse .token-good .token-label { display: none; }
+:root[data-layout='compact'][data-posture='sideways'] .colony-warehouse .construction-change { grid-column: span 2; justify-self: stretch; white-space: normal; padding: 2px 4px; }
+/* the menus the screen puts up stay in the window however far the sheet is scrolled, and scroll in themselves */
+:root[data-layout='compact'] .colony-screen > .dialog-backdrop {
+  position: fixed; inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left); padding: var(--frame); box-sizing: border-box;
+}
+:root[data-layout='compact'] .colony-screen .dialog { box-sizing: border-box; max-width: min(24rem, 100%); max-height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+/* under a finger, everything on the sheet that is tapped or held is a finger's height at the least */
+:root[data-pointer='coarse'] .colony-screen :is(button, .token, .building, .square) { min-height: var(--tap); }
+:root[data-pointer='coarse'] .colony-screen .square .token { justify-content: flex-end; }
+
 /* --- title screen: a frontispiece (R-1012) --------------------------------------------------- */
 /* The wood the painting hangs on is the table's, darkened, while the title screen or a screen reached from it is up. */
 body:has(#app > .title-screen) { background: linear-gradient(var(--veil), var(--veil)); }
