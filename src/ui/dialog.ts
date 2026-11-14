@@ -8,12 +8,67 @@ export interface DialogOptions {
   readonly initial?: number;
   /** Choice taken on Escape; without it Escape does nothing. */
   readonly escape?: number;
+  /**
+   * Whether a finger is offered the Close cross that does what Escape does (R-1076): on by default
+   * wherever `escape` is set. Set false where the escape answer decides something (pays a tax,
+   * accepts a treaty), so that no cross commits the player: the answers themselves are in reach.
+   */
+  readonly cross?: boolean;
   /** A picture set beside the question: whoever is asking. */
   readonly picture?: HTMLElement;
   /** Lines set as a heading over the question, for an audience or a proclamation. */
   readonly heading?: readonly string[];
   /** A picture for each choice, set before its words; null for a choice without one. */
   readonly choicePictures?: readonly (HTMLElement | null)[];
+}
+
+/**
+ * The Close button of a dialog that Esc dismisses (R-1076): a cross at its top right that does
+ * what Esc does. It is shown only in the compact layout or under a finger (style.css); with a
+ * mouse in a full-sized window it takes no room and is not read out.
+ */
+export function closeButton(onClose: () => void): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'dialog-close';
+  button.setAttribute('aria-label', 'Close');
+  button.textContent = '\u00d7';
+  button.addEventListener('click', onClose);
+  return button;
+}
+
+/**
+ * Keep a text field in sight while it has the focus: when it takes it, and again each time the
+ * part of the window left to the page changes (a phone's keyboard coming up). Only what scrolls
+ * inside the page is scrolled, never the page itself.
+ */
+export function keepInView(field: HTMLElement): void {
+  const bring = (): void => {
+    const view = window.visualViewport;
+    const top = view?.offsetTop ?? 0;
+    const bottom = top + (view?.height ?? window.innerHeight);
+    for (let box = field.parentElement; box && box !== document.body && box !== document.documentElement; box = box.parentElement) {
+      if (box.scrollHeight <= box.clientHeight) continue;
+      const at = field.getBoundingClientRect();
+      const frame = box.getBoundingClientRect();
+      const low = Math.max(frame.top, top);
+      const high = Math.min(frame.bottom, bottom);
+      if (at.top < low) box.scrollTop -= low - at.top;
+      else if (at.bottom > high) box.scrollTop += Math.min(at.bottom - high, at.top - low);
+    }
+  };
+  field.addEventListener('focus', () => {
+    bring();
+    const view = window.visualViewport;
+    if (!view) return;
+    // a dialog taken away with its field still focused fires no blur: the listener goes at the next change instead
+    const follow = (): void => {
+      if (field.isConnected && document.activeElement === field) bring();
+      else view.removeEventListener('resize', follow);
+    };
+    view.addEventListener('resize', follow);
+    field.addEventListener('blur', () => view.removeEventListener('resize', follow), { once: true });
+  });
 }
 
 /** Show the question over `host` and resolve with the index of the answer picked. */
@@ -86,6 +141,10 @@ export function ask(host: HTMLElement, options: DialogOptions): Promise<number> 
       if (!(event.target instanceof Element && event.target.closest('button'))) event.preventDefault();
     });
 
+    if (options.escape !== undefined && options.cross !== false) {
+      const escape = options.escape;
+      box.append(closeButton(() => finish(escape)));
+    }
     backdrop.append(box);
     host.append(backdrop);
     buttons[options.initial ?? 0]?.focus();
@@ -118,6 +177,7 @@ export function askText(host: HTMLElement, options: TextDialogOptions): Promise<
     input.maxLength = options.maxLength ?? 24;
     if (options.numeric) input.inputMode = 'numeric';
     label.append(input);
+    keepInView(input);
     const ok = document.createElement('button');
     ok.type = 'submit';
     ok.textContent = 'OK';
@@ -136,6 +196,7 @@ export function askText(host: HTMLElement, options: TextDialogOptions): Promise<
       if (event.key === 'Escape') finish(null);
       event.stopPropagation();
     });
+    box.append(closeButton(() => finish(null)));
     backdrop.append(box);
     host.append(backdrop);
     input.focus();
