@@ -1459,11 +1459,11 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 - [x] **R-1069 The craftsmen's and planters' pictures** — docs/specs/unit-looks.md, item W2, size L.
 - [x] **R-1070 The experts of the roles and the unskilled** — docs/specs/unit-looks.md, item W3, size M.
 - [x] **R-1071 The page on a phone, and the tools the other items share** — docs/specs/phone-play.md, item W1, size S.
-- [ ] **R-1072 The dock: the map screen in the compact layout** — docs/specs/phone-play.md, item W2, size M.
+- [x] **R-1072 The dock: the map screen in the compact layout** — docs/specs/phone-play.md, item W2, size M.
 - [ ] **R-1073 Fingers on the map, and the long press that looks a thing up** — docs/specs/phone-play.md, item W3, size M.
 - [x] **R-1074 The colony screen at phone sizes** — docs/specs/phone-play.md, item W4, size M.
 - [ ] **R-1075 Fingers on the colony and Europe screens** — docs/specs/phone-play.md, item W5, size M.
-- [ ] **R-1076 Every other screen at phone sizes** — docs/specs/phone-play.md, item W6, size M.
+- [x] **R-1076 Every other screen at phone sizes** — docs/specs/phone-play.md, item W6, size M.
 
 ---
 

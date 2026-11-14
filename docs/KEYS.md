@@ -71,6 +71,7 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | Enter / Esc / The end (the game is over) | Bring back the end page; the map can still be scrolled and zoomed, and the reports and the load menu opened, but takes no order | works |
 | Enter (view mode, on your colony) | Open the colony | works |
 | Click on the New World view | Centre the view there | works |
+| Dock buttons (a window under 760 wide or 640 high) | The dock stands in for the sidebar, under the map or at its right: Wait, Skip, Go to, Fortify, Sentry, Build and End turn as the sidebar has them, and More, which opens a sheet with the New World view, the square's rows and every other command; a command, a tap on the view, Close or a tap outside closes it | works |
 
 ## Pop-up questions
 

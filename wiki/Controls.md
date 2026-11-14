@@ -78,6 +78,7 @@ The keyboard is quicker once you know it. The tables below list every key, and e
 | Enter / Esc / The end (the game is over) | Bring back the end page; the map can still be scrolled and zoomed, and the reports and the load menu opened, but takes no order |
 | Enter (view mode, on your colony) | Open the colony |
 | Click on the New World view | Centre the view there |
+| Dock buttons (a window under 760 wide or 640 high) | The dock stands in for the sidebar, under the map or at its right: Wait, Skip, Go to, Fortify, Sentry, Build and End turn as the sidebar has them, and More, which opens a sheet with the New World view, the square's rows and every other command; a command, a tap on the view, Close or a tap outside closes it |
 
 ### Pop-up questions
 
