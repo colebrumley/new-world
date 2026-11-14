@@ -3,7 +3,7 @@ import { SIGHT } from '../../../src/engine/data/sight';
 import type { GameState, Unit } from '../../../src/engine/state';
 import { makeTile } from '../../../src/engine/tile';
 import { sidebarModel } from '../../../src/ui/sidebar';
-import { groundFeatures, placeTooltip, slipUnits, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_GAP, TOOLTIP_UNIT_LIMIT } from '../../../src/ui/tile-tooltip';
+import { groundFeatures, placePressedTip, placeTooltip, PRESSED_TIP_GAP, slipUnits, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_GAP, TOOLTIP_UNIT_LIMIT } from '../../../src/ui/tile-tooltip';
 import { setTile, withColony, withUnit, world } from '../../helpers/world';
 
 const land = () => world({ rows: ['.....', '.....', '.....'] });
@@ -253,5 +253,31 @@ describe('placeTooltip', () => {
     expect(placeTooltip({ x: 140, y: 75 }, slip, small)).toEqual({ x: 6, y: 1 });
     // a slip larger than the canvas starts at its corner
     expect(placeTooltip({ x: 10, y: 10 }, { width: 300, height: 200 }, small)).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe('placePressedTip', () => {
+  const slip = { width: 120, height: 60 };
+  const canvas = { width: 400, height: 600 };
+
+  it('stands centred above the finger, its bottom edge 24 px over it', () => {
+    expect(PRESSED_TIP_GAP).toBe(24);
+    expect(placePressedTip({ x: 200, y: 300 }, slip, canvas)).toEqual({ x: 140, y: 216 });
+    // just room enough above
+    expect(placePressedTip({ x: 200, y: 84 }, slip, canvas)).toEqual({ x: 140, y: 0 });
+  });
+
+  it('turns below the finger, its top 24 px under it, where there is no room above', () => {
+    expect(placePressedTip({ x: 200, y: 83 }, slip, canvas)).toEqual({ x: 140, y: 107 });
+    expect(placePressedTip({ x: 200, y: 5 }, slip, canvas)).toEqual({ x: 140, y: 29 });
+  });
+
+  it('is kept on the canvas across', () => {
+    expect(placePressedTip({ x: 10, y: 300 }, slip, canvas)).toEqual({ x: 0, y: 216 });
+    expect(placePressedTip({ x: 395, y: 300 }, slip, canvas)).toEqual({ x: 280, y: 216 });
+  });
+
+  it('stays on a canvas too short for either, at its foot rather than off it', () => {
+    expect(placePressedTip({ x: 200, y: 50 }, slip, { width: 400, height: 120 })).toEqual({ x: 140, y: 60 });
   });
 });

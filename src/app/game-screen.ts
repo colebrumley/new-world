@@ -48,10 +48,11 @@ import { viewerIndex, renderGround, renderPieces } from '../ui/render';
 import { createSidebar, formatMoves, sidebarModel, unitLabel } from '../ui/sidebar';
 import { createDock, createSheet } from '../ui/dock';
 import { MENU_CHOICES, REPORT_CHOICES, createCommandBar, type BarChoice } from '../ui/command-bar';
-import { PINCH_STEP, WHEEL_LINE, WHEEL_STEP, dragBlocked, mapClick, mapCursor, mapDrag, pinchTravel, wheelStep, type PointerMode } from '../ui/pointer';
+import { PINCH_STEP, WHEEL_LINE, WHEEL_STEP, dragBlocked, fingerAfterMove, mapClick, mapCursor, mapDrag, pinchTravel, wheelStep, type FingerKind, type PointerMode } from '../ui/pointer';
 import { editRoute } from '../ui/trade-routes';
 import { createTileCache } from '../ui/tiles';
-import { placeTooltip, slipUnits, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_UNIT_LIMIT } from '../ui/tile-tooltip';
+import { placePressedTip, placeTooltip, slipUnits, tileTip, TOOLTIP_DELAY_MS, TOOLTIP_UNIT_LIMIT } from '../ui/tile-tooltip';
+import { LOOK_UP, onLongPress, type LookUpDetail } from '../ui/touch';
 import { needsOrders, nextUnit, standsOnMap } from '../ui/unit-queue';
 import { chiefSpokeText } from '../ui/village-text';
 import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, viewCenter, zoomAt, zoomBy, type View } from '../ui/view';
@@ -77,6 +78,8 @@ const DIRECTIONS: Readonly<Record<string, readonly [number, number]>> = {
 const EDGE_SCROLL_MARGIN = 14; // pixels from the canvas edge
 const EDGE_SCROLL_SPEED = 14; // tiles per second
 const DRAG_THRESHOLD = 4; // pixels before a press becomes a drag
+const FINGER_ECHO_MS = 800; // after a touch, mouse events this soon are the browser's echo of it
+const FINGER_EDGE = 44; // --tap, should the stylesheet not say: how near an edge a finger's drag scrolls
 const WHEEL_PAUSE_MS = 140; // least time between two zoom steps of the wheel
 
 /** move: keys drive the active unit. view: keys drive a cursor. goto: picking a Go To destination. */
@@ -148,6 +151,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     window.removeEventListener('resize', onResize);
     resized.disconnect();
     magnified.stop();
+    stopFingers();
     hideTip();
     overMap.disconnect();
     audio.stop();
@@ -277,10 +281,18 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   let tipAt: { x: number; y: number } | null = null;
   /** What the slip says while it is up, to tell when the same square has something new to say. */
   let tipSaid = '';
+  /** Where a finger held the square, in canvas pixels, while the slip is the one a long press asked for; null for the pointer's own. */
+  let tipPress: { x: number; y: number } | null = null;
+  /** On a long press's slip under a finger: opens the encyclopedia at the square (its handler is with the fingers' below). */
+  const tipLookUp = document.createElement('button');
+  tipLookUp.type = 'button';
+  tipLookUp.className = 'map-tooltip-lookup';
+  tipLookUp.textContent = 'Look up';
   /** Take the slip away and give up the wait: the next movement of the pointer starts it again. Never redraws the map. */
   const hideTip = (): void => {
     if (tipTimer) window.clearTimeout(tipTimer);
     tipTimer = 0;
+    tipPress = null;
     if (!tipAt) return;
     tipAt = null;
     tooltip.hidden = true;
@@ -291,12 +303,14 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
    */
   const showTip = (again = false): void => {
     if (!again) tipTimer = 0;
-    const tile = pointer && !drag ? screenToTile(view, session.state.map, pointer.x, pointer.y) : null;
+    // the square a finger held, or the one under a resting pointer
+    const at = tipPress ?? (pointer && !drag ? pointer : null);
+    const tile = at ? screenToTile(view, session.state.map, at.x, at.y) : null;
     if (!again && tile && tipAt && tile.x === tipAt.x && tile.y === tipAt.y) return;
-    // never with the option off, on a device that cannot hover, or under a question, a report or another screen
-    const allowed = !stopped && options.terrainTooltips && window.matchMedia('(hover: hover)').matches && !screen.querySelector('[role="dialog"]');
+    // never under a question, a report or another screen; the pointer's own never with the option off or on a device that cannot hover
+    const allowed = !stopped && !screen.querySelector('[role="dialog"]') && (tipPress !== null || (options.terrainTooltips && window.matchMedia('(hover: hover)').matches));
     const tip = tile && allowed ? tileTip(session.state, tile.x, tile.y, revealAll, activeId) : null;
-    if (!pointer || !tile || !tip) {
+    if (!at || !tile || !tip) {
       hideTip();
       return;
     }
@@ -312,18 +326,22 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       // with the pieces hidden (H) the map shows no unit, so the slip names none; a great stack is cut short
       ...(view.showHidden ? [] : slipUnits(tip.units, limit)).flatMap((unit) => [...line(unit.line, 'map-tooltip-unit'), ...line(unit.carried, 'map-tooltip-carried')]),
     ];
+    // under a finger, a long press's slip offers the encyclopedia page a right-click would open
+    const extra = tipPress && document.documentElement.getAttribute('data-pointer') === 'coarse' ? [tipLookUp] : [];
     const lines = build(TOOLTIP_UNIT_LIMIT);
     const said = lines.map((p) => p.textContent).join('\n');
     if (tipAt && tile.x === tipAt.x && tile.y === tipAt.y && said === tipSaid) return;
-    tooltip.replaceChildren(...lines);
+    tooltip.replaceChildren(...lines, ...extra);
     tipSaid = said;
     tipAt = tile;
     tooltip.hidden = false;
     // units with long loads may still stand taller than the map: name fewer of them until the slip fits
-    for (let limit = TOOLTIP_UNIT_LIMIT - 1; limit >= 1 && tooltip.offsetHeight > canvas.clientHeight; limit--) tooltip.replaceChildren(...build(limit));
-    const at = placeTooltip(pointer, { width: tooltip.offsetWidth, height: tooltip.offsetHeight }, { width: canvas.clientWidth, height: canvas.clientHeight });
-    tooltip.style.left = `${canvas.offsetLeft + at.x}px`;
-    tooltip.style.top = `${canvas.offsetTop + at.y}px`;
+    for (let limit = TOOLTIP_UNIT_LIMIT - 1; limit >= 1 && tooltip.offsetHeight > canvas.clientHeight; limit--) tooltip.replaceChildren(...build(limit), ...extra);
+    const slip = { width: tooltip.offsetWidth, height: tooltip.offsetHeight };
+    const room = { width: canvas.clientWidth, height: canvas.clientHeight };
+    const placed = tipPress ? placePressedTip(tipPress, slip, room) : placeTooltip(at, slip, room);
+    tooltip.style.left = `${canvas.offsetLeft + placed.x}px`;
+    tooltip.style.top = `${canvas.offsetTop + placed.y}px`;
   };
   /** The pointer moved over the map with no button down: the slip follows it from square to square at once, or the wait begins again. */
   const hoverTip = (): void => {
@@ -1689,7 +1707,14 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     canvas.style.cursor = shape;
   };
 
+  /** When a finger last went down or lifted: the mouse events a browser makes up from a touch soon after are not the mouse's. */
+  let fingerAt = -Infinity;
+  /** The touch and pen pointers down on the page. */
+  const fingers = new Set<number>();
+  const fromFinger = (): boolean => fingers.size > 0 || performance.now() - fingerAt < FINGER_ECHO_MS;
+
   canvas.addEventListener('mousedown', (event) => {
+    if (fromFinger()) return;
     hideTip();
     if (event.button !== 0) return;
     const p = local(event, canvas);
@@ -1700,6 +1725,9 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     canvas.focus();
   });
   canvas.addEventListener('mousemove', (event) => {
+    if (fromFinger()) return;
+    // a long press's slip is the finger's: the mouse moving takes it back for its own
+    if (tipPress) hideTip();
     const p = local(event, canvas);
     pointer = p;
     if (!drag) {
@@ -1723,18 +1751,18 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     drag = { x: p.x, y: p.y, moved: true, aim: false, unitId: null };
     setView(panBy(view, session.state.map, -dx / view.tileSize, -dy / view.tileSize));
   });
-  canvas.addEventListener('mouseup', (event) => {
-    if (event.button !== 0 || !drag) return;
-    const { moved, aim, unitId } = drag;
+  /**
+   * A press on the map let go at canvas pixel `p`, by the mouse's button or a finger. A drag from the
+   * active unit sends it where it was let go; any other drag was a pan; a press that never moved is a click.
+   */
+  const letGo = (p: { x: number; y: number }, moved: boolean, aim: boolean, unitId: UnitId | null): void => {
     drag = null;
     aimAt = null;
     aimBlocked = false;
     dirty = true;
-    const p = local(event, canvas);
     const tile = screenToTile(view, session.state.map, p.x, p.y);
     const unit = activeUnit();
     if (moved) {
-      // a drag from the active unit sends it where the button was let go; any other drag was a pan.
       // The order is for the unit the drag began on: if another has become the active one since
       // (a key pressed with the button held), or it is somewhere else in the game, the drag is dropped.
       const dragged = aim && unit && unit.id === unitId && mode === 'move' && !screen.querySelector('[role="dialog"]') ? unit : null;
@@ -1763,7 +1791,189 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         cursor = tile;
         setView(centerOn(view, session.state.map, tile.x, tile.y));
     }
+  };
+  canvas.addEventListener('mouseup', (event) => {
+    if (fromFinger() || event.button !== 0 || !drag) return;
+    letGo(local(event, canvas), drag.moved, drag.aim, drag.unitId);
   });
+
+  // --- fingers on the map: a touch or a pen, heard as pointer events (the mouse keeps its own above) ---
+  /** The one finger on the map, where it last was (where it went down, until it pans), and what it is doing (FingerKind). */
+  type Gesture = { id: number; x: number; y: number; kind: FingerKind; unitId: UnitId | null };
+  let gesture: Gesture | null = null;
+  /** How near an edge of the canvas a finger sending the active unit scrolls the view: --tap, read when the drag begins. */
+  let fingerEdge = FINGER_EDGE;
+  /** The kind of the pointer last put down anywhere: a contextmenu that a touch raises opens nothing. */
+  let lastDownKind = '';
+  /** Drop whatever the fingers were doing: no order, no pan going on, no marker left on the map. */
+  const dropGesture = (): void => {
+    if (gesture?.kind === 'aim') {
+      drag = null;
+      aimAt = null;
+      aimBlocked = false;
+      pointer = null;
+      dirty = true;
+    }
+    gesture = fingers.size > 0 ? { id: -1, x: 0, y: 0, kind: 'off', unitId: null } : null;
+  };
+  /** Whether a canvas pixel is on the canvas. */
+  const onCanvas = (p: { x: number; y: number }): boolean => p.x >= 0 && p.y >= 0 && p.x < canvas.clientWidth && p.y < canvas.clientHeight;
+  /** When the one finger down went down, and when the window last changed size: a long press held across a change is dropped. */
+  let fingerDownAt = 0;
+  let resizedAt = -Infinity;
+  const onFingerDown = (event: PointerEvent): void => {
+    lastDownKind = event.pointerType;
+    if (event.pointerType === 'mouse' || stopped) return;
+    // the first finger: any left over from a release that never reached us are gone
+    if (event.isPrimary) fingers.clear();
+    fingers.add(event.pointerId);
+    fingerAt = performance.now();
+    if (fingers.size > 1) {
+      // two fingers zoom the map (the touch events below), and nothing else happens until every finger is up
+      dropGesture();
+      return;
+    }
+    gesture = null;
+    fingerDownAt = performance.now();
+    if (event.target !== canvas) return;
+    // the browser makes up no mouse events from this touch: the finger's own handling is here
+    event.preventDefault();
+    hideTip();
+    canvas.focus();
+    const p = local(event, canvas);
+    const tile = screenToTile(view, session.state.map, p.x, p.y);
+    const unit = activeUnit();
+    const aim = mode === 'move' && unit !== null && tile !== null && tile.x === unit.x && tile.y === unit.y;
+    pointer = null;
+    drag = null;
+    gesture = { id: event.pointerId, ...p, kind: 'press', unitId: aim ? unit.id : null };
+  };
+  /** A question, a report, the colony screen or Europe over the map: a finger already down on it does nothing more. */
+  const mapCovered = (): boolean => screen.querySelector('[role="dialog"]') !== null;
+  const onFingerMove = (event: PointerEvent): void => {
+    if (event.pointerType === 'mouse' || !gesture || gesture.id !== event.pointerId) return;
+    if (mapCovered()) {
+      dropGesture();
+      return;
+    }
+    const p = local(event, canvas);
+    const was = gesture.kind;
+    gesture.kind = fingerAfterMove(was, gesture, p, gesture.unitId !== null);
+    if (was === 'press' && gesture.kind === 'aim') {
+      drag = { x: gesture.x, y: gesture.y, moved: true, aim: true, unitId: gesture.unitId };
+      fingerEdge = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tap')) || FINGER_EDGE;
+    }
+    if (gesture.kind === 'aim') {
+      // off the map the aim is dropped, as when the mouse leaves it; back on, it is taken up again
+      if (!onCanvas(p)) {
+        if (aimAt || draggedNow()) dirty = true;
+        pointer = null;
+        aimAt = null;
+        aimBlocked = false;
+        return;
+      }
+      pointer = p;
+      retarget();
+      if (draggedNow()) dirty = true;
+    } else if (gesture.kind === 'pan') {
+      // the square under the finger stays under it
+      setView(panBy(view, session.state.map, -(p.x - gesture.x) / view.tileSize, -(p.y - gesture.y) / view.tileSize));
+      gesture.x = p.x;
+      gesture.y = p.y;
+    }
+  };
+  const onFingerUp = (event: PointerEvent): void => {
+    if (event.pointerType === 'mouse') return;
+    fingers.delete(event.pointerId);
+    fingerAt = performance.now();
+    const was = gesture;
+    if (was?.kind === 'off') {
+      if (fingers.size === 0) gesture = null;
+      return;
+    }
+    if (!was || was.id !== event.pointerId) return;
+    const p = local(event, canvas);
+    // under a dialog, or let go off the map (as the mouse's button cannot be), it does nothing at all
+    if (mapCovered() || (was.kind === 'aim' && !onCanvas(p))) {
+      dropGesture();
+      return;
+    }
+    gesture = null;
+    if (was.kind === 'aim') {
+      pointer = null;
+      letGo(p, true, true, was.unitId);
+    } else if (was.kind === 'press') {
+      // a tap: a click, and the end of the hidden-terrain look, as a key ends it
+      if (view.showHidden) setView({ ...view, showHidden: false });
+      letGo(p, false, false, null);
+    }
+  };
+  const onFingerCancel = (event: PointerEvent): void => {
+    if (event.pointerType === 'mouse') return;
+    fingers.delete(event.pointerId);
+    fingerAt = performance.now();
+    dropGesture();
+  };
+  const onWindowResize = (): void => {
+    resizedAt = performance.now();
+    dropGesture();
+  };
+  const capture = { capture: true } as const;
+  window.addEventListener('pointerdown', onFingerDown, capture);
+  window.addEventListener('pointermove', onFingerMove, capture);
+  window.addEventListener('pointerup', onFingerUp, capture);
+  window.addEventListener('pointercancel', onFingerCancel, capture);
+  window.addEventListener('resize', onWindowResize);
+
+  /**
+   * Open the encyclopedia at what `hit` shows, on the map, the colony screen or the Europe screen, as
+   * a right-click does: for a long press and for a LOOK_UP. Nothing under any other dialog.
+   */
+  const lookUpBlocked = (): boolean => stopped || screen.querySelector('[role="dialog"]:not(.colony-screen):not(.europe-screen)') !== null;
+  const lookUp = (hit: Element, clientX: number, clientY: number): void => {
+    if (lookUpBlocked()) return;
+    const target = pediaTargetAt(hit, clientX, clientY);
+    if (target) void showPedia(screen, target).then(() => (colonyScreen || europeScreen ? undefined : canvas.focus()));
+  };
+  // A long press is heard only where it does something, so that a button held a while still clicks:
+  // on a square it shows the slip, whatever the option says, and nothing else; on what a right-click
+  // looks up elsewhere it opens the encyclopedia; what the colony screen drags is its own.
+  const pressable = document.createElement('div');
+  pressable.contains = (node: Node | null): boolean =>
+    node instanceof Element && screen.contains(node) && (node === canvas || (!lookUpBlocked() && !node.closest('[data-drag]') && pediaTargetAt(node, 0, 0) !== null));
+  const stopLongPress = onLongPress(pressable, (target, clientX, clientY) => {
+    if (stopped || resizedAt >= fingerDownAt) return;
+    if (target !== canvas) {
+      lookUp(target, clientX, clientY);
+      return;
+    }
+    if (gesture?.kind !== 'press' || mapCovered()) return;
+    gesture.kind = 'held';
+    const box = canvas.getBoundingClientRect();
+    hideTip();
+    tipPress = { x: clientX - box.left, y: clientY - box.top };
+    showTip();
+  });
+  tipLookUp.addEventListener('click', () => {
+    const held = tipPress;
+    if (!held) return;
+    const box = canvas.getBoundingClientRect();
+    hideTip();
+    lookUp(canvas, box.left + held.x, box.top + held.y);
+  });
+  screen.addEventListener(LOOK_UP, (event) => {
+    const detail = (event as CustomEvent<LookUpDetail | undefined>).detail;
+    if (event.target instanceof Element && detail) lookUp(event.target, detail.clientX, detail.clientY);
+  });
+  const stopFingers = (): void => {
+    stopLongPress();
+    window.removeEventListener('pointerdown', onFingerDown, capture);
+    window.removeEventListener('pointermove', onFingerMove, capture);
+    window.removeEventListener('pointerup', onFingerUp, capture);
+    window.removeEventListener('pointercancel', onFingerCancel, capture);
+    window.removeEventListener('resize', onWindowResize);
+  };
+
   /** Wheel travel, from the wheel or a pinch, zooms the map about a canvas pixel once it adds up to `full`. */
   const zoomWheel = (travel: number, full: number, p: { x: number; y: number }, time: number): void => {
     const turned = wheelStep(wheelKept, travel, full);
@@ -1801,7 +2011,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   });
   // two fingers on a touch screen, by the pixels between them
   let touchSpan = 0;
-  const fingers = (event: TouchEvent): { span: number; at: { x: number; y: number } } | null => {
+  const twoFingers = (event: TouchEvent): { span: number; at: { x: number; y: number } } | null => {
     const [a, b] = [event.touches[0], event.touches[1]];
     if (event.touches.length !== 2 || !a || !b) return null;
     const box = canvas.getBoundingClientRect();
@@ -1809,14 +2019,14 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   };
   // a finger put down or lifted starts the measure again
   const touched = (event: TouchEvent): void => {
-    hideTip();
+    // a long press's slip stays when its finger lifts; the next finger down takes it away
+    if (event.type === 'touchstart') hideTip();
     touching = event.touches.length > 0;
-    touchSpan = fingers(event)?.span ?? 0;
+    touchSpan = twoFingers(event)?.span ?? 0;
   };
   for (const type of ['touchstart', 'touchend', 'touchcancel'] as const) canvas.addEventListener(type, touched, { passive: true });
   canvas.addEventListener('touchmove', (event) => {
-    hideTip();
-    const held = fingers(event);
+    const held = twoFingers(event);
     if (!held) return;
     event.preventDefault();
     pinchBy(touchSpan, held.span, held.at, event.timeStamp);
@@ -1851,10 +2061,10 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   sidebar.element.querySelector('.sidebar-info')?.after(commandBar.element);
 
   /** What the encyclopedia has to say about the thing under the pointer, on the map or on the colony screen. */
-  const pediaTargetAt = (event: MouseEvent): PediaTarget | null => {
-    const hit = event.target instanceof Element ? event.target : null;
+  const pediaTargetAt = (hit: Element | null, clientX: number, clientY: number): PediaTarget | null => {
     if (hit === canvas) {
-      const p = local(event, canvas);
+      const box = canvas.getBoundingClientRect();
+      const p = { x: clientX - box.left, y: clientY - box.top };
       const tile = screenToTile(view, session.state.map, p.x, p.y);
       const under = tile ? session.state.map.tiles[tile.y * session.state.map.width + tile.x] : undefined;
       if (!tile || !under || !isExploredBy(under, session.state.players.findIndex((pl) => pl.id === me()))) return null;
@@ -1869,7 +2079,8 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     const [kind, id, extra] = (token?.dataset['key'] ?? '').split(':');
     if (kind === 'good' && id) return { category: 'cargo', id };
     if (kind === 'cargo' && extra) return { category: 'cargo', id: extra };
-    if ((kind === 'unit' || kind === 'carrier') && id && session.state.units[id]) return { category: 'units', id: (session.state.units[id] as Unit).type };
+    // the colony screen's units and carriers; the Europe screen's ships, passengers and units on the dock
+    if ((kind === 'unit' || kind === 'carrier' || kind === 'ship' || kind === 'rider' || kind === 'dock') && id && session.state.units[id]) return { category: 'units', id: (session.state.units[id] as Unit).type };
     if (kind === 'colonist' && id) {
       const person = Object.values(session.state.colonies).flatMap((c) => c.colonists).find((c) => c.id === id);
       if (person) return { category: 'skills', id: person.profession };
@@ -1877,13 +2088,20 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     return building?.dataset['building'] ? { category: 'buildings', id: building.dataset['building'] } : null;
   };
   screen.addEventListener('contextmenu', (event) => {
+    // one a touch raises opens nothing by itself: a long press looks things up under a finger
+    const kind = 'pointerType' in event && typeof event.pointerType === 'string' && event.pointerType ? event.pointerType : lastDownKind;
+    if (kind === 'touch' || kind === 'pen') {
+      if (!(event.target instanceof Element && event.target.closest('input, textarea'))) event.preventDefault();
+      return;
+    }
     if (screen.querySelector('[role="dialog"]:not(.colony-screen)')) return;
-    const target = pediaTargetAt(event);
+    const target = pediaTargetAt(event.target instanceof Element ? event.target : null, event.clientX, event.clientY);
     if (!target) return;
     event.preventDefault();
     void showPedia(screen, target).then(() => (colonyScreen ? undefined : canvas.focus()));
   });
   canvas.addEventListener('mouseleave', () => {
+    if (fromFinger()) return;
     hideTip();
     pointer = null;
     if (aimAt || draggedNow()) dirty = true;
@@ -1903,9 +2121,11 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
 
   const edgeScroll = (dt: number): void => {
     // (a unit being dragged to its destination may need the view to scroll to reach it)
+    // a finger scrolls it only while it sends the active unit, and from farther in: a fingertip's width
     if (!pointer || (drag && !drag.aim)) return;
-    const dx = pointer.x < EDGE_SCROLL_MARGIN ? -1 : pointer.x > view.width - EDGE_SCROLL_MARGIN ? 1 : 0;
-    const dy = pointer.y < EDGE_SCROLL_MARGIN ? -1 : pointer.y > view.height - EDGE_SCROLL_MARGIN ? 1 : 0;
+    const margin = gesture?.kind === 'aim' ? fingerEdge : EDGE_SCROLL_MARGIN;
+    const dx = pointer.x < margin ? -1 : pointer.x > view.width - margin ? 1 : 0;
+    const dy = pointer.y < margin ? -1 : pointer.y > view.height - margin ? 1 : 0;
     if (dx === 0 && dy === 0) return;
     const step = EDGE_SCROLL_SPEED * Math.min(dt, 0.05);
     setView(panBy(view, session.state.map, dx * step, dy * step));
