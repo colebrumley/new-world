@@ -206,7 +206,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   root.replaceChildren(screen);
   // the canvas's box changes with the layout, the posture and the sheet, not only with the window
   const resized = new ResizeObserver(() => {
-    if (canvas.clientWidth !== view.width || canvas.clientHeight !== view.height || (window.devicePixelRatio || 1) !== dpr) resize();
+    if (canvas.clientWidth !== view.width || canvas.clientHeight !== view.height) resize();
   });
 
   const ctx = canvas.getContext('2d');

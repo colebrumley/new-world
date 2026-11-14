@@ -130,6 +130,8 @@ export function createSheet(screen: HTMLElement, sidebar: HTMLElement, chart: HT
   };
   const shut = (): void => set(false);
   close.addEventListener('click', shut);
+  // like Close, a press on the veil leaves the keyboard with the map
+  backdrop.addEventListener('mousedown', (event) => event.preventDefault());
   backdrop.addEventListener('click', shut);
   sidebar.addEventListener('click', (event) => {
     const hit = event.target instanceof Element ? event.target : null;

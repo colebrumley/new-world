@@ -161,6 +161,26 @@ test.describe('the dock at work', () => {
     }
   });
 
+  test('closing the sheet by its veil or its Close leaves the keyboard with the map', async ({ page }) => {
+    await begin(page);
+    const opened = sheet(page);
+    for (const way of ['veil', 'close'] as const) {
+      await dockButton(page, 'more').click();
+      await expect(opened).toBeVisible();
+      if (way === 'veil') {
+        const box = await boxOf(opened);
+        await page.mouse.click(box.x + box.width / 2, Math.max(4, box.y / 2));
+      } else await opened.getByRole('button', { name: 'Close' }).click();
+      await expect(opened).toBeHidden();
+      expect(await page.evaluate(() => document.activeElement?.matches('canvas.map')), way).toBe(true);
+      const zoom = (await viewOf(page)).zoom;
+      await page.keyboard.press('x');
+      await expect.poll(async () => (await viewOf(page)).zoom, way).toBeLessThan(zoom);
+      await page.keyboard.press('z');
+      await expect.poll(async () => (await viewOf(page)).zoom, way).toBe(zoom);
+    }
+  });
+
   test('More opens a sheet of the other commands, the chart and the rows, and each way out closes it', async ({ page }) => {
     await begin(page);
     const more = dockButton(page, 'more');
