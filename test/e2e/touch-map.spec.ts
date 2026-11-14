@@ -285,6 +285,13 @@ test.describe('fingers on the map', () => {
     await expect(field(page, 'orders')).toHaveText('No orders');
   });
 
+  test('a button held as long as a long press still does what it does', async ({ page }) => {
+    await start(page);
+    await longPress(page, page.locator('.command-bar [data-command="goTo"]'));
+    await expect(page.getByRole('dialog')).toContainText('Go to which place?');
+    await expect(pedia(page)).toHaveCount(0);
+  });
+
   test('a lookup event opens the encyclopedia at its target, and a touch\'s contextmenu opens nothing', async ({ page }) => {
     const { canvas } = await start(page);
     const p = await at(canvas, { x: SOLDIER.x + 2, y: SOLDIER.y });

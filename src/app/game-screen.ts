@@ -1898,17 +1898,22 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
    * Open the encyclopedia at what `hit` shows, on the map, the colony screen or the Europe screen, as
    * a right-click does: for a long press and for a LOOK_UP. Nothing under any other dialog.
    */
+  const lookUpBlocked = (): boolean => stopped || screen.querySelector('[role="dialog"]:not(.colony-screen):not(.europe-screen)') !== null;
   const lookUp = (hit: Element, clientX: number, clientY: number): void => {
-    if (stopped || screen.querySelector('[role="dialog"]:not(.colony-screen):not(.europe-screen)')) return;
+    if (lookUpBlocked()) return;
     const target = pediaTargetAt(hit, clientX, clientY);
     if (target) void showPedia(screen, target).then(() => (colonyScreen || europeScreen ? undefined : canvas.focus()));
   };
-  // a long press on a square shows its slip, whatever the option says, and nothing else; on what a
-  // right-click looks up elsewhere it opens the encyclopedia; what the colony screen drags is its own
-  const stopLongPress = onLongPress(screen, (target, clientX, clientY) => {
+  // A long press is heard only where it does something, so that a button held a while still clicks:
+  // on a square it shows the slip, whatever the option says, and nothing else; on what a right-click
+  // looks up elsewhere it opens the encyclopedia; what the colony screen drags is its own.
+  const pressable = document.createElement('div');
+  pressable.contains = (node: Node | null): boolean =>
+    node instanceof Element && screen.contains(node) && (node === canvas || (!lookUpBlocked() && !node.closest('[data-drag]') && pediaTargetAt(node, 0, 0) !== null));
+  const stopLongPress = onLongPress(pressable, (target, clientX, clientY) => {
     if (stopped || resizedAt >= fingerDownAt) return;
     if (target !== canvas) {
-      if (!target.closest('[data-drag]')) lookUp(target, clientX, clientY);
+      lookUp(target, clientX, clientY);
       return;
     }
     if (gesture?.kind !== 'press') return;
