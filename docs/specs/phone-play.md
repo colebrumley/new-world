@@ -1,6 +1,6 @@
 # Play on a phone: spec for R-1071 to R-1076
 
-Written by `/plan` on 2026-11-14. Status: approved.
+Written by `/plan` on 2026-11-14. Status: built.
 
 **The request, in the owner's words:** "I want to optimize this game for mobile, and specifically
 iPhone Duo." The game was laid out for a desktop window and played with a mouse and a keyboard. On a
