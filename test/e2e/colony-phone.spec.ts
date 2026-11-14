@@ -86,14 +86,14 @@ function measure(screen: Locator): Promise<Sheet> {
       regions: [...regions.map((name) => box(name, root.querySelector(`[data-region="${name}"]`))), box('help', help)],
       header: box('header', root.querySelector('.colony-header')),
       exit: box('exit', root.querySelector('.colony-commands')),
-      spills: [...root.querySelectorAll<HTMLElement>('[data-region], .colony-header')].filter((n) => {
+      spills: [...root.querySelectorAll<HTMLElement>('[data-region], .colony-header, .building')].filter((n) => {
         const r = n.getBoundingClientRect();
         const out = [...n.querySelectorAll('*')].some((c) => {
           const b = c.getBoundingClientRect();
           return c.getClientRects().length > 0 && (b.bottom > r.bottom + 1 || b.right > r.right + 1 || b.left < r.left - 1 || b.top < r.top - 1);
         });
         return out || n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1;
-      }).map((n) => n.dataset['region'] ?? n.className),
+      }).map((n) => n.dataset['region'] ?? n.dataset['building'] ?? n.className),
       scrollWidth: root.scrollWidth, clientWidth: root.clientWidth, clientHeight: root.clientHeight, scrollHeight: root.scrollHeight,
     };
   }, REGIONS as unknown as string[]);
@@ -271,13 +271,11 @@ for (const [set, sizes] of [['', POSTURES], ['40 px smaller, ', SMALL_POSTURES]]
         }
       });
 
-      test('the largest colony still fits the window across and keeps every region in reach', async ({ page }) => {
+      test('the largest colony reflows the same way, the warehouse still within one window sideways', async ({ page }) => {
         const screen = await openColony(page, largeColony(), 'W'.repeat(24));
         await tap(page, screen.locator('.colony-header h2'));
         await expect(page.locator('html')).toHaveAttribute('data-pointer', 'coarse');
-        await expectRegionsReachable(page, screen, viewport);
-        await expectBarsInWindow(screen, viewport);
-        await expectPicturesFit(screen);
+        await expectReflowed(page, screen, viewport);
       });
 
       test.describe('with a mouse', () => {

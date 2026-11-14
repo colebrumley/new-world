@@ -1038,9 +1038,11 @@ canvas.minimap {
 .colony-screen[data-holding] :is(.square, .building, .idle-row, .outside-row, .carrier)[data-drop-state='home']:hover { background-color: transparent; }
 
 /* The compact layout (R-1074): the sheet is as long as it need be and scrolls down, never across.
-   Upright it is one column; sideways the settlement and the squares lie side by side with the
-   warehouse straight under them. The head of the sheet and the way out stay in the window, lying
-   over what scrolls beneath them, and every region is as tall as what it holds. */
+   Upright it is one column. Sideways the settlement and the squares lie side by side, and the
+   warehouse stands under the squares beside the rest of the settlement, so that a colony of many
+   buildings does not push it down a whole settlement's height. The head of the sheet and the way
+   out stay in the window, lying over what scrolls beneath them, and every region is as tall as
+   what it holds. */
 :root[data-layout='compact'] .colony-screen {
   padding-top: 0; padding-bottom: 0; overflow: hidden auto; overscroll-behavior: contain;
   grid-template-columns: minmax(0, 1fr);
@@ -1049,7 +1051,7 @@ canvas.minimap {
 }
 :root[data-layout='compact'][data-posture='sideways'] .colony-screen {
   grid-template-columns: minmax(0, 1fr) minmax(0, 290px);
-  grid-template-areas: 'header header' 'settlement area' 'warehouse warehouse' 'people multi' 'transport transport' 'help help' 'exit exit';
+  grid-template-areas: 'header header' 'settlement area' 'settlement warehouse' 'people multi' 'transport transport' 'help help' 'exit exit';
 }
 :root[data-layout='compact'] .colony-screen [data-region] { min-height: auto; overflow: visible; }
 :root[data-layout='compact'] .colony-header {
@@ -1070,6 +1072,11 @@ canvas.minimap {
 :root[data-layout='compact'][data-posture='sideways'] .building-art { max-width: min(100%, 64px); }
 :root[data-layout='compact'] .area-grid { max-width: min(100%, 272px); }
 :root[data-layout='compact'] .colony-warehouse { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); }
+/* in the narrow column under the squares a good is its icon and its count (its name is its title), and the Custom
+   House's button takes two places in the rows rather than a row of its own, so the warehouse stays short */
+:root[data-layout='compact'][data-posture='sideways'] .colony-warehouse { grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); }
+:root[data-layout='compact'][data-posture='sideways'] .colony-warehouse .token-good .token-label { display: none; }
+:root[data-layout='compact'][data-posture='sideways'] .colony-warehouse .construction-change { grid-column: span 2; justify-self: stretch; white-space: normal; padding: 2px 4px; }
 /* the menus the screen puts up stay in the window however far the sheet is scrolled, and scroll in themselves */
 :root[data-layout='compact'] .colony-screen > .dialog-backdrop {
   position: fixed; inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left); padding: var(--frame); box-sizing: border-box;
