@@ -82,6 +82,7 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'map', keys: 'Enter / Esc / The end (the game is over)', action: 'Bring back the end page; the map can still be scrolled and zoomed, and the reports and the load menu opened, but takes no order' },
   { context: 'map', keys: 'Enter (view mode, on your colony)', action: 'Open the colony' },
   { context: 'map', keys: 'Click or tap on the New World view', action: 'Centre the view there' },
+  { context: 'map', keys: 'Dock buttons (a window under 760 wide or 640 high)', action: 'The dock stands in for the sidebar, under the map or at its right: Wait, Skip, Go to, Fortify, Sentry, Build and End turn as the sidebar has them, and More, which opens a sheet with the New World view, the square\'s rows and every other command; a command, a tap on the view, Close or a tap outside closes it' },
 
   { context: 'dialog', keys: 'Arrows', action: 'Move the highlight' },
   { context: 'dialog', keys: 'Enter', action: 'Choose the highlighted answer' },
