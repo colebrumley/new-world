@@ -66,11 +66,15 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | Click the near edge of a colony or unit beside the active unit | Move onto that square (the near corner, for a diagonal) where the pointer is an arrow; the rest of the square opens the colony or picks the unit | works |
 | Drag from the active unit | Send it to the square where the button is let go: one step if adjacent, Go To if farther. Its piece follows the pointer; the marker turns red over a square it cannot go to | works |
 | Wheel / pinch | Zoom in / zoom out about the pointer (a pinch on a trackpad or a touch screen zooms the map, not the page) | works |
+| Tap (a finger) | What a click does there: step the active unit beside it, open your colony, pick another unit of yours, set the Go To destination while one is being picked, otherwise centre the view; it also ends the hidden-terrain look, as a key does | works |
+| One finger dragged | Pan the map, the square under the finger staying under it. Begun on the active unit, it sends the unit where the finger lifts (one step if adjacent, Go To if farther) with the mouse's marker, and the view scrolls while that finger is within a fingertip (44 px) of an edge | works |
+| Two fingers | Zoom about the point between them; nothing pans, is ordered or held until every finger is up | works |
+| Long press (a finger held half a second) | On the map, the square's slip whatever the Terrain tooltips option says, with a Look up button that opens the encyclopedia there, and no order; on a building of the colony screen or a token of the Europe screen, its encyclopedia page | works |
 | Ctrl/Cmd + Plus / Minus | Zoom in / zoom out: the browser's zoom keys zoom the map while it has the keyboard | works |
 | Sidebar buttons | Every order, End Turn, Europe, zoom, the reports and the menus, for play without the keyboard; while a Go To square is being picked, Go to reads Cancel; once the game is over, End turn reads The end | works |
 | Enter / Esc / The end (the game is over) | Bring back the end page; the map can still be scrolled and zoomed, and the reports and the load menu opened, but takes no order | works |
 | Enter (view mode, on your colony) | Open the colony | works |
-| Click on the New World view | Centre the view there | works |
+| Click or tap on the New World view | Centre the view there | works |
 
 ## Pop-up questions
 

@@ -1,9 +1,11 @@
-// What the mouse means on the map: a click, a drag begun on the active unit, a turn of the wheel, a pinch.
+// What the mouse and a finger mean on the map: a click, a drag begun on the active unit, a turn of the
+// wheel, a pinch, what a finger's press becomes as it moves.
 // Pure, so the rules can be tested without a browser.
 import { validateAction } from '../engine/actions';
 import { settlementAt } from '../engine/settlements';
 import { colonyAt, type GameState, type Unit, type UnitId } from '../engine/state';
 import { villageActions } from '../engine/village';
+import { LONG_PRESS_TRAVEL } from './touch';
 
 export type PointerMode = 'move' | 'view' | 'goto';
 
@@ -141,4 +143,18 @@ export function wheelStep(kept: number, deltaY: number, full: number = WHEEL_STE
  */
 export function pinchTravel(ratio: number): number {
   return ratio > 0 && Number.isFinite(ratio) ? -100 * Math.log(ratio) : 0;
+}
+
+/**
+ * What one finger on the map is doing (a touch or a pen): a `press` until it travels
+ * LONG_PRESS_TRAVEL or is held for a long press (`held`); then a `pan`, or an `aim` when it went down
+ * on the active unit; `off` from the moment a second finger comes down (or a pointercancel, or a
+ * change of the window's size) until every finger is up.
+ */
+export type FingerKind = 'press' | 'pan' | 'aim' | 'held' | 'off';
+
+/** What a finger becomes once it has moved from where it went down to `to`: only a press changes, and only once it has travelled far enough. */
+export function fingerAfterMove(kind: FingerKind, from: { x: number; y: number }, to: { x: number; y: number }, onActiveUnit: boolean): FingerKind {
+  if (kind !== 'press' || Math.hypot(to.x - from.x, to.y - from.y) < LONG_PRESS_TRAVEL) return kind;
+  return onActiveUnit ? 'aim' : 'pan';
 }

@@ -69,6 +69,27 @@ export function placeTooltip(
   };
 }
 
+/** How far a long press's slip stands above (or below) the finger, in pixels, so the finger never hides it. */
+export const PRESSED_TIP_GAP = 24;
+
+/**
+ * The top-left corner, in canvas pixels, of the slip a long press shows: centred across the finger,
+ * its bottom edge PRESSED_TIP_GAP above it, or its top PRESSED_TIP_GAP below it where there is no
+ * room above; kept on the canvas across, and down where it fits.
+ */
+export function placePressedTip(
+  finger: { readonly x: number; readonly y: number },
+  slip: { readonly width: number; readonly height: number },
+  canvas: { readonly width: number; readonly height: number },
+): { x: number; y: number } {
+  const above = finger.y - PRESSED_TIP_GAP - slip.height;
+  const y = above >= 0 ? above : finger.y + PRESSED_TIP_GAP;
+  return {
+    x: Math.max(0, Math.min(finger.x - slip.width / 2, canvas.width - slip.width)),
+    y: above >= 0 ? y : Math.max(0, Math.min(y, canvas.height - slip.height)),
+  };
+}
+
 /** Fish is a raw good but not a cargo, so it has no entry among the goods' names. */
 function rawGoodName(good: RawGood): string {
   return good === 'fish' ? 'Fish' : GOOD_NAMES[good];

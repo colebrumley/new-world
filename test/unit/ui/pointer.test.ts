@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Settlement, Unit } from '../../../src/engine/state';
 import { villageActions } from '../../../src/engine/village';
-import { PINCH_STEP, STEP_RIM, WHEEL_STEP, dragBlocked, mapClick, mapCursor, mapDrag, pinchTravel, unitsToPick, wheelStep } from '../../../src/ui/pointer';
+import { PINCH_STEP, STEP_RIM, WHEEL_STEP, dragBlocked, fingerAfterMove, mapClick, mapCursor, mapDrag, pinchTravel, unitsToPick, wheelStep } from '../../../src/ui/pointer';
+import { LONG_PRESS_TRAVEL } from '../../../src/ui/touch';
 import { withColony, withUnit, world } from '../../helpers/world';
 
 const ROWS = ['~~~~~~~', '~.....~', '~.....~', '~.....~', '~~~~~~~'];
@@ -210,5 +211,25 @@ describe('a drag held over a square', () => {
     const walker = withUnit(s, { id: 'walker', type: 'soldier', x: 2, y: 2 });
     expect(villageActions(walker, unit(walker, 'walker'), village)).toContain('attack');
     expect(dragBlocked(walker, unit(walker, 'walker'), { x: 2, y: 3 })).toBe(false);
+  });
+});
+
+describe('a finger on the map', () => {
+  const from = { x: 100, y: 100 };
+  it('stays a press until it has travelled LONG_PRESS_TRAVEL, however it went', () => {
+    expect(LONG_PRESS_TRAVEL).toBe(10);
+    expect(fingerAfterMove('press', from, { x: 109.9, y: 100 }, false)).toBe('press');
+    expect(fingerAfterMove('press', from, { x: 106, y: 107.9 }, true)).toBe('press');
+  });
+  it('then pans the map, or sends the active unit when it went down on it', () => {
+    expect(fingerAfterMove('press', from, { x: 110, y: 100 }, false)).toBe('pan');
+    expect(fingerAfterMove('press', from, { x: 106, y: 108 }, false)).toBe('pan');
+    expect(fingerAfterMove('press', from, { x: 90, y: 100 }, true)).toBe('aim');
+  });
+  it('never changes once it is a pan, an aim, a long press or dropped', () => {
+    for (const kind of ['pan', 'aim', 'held', 'off'] as const) {
+      expect(fingerAfterMove(kind, from, from, false)).toBe(kind);
+      expect(fingerAfterMove(kind, from, { x: 300, y: 300 }, kind !== 'aim')).toBe(kind);
+    }
   });
 });
