@@ -1468,7 +1468,7 @@ builds it ticks the line in its own pull request and nobody else edits it. The s
 >>>>>>> origin/main
 - [ ] **R-1074 The colony screen at phone sizes** — docs/specs/phone-play.md, item W4, size M.
 - [ ] **R-1075 Fingers on the colony and Europe screens** — docs/specs/phone-play.md, item W5, size M.
-- [ ] **R-1076 Every other screen at phone sizes** — docs/specs/phone-play.md, item W6, size M.
+- [x] **R-1076 Every other screen at phone sizes** — docs/specs/phone-play.md, item W6, size M.
 
 ---
 

@@ -7,6 +7,7 @@ import { PROFESSIONS, type ProfessionId } from '../engine/data/professions';
 import { UNIT_TYPES, type UnitTypeId } from '../engine/data/units';
 import type { Difficulty } from '../engine/data/yields';
 import { landingParty } from '../engine/game';
+import { keepInView } from './dialog';
 import { drawSprite, flagArt } from './pixel-art';
 
 export interface PowerChoice {
@@ -123,6 +124,7 @@ export function createPowerScreen(options: PowerScreenOptions): HTMLElement {
     typed = true;
   });
   label.append(input);
+  keepInView(input);
   cartouche.append(label);
 
   const buttons = document.createElement('div');

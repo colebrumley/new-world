@@ -3,6 +3,7 @@
 // page of parchment (R-1015): the adviser's wax seal and the title at its head, the adviser's
 // opening words under them, then the sections as ruled tables. The adviser's portrait stands in
 // the head too (R-1016), and a line may open with a portrait of whom it is about.
+import { closeButton } from './dialog';
 import { drawSprite, sealArt } from './pixel-art';
 import { adviserFor, portraitCanvas, type PortraitId } from './portraits';
 import { reportHead } from './reports/heads';
@@ -135,7 +136,7 @@ export function showReport(host: HTMLElement, report: Report): Promise<readonly 
       }
       event.stopPropagation();
     });
-    root.append(close);
+    root.append(close, closeButton(() => finish(null)));
     host.append(root);
     close.focus();
   });

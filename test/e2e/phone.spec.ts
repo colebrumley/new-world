@@ -1,3 +1,4 @@
+import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { MAGNIFIED_TEXT, MAGNIFIED_TOUCH_TEXT } from '../../src/ui/magnified';
 import { foundJamestown, settled, startNewGame } from './helpers';
@@ -16,8 +17,35 @@ async function boxes(page: Page, selector: string): Promise<string[]> {
   );
 }
 
+/** Text is laid out a pixel or two differently from one platform's font rendering to another's. */
+const BOX_TOLERANCE = 2;
+/** Boxes as wide as a run of text that moves by more than BOX_TOLERANCE between platforms: their width is not compared. */
+const TEXT_WIDTH = new Set(['europe-gold']);
+const BOXES_FILE = 'test/e2e/__snapshots__/phone.spec.ts/desktop-boxes.json';
+
+/** Each box measured matches the one recorded, by name and in order, every number within BOX_TOLERANCE. */
+function expectBoxes(measured: Record<string, string[]>, recorded: Record<string, string[]>): void {
+  const parse = (line: string): { name: string; numbers: number[] } => {
+    const found = /^(.*): (-?\d+),(-?\d+) (\d+)x(\d+)$/.exec(line);
+    if (!found) throw new Error(`not a box: ${line}`);
+    return { name: found[1]!, numbers: found.slice(2).map(Number) };
+  };
+  expect(Object.keys(measured)).toEqual(Object.keys(recorded));
+  for (const [screen, lines] of Object.entries(recorded)) {
+    const now = measured[screen]!.map(parse);
+    const then = lines.map(parse);
+    expect(now.map((box) => box.name), screen).toEqual(then.map((box) => box.name));
+    then.forEach((box, i) => {
+      const [x, y, width, height] = now[i]!.numbers as [number, number, number, number];
+      const [x0, y0, width0, height0] = box.numbers as [number, number, number, number];
+      const off = [x - x0, y - y0, TEXT_WIDTH.has(box.name) ? 0 : width - width0, height - height0];
+      expect(Math.max(...off.map(Math.abs)), `${screen} ${box.name}: ${measured[screen]![i]} was ${lines[i]}`).toBeLessThanOrEqual(BOX_TOLERANCE);
+    });
+  }
+}
+
 // The measure of "as it is today" for the full layout: recorded on main's code before any of the
-// phone work, and never changed by it.
+// phone work, and never changed by it. --update-snapshots records it again.
 test.describe('the full layout at 1280 x 800', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
@@ -34,7 +62,9 @@ test.describe('the full layout at 1280 x 800', () => {
     await expect(europe).toBeVisible();
     await settled(page);
     const harbour = await boxes(page, '.europe-screen, .europe-screen > *, .europe-screen > * > *');
-    expect(JSON.stringify({ map, colony, europe: harbour }, null, 2)).toMatchSnapshot('desktop-boxes.json');
+    const measured = { map, colony, europe: harbour };
+    if (test.info().config.updateSnapshots === 'all') writeFileSync(BOXES_FILE, JSON.stringify(measured, null, 2));
+    expectBoxes(measured, JSON.parse(readFileSync(BOXES_FILE, 'utf8')) as Record<string, string[]>);
   });
 });
 

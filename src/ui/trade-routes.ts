@@ -2,6 +2,7 @@
 import { GOOD_IDS, GOOD_NAMES, type GoodId } from '../engine/data/goods';
 import { TRADE_ROUTES } from '../engine/data/trade-routes';
 import type { RouteStop } from '../engine/state';
+import { closeButton, keepInView } from './dialog';
 
 export interface RouteDraft {
   readonly name: string;
@@ -35,6 +36,7 @@ export function editRoute(host: HTMLElement, options: RouteEditorOptions): Promi
     name.maxLength = 24;
     name.value = options.name;
     nameLabel.append(name);
+    keepInView(name);
     form.append(heading, nameLabel);
 
     const table = document.createElement('table');
@@ -103,6 +105,7 @@ export function editRoute(host: HTMLElement, options: RouteEditorOptions): Promi
       else finish({ name: name.value.trim(), stops });
     });
 
+    form.append(closeButton(() => finish(null)));
     backdrop.append(form);
     host.append(backdrop);
     name.focus();

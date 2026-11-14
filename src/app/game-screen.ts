@@ -607,7 +607,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       const where = session.state.colonies[tax.colonyId]?.name ?? 'the colonies';
       const pick = await ask(screen, {
         text: `The Crown has raised the tax rate by ${tax.increase}%, to ${mine()?.taxRate}%. The people of ${where} talk of throwing their ${tax.good} into the harbor.`,
-        choices: ['Pay the new tax', `Hold a ${tax.good} party in ${where}`], escape: 0, picture: portraitCanvas('king', 2),
+        choices: ['Pay the new tax', `Hold a ${tax.good} party in ${where}`], escape: 0, cross: false, picture: portraitCanvas('king', 2),
       });
       dispatch({ type: 'answerTax', party: pick === 1 });
     }
@@ -871,7 +871,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
         const others = session.state.players.filter((p) => p.id !== talk.ai && p.id !== talk.human && !p.withdrawn);
         const pick = chosen ?? await ask(screen, {
           text: `${tone} There is peace between us. What have we to say?`,
-          choices: ['Go in peace', 'Pull your forces back from our colonies', 'What are your lives worth to you?', 'Join us against an enemy'], escape: 0,
+          choices: ['Go in peace', 'Pull your forces back from our colonies', 'What are your lives worth to you?', 'Join us against an enemy'], escape: 0, cross: false,
         });
         chosen = null;
         if (pick === 3) {
@@ -886,6 +886,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
           text: `${tone} They propose a treaty of peace between our peoples.`,
           choices: ['Agree, and go in peace', 'Agree, and ask them to pull their forces back from our colonies', 'Agree, and ask what their lives are worth to them', 'Agree, and ask them to join us against an enemy', 'Refuse'],
           escape: 4,
+          cross: false,
         });
         chosen = pick === 4 ? null : pick;
         action = { type: 'audienceReply', reply: chosen === null ? 'no' : 'yes' };
@@ -899,7 +900,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
           tribute: `${tone} They demand ${talk.gold} gold as the price of peace.`,
           cash: `Rather than fight, they offer ${talk.gold} gold for peace.`,
         }[talk.stage];
-        const pick = await ask(screen, { text, choices: ['Agree', 'Refuse'], escape: 1 });
+        const pick = await ask(screen, { text, choices: ['Agree', 'Refuse'], escape: 1, cross: false });
         action = { type: 'audienceReply', reply: pick === 0 ? 'yes' : 'no' };
       }
       const check = validateAction(session.state, action);
@@ -960,7 +961,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
       const level = TECH_LEVELS[TRIBES[tribe].tech];
       const pick = await ask(screen, {
         text: `We have met the ${TRIBES[tribe].name}, a ${level.name.toLowerCase()} people of ${count} ${count === 1 ? level.settlement.toLowerCase() : level.plural.toLowerCase()}. They offer to live in peace beside us.`,
-        choices: ['Accept their friendship', 'Refuse'], escape: 0,
+        choices: ['Accept their friendship', 'Refuse'], escape: 0, cross: false,
       });
       if (validateAction(session.state, { type: 'answerTreaty', tribe, accept: pick === 0 }).ok) dispatch({ type: 'answerTreaty', tribe, accept: pick === 0 });
     }

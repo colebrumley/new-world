@@ -1,4 +1,5 @@
 // The Save/Load Game dialog: ten slots, with export to and import from a file.
+import { closeButton } from './dialog';
 
 export interface SlotRow {
   readonly index: number;
@@ -83,7 +84,7 @@ export function showSaveLoad(host: HTMLElement, slots: readonly SlotRow[], canSa
 
     const close = button('Close (Esc)', () => finish(null));
     close.className = 'save-close';
-    root.append(close);
+    root.append(close, closeButton(() => finish(null)));
     root.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();

@@ -1026,6 +1026,112 @@ canvas.minimap {
 .save-notice { min-height: 1.2em; margin: 4px 0 0; font-style: italic; color: var(--ink-amber); }
 .save-dialog .save-close { align-self: center; padding: 0.35rem 1.4rem; text-align: center; }
 
+/* --- every other screen at phone sizes (R-1076) --------------------------------------------------
+   In the compact layout each dialog and screen lies inside the window and scrolls inside itself,
+   never sideways, and its way out stays in sight wherever it is scrolled to. Under a finger every
+   choice is a finger high, and every text field is set large enough that taking the focus does not
+   magnify the page. None of this applies to a full-sized window worked with a mouse. */
+
+/* a dialog's cross: Esc for a finger, at the top right, staying there while the dialog scrolls */
+.dialog-close { display: none; }
+:root:is([data-layout='compact'], [data-pointer='coarse']) .dialog-close {
+  position: sticky; top: -11px; z-index: 2; order: -1; align-self: flex-end; flex: none;
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  width: var(--tap); height: var(--tap); margin: -11px -13px calc(11px - var(--tap)) 0; padding: 0;
+  font-size: 1.6rem; line-height: 1;
+}
+:root:is([data-layout='compact'], [data-pointer='coarse']) :has(> .dialog-close) > :first-child:not(canvas) { padding-right: var(--tap); }
+:root:is([data-layout='compact'], [data-pointer='coarse']) :has(> .dialog-close) > h2:first-child { padding-left: var(--tap); }
+:root:is([data-layout='compact'], [data-pointer='coarse']) .report-screen > .dialog-close { top: -8px; margin: -8px -10px calc(8px - var(--tap)) 0; }
+
+/* the veil is the window's, wherever the screen under it is scrolled to; the dialog keeps inside it */
+:root[data-layout='compact'] .dialog-backdrop {
+  position: fixed; box-sizing: border-box;
+  padding: calc(var(--safe-top) + 8px) calc(var(--safe-right) + 8px) calc(var(--safe-bottom) + 8px) calc(var(--safe-left) + 8px);
+}
+:root[data-layout='compact'] :is(.dialog, .europe-panel) {
+  box-sizing: border-box; min-width: 0; max-width: min(24rem, 100%); max-height: 100%; overflow: auto; overscroll-behavior: contain;
+}
+:root[data-layout='compact'] :is(.save-dialog, .cheat-console, .route-editor) { max-width: 100%; }
+:root[data-layout='compact'] .cheat-console { max-height: 100%; }
+:root[data-layout='compact'] .cheat-sheet { max-height: 30vh; }
+:root[data-layout='compact'] .combat-side { min-width: 0; overflow-wrap: anywhere; }
+/* the way out of a dialog that has one stays at its foot */
+:root[data-layout='compact'] .dialog :is(.options-done, .save-close) { position: sticky; bottom: -9px; z-index: 1; }
+/* the ledger of slots: the slot's name and what is in it, its buttons on a line of their own under them */
+:root[data-layout='compact'] .save-dialog table { display: block; }
+:root[data-layout='compact'] .save-dialog tr { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; border-top: var(--rule-faint); }
+:root[data-layout='compact'] .save-dialog tr:first-child { border-top: 0; }
+:root[data-layout='compact'] .save-dialog :is(th, td) { border-top: 0; }
+:root[data-layout='compact'] .save-dialog td.slot-summary { width: auto; }
+:root[data-layout='compact'] .save-dialog td:last-child { grid-column: 1 / -1; padding: 0 3px 4px; border-left: 0; }
+:root[data-layout='compact'] .route-editor table { display: block; overflow-x: auto; }
+
+/* the title, Customize and Choose a European Power: the sheet fits the window and scrolls, its buttons at its foot */
+:root[data-layout='compact'] .title-screen { padding: 8px; }
+:root[data-layout='compact'] .cartouche { padding: 1rem 1.1rem 0.8rem; gap: 0.5rem; overscroll-behavior: contain; }
+:root[data-layout='compact'] .cartouche h1 { font-size: clamp(2.2rem, 11vw, 3.1rem); }
+:root[data-layout='compact'] :is(.customize, .power) .cartouche h1 { font-size: 1.6rem; white-space: normal; }
+:root[data-layout='compact'] .customize fieldset { flex-wrap: wrap; gap: 0 1rem; }
+:root[data-layout='compact'] .power-name-field { align-self: stretch; }
+:root[data-layout='compact'] .power-name-field input { flex: 1; width: auto; min-width: 0; }
+:root[data-layout='compact'] .customize-buttons {
+  position: sticky; bottom: -0.8rem; z-index: 1; align-self: stretch; justify-content: center;
+  margin: 0 -0.6rem -0.8rem; padding: 6px 0 8px; background: var(--sheet); border-top: var(--rule-faint);
+}
+
+/* the Europe screen: one column upright, two sideways, the head with Leave kept at the top */
+:root[data-layout='compact'] .europe-screen { padding: 0 8px 8px; gap: 6px; overscroll-behavior: contain; scroll-padding-top: 5.5rem; }
+:root[data-layout='compact'][data-posture='upright'] .europe-screen { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'header' 'sea' 'harbor' 'docks' 'office' 'market' 'note'; }
+:root[data-layout='compact'][data-posture='sideways'] .europe-screen { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: 'header header' 'sea harbor' 'docks office' 'market market' 'note note'; }
+:root[data-layout='compact'] .europe-harbor { border-left: var(--rule); }
+:root[data-layout='compact'][data-posture='upright'] .europe-market { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+:root[data-layout='compact'] .europe-header { position: sticky; top: 0; z-index: 3; flex-wrap: wrap; gap: 2px 10px; padding-top: 6px; background: var(--sheet); }
+:root[data-layout='compact'] .europe-header h2 { flex: 1 1 auto; min-width: 0; font-size: 1.3rem; }
+:root[data-layout='compact'] .europe-header::after { content: ''; order: 1; flex: 0 0 100%; }
+:root[data-layout='compact'] .europe-close { order: 1; }
+:root[data-layout='compact'] :is(.europe-gold, .europe-tax) { order: 2; font-size: 0.9rem; }
+:root[data-layout='compact'] .europe-gold { padding-left: 0; border-left: 0; }
+
+/* reports and the encyclopedia: the page scrolls, a wide table scrolls sideways in its own section, Close stays at the foot */
+:root[data-layout='compact'] .report-screen { padding: 10px 12px; gap: 10px; overscroll-behavior: contain; }
+:root[data-layout='compact'] .report-screen h2 { font-size: 1.5rem; overflow-wrap: anywhere; }
+:root[data-layout='compact'] .report-head { gap: 8px; }
+:root[data-layout='compact'] .report-section { min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; }
+:root[data-layout='compact'] .report-section :is(th, td) { padding-right: 8px; }
+/* a column is as wide as its name, and the table scrolls rather than set a name a word to a line */
+:root[data-layout='compact'] .report-section .report-columns > * { white-space: nowrap; }
+:root[data-layout='compact'] .report-close { position: sticky; bottom: 0; z-index: 2; }
+:root[data-layout='compact'] .pedia-screen { padding: 10px 12px; }
+:root[data-layout='compact'][data-posture='upright'] .pedia-body { flex-direction: column; }
+:root[data-layout='compact'][data-posture='upright'] .pedia-index { flex: 0 0 34%; padding: 6px 12px 8px 22px; border-right: 0; border-bottom: var(--rule); }
+:root[data-layout='compact'][data-posture='sideways'] .pedia-index { flex-basis: 12rem; }
+:root[data-layout='compact'] .pedia-page { min-width: 0; padding: 8px 12px 10px; }
+:root[data-layout='compact'] .pedia-page table { display: block; max-width: 100%; overflow-x: auto; }
+:root[data-layout='compact'] .pedia-page > .portrait { float: none; display: block; margin: 0 auto 8px; }
+
+/* the end page: its choices stay at the foot, side by side where the window is low */
+:root[data-layout='compact'] .end-page { padding: 10px 12px 0; }
+:root[data-layout='compact'] .end-tally { flex-wrap: wrap; gap: 4px 20px; }
+:root[data-layout='compact'] .end-choices { position: sticky; bottom: 0; z-index: 1; width: 100%; max-width: 100%; margin-top: 0; padding: 6px 0 10px; background: var(--sheet); align-items: center; }
+:root[data-layout='compact'] .end-choices button { width: min(18rem, 100%); }
+:root[data-layout='compact'][data-posture='sideways'] .end-choices { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+:root[data-layout='compact'][data-posture='sideways'] .end-choices button { width: auto; }
+
+/* under a finger: every choice a finger high, and each option's hint a line under it */
+:root[data-pointer='coarse'] :is(.dialog, .europe-panel, .end-choices, .title-menu, .customize-buttons, .pedia-index, .europe-screen) button,
+:root[data-pointer='coarse'] :is(.dialog select:not([multiple]), .title-difficulty select, .power-row, .customize label, .options-dialog .option, .report-close, .cheat-help summary) {
+  min-height: var(--tap);
+}
+:root[data-pointer='coarse'] .customize label { display: inline-flex; align-items: center; gap: 0.3em; }
+:root[data-pointer='coarse'] .cheat-help summary { padding-block: 12px; box-sizing: border-box; }
+:root[data-pointer='coarse'] .europe-close { min-width: var(--tap); }
+.option-text { display: flex; flex-direction: column; }
+.option-hint { display: none; }
+:root[data-pointer='coarse'] .option-hint { display: block; font-size: 0.85rem; font-style: italic; color: var(--ink-faded); }
+/* a field set at 16px or more: a phone magnifies the page when a smaller one takes the focus */
+:root:is([data-layout='compact'], [data-pointer='coarse']) :is(input:not([type='checkbox'], [type='radio'], [type='file']), select, textarea) { font-size: max(16px, 1em); }
+
 /* Shown while the page itself is magnified; over every screen and dialog. A brass-edged plaque. */
 .magnified-notice {
   position: absolute; z-index: 20; transform: translateX(-50%); margin: 0; padding: 4px 12px; max-width: 80%;

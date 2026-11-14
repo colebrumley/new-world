@@ -1,6 +1,7 @@
 // The Combat Analysis dialog (R-603): both sides' strengths and the modifiers behind them, shown
 // before an attack is ordered.
 import type { CombatAnalysis } from '../engine/analysis';
+import { closeButton } from './dialog';
 
 function column(title: string, side: CombatAnalysis['attacker'], field: string): HTMLElement {
   const box = document.createElement('div');
@@ -65,7 +66,7 @@ export function askCombat(host: HTMLElement, analysis: CombatAnalysis, note = ''
     hold.type = 'button';
     hold.textContent = 'Hold';
     hold.addEventListener('click', () => finish(false));
-    box.append(go, hold);
+    box.append(go, hold, closeButton(() => finish(false)));
     box.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') finish(false);
       else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') hold.focus();
