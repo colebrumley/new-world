@@ -203,40 +203,49 @@ async function expectMenuInWindow(page: Page, screen: Locator, viewport: { width
   await expect(menu).toHaveCount(0);
 }
 
+/** The sheet's layout at this size: every region in reach, the bars in the window, the pictures fitted, the column or the two side by side. */
+async function expectReflowed(page: Page, screen: Locator, viewport: { width: number; height: number }): Promise<void> {
+  await expect(page.locator('html')).toHaveAttribute('data-layout', 'compact');
+  const sheet = await expectRegionsReachable(page, screen, viewport);
+  await expectBarsInWindow(screen, viewport);
+  await expectPicturesFit(screen);
+  const at = Object.fromEntries(sheet.regions.map((r) => [r.name, r]));
+  if (viewport.height > viewport.width) {
+    // one column, the regions one under another
+    for (const r of sheet.regions) {
+      expect(Math.abs(r.left - at['settlement']!.left), `${r.name} in the column`).toBeLessThanOrEqual(1);
+      expect(Math.abs(r.right - at['settlement']!.right), `${r.name} in the column`).toBeLessThanOrEqual(1);
+    }
+  } else {
+    const settlement = at['settlement']!;
+    const area = at['area']!;
+    expect(Math.abs(settlement.top - area.top), 'settlement and squares side by side').toBeLessThanOrEqual(1);
+    expect(area.left).toBeGreaterThanOrEqual(settlement.right - 1);
+    const exitHeight = sheet.exit.bottom - sheet.exit.top;
+    expect(at['warehouse']!.bottom - (sheet.clientHeight - exitHeight), 'the warehouse within one window of scrolling').toBeLessThanOrEqual(sheet.clientHeight);
+  }
+}
+
+/** The jobs menu, the construction menu and the Custom House's exports. */
+async function expectMenusInWindow(page: Page, screen: Locator, viewport: { width: number; height: number }): Promise<void> {
+  await expectMenuInWindow(page, screen, viewport, async () => {
+    await screen.locator('[data-region="people"] .token-colonist').first().focus();
+    await page.keyboard.press('Enter');
+  }, 'Choose work');
+  await expectMenuInWindow(page, screen, viewport, () => page.keyboard.press('c'), 'What shall the colony build?');
+  await expectMenuInWindow(page, screen, viewport, () => page.keyboard.press('x'), 'Which goods shall the Custom House export?');
+}
+
 for (const [set, sizes] of [['', POSTURES], ['40 px smaller, ', SMALL_POSTURES]] as const) {
   for (const [name, viewport] of Object.entries(sizes)) {
-    const upright = viewport.height > viewport.width;
     test.describe(`${set}${name} (${viewport.width} x ${viewport.height})`, () => {
       test.use({ viewport, hasTouch: true });
 
-      test('the colony screen reflows: every region in reach, the bars in the window, the menus inside it', async ({ page }) => {
+      test('under a finger the colony screen reflows, everything to tap is a finger high, and the menus lie inside the window', async ({ page }) => {
         const screen = await openColony(page, smallColony(), 'Jamestown');
-        await expect(page.locator('html')).toHaveAttribute('data-layout', 'compact');
-
-        for (const pointer of ['fine', 'coarse'] as const) {
-          if (pointer === 'coarse') {
-            await tap(page, screen.locator('.colony-header h2'));
-            await expect(page.locator('html')).toHaveAttribute('data-pointer', 'coarse');
-          }
-          const sheet = await expectRegionsReachable(page, screen, viewport);
-          await expectBarsInWindow(screen, viewport);
-          await expectPicturesFit(screen);
-          const at = Object.fromEntries(sheet.regions.map((r) => [r.name, r]));
-          if (upright) {
-            // one column, the regions one under another
-            for (const r of sheet.regions) {
-              expect(Math.abs(r.left - at['settlement']!.left), `${r.name} in the column`).toBeLessThanOrEqual(1);
-              expect(Math.abs(r.right - at['settlement']!.right), `${r.name} in the column`).toBeLessThanOrEqual(1);
-            }
-          } else {
-            const settlement = at['settlement']!;
-            const area = at['area']!;
-            expect(Math.abs(settlement.top - area.top), 'settlement and squares side by side').toBeLessThanOrEqual(1);
-            expect(area.left).toBeGreaterThanOrEqual(settlement.right - 1);
-            const exitHeight = sheet.exit.bottom - sheet.exit.top;
-            expect(at['warehouse']!.bottom - (sheet.clientHeight - exitHeight), 'the warehouse within one window of scrolling').toBeLessThanOrEqual(sheet.clientHeight);
-          }
-        }
+        await tap(page, screen.locator('.colony-header h2'));
+        await expect(page.locator('html')).toHaveAttribute('data-pointer', 'coarse');
+        await expectReflowed(page, screen, viewport);
 
         // under a finger: everything to tap is a finger high, and the warehouse shows all sixteen goods, legibly
         const short = await screen.evaluate((root, tapAt) => [...root.querySelectorAll('button, .token, .building, .square')]
@@ -254,13 +263,7 @@ for (const [set, sizes] of [['', POSTURES], ['40 px smaller, ', SMALL_POSTURES]]
           expect(count.size).toBeGreaterThanOrEqual(11);
         }
 
-        // the jobs menu, the construction menu and the Custom House's exports
-        await expectMenuInWindow(page, screen, viewport, async () => {
-          await screen.locator('[data-region="people"] .token-colonist').first().focus();
-          await page.keyboard.press('Enter');
-        }, 'Choose work');
-        await expectMenuInWindow(page, screen, viewport, () => page.keyboard.press('c'), 'What shall the colony build?');
-        await expectMenuInWindow(page, screen, viewport, () => page.keyboard.press('x'), 'Which goods shall the Custom House export?');
+        await expectMenusInWindow(page, screen, viewport);
 
         if ((name === 'duoCoverUpright' || name === 'phoneSideways') && set === '') {
           await screen.evaluate((root) => { root.scrollTop = 0; });
@@ -275,6 +278,17 @@ for (const [set, sizes] of [['', POSTURES], ['40 px smaller, ', SMALL_POSTURES]]
         await expectRegionsReachable(page, screen, viewport);
         await expectBarsInWindow(screen, viewport);
         await expectPicturesFit(screen);
+      });
+
+      test.describe('with a mouse', () => {
+        test.use({ hasTouch: false });
+
+        test('the colony screen reflows the same way, and the menus lie inside the window', async ({ page }) => {
+          const screen = await openColony(page, smallColony(), 'Jamestown');
+          await expect(page.locator('html')).toHaveAttribute('data-pointer', 'fine');
+          await expectReflowed(page, screen, viewport);
+          await expectMenusInWindow(page, screen, viewport);
+        });
       });
     });
   }
