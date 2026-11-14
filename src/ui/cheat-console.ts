@@ -5,6 +5,7 @@
 import { validateAction, type Action } from '../engine/actions';
 import type { GameState } from '../engine/state';
 import { cheatHelp, completeCheat, parseCheat, withCompletion, type CheatContext } from './cheat-parser';
+import { closeButton, keepInView } from './dialog';
 
 /** What the console needs of the game behind it. Each is asked afresh for every line: a cheat changes the answers. */
 export interface CheatConsoleGame {
@@ -78,6 +79,7 @@ export function showCheatConsole(host: HTMLElement, game: CheatConsoleGame): Pro
     input.spellcheck = false;
     input.maxLength = 200;
     label.append(input);
+    keepInView(input);
 
     const hint = document.createElement('p');
     hint.className = 'cheat-hint';
@@ -181,7 +183,7 @@ export function showCheatConsole(host: HTMLElement, game: CheatConsoleGame): Pro
       event.stopPropagation();
     });
 
-    root.append(heading, transcript, help, label, hint, done);
+    root.append(heading, transcript, help, label, hint, done, closeButton(finish));
     backdrop.append(root);
     host.append(backdrop);
     input.focus();

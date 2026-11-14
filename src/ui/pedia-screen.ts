@@ -1,6 +1,7 @@
 // The encyclopedia screen: an index of every entry by category on the left, the chosen page on
 // the right. Esc or the button closes it.
 import type { FatherId } from '../engine/data/fathers';
+import { closeButton } from './dialog';
 import { pediaIndex, pediaPage, type PediaCategory } from './pedia';
 import { portraitCanvas } from './portraits';
 
@@ -95,7 +96,7 @@ export function showPedia(host: HTMLElement, start: PediaTarget | null = null): 
     });
     root.addEventListener('contextmenu', (event) => event.preventDefault());
     body.append(nav, page);
-    root.append(heading, body, close);
+    root.append(heading, body, close, closeButton(finish));
     host.append(root);
     show(start ?? { category: 'concepts', id: 'prices' });
     const current = nav.querySelector<HTMLButtonElement>('button[aria-current="true"]');
