@@ -8,6 +8,12 @@ export interface DialogOptions {
   readonly initial?: number;
   /** Choice taken on Escape; without it Escape does nothing. */
   readonly escape?: number;
+  /**
+   * Whether a finger is offered the Close cross that does what Escape does (R-1076): on by default
+   * wherever `escape` is set. Set false where the escape answer decides something (pays a tax,
+   * accepts a treaty), so that no cross commits the player: the answers themselves are in reach.
+   */
+  readonly cross?: boolean;
   /** A picture set beside the question: whoever is asking. */
   readonly picture?: HTMLElement;
   /** Lines set as a heading over the question, for an audience or a proclamation. */
@@ -135,7 +141,7 @@ export function ask(host: HTMLElement, options: DialogOptions): Promise<number> 
       if (!(event.target instanceof Element && event.target.closest('button'))) event.preventDefault();
     });
 
-    if (options.escape !== undefined) {
+    if (options.escape !== undefined && options.cross !== false) {
       const escape = options.escape;
       box.append(closeButton(() => finish(escape)));
     }

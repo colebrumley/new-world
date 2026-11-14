@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { saveGame } from '../../src/engine/save';
 import type { GameState, Unit } from '../../src/engine/state';
-import { withUnit, world } from '../helpers/world';
+import { withColony, withUnit, world } from '../helpers/world';
 import { field } from './helpers';
 import { POSTURES, SMALL_POSTURES, tap, type Size } from './postures';
 
@@ -321,6 +321,39 @@ for (const [set, sizes] of [['', POSTURES], ['40 px smaller, ', SMALL_POSTURES]]
     });
   }
 }
+
+/** A colony with furs in store, a full treasury, and the turn before the Crown's tax comes round: ending it raises the tax. */
+function eveOfTax(): string {
+  const rows = Array.from({ length: 12 }, (_, y) => (y === 0 || y === 11 ? '~'.repeat(16) : `~${'.'.repeat(14)}~`));
+  let state: GameState = world({ rows, seed: 3, players: [{ id: 'p0', kind: 'human' }] });
+  state = withColony(state, { id: 'c1', owner: 'p0', x: 1, y: 5, name: 'Jamestown', goods: { furs: 100 } });
+  state = withUnit(state, { id: 'u1', owner: 'p0', type: 'soldier', x: 5, y: 5 });
+  state = { ...state, turn: 35, players: state.players.map((p) => ({ ...p, gold: 100000 })) };
+  return saveGame({ options: { seed: 3 }, log: [], state });
+}
+
+test.describe('a question whose every answer decides something', () => {
+  test.use({ viewport: POSTURES.phoneUpright, hasTouch: true });
+
+  test('the tax rise offers no cross: Esc pays the tax, so a finger must choose an answer', async ({ page }) => {
+    await page.addInitScript((text) => {
+      if (!sessionStorage.getItem('seeded')) {
+        localStorage.setItem('new-world:autosave', text);
+        sessionStorage.setItem('seeded', '1');
+      }
+    }, eveOfTax());
+    await page.goto('/');
+    await tap(page, page.getByRole('menuitem', { name: 'Load Game' }));
+    await expect(page.locator('html')).toHaveAttribute('data-layout', 'compact');
+    await expect(page.locator('html')).toHaveAttribute('data-pointer', 'coarse');
+    await page.locator('canvas.map').focus();
+    await page.keyboard.press('Enter');
+    const tax = page.locator('.dialog').filter({ hasText: 'The Crown has raised the tax rate' });
+    await expect(tax).toBeVisible();
+    await expect(tax.getByRole('button')).toHaveText(['Pay the new tax', 'Hold a furs party in Jamestown']);
+    await expect(tax.locator('.dialog-close')).toHaveCount(0);
+  });
+});
 
 test.describe('the full layout with a mouse', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
