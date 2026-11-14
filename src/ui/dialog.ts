@@ -55,8 +55,13 @@ export function keepInView(field: HTMLElement): void {
     bring();
     const view = window.visualViewport;
     if (!view) return;
-    view.addEventListener('resize', bring);
-    field.addEventListener('blur', () => view.removeEventListener('resize', bring), { once: true });
+    // a dialog taken away with its field still focused fires no blur: the listener goes at the next change instead
+    const follow = (): void => {
+      if (field.isConnected && document.activeElement === field) bring();
+      else view.removeEventListener('resize', follow);
+    };
+    view.addEventListener('resize', follow);
+    field.addEventListener('blur', () => view.removeEventListener('resize', follow), { once: true });
   });
 }
 

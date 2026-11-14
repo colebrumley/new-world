@@ -313,8 +313,10 @@ for (const [set, sizes] of [['', POSTURES], ['40 px smaller, ', SMALL_POSTURES]]
         await page.keyboard.press('ArrowRight');
         const analysis = page.getByRole('dialog', { name: 'Combat Analysis' });
         await checkDialog(page, viewport, analysis, 'the combat analysis');
-        // the cross held, as Esc does: nothing happened
+        // the cross held, as Esc does: nothing happened, and no fight is in the log
         await expect(field(page, 'location')).toHaveText('(5, 5)');
+        await expect(page.locator('[data-field="log"] li:not(.hint)')).toHaveCount(0);
+        await expect(page.locator('[data-field="combat-result"]')).toHaveCount(0);
       });
     });
   }
