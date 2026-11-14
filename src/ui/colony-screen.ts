@@ -7,7 +7,7 @@
 // It is drawn as a town plan (R-1013): every building is its picture with the people who work in
 // it standing on it, goods are their icons with a count, and the head of the sheet carries the
 // owner's flag and a bell gauge for the Sons of Liberty.
-import { squareStatus } from '../engine/jobs';
+import { squareReason, squareStatus } from '../engine/jobs';
 import { landPrice } from '../engine/land';
 import type { Action } from '../engine/actions';
 import { COLONIST_ROLES } from '../engine/data/equipment';
@@ -21,6 +21,7 @@ import { buildingArt, figureArt, flagArt, goodArt, type Sprite } from './pixel-a
 import { lookOf as unitLookOf, type LookId } from './unit-looks';
 import { inkOf } from './render';
 import { lookOf, paintTile, spriteCanvas } from './tiles';
+import { LONG_PRESS_TRAVEL, LOOK_UP, onLongPress, type LookUpDetail } from './touch';
 
 export interface ColonyScreenHost {
   /** The current game state (it changes as actions are applied). */
@@ -80,11 +81,14 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   let focusKey = '';
   /** The token picked by a click or a drag, as its drag source ("colonist:id"); the next click on a place sends it there. */
   let selected = '';
+  /** The Part button is pressed for this selection ('' when it is not): the next placement asks how much, as Shift does. */
+  let partFor = '';
   /** The screen has asked to be closed: nothing more is drawn, and the host is not asked twice. */
   let closed = false;
   const close = (): void => {
     if (closed) return;
     closed = true;
+    stopFingers();
     host.close();
   };
 
@@ -157,8 +161,13 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     return attempt({ type: 'acquireLand', x, y, pay: rich && pick === 1 });
   }
 
-  async function drop(source: string, target: string, partial: boolean): Promise<void> {
+  async function drop(source: string, target: string, shift: boolean): Promise<void> {
     const [kind, id, extra] = source.split(':') as [string, string, string | undefined];
+    const partial = shift || partFor !== '';
+    // the Part button lets go once a placement is made or asked about; a drop that places nothing keeps it
+    const placing = (kind === 'good' && target.startsWith('carrier:'))
+      || (kind === 'cargo' && extra !== undefined && (target === 'warehouse' || (target.startsWith('carrier:') && target !== `carrier:${id}`)));
+    if (placing) partFor = '';
     if (kind === 'colonist') {
       if (target === 'outside') await leave(id);
       else if (target.startsWith('carrier:')) {
@@ -205,7 +214,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   }
 
   async function howMany(question: string, most: number): Promise<number> {
-    const answer = await askText(root, { text: `${question} (up to ${most})`, initial: String(most), maxLength: 4 });
+    const answer = await askText(root, { text: `${question} (up to ${most})`, initial: String(most), maxLength: 4, numeric: true });
     const n = Math.floor(Number(answer));
     return answer !== null && Number.isFinite(n) && n > 0 ? Math.min(n, most) : 0;
   }
@@ -463,7 +472,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       cell.append(drawSquare(sq.dx, sq.dy));
       if (sq.status === 'center') cell.append(el('span', 'square-note', sq.note));
       if (sq.worker) cell.append(personToken('colonist', sq.worker));
-      if (sq.status === 'nativeLand' || sq.status === 'otherColony' || sq.status === 'foreignUnit') cell.title = sq.status;
+      if (sq.status === 'nativeLand' || sq.status === 'otherColony' || sq.status === 'foreignUnit') cell.title = squareReason(sq.status) ?? '';
       grid.append(cell);
     }
     area.append(grid);
@@ -565,9 +574,13 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     const picked = selected ? root.querySelector<HTMLElement>(`[data-drag="${selected}"]`) : null;
     if (!picked) selected = '';
     picked?.classList.add('token-selected');
+    // with a good or a cargo in hand, the foot of the sheet offers to move only part of it (Shift's work, for a finger)
+    // (it lets go when the selection is dropped or changed)
+    if (partFor !== selected) partFor = '';
+    if (selected.startsWith('good:') || selected.startsWith('cargo:')) commands.insertBefore(partButton(), done);
     showHolding();
     restoreDrag();
-    root.append(el('p', 'colony-help', helpFor(picked?.querySelector('.token-label')?.textContent ?? '')), commands);
+    root.append(el('p', 'colony-help', helpFor(picked)), commands);
     const again = focusKey ? root.querySelector<HTMLElement>(`[data-key="${focusKey}"]`) : null;
     (again ?? root.querySelector<HTMLElement>('.token') ?? root).focus();
   }
@@ -577,7 +590,23 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     root.dataset['holding'] = kind;
   }
 
-  function helpFor(name: string): string {
+  /** The Part button: pressed, the next placement of the good or cargo in hand asks how much. */
+  function partButton(): HTMLButtonElement {
+    const b = el('button', 'colony-part', 'Part');
+    b.type = 'button';
+    b.title = 'Move only part of it: the next placement asks how much';
+    b.setAttribute('aria-pressed', String(partFor !== ''));
+    b.addEventListener('click', () => {
+      partFor = partFor ? '' : selected;
+      render();
+    });
+    return b;
+  }
+
+  /** What the help line says: with a finger at work it speaks of taps and holds, otherwise of clicks. */
+  function helpFor(picked: HTMLElement | null): string {
+    if (document.documentElement.dataset['pointer'] === 'coarse') return fingerHelpFor(picked);
+    const name = picked?.querySelector('.token-label')?.textContent ?? '';
     const kind = selected.split(':')[0];
     if (kind === 'colonist') return `${name} selected: click a square or a building to put them to work there, or a ship to put them aboard; click them again for the jobs menu.`;
     if (kind === 'unit' && host.state().units[selected.split(':')[1] ?? '']?.aboard) return `${name} selected: click a square or a building to have them join the colony there, "Outside the gates" to put them ashore, or another ship to move them to it; click them again for orders.`;
@@ -585,6 +614,19 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     if (kind === 'good') return `${name} selected: click a ship or wagon train to load a hold of it (Shift for part).`;
     if (kind === 'cargo') return `${name} selected: click the warehouse to unload it, or another ship or wagon train to move it (Shift for part).`;
     return 'Click a colonist, then a square or a building, to put them to work there, or a ship to put them aboard (or drag them); click them again for the jobs menu. Move goods between the warehouse and a hold the same way; click a ship or wagon train twice for its orders. Right-click anything to look it up.';
+  }
+
+  /** The help line for a finger: the thing in hand is named by its title, which tells what its label leaves out (an equipped colonist's role, say). */
+  function fingerHelpFor(picked: HTMLElement | null): string {
+    const name = picked?.title ?? '';
+    const kind = selected.split(':')[0];
+    const some = partFor ? 'Part is pressed: the next placement asks how much.' : 'Press Part first to move only some.';
+    if (kind === 'colonist') return `${name}. Tap a square or a building to put them to work there, or a ship to put them aboard; tap them again for the jobs menu.`;
+    if (kind === 'unit' && host.state().units[selected.split(':')[1] ?? '']?.aboard) return `${name}. Tap a square or a building to have them join the colony there, "Outside the gates" to put them ashore, or another ship to move them to it; tap them again for orders.`;
+    if (kind === 'unit') return `${name}. Tap a square or a building to have them join the colony there, or a ship to put them aboard; tap them again for orders.`;
+    if (kind === 'good') return `${name}. Tap a ship or wagon train to load a hold of it. ${some}`;
+    if (kind === 'cargo') return `${name}. Tap the warehouse to unload it, or another ship or wagon train to move it. ${some}`;
+    return 'Tap a colonist, then a square or a building, to put them to work there, or a ship to put them aboard; tap them again for the jobs menu. Move goods between the warehouse and a hold the same way; tap a ship or wagon train twice for its orders. Hold anything to pick it up and drag it where it should go, or hold it and let go to look it up.';
   }
 
   // --- pointer: press, move, release ----------------------------------------------------------
@@ -607,6 +649,8 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     over: HTMLElement | null;
     /** Verdicts already worked out in this drag, by target: a field square's costs up to nine refusals and nine trial views. */
     readonly verdicts: Map<string, DropVerdict>;
+    /** The finger holding it (its pointer id), or null for the mouse. */
+    readonly finger: number | null;
   }
   let held: Grip | null = null;
   /** The pointer left the window with the button down: the release that may follow its return is nobody's click. */
@@ -687,16 +731,17 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   }
 
   root.addEventListener('mousedown', (event) => {
+    if (fingerAtWork()) return;
     const from = (event.target as HTMLElement).closest<HTMLElement>('[data-drag]');
     if (event.button === 0) abandoned = false;
     if (!from || event.button !== 0) return;
     endDrag(held);
-    held = { source: from.dataset['drag'] ?? '', x: event.clientX, y: event.clientY, px: event.clientX, py: event.clientY, moved: false, shift: event.shiftKey, from, ghost: null, over: null, verdicts: new Map() };
+    held = { source: from.dataset['drag'] ?? '', x: event.clientX, y: event.clientY, px: event.clientX, py: event.clientY, moved: false, shift: event.shiftKey, from, ghost: null, over: null, verdicts: new Map(), finger: null };
     focusKey = from.dataset['key'] ?? '';
     if (!held.source.startsWith('carrier:')) showHolding(held.source.split(':')[0]);
   });
   root.addEventListener('mousemove', (event) => {
-    if (!held) return;
+    if (!held || fingerAtWork()) return;
     if (!held.moved && Math.hypot(event.clientX - held.x, event.clientY - held.y) > DRAG_THRESHOLD) {
       held.moved = true;
       // a ship or wagon train gets no ghost: dragging one does nothing
@@ -716,13 +761,14 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   // The screen covers the whole game, so the pointer leaving it has left the window: the press is
   // over, and so is the drag (a release out there never reaches us).
   root.addEventListener('mouseleave', (event) => {
-    if (!held) return;
+    if (!held || fingerAtWork()) return;
     endDrag(held);
     held = null;
     abandoned = (event.buttons & 1) === 1;
     showHolding();
   });
   root.addEventListener('mouseup', (event) => {
+    if (fingerAtWork()) return;
     const grip = held;
     held = null;
     // the ghost and the marks go before anything the drop shows (a question, a message)
@@ -766,6 +812,192 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     if (over?.dataset['drop']) void drop(grip.source, over.dataset['drop'], grip.shift || event.shiftKey);
     else render();
   });
+
+  // A finger (docs/specs/phone-play.md W5): a swipe scrolls the screen, as the browser does it; a
+  // hold of LONG_PRESS_MS picks a thing up, its ghost lifted clear of the finger; moved, it is dragged
+  // as the mouse drags it and let go where it should go; let go in place, it is put back and looked
+  // up. A tap is the browser's click, and goes through the mouse's handlers above.
+
+  /** How far above the finger the ghost's bottom edge rides, so that the finger does not hide it. */
+  const GHOST_LIFT = 12;
+  /** How far the screen scrolls in a frame while a thing picked up is held at its top or bottom edge. */
+  const EDGE_SCROLL_STEP = 12;
+  /** For this long after a pick-up ends, or until the next touch, a mouse event is the browser's echo of the finger, and nobody's click. */
+  const ECHO_MS = 800;
+  let echoUntil = 0;
+  function fingerAtWork(): boolean {
+    return (held !== null && held.finger !== null) || performance.now() < echoUntil;
+  }
+  /** The last finger to go down on the screen: where, and whether it has travelled. */
+  let touched: { id: number; x: number; y: number; travelled: boolean } | null = null;
+  /** The host asked for a redraw while a finger held a thing: it is made when the thing is let go. */
+  let owed = false;
+  /** Takes away the window's listeners while a thing is held by a finger. */
+  let unhold: (() => void) | null = null;
+
+  /** The size of a thing to tap (--tap), which is also how near an edge the screen begins to scroll. */
+  const tapSize = (): number => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tap')) || 44;
+
+  /** What scrolls the screen: the first of it and its parents that has more to show than it shows. */
+  function scroller(): HTMLElement | null {
+    for (let node: HTMLElement | null = root; node; node = node.parentElement) {
+      const overflow = getComputedStyle(node).overflowY;
+      if ((overflow === 'auto' || overflow === 'scroll') && node.scrollHeight > node.clientHeight) return node;
+    }
+    const page = document.scrollingElement;
+    return page instanceof HTMLElement && page.scrollHeight > page.clientHeight ? page : null;
+  }
+
+  /** The thing held by a finger is put back: no drop, no ghost, no marks. */
+  function putBack(): void {
+    const grip = held;
+    unhold?.();
+    if (!grip || grip.finger === null) return;
+    held = null;
+    endDrag(grip);
+    showHolding();
+    echoUntil = performance.now() + ECHO_MS;
+    if (owed) {
+      owed = false;
+      render();
+    }
+  }
+
+  function pickUp(target: Element): void {
+    const from = target.closest<HTMLElement>('[data-drag]');
+    const finger = touched;
+    if (closed || !from || !root.contains(from) || !finger || finger.travelled || root.querySelector('.dialog-backdrop')) return;
+    endDrag(held);
+    unhold?.();
+    const source = from.dataset['drag'] ?? '';
+    const grip: Grip = { source, x: finger.x, y: finger.y, px: finger.x, py: finger.y, moved: false, shift: false, from, ghost: null, over: null, verdicts: new Map(), finger: finger.id };
+    held = grip;
+    focusKey = from.dataset['key'] ?? '';
+    // a ship or wagon train is not picked up (dragging one does nothing), but letting go in place still looks it up
+    if (!source.startsWith('carrier:')) {
+      showHolding(source.split(':')[0]);
+      grip.ghost = makeGhost(grip);
+      grip.ghost.dataset['finger'] = '';
+      grip.ghost.style.setProperty('--ghost-lift', `${GHOST_LIFT}px`);
+      from.classList.add('token-lifted');
+      root.append(grip.ghost);
+      aim(grip, grip.x, grip.y);
+    }
+    /** Where the finger is now; the ghost stays where it was picked up until the finger has travelled. */
+    let at = { x: finger.x, y: finger.y };
+    let frame = 0;
+    const edgeScroll = (): void => {
+      frame = 0;
+      if (held !== grip) return;
+      const edge = tapSize();
+      const way = at.y < edge ? -1 : at.y > window.innerHeight - edge ? 1 : 0;
+      const pane = grip.moved && way !== 0 ? scroller() : null;
+      if (pane) pane.scrollTop += way * EDGE_SCROLL_STEP; // the screen's scroll listener marks what is now under the finger
+      frame = requestAnimationFrame(edgeScroll);
+    };
+    const mine = (event: PointerEvent): boolean => held === grip && event.pointerId === grip.finger;
+    const onMove = (event: PointerEvent): void => {
+      if (!mine(event)) return;
+      at = { x: event.clientX, y: event.clientY };
+      if (!grip.moved && Math.hypot(at.x - grip.x, at.y - grip.y) >= LONG_PRESS_TRAVEL) grip.moved = true;
+      if (grip.moved) aim(grip, at.x, at.y);
+    };
+    const onUp = (event: PointerEvent): void => {
+      if (!mine(event)) return;
+      const { moved, source: what } = grip;
+      putBack();
+      if (!moved) {
+        // held and let go in place: put back, and looked up (from the token as it stands now, a redraw owed included)
+        const token = root.querySelector<HTMLElement>(`[data-drag="${what}"]`) ?? grip.from;
+        const detail: LookUpDetail = { clientX: event.clientX, clientY: event.clientY };
+        token.dispatchEvent(new CustomEvent(LOOK_UP, { bubbles: true, detail }));
+        return;
+      }
+      if (what.startsWith('carrier:')) return;
+      // the place under the finger, not under the ghost, is where it goes
+      const place = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-drop]')?.dataset['drop'];
+      if (!place) return;
+      selected = what;
+      void drop(what, place, false);
+    };
+    // a second finger, the browser taking the touch back, or a change of the window's size: put it back
+    const onOther = (event: PointerEvent): void => {
+      if (held === grip && event.pointerId !== grip.finger) putBack();
+    };
+    const onCancel = (event: PointerEvent): void => {
+      if (mine(event)) putBack();
+    };
+    const capture = { capture: true } as const;
+    window.addEventListener('pointermove', onMove, capture);
+    window.addEventListener('pointerup', onUp, capture);
+    window.addEventListener('pointercancel', onCancel, capture);
+    window.addEventListener('pointerdown', onOther, capture);
+    window.addEventListener('resize', putBack);
+    frame = requestAnimationFrame(edgeScroll);
+    unhold = () => {
+      unhold = null;
+      cancelAnimationFrame(frame);
+      window.removeEventListener('pointermove', onMove, capture);
+      window.removeEventListener('pointerup', onUp, capture);
+      window.removeEventListener('pointercancel', onCancel, capture);
+      window.removeEventListener('pointerdown', onOther, capture);
+      window.removeEventListener('resize', putBack);
+    };
+  }
+
+  root.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse') return;
+    touched = { id: event.pointerId, x: event.clientX, y: event.clientY, travelled: false };
+    if (held?.finger === undefined || held.finger === null) echoUntil = 0; // a new touch: whatever echoes it makes are its own
+  });
+  root.addEventListener('pointermove', (event) => {
+    if (touched?.id === event.pointerId && Math.hypot(event.clientX - touched.x, event.clientY - touched.y) >= LONG_PRESS_TRAVEL) touched.travelled = true;
+  });
+  // A tap tells what resting the mouse on a thing tells: a square that cannot be worked, a building
+  // and a refused button (which, disabled, has no click of its own) say their title in the help line.
+  root.addEventListener('pointerup', (event) => {
+    const finger = touched;
+    if (event.pointerType === 'mouse' || finger?.id !== event.pointerId) return;
+    touched = null;
+    if (finger.travelled || held || !(event.target instanceof Element)) return;
+    const titled = event.target.closest<HTMLElement>('button:disabled[title], .square[title], .building[title]');
+    if (!titled || !root.contains(titled) || event.target.closest('.token') || (selected && !titled.matches('button'))) return;
+    const help = root.querySelector<HTMLElement>('.colony-help');
+    const status = root.querySelector<HTMLElement>('.colony-message');
+    message = '';
+    if (status) status.textContent = ''; // a message showing hides the help line
+    if (help) help.textContent = titled.title;
+  });
+  root.addEventListener('pointercancel', (event) => {
+    if (touched?.id === event.pointerId) touched = null;
+  });
+  // Once a thing is picked up, the screen does not scroll under the finger that holds it. (Listened for
+  // on the document, which a touch's events reach from wherever they began; the host's redraws wait
+  // until the thing is let go, so the token the finger went down on stays on the page meanwhile.)
+  const holdStill = (event: TouchEvent): void => {
+    if (held !== null && held.finger !== null && event.cancelable) event.preventDefault();
+  };
+  document.addEventListener('touchmove', holdStill, { passive: false });
+  const stopHolds = onLongPress(root, (target) => pickUp(target));
+  // the first touch felt makes the pointer coarse: the help line speaks of fingers from then on
+  const pointerWatch = new MutationObserver(() => {
+    const help = root.querySelector<HTMLElement>('.colony-help');
+    if (help) help.textContent = helpFor(root.querySelector<HTMLElement>('.token-selected'));
+  });
+  pointerWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-pointer'] });
+  function stopFingers(): void {
+    putBack();
+    stopHolds();
+    pointerWatch.disconnect();
+    document.removeEventListener('touchmove', holdStill);
+  }
+  // the host may take the screen away without asking it to close: the window's listeners go with it
+  const gone = new MutationObserver(() => {
+    if (root.isConnected) return;
+    gone.disconnect();
+    stopFingers();
+  });
+  gone.observe(parent, { childList: true });
 
   // --- keyboard ---------------------------------------------------------------------------------
 
@@ -916,7 +1148,12 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     await constructionMenu();
   }
 
-  return { element: root, refresh: render, chooseProject };
+  /** The host's redraw: put off while a finger holds a thing, so that the token under it is not replaced. */
+  const refresh = (): void => {
+    if (held !== null && held.finger !== null) owed = true;
+    else render();
+  };
+  return { element: root, refresh, chooseProject };
 }
 
 export type { ColonyView };
