@@ -84,9 +84,10 @@ const SWALLOW_MS = 1000;
  */
 export function onLongPress(element: Element, handler: (target: Element, clientX: number, clientY: number) => void): () => void {
   const win = element.ownerDocument.defaultView ?? window;
-  /** Every pointer down on the page, so that a second one is seen wherever it lands. */
-  const down = new Set<number>();
-  let press: { id: number; x: number; y: number; target: Element; timer: ReturnType<typeof setTimeout> } | null = null;
+  /** Every pointer down on the page and its kind, so that a second one is seen wherever it lands. */
+  const down = new Map<number, string>();
+  type Press = { id: number; x: number; y: number; target: Element; timer: ReturnType<typeof setTimeout> };
+  let press: Press | null = null;
   /** The pointer whose long press ran, until its release; then the moment the swallowing ends. */
   let held: number | null = null;
   let swallowUntil = 0;
@@ -97,23 +98,30 @@ export function onLongPress(element: Element, handler: (target: Element, clientX
     press = null;
   };
   const onDown = (event: PointerEvent): void => {
-    // the first pointer of a gesture: any left over from one whose release never reached us are gone
-    if (event.isPrimary) down.clear();
-    down.add(event.pointerId);
+    // the first pointer of its kind: any of that kind left over from a release that never reached
+    // us are gone (a primary touch and a primary mouse can be down together, so only its own kind)
+    if (event.isPrimary) for (const [id, kind] of down) if (kind === event.pointerType) down.delete(id);
+    down.set(event.pointerId, event.pointerType);
     // a new touch starts afresh: whatever the last long press left to swallow is gone
     if (held === null) swallowing = false;
-    if (down.size > 1) return drop();
+    drop();
+    if (down.size > 1) return;
     const target = event.target as Element | null;
     if (event.pointerType === 'mouse' || !target || !element.contains(target)) return;
-    const timer = setTimeout(() => {
-      if (!press) return;
-      const { id, x, y, target: at } = press;
-      press = null;
-      held = id;
-      swallowing = true;
-      handler(at, x, y);
-    }, LONG_PRESS_MS);
-    press = { id: event.pointerId, x: event.clientX, y: event.clientY, target, timer };
+    const started: Press = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      target,
+      timer: setTimeout(() => {
+        if (press !== started) return;
+        press = null;
+        held = started.id;
+        swallowing = true;
+        handler(started.target, started.x, started.y);
+      }, LONG_PRESS_MS),
+    };
+    press = started;
   };
   const onMove = (event: PointerEvent): void => {
     if (press?.id === event.pointerId && Math.hypot(event.clientX - press.x, event.clientY - press.y) >= LONG_PRESS_TRAVEL) drop();

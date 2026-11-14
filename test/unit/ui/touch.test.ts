@@ -110,6 +110,26 @@ describe('the long press', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
+  it('is stopped by a mouse button pressed during the hold, though each is the first of its kind', () => {
+    const { win, inside, outside, handler } = setup();
+    send(win, 'pointerdown', inside);
+    vi.advanceTimersByTime(200);
+    send(win, 'pointerdown', outside, { pointerId: 9, pointerType: 'mouse' });
+    vi.advanceTimersByTime(1000);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('starts afresh after a touch whose release never came, timing the new one from its own start', () => {
+    const { win, inside, handler } = setup();
+    send(win, 'pointerdown', inside, { pointerId: 1 });
+    vi.advanceTimersByTime(200);
+    send(win, 'pointerdown', inside, { pointerId: 2, clientX: 5, clientY: 6 });
+    vi.advanceTimersByTime(LONG_PRESS_MS - 1);
+    expect(handler).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(handler).toHaveBeenCalledExactlyOnceWith(inside, 5, 6);
+  });
+
   it('is not a long press when lifted sooner, and that release keeps its click', () => {
     const { win, inside, handler } = setup();
     send(win, 'pointerdown', inside);

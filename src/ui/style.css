@@ -849,6 +849,8 @@ canvas.minimap {
   background: var(--wood-light); color: var(--parchment-light); border: 1px solid var(--brass); font-size: 0.9rem; pointer-events: none;
 }
 .magnified-notice[hidden] { display: none; }
+/* while it is up, a pinch anywhere is the browser's, so that two fingers can set the page right */
+:root[data-magnified] #app, :root[data-magnified] #app * { touch-action: manipulation; }
 
 /* --- colony screen ------------------------------------------------------------------------- */
 /* Laid over the whole game, as the Europe screen is: settlement top left, area top right, people
