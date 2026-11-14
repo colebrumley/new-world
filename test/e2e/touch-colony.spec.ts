@@ -4,10 +4,19 @@ import { saveGame } from '../../src/engine/save';
 import { OFF_MAP, type Colonist, type GameState } from '../../src/engine/state';
 import { withColony, withUnit, world } from '../helpers/world';
 import { field } from './helpers';
-import { POSTURES, longPress, tap, touchDrag, type PostureName } from './postures';
+import { POSTURES, longPress, tap as tapAt, touchDrag, type PostureName, type Where } from './postures';
 
 // Fingers on the colony and Europe screens (R-1075, docs/specs/phone-play.md W5): a swipe scrolls,
 // a hold picks a thing up, a hold let go in place looks it up, a tap is a click, and Part asks how much.
+
+/** The middle of an element where it is now, without scrolling. */
+async function spot(where: Locator): Promise<{ x: number; y: number }> {
+  const box = (await where.boundingBox())!;
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/** A tap on an element (scrolled to the middle of the window) or a point. */
+const tap = async (page: Page, where: Where): Promise<void> => tapAt(page, 'boundingBox' in where ? await middle(where) : where);
 
 const settler = (id: string): Colonist => ({ id, profession: 'freeColonist', job: { kind: 'idle' }, turns: 0 });
 
@@ -52,9 +61,9 @@ async function finger(page: Page): Promise<{ down(x: number, y: number): Promise
   };
 }
 
-/** The middle of an element, scrolled into the window first. */
+/** The middle of an element, scrolled to the middle of the window first (clear of the colony screen's header and foot, which stay in the window). */
 async function middle(where: Locator): Promise<{ x: number; y: number }> {
-  await where.scrollIntoViewIfNeeded();
+  await where.evaluate((node) => node.scrollIntoView({ block: 'center', inline: 'center' }));
   const box = (await where.boundingBox())!;
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
@@ -68,15 +77,27 @@ async function carry(page: Page, from: Locator, to: Locator): Promise<void> {
   await page.waitForTimeout(700);
   await expect(page.locator('.drag-ghost')).toHaveCount(1);
   const height = page.viewportSize()!.height;
+  let atEdge = false;
   for (let i = 0; i < 60; i++) {
-    const box = (await to.boundingBox())!;
-    const y = box.y + box.height / 2;
-    if (y > 50 && y < height - 50) {
-      await hand.move(box.x + box.width / 2, y);
+    // off the edge before looking, so that the screen stands still between the look and the move
+    if (atEdge) {
+      await hand.move(start.x, height / 2, 2);
+      await page.waitForTimeout(100);
+    }
+    // where the target's middle is, and whether a finger there would be on it (the screen's header and foot lie over what scrolls)
+    const { x, y, clear } = await to.evaluate((node) => {
+      const r = node.getBoundingClientRect();
+      const mx = r.x + r.width / 2;
+      const my = r.y + r.height / 2;
+      return { x: mx, y: my, clear: my > 50 && my < innerHeight - 50 && node.contains(document.elementFromPoint(mx, my)) };
+    });
+    if (clear) {
+      await hand.move(x, y);
       break;
     }
-    await hand.move(box.x + box.width / 2, y < 50 ? 10 : height - 10, 2);
+    await hand.move(x, y < height / 2 ? 10 : height - 10, 2);
     await page.waitForTimeout(100);
+    atEdge = true;
   }
   await hand.up();
 }
@@ -102,8 +123,39 @@ const touchable = (page: Page, selector: string, low = false): Promise<{ x: numb
   throw new Error(`no touchable ${selector}`);
 }, { selector, low });
 
-// (the colony screen is laid out for a phone by R-1074; until then the inner screen held sideways is
-// the posture at which every region lies clear of the others)
+/** A thing held, picked up, carried a little way and dropped on a place: the ghost, the dimmed token, the still screen, the mark and the drop. */
+async function pickUpAndDrop(page: Page): Promise<void> {
+  const colony = await openJamestown(page);
+  const ann = colony.locator('.idle-row .token').first();
+  const at = await middle(ann);
+  const outside = await spot(colony.locator('.outside-row .row-title'));
+  const hand = await finger(page);
+  await hand.down(at.x, at.y);
+  await page.waitForTimeout(700);
+  const ghost = colony.locator('.drag-ghost');
+  await expect(ghost).toHaveCount(1);
+  await expect(ann).toHaveClass(/token-lifted/);
+  const bottom = async (): Promise<number> => {
+    const box = (await ghost.boundingBox())!;
+    return box.y + box.height;
+  };
+  expect(Math.abs((await bottom()) - (at.y - 12))).toBeLessThan(1.5);
+  // carried a little way (well clear of the edges), the ghost follows and the screen does not scroll
+  const still = (await pane(page)).top;
+  await hand.move(outside.x, outside.y);
+  expect((await pane(page)).top).toBe(still);
+  expect(Math.abs((await bottom()) - (outside.y - 12))).toBeLessThan(1.5);
+  // the place under the finger is marked as the mouse's drag marks it, and the drop lands there
+  await expect(colony.locator('.outside-row')).toHaveAttribute('data-drop-state', 'ok');
+  await hand.up();
+  await expect(ghost).toHaveCount(0);
+  await expect(colony.locator('.idle-row .token')).toHaveCount(1);
+  await expect(colony.locator('.outside-row .token-unit')).toHaveCount(2);
+  await expect(colony.locator('.token-lifted')).toHaveCount(0);
+}
+
+// (most of it at the inner screen held sideways; the pick-up and drop also folded and upright, below,
+// and the edge scrolling at every posture)
 test.describe('the colony screen under a finger', () => {
   test.use({ viewport: POSTURES.duoInnerSideways, hasTouch: true });
 
@@ -144,33 +196,7 @@ test.describe('the colony screen under a finger', () => {
   });
 
   test('a hold picks a thing up: its ghost rides 12 px above the finger, the token dims, and the screen holds still', async ({ page }) => {
-    const colony = await openJamestown(page);
-    const ann = colony.locator('.idle-row .token').first();
-    const at = await middle(ann);
-    const hand = await finger(page);
-    await hand.down(at.x, at.y);
-    await page.waitForTimeout(700);
-    const ghost = colony.locator('.drag-ghost');
-    await expect(ghost).toHaveCount(1);
-    await expect(ann).toHaveClass(/token-lifted/);
-    const bottom = async (): Promise<number> => {
-      const box = (await ghost.boundingBox())!;
-      return box.y + box.height;
-    };
-    expect(Math.abs((await bottom()) - (at.y - 12))).toBeLessThan(1.5);
-    // carried a little way (well clear of the edges), the ghost follows and the screen does not scroll
-    const still = (await pane(page)).top;
-    const outside = await middle(colony.locator('.outside-row'));
-    await hand.move(outside.x, outside.y);
-    expect((await pane(page)).top).toBe(still);
-    expect(Math.abs((await bottom()) - (outside.y - 12))).toBeLessThan(1.5);
-    // the place under the finger is marked as the mouse's drag marks it, and the drop lands there
-    await expect(colony.locator('.outside-row')).toHaveAttribute('data-drop-state', 'ok');
-    await hand.up();
-    await expect(ghost).toHaveCount(0);
-    await expect(colony.locator('.idle-row .token')).toHaveCount(1);
-    await expect(colony.locator('.outside-row .token-unit')).toHaveCount(2);
-    await expect(colony.locator('.token-lifted')).toHaveCount(0);
+    await pickUpAndDrop(page);
   });
 
   test('a hold let go in place puts the thing back and asks to look it up', async ({ page }) => {
@@ -199,7 +225,7 @@ test.describe('the colony screen under a finger', () => {
     const ann = colony.locator('.idle-row .token').first();
     for (const upset of ['second', 'cancel', 'resize'] as const) {
       const at = await middle(ann);
-      const outside = await middle(colony.locator('.outside-row'));
+      const outside = await spot(colony.locator('.outside-row .row-title'));
       const hand = await finger(page);
       await hand.down(at.x, at.y);
       await page.waitForTimeout(700);
@@ -331,6 +357,14 @@ test.describe('the colony screen under a finger', () => {
   });
 });
 
+test.describe('the colony screen under a finger, on the Duo folded and upright', () => {
+  test.use({ viewport: POSTURES.duoCoverUpright, hasTouch: true });
+
+  test('a hold picks a thing up and a drop lands where the finger lifts', async ({ page }) => {
+    await pickUpAndDrop(page);
+  });
+});
+
 // Held at the window's top or bottom edge, a thing picked up scrolls the screen that way, so that
 // any region can be reached in one drag.
 for (const name of Object.keys(POSTURES) as PostureName[]) {
@@ -339,6 +373,7 @@ for (const name of Object.keys(POSTURES) as PostureName[]) {
 
     test('a thing held at the top or bottom edge scrolls the screen that way', async ({ page }) => {
       const colony = await openJamestown(page);
+      await colony.locator('.idle-row .token').first().evaluate((node) => node.scrollIntoView({ block: 'center' }));
       const at = await touchable(page, '.colony-screen .token[data-drag]:not(.token-carrier)');
       const hand = await finger(page);
       await hand.down(at.x, at.y);
