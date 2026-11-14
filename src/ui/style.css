@@ -330,20 +330,25 @@ canvas.minimap {
   background: var(--brass-light);
 }
 
-/* the Europe button: a brass plate while a ship lies in port ready, a wax mark while ships are at sea or under repair */
-.command-bar [data-europe="port"] {
+/* the Europe button: a brass plate while a ship lies in port ready, a wax mark while ships are at sea or under repair
+   (and the dock's More, which holds it, the same) */
+.command-bar [data-europe="port"],
+.dock-commands [data-europe="port"] {
   background: var(--plate-brass);
 }
 
-.command-bar [data-europe="port"]:hover:not(:disabled) {
+.command-bar [data-europe="port"]:hover:not(:disabled),
+.dock-commands [data-europe="port"]:hover:not(:disabled) {
   background: var(--brass-light);
 }
 
-.command-bar [data-europe="sea"] {
+.command-bar [data-europe="sea"],
+.dock-commands [data-europe="sea"] {
   position: relative;
 }
 
-.command-bar [data-europe="sea"]::after {
+.command-bar [data-europe="sea"]::after,
+.dock-commands [data-europe="sea"]::after {
   content: "";
   position: absolute;
   top: 2px;
@@ -362,13 +367,187 @@ canvas.minimap {
   list-style: none;
 }
 
-
-
-
-
 .game {
   position: relative;
 }
+
+/* The compact layout (R-1072, docs/specs/phone-play.md W2). In the full one the sheet takes no box
+   of its own, so the sidebar stands where it always has, and the dock and the backdrop are not shown. */
+.sheet { display: contents; }
+.sheet-close,
+.sheet-backdrop,
+.dock { display: none; }
+
+/* the map, and the dock under it when upright or at its right when sideways */
+:root[data-layout='compact'] .game {
+  display: grid;
+  grid-template: 'map' minmax(0, 1fr) 'dock' auto / minmax(0, 1fr);
+}
+:root[data-layout='compact'][data-posture='sideways'] .game {
+  grid-template: 'map dock' minmax(0, 1fr) / minmax(0, 1fr) auto;
+}
+:root[data-layout='compact'] canvas.map {
+  grid-area: map;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+:root[data-layout='compact'] .dock {
+  grid-area: dock;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  padding: 5px 6px 6px;
+  background: var(--table);
+  border-top: 3px solid var(--brass);
+  border-image: var(--trim-brass);
+}
+:root[data-layout='compact'][data-posture='sideways'] .dock {
+  width: 188px;
+  border-top: 0;
+  border-left: 3px solid var(--brass);
+  border-image: var(--trim-brass);
+}
+
+/* the date and the treasury at its head, the unit, and what was last said, on a slip of the log */
+.dock-info {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden auto;
+  scrollbar-width: none;
+  padding: 2px 8px 3px;
+  background: var(--sheet);
+  border: var(--rule);
+  box-shadow: var(--lift);
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+:root[data-posture='sideways'] .dock-info { flex-grow: 1; }
+.dock-info p { margin: 0; }
+.dock-head,
+.dock-unit {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 10px;
+}
+.dock-head {
+  justify-content: space-between;
+  border-bottom: var(--rule);
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+}
+.dock-unit span:empty,
+.dock-status:empty { display: none; }
+.dock-unit [data-dock='moves'],
+.dock-unit [data-dock='orders'] { color: var(--ink-faded); font-style: italic; }
+.dock-status {
+  border-top: 1px dotted var(--ink-rule-faint);
+  /* two lines in sight; a longer word scrolls in its slip */
+  max-height: 2.4em;
+  overflow: hidden auto;
+}
+:root[data-posture='sideways'] .dock-status { max-height: none; }
+
+.dock-commands {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(var(--tap), 1fr));
+  gap: 4px;
+}
+:root[data-posture='sideways'] .dock-commands { grid-template-columns: repeat(2, minmax(var(--tap), 1fr)); }
+.dock-commands button {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 2px 3px;
+  font-size: 0.9rem;
+  line-height: 1.1;
+}
+.dock-commands .command-wide,
+.dock-commands [data-dock-command='more'] {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+}
+.dock-commands .command-wide { background: var(--plate-brass); }
+.dock-commands .command-wide:hover:not(:disabled) { background: var(--brass-light); }
+
+/* More's sheet: the sidebar, laid over the map, with a Close at its head; the rest of the screen
+   is veiled, and a tap on the veil closes it */
+:root[data-layout='compact'] .sheet { display: none; }
+:root[data-layout='compact'] .game[data-sheet='open'] .sheet {
+  grid-area: map;
+  position: absolute;
+  z-index: 7;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  max-height: calc(100% - 12px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  background: var(--table);
+  border: 3px solid var(--brass);
+  border-image: var(--trim-brass);
+  box-shadow: var(--lift);
+}
+:root[data-layout='compact'][data-posture='sideways'] .game[data-sheet='open'] .sheet { top: 6px; }
+:root[data-layout='compact'] .game[data-sheet='open'] .sheet-backdrop {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: var(--veil);
+}
+:root[data-layout='compact'] .sheet-close {
+  display: block;
+  flex: 0 0 auto;
+  align-self: flex-end;
+  min-width: calc(2 * var(--tap));
+  min-height: var(--tap);
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+}
+
+/* the sidebar inside it: no frame of its own, the commands the dock lacks first, then the chart and the lists */
+:root[data-layout='compact'] .sidebar {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+:root[data-layout='compact'] .sidebar > .command-bar {
+  order: -1;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 4px;
+}
+:root[data-layout='compact'] .sidebar .command-bar button {
+  min-height: var(--tap);
+  font-size: 0.9rem;
+}
+:root[data-layout='compact'] .sidebar .command-bar [data-docked],
+:root[data-layout='compact'] .sidebar-status,
+:root[data-layout='compact'] .sidebar-info::after,
+:root[data-layout='compact'] .sidebar-info :is(dt:has(+ dd:is([data-field='date'], [data-field='treasury'], [data-field='unit'], [data-field='moves'], [data-field='orders'])), dd:is([data-field='date'], [data-field='treasury'], [data-field='unit'], [data-field='moves'], [data-field='orders'])) {
+  display: none;
+}
+:root[data-layout='compact'] .sidebar canvas.minimap { align-self: center; }
+/* sideways the chart stands at the right of the rest, so the commands keep to the window's height */
+:root[data-layout='compact'][data-posture='sideways'] .sidebar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: repeat(4, auto) 1fr;
+  align-content: start;
+  column-gap: 8px;
+}
+:root[data-layout='compact'][data-posture='sideways'] .sidebar > * { grid-column: 1; }
+:root[data-layout='compact'][data-posture='sideways'] .sidebar canvas.minimap { grid-column: 2; grid-row: 1 / -1; align-self: start; }
 
 /* --- dialogs --------------------------------------------------------------------------------- */
 .dialog-backdrop {
@@ -651,6 +830,8 @@ canvas.minimap {
   font-size: 0.8rem;
 }
 .event-log:empty { display: none; }
+/* in the compact layout it lies in the map's corner, above the dock */
+:root[data-layout='compact'] .event-log { grid-area: map; max-width: 62%; }
 /* a smaller slip beside the pointer, saying what the square under it is: over the log, under every dialog and screen */
 .map-tooltip {
   position: absolute; z-index: 4; box-sizing: border-box; width: max-content; max-width: 17rem; margin: 0; padding: 3px 8px 4px;
