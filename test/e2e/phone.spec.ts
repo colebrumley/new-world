@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
-import { foundJamestown, settled } from './helpers';
+import { MAGNIFIED_TEXT, MAGNIFIED_TOUCH_TEXT } from '../../src/ui/magnified';
+import { foundJamestown, settled, startNewGame } from './helpers';
+import { POSTURES, SMALL_POSTURES, tap } from './postures';
 
 // The page on a phone (R-1071, docs/specs/phone-play.md W1).
 
@@ -33,5 +35,122 @@ test.describe('the full layout at 1280 x 800', () => {
     await settled(page);
     const harbour = await boxes(page, '.europe-screen, .europe-screen > *, .europe-screen > * > *');
     expect(JSON.stringify({ map, colony, europe: harbour }, null, 2)).toMatchSnapshot('desktop-boxes.json');
+  });
+});
+
+const root = (page: Page) => page.locator('html');
+
+test.describe('the attributes on <html>', () => {
+  test('are there before the title screen paints, and follow the window', async ({ page }) => {
+    // read at the moment the title screen is put on the page: a microtask later, still before any paint
+    await page.addInitScript(() => {
+      const seen: string[][] = [];
+      (window as unknown as { titleSeen: typeof seen }).titleSeen = seen;
+      const watch = new MutationObserver(() => {
+        if (!document.querySelector('.title-screen')) return;
+        watch.disconnect();
+        const html = document.documentElement;
+        seen.push(['data-layout', 'data-posture', 'data-pointer'].map((name) => String(html.getAttribute(name))));
+      });
+      watch.observe(document, { childList: true, subtree: true });
+    });
+    await page.goto('/');
+    await expect(page.getByRole('menuitem').first()).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { titleSeen: unknown }).titleSeen)).toEqual([['full', 'sideways', 'fine']]);
+    await page.setViewportSize(POSTURES.phoneUpright);
+    await expect(root(page)).toHaveAttribute('data-layout', 'compact');
+    await expect(root(page)).toHaveAttribute('data-posture', 'upright');
+    await page.setViewportSize({ width: 1280, height: 639 });
+    await expect(root(page)).toHaveAttribute('data-layout', 'compact');
+    await expect(root(page)).toHaveAttribute('data-posture', 'sideways');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(root(page)).toHaveAttribute('data-layout', 'full');
+    await expect(root(page)).toHaveAttribute('data-pointer', 'fine');
+  });
+});
+
+test.describe('the page, as text', () => {
+  test('asks for the whole screen, names the game for the home screen and keeps its bars dark', async ({ page }) => {
+    await page.goto('/');
+    expect(await page.locator('meta[name="viewport"]').getAttribute('content')).toContain('viewport-fit=cover');
+    expect(await page.locator('meta[name="apple-mobile-web-app-title"]').getAttribute('content')).toBe('New World');
+    expect(await page.locator('meta[name="apple-mobile-web-app-status-bar-style"]').getAttribute('content')).toBe('black-translucent');
+    const manifest = (await (await page.request.get('/manifest.webmanifest')).json()) as { orientation: string };
+    expect(manifest.orientation).toBe('any');
+    const style = await page.evaluate(() => {
+      const app = getComputedStyle(document.querySelector('#app')!);
+      const html = getComputedStyle(document.documentElement);
+      const field = document.createElement('input');
+      document.body.append(field);
+      const typed = getComputedStyle(field).userSelect;
+      field.remove();
+      return { touch: app.touchAction, overscroll: html.overscrollBehaviorY, select: app.userSelect, field: typed, tap: html.getPropertyValue('--tap').trim() };
+    });
+    expect(style).toEqual({ touch: 'manipulation', overscroll: 'none', select: 'none', field: 'text', tap: '44px' });
+  });
+});
+
+/** Neither way can the document scroll: nothing in it reaches past the window. */
+async function expectNoPageScroll(page: Page): Promise<void> {
+  const sizes = await page.evaluate(() => {
+    const doc = document.scrollingElement ?? document.documentElement;
+    return { width: doc.scrollWidth, height: doc.scrollHeight, inner: [innerWidth, innerHeight], at: [scrollX, scrollY] };
+  });
+  expect(sizes.width, 'page scroll width').toBeLessThanOrEqual(sizes.inner[0]!);
+  expect(sizes.height, 'page scroll height').toBeLessThanOrEqual(sizes.inner[1]!);
+  expect(sizes.at).toEqual([0, 0]);
+}
+
+for (const [set, sizes] of [['', POSTURES], ['40 px smaller, ', SMALL_POSTURES]] as const) {
+  for (const [name, viewport] of Object.entries(sizes)) {
+    test.describe(`${set}${name} (${viewport.width} x ${viewport.height})`, () => {
+      test.use({ viewport, hasTouch: true });
+
+      test('the title screen loads and a game starts by taps alone, and the page never scrolls', async ({ page }) => {
+        await page.goto('/?seed=7');
+        await expect(root(page)).toHaveAttribute('data-layout', 'compact');
+        await expect(root(page)).toHaveAttribute('data-posture', viewport.height > viewport.width ? 'upright' : 'sideways');
+        const start = page.getByRole('menuitem', { name: 'Start a Game in New World' });
+        await expect(start).toBeVisible();
+        await expectNoPageScroll(page);
+        await tap(page, start);
+        await expect(root(page)).toHaveAttribute('data-pointer', 'coarse');
+        const power = page.locator('.power');
+        await expect(power.getByRole('radiogroup')).toBeVisible();
+        await expectNoPageScroll(page);
+        await tap(page, power.getByRole('button', { name: 'Set Sail' }));
+        const audience = page.getByRole('dialog').filter({ hasText: 'An audience with' });
+        await expectNoPageScroll(page);
+        await tap(page, audience.getByRole('button', { name: 'So be it' }));
+        await expect(page.locator('canvas.map')).toHaveAttribute('data-frames', /\d+/);
+        await expect(audience).toHaveCount(0);
+        await expectNoPageScroll(page);
+      });
+    });
+  }
+}
+
+test.describe('the magnified-page notice', () => {
+  test('tells a mouse the key, and once a finger has touched the page, the pinch', async ({ page }) => {
+    await page.goto('/?seed=7');
+    await startNewGame(page);
+    await expect(root(page)).toHaveAttribute('data-pointer', 'fine');
+    const notice = page.locator('.magnified-notice');
+    await expect(notice).toHaveText(MAGNIFIED_TEXT);
+    await tap(page, page.locator('canvas.map'));
+    await expect(root(page)).toHaveAttribute('data-pointer', 'coarse');
+    await expect(notice).toHaveText(MAGNIFIED_TOUCH_TEXT);
+  });
+
+  test.describe('on a phone', () => {
+    test.use({ viewport: POSTURES.duoInnerSideways, hasTouch: true });
+
+    test('tells a finger to pinch the page back from the start', async ({ page }) => {
+      await page.goto('/?seed=7');
+      await startNewGame(page);
+      await tap(page, page.locator('canvas.map'));
+      await expect(root(page)).toHaveAttribute('data-pointer', 'coarse');
+      await expect(page.locator('.magnified-notice')).toHaveText(MAGNIFIED_TOUCH_TEXT);
+    });
   });
 });

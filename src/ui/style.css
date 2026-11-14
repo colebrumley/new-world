@@ -77,6 +77,15 @@
   --frame: 5px; /* the wood showing round a sheet that fills the window */
   --lift: 0 2px 6px var(--shadow); /* a sheet lying on the table */
   --focus-ring: 2px solid var(--ink-active);
+
+  /* --- the screen: what a notch or a home bar covers (0 where nothing does), and a finger's reach.
+     The compact layout, the posture and the pointer are told by data-layout, data-posture and
+     data-pointer on <html> (src/ui/touch.ts), never by a media query on the window. --- */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --tap: 44px; /* the least a thing to tap is, either way, in the compact layout or under a finger */
 }
 
 [data-nation='england'] { --nation: var(--nation-england); }
@@ -96,13 +105,33 @@
   scrollbar-color: var(--ink-rule) transparent;
 }
 
+/* The page is the window and never more: the dynamic viewport's height where the browser knows it
+   (on a phone, the part its bars leave), 100% before it for one that does not. A finger neither
+   zooms it with a double tap, nor drags it past its edge, nor selects its words or calls up the
+   system's menu on them; a field keeps all of that. */
 html,
 body,
 #app {
   margin: 0;
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+#app {
+  box-sizing: border-box;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  touch-action: manipulation;
+}
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
 }
 
 /* headings and labels are set in small capitals: the face has them drawn, so none are faked */

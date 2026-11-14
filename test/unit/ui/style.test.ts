@@ -122,6 +122,48 @@ describe('the pages (R-1015)', () => {
   });
 });
 
+describe('the page on a phone (R-1071)', () => {
+  const html = readFileSync(join(root, 'index.html'), 'utf8');
+  /** The declarations of the rule whose selector is exactly this. */
+  const rule = (selector: string): string => {
+    const found = [...rules.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find((m) => m[1]!.trim().replace(/\s+/g, ' ') === selector);
+    if (!found) throw new Error(`no rule ${selector}`);
+    return found[2]!;
+  };
+
+  it('asks for the whole screen, names the game for the home screen and keeps the status bar dark', () => {
+    expect(html).toMatch(/<meta name="viewport" content="[^"]*viewport-fit=cover[^"]*" \/>/);
+    expect(html).toContain('<meta name="apple-mobile-web-app-title" content="New World" />');
+    expect(html).toContain('<meta name="application-name" content="New World" />');
+    expect(html).toContain('<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />');
+    const manifest = JSON.parse(readFileSync(join(root, 'public', 'manifest.webmanifest'), 'utf8')) as { orientation: string };
+    expect(manifest.orientation).toBe('any');
+  });
+
+  it('names the safe areas and a finger’s reach as tokens', () => {
+    for (const side of ['top', 'right', 'bottom', 'left']) expect(token(`--safe-${side}`)).toBe(`env(safe-area-inset-${side}, 0px)`);
+    expect(token('--tap')).toBe('44px');
+    expect(rule('#app')).toMatch(/padding: var\(--safe-top\) var\(--safe-right\) var\(--safe-bottom\) var\(--safe-left\);/);
+    expect(rule('#app')).toMatch(/box-sizing: border-box;/);
+  });
+
+  it('fills the dynamic viewport, with 100% before it for a browser that has none', () => {
+    expect(rule('html, body, #app')).toMatch(/height: 100%;\s*height: 100dvh;/);
+  });
+
+  it('allows no double-tap zoom, no overscroll, no selection and no call-out outside a field', () => {
+    expect(rule('#app')).toMatch(/touch-action: (manipulation|none|pan-x pan-y);/);
+    const page = rule('html, body, #app');
+    expect(page).toMatch(/overscroll-behavior: none;/);
+    expect(page).toMatch(/(?<!-)user-select: none;/);
+    expect(page).toMatch(/-webkit-user-select: none;/);
+    expect(page).toMatch(/-webkit-touch-callout: none;/);
+    const field = rule('input, textarea');
+    expect(field).toMatch(/(?<!-)user-select: text;/);
+    expect(field).toMatch(/-webkit-touch-callout: default;/);
+  });
+});
+
 describe('the textures', () => {
   it('are noise made by the browser: an inline SVG with feTurbulence each', () => {
     for (const name of ['--grain-parchment', '--grain-wood']) {

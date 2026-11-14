@@ -2,6 +2,7 @@
 // first paint does not wait for the engine.
 import { DEFAULT_DIFFICULTY, DIFFICULTIES, type Difficulty } from '../engine/data/yields';
 import { createPainting, createTitleScreen, fitPainting, type TitleChoice } from '../ui/title';
+import { watchScreen } from '../ui/touch';
 import type * as Game from './boot';
 import { hasAnySave } from './save-keys';
 
@@ -27,6 +28,8 @@ function hangPainting(root: HTMLElement): void {
 }
 
 export function boot(root: HTMLElement): void {
+  // data-layout, data-posture and data-pointer on <html>, set before the title screen paints
+  watchScreen();
   // one fetch, started as soon as the title is on screen and shared by everything that needs it
   let game: Promise<typeof Game> | null = null;
   const load = (): Promise<typeof Game> => (game ??= import('./boot'));

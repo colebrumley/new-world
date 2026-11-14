@@ -1,20 +1,31 @@
 // A notice shown while the page itself is magnified (a pinch the browser did not let us refuse, or
 // one restored with the page). The game fills the window, so a magnified page has its edges cut off
-// and nothing to scroll back to; a script cannot undo it, so the player is told the key that does.
+// and nothing to scroll back to; a script cannot undo it, so the player is told the key that does,
+// or under a finger (data-pointer="coarse" on <html>, src/ui/touch.ts) the pinch that does.
 
 /** Magnification below this is taken for none: browsers report 1 with a little rounding. */
 const MAGNIFIED_FROM = 1.005;
 
 export const MAGNIFIED_TEXT = 'The page is magnified, so its edges are cut off. Press Ctrl+0 (Cmd+0 on a Mac) to set it right.';
+export const MAGNIFIED_TOUCH_TEXT = 'The page is magnified, so its edges are cut off. Pinch it back with two fingers to set it right.';
 
 export function createMagnifiedNotice(): { element: HTMLElement; stop(): void } {
   const element = document.createElement('p');
   element.className = 'magnified-notice';
   element.setAttribute('role', 'status');
-  element.textContent = MAGNIFIED_TEXT;
   element.hidden = true;
+  const root = document.documentElement;
+  const words = (): void => {
+    const text = root.getAttribute('data-pointer') === 'coarse' ? MAGNIFIED_TOUCH_TEXT : MAGNIFIED_TEXT;
+    if (element.textContent !== text) element.textContent = text;
+  };
+  words();
+  // the first touch turns the pointer coarse, magnified or not
+  const pointer = new MutationObserver(words);
+  pointer.observe(root, { attributes: true, attributeFilter: ['data-pointer'] });
   const viewport = window.visualViewport;
   const update = (): void => {
+    words();
     if (!viewport) return;
     element.hidden = viewport.scale < MAGNIFIED_FROM;
     // kept in the part of the page that is in sight
@@ -27,6 +38,7 @@ export function createMagnifiedNotice(): { element: HTMLElement; stop(): void } 
   return {
     element,
     stop() {
+      pointer.disconnect();
       viewport?.removeEventListener('resize', update);
       viewport?.removeEventListener('scroll', update);
     },
