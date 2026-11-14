@@ -1,5 +1,6 @@
 // A dialog of check boxes for one group of options. Changes take effect as they are made;
 // Esc, Enter or the button closes it.
+import { closeButton } from './dialog';
 import type { OptionKey, Options } from './options';
 
 export interface OptionChoice {
@@ -35,7 +36,18 @@ export function showOptions(host: HTMLElement, title: string, choices: readonly 
         options = { ...options, [choice.key]: box.checked };
         onChange(options);
       });
-      label.append(box, document.createTextNode(` ${choice.label}`));
+      // the hint, told by resting the pointer on the line, is also a line under the label for a finger (R-1076)
+      const words = document.createElement('span');
+      words.className = 'option-text';
+      words.append(` ${choice.label}`);
+      if (choice.hint) {
+        const hint = document.createElement('span');
+        hint.className = 'option-hint';
+        hint.setAttribute('aria-hidden', 'true');
+        hint.textContent = choice.hint;
+        words.append(hint);
+      }
+      label.append(box, words);
       root.append(label);
     }
     const done = document.createElement('button');
@@ -55,7 +67,7 @@ export function showOptions(host: HTMLElement, title: string, choices: readonly 
       }
       event.stopPropagation();
     });
-    root.append(done);
+    root.append(done, closeButton(finish));
     backdrop.append(root);
     host.append(backdrop);
     (root.querySelector('input') ?? done).focus();
