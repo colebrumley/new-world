@@ -1056,7 +1056,7 @@ canvas.minimap {
   position: sticky; top: 0; z-index: 3; flex-wrap: wrap; gap: 0 10px; padding: 2px 8px;
   margin: 0 calc(-1 * var(--frame)); border-width: 0 0 1px;
 }
-:root[data-layout='compact'] .colony-header h2 { font-size: 1.4rem; }
+:root[data-layout='compact'] .colony-header h2 { font-size: 1.4rem; min-width: 0; overflow-wrap: anywhere; /* a name of 24 letters with no break still fits */ }
 :root[data-layout='compact'] .liberty-bar { width: clamp(60px, 16vw, 160px); }
 :root[data-layout='compact'] .colony-screen .colony-commands {
   position: sticky; bottom: 0; z-index: 3; justify-self: stretch; justify-content: flex-end;
@@ -1069,7 +1069,6 @@ canvas.minimap {
 :root[data-layout='compact'][data-posture='sideways'] .colony-settlement { grid-template-columns: repeat(auto-fill, minmax(min(96px, 100%), 1fr)); }
 :root[data-layout='compact'][data-posture='sideways'] .building-art { max-width: min(100%, 64px); }
 :root[data-layout='compact'] .area-grid { max-width: min(100%, 272px); }
-:root[data-layout='compact'][data-posture='sideways'] .area-grid { max-width: min(100%, 272px, 100dvh - 150px); }
 :root[data-layout='compact'] .colony-warehouse { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); }
 /* the menus the screen puts up stay in the window however far the sheet is scrolled, and scroll in themselves */
 :root[data-layout='compact'] .colony-screen > .dialog-backdrop {

@@ -33,7 +33,7 @@ function largeColony(): GameState {
   let state = smallColony();
   const top = Object.values(BUILDING_CHAINS).map((chain) => chain[chain.length - 1] as string);
   state = withColony(state, {
-    id: 'james', owner: 'p0', x: 2, y: 5, name: 'New Amsterdam', buildings: top as never,
+    id: 'james', owner: 'p0', x: 2, y: 5, name: 'W'.repeat(24), buildings: top as never,
     goods: { food: 180, sugar: 40, tobacco: 95, cotton: 12, furs: 230, lumber: 64, ore: 31, silver: 8, horses: 26, rum: 77, cigars: 140, cloth: 55, coats: 9, tradeGoods: 20, tools: 120, muskets: 50 },
     colonists: [
       who('a', { kind: 'field', dx: 1, dy: -1, good: 'food' }, 'expertFarmer'), who('b', { kind: 'field', dx: 1, dy: 0, good: 'lumber' }, 'expertLumberjack'),
@@ -86,14 +86,14 @@ function measure(screen: Locator): Promise<Sheet> {
       regions: [...regions.map((name) => box(name, root.querySelector(`[data-region="${name}"]`))), box('help', help)],
       header: box('header', root.querySelector('.colony-header')),
       exit: box('exit', root.querySelector('.colony-commands')),
-      spills: [...root.querySelectorAll<HTMLElement>('[data-region]')].filter((n) => {
+      spills: [...root.querySelectorAll<HTMLElement>('[data-region], .colony-header')].filter((n) => {
         const r = n.getBoundingClientRect();
         const out = [...n.querySelectorAll('*')].some((c) => {
           const b = c.getBoundingClientRect();
           return c.getClientRects().length > 0 && (b.bottom > r.bottom + 1 || b.right > r.right + 1 || b.left < r.left - 1 || b.top < r.top - 1);
         });
         return out || n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1;
-      }).map((n) => n.dataset['region'] ?? ''),
+      }).map((n) => n.dataset['region'] ?? n.className),
       scrollWidth: root.scrollWidth, clientWidth: root.clientWidth, clientHeight: root.clientHeight, scrollHeight: root.scrollHeight,
     };
   }, REGIONS as unknown as string[]);
@@ -165,7 +165,7 @@ async function expectPicturesFit(screen: Locator): Promise<void> {
     return {
       grid: grid.getBoundingClientRect().width,
       gridInside: inside(grid, area),
-      squaresInside: [...root.querySelectorAll('.square')].every((s) => inside(s, area)),
+      squaresInside: [...root.querySelectorAll('.square')].every((s) => inside(s, area) && [...s.querySelectorAll('.token, .token *')].every((t) => { const a = t.getBoundingClientRect(); const b = s.getBoundingClientRect(); return a.top >= b.top - 0.5 && a.bottom <= b.bottom + 0.5 && a.left >= b.left - 0.5 && a.right <= b.right + 0.5; })),
       art: [...root.querySelectorAll<HTMLCanvasElement>('.building-art')].map((art) => ({
         shown: art.getBoundingClientRect().width,
         drawn: parseFloat(art.style.width),
@@ -272,7 +272,7 @@ for (const [set, sizes] of [['', POSTURES], ['40 px smaller, ', SMALL_POSTURES]]
       });
 
       test('the largest colony still fits the window across and keeps every region in reach', async ({ page }) => {
-        const screen = await openColony(page, largeColony(), 'New Amsterdam');
+        const screen = await openColony(page, largeColony(), 'W'.repeat(24));
         await tap(page, screen.locator('.colony-header h2'));
         await expect(page.locator('html')).toHaveAttribute('data-pointer', 'coarse');
         await expectRegionsReachable(page, screen, viewport);
