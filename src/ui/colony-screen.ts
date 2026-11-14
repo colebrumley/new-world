@@ -7,7 +7,7 @@
 // It is drawn as a town plan (R-1013): every building is its picture with the people who work in
 // it standing on it, goods are their icons with a count, and the head of the sheet carries the
 // owner's flag and a bell gauge for the Sons of Liberty.
-import { squareStatus } from '../engine/jobs';
+import { squareReason, squareStatus } from '../engine/jobs';
 import { landPrice } from '../engine/land';
 import type { Action } from '../engine/actions';
 import { COLONIST_ROLES } from '../engine/data/equipment';
@@ -163,9 +163,11 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
 
   async function drop(source: string, target: string, shift: boolean): Promise<void> {
     const [kind, id, extra] = source.split(':') as [string, string, string | undefined];
-    // the Part button lets go after one placement, whatever it came to
     const partial = shift || partFor !== '';
-    partFor = '';
+    // the Part button lets go once a placement is made or asked about; a drop that places nothing keeps it
+    const placing = (kind === 'good' && target.startsWith('carrier:'))
+      || (kind === 'cargo' && extra !== undefined && (target === 'warehouse' || (target.startsWith('carrier:') && target !== `carrier:${id}`)));
+    if (placing) partFor = '';
     if (kind === 'colonist') {
       if (target === 'outside') await leave(id);
       else if (target.startsWith('carrier:')) {
@@ -470,7 +472,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
       cell.append(drawSquare(sq.dx, sq.dy));
       if (sq.status === 'center') cell.append(el('span', 'square-note', sq.note));
       if (sq.worker) cell.append(personToken('colonist', sq.worker));
-      if (sq.status === 'nativeLand' || sq.status === 'otherColony' || sq.status === 'foreignUnit') cell.title = sq.status;
+      if (sq.status === 'nativeLand' || sq.status === 'otherColony' || sq.status === 'foreignUnit') cell.title = squareReason(sq.status) ?? '';
       grid.append(cell);
     }
     area.append(grid);
@@ -828,6 +830,8 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   }
   /** The last finger to go down on the screen: where, and whether it has travelled. */
   let touched: { id: number; x: number; y: number; travelled: boolean } | null = null;
+  /** The host asked for a redraw while a finger held a thing: it is made when the thing is let go. */
+  let owed = false;
   /** Takes away the window's listeners while a thing is held by a finger. */
   let unhold: (() => void) | null = null;
 
@@ -853,6 +857,10 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     endDrag(grip);
     showHolding();
     echoUntil = performance.now() + ECHO_MS;
+    if (owed) {
+      owed = false;
+      render();
+    }
   }
 
   function pickUp(target: Element): void {
@@ -897,10 +905,10 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     const onUp = (event: PointerEvent): void => {
       if (!mine(event)) return;
       const { moved, source: what } = grip;
-      const token = grip.from;
       putBack();
       if (!moved) {
-        // held and let go in place: put back, and looked up
+        // held and let go in place: put back, and looked up (from the token as it stands now, a redraw owed included)
+        const token = root.querySelector<HTMLElement>(`[data-drag="${what}"]`) ?? grip.from;
         const detail: LookUpDetail = { clientX: event.clientX, clientY: event.clientY };
         token.dispatchEvent(new CustomEvent(LOOK_UP, { bubbles: true, detail }));
         return;
@@ -963,10 +971,13 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
   root.addEventListener('pointercancel', (event) => {
     if (touched?.id === event.pointerId) touched = null;
   });
-  // Once a thing is picked up, the screen does not scroll under the finger that holds it.
-  root.addEventListener('touchmove', (event) => {
+  // Once a thing is picked up, the screen does not scroll under the finger that holds it. (Listened for
+  // on the document, which a touch's events reach from wherever they began; the host's redraws wait
+  // until the thing is let go, so the token the finger went down on stays on the page meanwhile.)
+  const holdStill = (event: TouchEvent): void => {
     if (held !== null && held.finger !== null && event.cancelable) event.preventDefault();
-  }, { passive: false });
+  };
+  document.addEventListener('touchmove', holdStill, { passive: false });
   const stopHolds = onLongPress(root, (target) => pickUp(target));
   // the first touch felt makes the pointer coarse: the help line speaks of fingers from then on
   const pointerWatch = new MutationObserver(() => {
@@ -978,6 +989,7 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     putBack();
     stopHolds();
     pointerWatch.disconnect();
+    document.removeEventListener('touchmove', holdStill);
   }
   // the host may take the screen away without asking it to close: the window's listeners go with it
   const gone = new MutationObserver(() => {
@@ -1136,7 +1148,12 @@ export function openColonyScreen(parent: HTMLElement, colonyId: string, host: Co
     await constructionMenu();
   }
 
-  return { element: root, refresh: render, chooseProject };
+  /** The host's redraw: put off while a finger holds a thing, so that the token under it is not replaced. */
+  const refresh = (): void => {
+    if (held !== null && held.finger !== null) owed = true;
+    else render();
+  };
+  return { element: root, refresh, chooseProject };
 }
 
 export type { ColonyView };

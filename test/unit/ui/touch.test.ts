@@ -159,6 +159,21 @@ describe('the long press', () => {
     expect(heard).toHaveBeenCalledOnce();
   });
 
+  it('never swallows a click a key made, or one after a key was pressed, though the release made none', () => {
+    const { win, inside, handler } = setup();
+    // a hold that travelled after it fired (a drag): its release makes no click, and swallowing waits for one
+    send(win, 'pointerdown', inside);
+    vi.advanceTimersByTime(LONG_PRESS_MS);
+    expect(handler).toHaveBeenCalledOnce();
+    send(win, 'pointermove', inside, { clientX: 40 });
+    send(win, 'pointerup', inside, { clientX: 40 });
+    // Enter on a prompt's OK button: a click with detail 0
+    expect(send(win, 'click', inside, { detail: 0 }).defaultPrevented).toBe(false);
+    // and after a key is pressed, a click is the keyboard's too
+    send(win, 'keydown', inside);
+    expect(send(win, 'click', inside).defaultPrevented).toBe(false);
+  });
+
   it('is removed by the function it returns, a press under way included', () => {
     const { win, inside, handler, stop } = setup();
     send(win, 'pointerdown', inside);

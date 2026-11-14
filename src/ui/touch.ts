@@ -80,7 +80,7 @@ const SWALLOW_MS = 1000;
  * Run `handler` once a touch or pen pointer that went down inside `element` has been held
  * LONG_PRESS_MS without travelling LONG_PRESS_TRAVEL: never for a mouse, never once a second
  * pointer is down, never after a pointercancel. Whenever it ran, the release that follows makes no
- * click and no contextmenu. Returns the function that removes it.
+ * click and no contextmenu; a click a key makes, or one after a key is pressed, is never taken for it. Returns the function that removes it.
  */
 export function onLongPress(element: Element, handler: (target: Element, clientX: number, clientY: number) => void): () => void {
   const win = element.ownerDocument.defaultView ?? window;
@@ -140,6 +140,8 @@ export function onLongPress(element: Element, handler: (target: Element, clientX
   };
   const swallow = (event: Event): void => {
     if (!swallowing) return;
+    // a click a key made (Enter or Space on a button: detail 0) is never the release's
+    if (event.type === 'click' && (event as MouseEvent).detail === 0) return;
     if (held === null && Date.now() > swallowUntil) {
       swallowing = false;
       return;
@@ -150,7 +152,12 @@ export function onLongPress(element: Element, handler: (target: Element, clientX
     if (event.type === 'click') swallowing = false;
   };
 
+  /** A key pressed once the hold is let go: what follows is the keyboard's, and nothing is left to swallow. */
+  const onKey = (): void => {
+    if (held === null) swallowing = false;
+  };
   const capture = { capture: true } as const;
+  win.addEventListener('keydown', onKey, capture);
   win.addEventListener('pointerdown', onDown, capture);
   win.addEventListener('pointermove', onMove, capture);
   win.addEventListener('pointerup', onUp, capture);
@@ -159,6 +166,7 @@ export function onLongPress(element: Element, handler: (target: Element, clientX
   win.addEventListener('contextmenu', swallow, capture);
   return () => {
     drop();
+    win.removeEventListener('keydown', onKey, capture);
     win.removeEventListener('pointerdown', onDown, capture);
     win.removeEventListener('pointermove', onMove, capture);
     win.removeEventListener('pointerup', onUp, capture);

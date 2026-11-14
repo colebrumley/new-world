@@ -127,6 +127,11 @@ const REASONS: Readonly<Record<Exclude<SquareStatus, 'free'>, string>> = {
   blocked: 'that square cannot be worked',
 };
 
+/** Why a square cannot be worked, in words (the colony screen's title for it); null for a free one. */
+export function squareReason(status: SquareStatus): string | null {
+  return status === 'free' ? null : REASONS[status];
+}
+
 export function checkAssign(state: GameState, colony: Colony | undefined, colonistId: UnitId, job: Job): JobCheck {
   if (!colony) return { ok: false, code: 'noColonyHere', message: 'no such colony' };
   const colonist = colony.colonists.find((c) => c.id === colonistId);

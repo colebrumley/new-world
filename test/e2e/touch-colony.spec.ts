@@ -12,12 +12,13 @@ import { POSTURES, longPress, tap, touchDrag, type PostureName } from './posture
 const settler = (id: string): Colonist => ({ id, profession: 'freeColonist', job: { kind: 'idle' }, turns: 0 });
 
 /** Load a game with Jamestown (two idle settlers, furs in the warehouse, a merchantman in port with furs aboard) and open its screen. */
-async function openJamestown(page: Page, colony: Partial<Parameters<typeof withColony>[1]> = {}): Promise<Locator> {
+async function openJamestown(page: Page, colony: Partial<Parameters<typeof withColony>[1]> = {}, more: (state: GameState) => GameState = (s) => s): Promise<Locator> {
   const rows = Array.from({ length: 8 }, (_, y) => (y === 0 || y === 7 ? '~'.repeat(10) : '~~......~~'));
   let state = world({ rows, seed: 5, players: [{ id: 'p0', kind: 'human', nation: 'england' }] });
   state = withColony(state, { id: 'james', owner: 'p0', x: 2, y: 3, name: 'Jamestown', goods: { food: 50, furs: 30 }, colonists: [settler('ann'), settler('ben')], buildings: ['townHall'], ...colony });
   state = withUnit(state, { id: 'hand', owner: 'p0', x: 2, y: 3 });
   state = withUnit(state, { id: 'ship', owner: 'p0', type: 'merchantman', profession: null, x: 2, y: 3, cargo: { furs: 100 } });
+  state = more(state);
   await page.addInitScript((text) => localStorage.setItem('new-world:autosave', text), saveGame({ options: { seed: 5 }, log: [], state }));
   await page.goto('/');
   await tap(page, page.getByRole('menuitem', { name: 'Load Game' }));
@@ -260,10 +261,16 @@ test.describe('the colony screen under a finger', () => {
     await page.keyboard.press('Escape');
   });
 
-  test('a tap tells what a title tells: a building, and a refused button', async ({ page }) => {
+  test('a tap tells what a title tells: a square that cannot be worked, a building, and a refused button', async ({ page }) => {
     const three = ['ann', 'ben', 'cat'].map(settler);
-    const colony = await openJamestown(page, { colonists: three, buildings: ['townHall', 'stockade'] });
+    // Plymouth, two squares east, works the square between the two colonies
+    const plymouth = (s: GameState): GameState => withColony(s, { id: 'ply', owner: 'p0', x: 4, y: 3, name: 'Plymouth', colonists: [{ id: 'pat', profession: 'freeColonist', job: { kind: 'field', dx: -1, dy: 0, good: 'food' }, turns: 0 }] });
+    const colony = await openJamestown(page, { colonists: three, buildings: ['townHall', 'stockade'] }, plymouth);
     const help = colony.locator('.colony-help');
+    const worked = colony.locator('.square[data-square="1,0"]');
+    await expect(worked).toHaveAttribute('title', 'a neighbouring colony works that square');
+    await tap(page, worked);
+    await expect(help).toHaveText('a neighbouring colony works that square');
     await tap(page, colony.locator('.building[data-building="townHall"] .building-name'));
     await expect(help).toHaveText('Town Hall');
     const abandon = colony.getByRole('button', { name: 'Abandon colony' });
@@ -282,6 +289,12 @@ test.describe('the colony screen under a finger', () => {
     await expect(part).toHaveAttribute('aria-pressed', 'false');
     await tap(page, part);
     await expect(part).toHaveAttribute('aria-pressed', 'true');
+    // a tap that places nothing (the warehouse a good is already in, a building) leaves it pressed
+    await tap(page, colony.locator('[data-region="warehouse"] h3'));
+    await tap(page, colony.locator('.building[data-building="townHall"] .building-name'));
+    await expect(furs).toHaveClass(/token-selected/);
+    await expect(part).toHaveAttribute('aria-pressed', 'true');
+    await expect(furs).toContainText('30');
     // by a tap
     await tap(page, colony.locator('.carrier .token-carrier'));
     const prompt = page.locator('.dialog').filter({ hasText: 'Load how many furs?' });
