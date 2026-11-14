@@ -355,7 +355,9 @@ export function openEuropeScreen(parent: HTMLElement, host: EuropeScreenHost): {
     partButton.setAttribute('aria-pressed', String(part));
     write(line, monitor);
     const again = focusKey ? root.querySelector<HTMLElement>(`[data-key="${focusKey}"]`) : null;
-    (again ?? root.querySelector<HTMLElement>('.token-good') ?? root).focus();
+    // in the compact layout the screen scrolls, and taking the focus must not carry it off to the market
+    const compact = document.documentElement.dataset['layout'] === 'compact';
+    (again ?? root.querySelector<HTMLElement>('.token-good') ?? root).focus({ preventScroll: compact });
   }
 
   // A tap tells what resting the mouse on a thing tells: its title goes into the harbour-master's

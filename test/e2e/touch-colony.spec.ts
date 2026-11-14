@@ -367,6 +367,13 @@ test.describe('the Europe screen under a finger', () => {
     await expect(field(page, 'unit')).toHaveText('Caravel');
     await page.keyboard.press('e');
     const market = screen.getByRole('group', { name: 'Market (bid / ask)' });
+    // in the compact layout the screen opens at its top, though the first stall takes the focus
+    await expect(market.locator('.token-good').first()).toBeFocused();
+    expect(await screen.evaluate((node) => {
+      let most = 0;
+      for (let n: Element | null = node; n; n = n.parentElement) most = Math.max(most, n.scrollTop);
+      return most;
+    })).toBe(0);
     const part = market.getByRole('button', { name: 'Part' });
     await expect(part).toBeVisible();
     await expect(part).toHaveAttribute('aria-pressed', 'false');
