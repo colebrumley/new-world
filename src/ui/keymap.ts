@@ -44,7 +44,7 @@ export const KEYMAP: readonly KeyBinding[] = [
   { context: 'map', keys: 'V', action: 'View mode: move a cursor instead of a unit', command: 'viewMode' },
   { context: 'map', keys: 'M', action: 'Move mode', command: 'moveMode' },
   { context: 'map', keys: 'E', action: 'Open the Europe screen', command: 'europe' },
-  { context: 'map', keys: 'Z / X', action: 'Zoom in / zoom out (15x12, 30x24, 60x48, 120x96 squares)', command: 'zoomIn' },
+  { context: 'map', keys: 'Z / X', action: 'Zoom in / zoom out (15x12, 30x24, 60x48, 120x96 squares; a small window zooms in further, to squares of 32 and 64 pixels)', command: 'zoomIn' },
   { context: 'map', keys: 'H', action: 'Show hidden terrain until the next key', command: 'hiddenTerrain' },
   { context: 'map', keys: 'C', action: 'Centre the view on the active unit', command: 'center' },
   { context: 'map', keys: 'Enter', action: 'End the turn', command: 'endTurn' },

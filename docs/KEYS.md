@@ -37,7 +37,7 @@ run `UPDATE_FIXTURES=1 npm test` after changing the table.
 | V | View mode: move a cursor instead of a unit | works |
 | M | Move mode | works |
 | E | Open the Europe screen | works |
-| Z / X | Zoom in / zoom out (15x12, 30x24, 60x48, 120x96 squares) | works |
+| Z / X | Zoom in / zoom out (15x12, 30x24, 60x48, 120x96 squares; a small window zooms in further, to squares of 32 and 64 pixels) | works |
 | H | Show hidden terrain until the next key | works |
 | C | Centre the view on the active unit | works |
 | Enter | End the turn | works |
