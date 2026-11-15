@@ -55,7 +55,7 @@ import { placePressedTip, placeTooltip, slipUnits, tileTip, TOOLTIP_DELAY_MS, TO
 import { LOOK_UP, onLongPress, type LookUpDetail } from '../ui/touch';
 import { needsOrders, nextUnit, standsOnMap } from '../ui/unit-queue';
 import { chiefSpokeText } from '../ui/village-text';
-import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, viewCenter, zoomAt, zoomBy, type View } from '../ui/view';
+import { centerOn, isTileInView, makeView, openingZoom, panBy, resizeView, screenToTile, viewCenter, zoomAt, zoomBy, type View } from '../ui/view';
 import { readHintsSeen, readOptions, writeAutosave, writeHintsSeen, writeOptions } from './storage';
 import { COLONY_OPTIONS, GAME_OPTIONS, SOUND_OPTIONS, type Options } from '../ui/options';
 import { cuesFor } from '../ui/audio-cues';
@@ -365,6 +365,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   activeId = session.state.over ? null : (first?.id ?? null);
   let view: View = makeView(session.state.map, 1, 1, first?.x ?? session.state.map.width / 2, first?.y ?? session.state.map.height / 2, { revealAll });
 
+  let opened = false; // whether the canvas has had a real size yet
   const setView = (next: View): void => {
     if (next.originX === view.originX && next.originY === view.originY && next.tileSize === view.tileSize
       && next.showHidden === view.showHidden && next.width === view.width && next.height === view.height) return;
@@ -386,6 +387,11 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
     mini.height = Math.round(mini.clientHeight * dpr);
     miniCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const changed = width !== view.width || height !== view.height;
+    // the first real size settles the level the map opens at: a small window opens one level nearer
+    if (!opened && width > 1 && height > 1) {
+      opened = true;
+      view = { ...view, zoom: openingZoom(width, height) };
+    }
     view = resizeView(view, session.state.map, width, height);
     // a window turned or folded about the middle of the view may leave the active unit outside it
     // (only then: a view the player has moved away from the unit is theirs to keep)

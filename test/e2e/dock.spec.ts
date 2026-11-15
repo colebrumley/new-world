@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { field, foundJamestown, settled, startNewGame } from './helpers';
-import { POSTURES, SMALL_POSTURES, tap, type Size } from './postures';
+import { pinch, POSTURES, SMALL_POSTURES, tap, type Size } from './postures';
 
 // The dock: the map screen in the compact layout (R-1072, docs/specs/phone-play.md W2).
 
@@ -233,6 +233,20 @@ test.describe('a change of window in the middle of a turn', () => {
     POSTURES.duoCoverUpright, POSTURES.duoCoverSideways, POSTURES.duoInnerUpright, POSTURES.duoInnerSideways,
     POSTURES.phoneUpright, POSTURES.phoneSideways, { width: 1280, height: 800 }, POSTURES.duoCoverUpright,
   ];
+
+  test('a phone opens on squares of 32 pixels, and Zoom + and a pinch bring them to 64', async ({ page }) => {
+    await begin(page);
+    expect((await viewOf(page)).tileSize).toBe(32);
+    await tap(page, dockButton(page, 'more'));
+    await tap(page, sheet(page).locator('[data-command="zoomIn"]'));
+    await expect.poll(async () => (await viewOf(page)).tileSize).toBe(64);
+    await tap(page, dockButton(page, 'more'));
+    await tap(page, sheet(page).locator('[data-command="zoomOut"]'));
+    await expect.poll(async () => (await viewOf(page)).tileSize).toBe(32);
+    const box = await boxOf(canvasOf(page));
+    await pinch(page, { x: box.x + box.width / 2, y: box.y + box.height / 2 }, { from: 100, to: 300 });
+    await expect.poll(async () => (await viewOf(page)).tileSize).toBe(64);
+  });
 
   test('keeps the game, the unit, the zoom and the unit in sight, and a tap on the map still moves it', async ({ page }) => {
     await begin(page);

@@ -10,6 +10,13 @@ export const ZOOM_LEVELS = [
 ] as const;
 
 export const DEFAULT_ZOOM = 3;
+/**
+ * Two nearer levels follow the four: squares of at least this many pixels, however few of them the
+ * window then holds. In a window whose nearest of the four is already as large they change nothing,
+ * and zooming passes over them; in a small one (a phone) they are the way to a square large enough to read.
+ */
+export const NEAR_SIZES = [32, 64] as const;
+export const MAX_ZOOM = ZOOM_LEVELS.length + NEAR_SIZES.length - 1;
 /** Square sizes are whole multiples of this many pixels, once there is room for one. */
 export const ART_STEP = 8;
 /** From this many pixels up a square is a whole multiple of it, so the detailed art fits it exactly. */
@@ -19,7 +26,7 @@ export interface View {
   /** Canvas size in CSS pixels. */
   readonly width: number;
   readonly height: number;
-  /** Index into ZOOM_LEVELS. */
+  /** Index into ZOOM_LEVELS, or past its end into NEAR_SIZES. */
   readonly zoom: number;
   /** Tile edge in CSS pixels. */
   readonly tileSize: number;
@@ -33,6 +40,8 @@ export interface View {
 }
 
 export function tileSizeFor(width: number, height: number, zoom: number): number {
+  const near = NEAR_SIZES[zoom - ZOOM_LEVELS.length];
+  if (near !== undefined) return Math.max(near, tileSizeFor(width, height, ZOOM_LEVELS.length - 1));
   const level = ZOOM_LEVELS[zoom] ?? ZOOM_LEVELS[DEFAULT_ZOOM];
   const fit = Math.floor(Math.min(width / level.cols, height / level.rows));
   // the detailed art is drawn on a grid of 32 pixels to the square and the plain art on one of 16: keep
@@ -55,7 +64,7 @@ export interface ViewOptions {
 
 /** A view of the given canvas size centred (as far as the map edges allow) on a tile. */
 export function makeView(map: GameMap, width: number, height: number, centerX: number, centerY: number, options: ViewOptions = {}): View {
-  const zoom = Math.min(ZOOM_LEVELS.length - 1, Math.max(0, options.zoom ?? DEFAULT_ZOOM));
+  const zoom = Math.min(MAX_ZOOM, Math.max(0, options.zoom ?? DEFAULT_ZOOM));
   const tileSize = tileSizeFor(width, height, zoom);
   const cols = width / tileSize;
   const rows = height / tileSize;
@@ -87,9 +96,24 @@ export function panBy(view: View, map: GameMap, dx: number, dy: number): View {
   return centerOn(view, map, c.x + dx, c.y + dy);
 }
 
+/** The level a window opens at: the nearest of the four, or the first nearer one where that leaves a square under 32 pixels. */
+export function openingZoom(width: number, height: number): number {
+  return tileSizeFor(width, height, DEFAULT_ZOOM) < NEAR_SIZES[0] ? ZOOM_LEVELS.length : DEFAULT_ZOOM;
+}
+
+/** Zoom in (positive) or out by so many steps about the centre. A step is the next level whose square is a different size. */
 export function zoomBy(view: View, map: GameMap, delta: number): View {
   const c = viewCenter(view);
-  return makeView(map, view.width, view.height, c.x, c.y, { ...carry(view), zoom: view.zoom + delta });
+  const way = Math.sign(delta);
+  let zoom = view.zoom;
+  for (let step = 0; step < Math.abs(delta); step++) {
+    const size = tileSizeFor(view.width, view.height, zoom);
+    let next = zoom + way;
+    while (next >= 0 && next <= MAX_ZOOM && tileSizeFor(view.width, view.height, next) === size) next += way;
+    if (next < 0 || next > MAX_ZOOM) break;
+    zoom = next;
+  }
+  return makeView(map, view.width, view.height, c.x, c.y, { ...carry(view), zoom });
 }
 
 /** Zoom keeping the map point under a canvas pixel where it is (as far as the map edges allow). */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeTile } from '../../../src/engine/tile';
-import { centerOn, isTileInView, makeView, panBy, resizeView, screenToTile, tileSizeFor, viewCenter, ZOOM_LEVELS, zoomAt, zoomBy } from '../../../src/ui/view';
+import { centerOn, isTileInView, makeView, openingZoom, panBy, resizeView, screenToTile, tileSizeFor, viewCenter, ZOOM_LEVELS, zoomAt, zoomBy } from '../../../src/ui/view';
 
 const map = { width: 58, height: 72, tiles: Array.from({ length: 58 * 72 }, () => makeTile()) };
 
@@ -53,6 +53,42 @@ describe('view math', () => {
     const r = resizeView(v, map, 640, 512);
     expect(r.tileSize).toBe(32); // 42 would fit; from 32 up a square is a multiple of 32
     expect(viewCenter(r).x).toBeCloseTo(30);
+  });
+
+  it('zooms a small window in past the four sizes, to squares of 32 and 64 pixels', () => {
+    // a phone held upright: fifteen squares across leave 24 pixels each
+    expect([0, 1, 2, 3, 4, 5].map((zoom) => tileSizeFor(393, 700, zoom))).toEqual([3, 6, 8, 24, 32, 64]);
+    expect(openingZoom(393, 700)).toBe(4);
+    const opened = makeView(map, 393, 700, 30, 40, { zoom: openingZoom(393, 700) });
+    expect(opened.tileSize).toBe(32);
+    const nearest = zoomBy(opened, map, 1);
+    expect([nearest.zoom, nearest.tileSize]).toEqual([5, 64]);
+    expect(viewCenter(nearest)).toEqual({ x: 30, y: 40 });
+    expect(zoomBy(nearest, map, 3).zoom).toBe(5);
+    expect(zoomBy(nearest, map, -2).tileSize).toBe(24);
+    expect(zoomBy(nearest, map, -9).zoom).toBe(0);
+
+    // the same phone on its side already has 32: one step in is 64, one back out is the level it came from
+    expect([3, 4, 5].map((zoom) => tileSizeFor(852, 393, zoom))).toEqual([32, 32, 64]);
+    expect(openingZoom(852, 393)).toBe(3);
+    const side = makeView(map, 852, 393, 30, 40);
+    expect(zoomBy(side, map, 1).zoom).toBe(5);
+    expect(zoomBy(zoomBy(side, map, 1), map, -1).tileSize).toBe(32);
+    expect(zoomBy(zoomBy(zoomBy(side, map, 1), map, -1), map, -1).tileSize).toBe(16);
+    // turned, a view keeps its level, and so its size where the new window allows it
+    const turned = resizeView(opened, map, 852, 393);
+    expect([turned.zoom, turned.tileSize]).toEqual([4, 32]);
+    expect(resizeView(turned, map, 393, 700).tileSize).toBe(32);
+
+    // a low laptop window opens at 32 as it always did, and now has 64 one step in
+    expect([openingZoom(1100, 650), tileSizeFor(1100, 650, 3)]).toEqual([3, 32]);
+    expect(zoomBy(makeView(map, 1100, 650, 30, 40), map, 1).tileSize).toBe(64);
+
+    // a window whose nearest of the four is 64 or more has nothing nearer
+    expect(openingZoom(960, 768)).toBe(3);
+    expect([4, 5].map((zoom) => tileSizeFor(960, 768, zoom))).toEqual([64, 64]);
+    expect([4, 5].map((zoom) => tileSizeFor(1920, 1200, zoom))).toEqual([96, 96]);
+    expect(zoomBy(makeView(map, 960, 768, 30, 40), map, 1).zoom).toBe(3);
   });
 
   it('converts pixels to tiles and tests visibility', () => {
