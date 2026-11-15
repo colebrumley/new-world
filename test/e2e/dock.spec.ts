@@ -93,6 +93,13 @@ for (const [set, sizes] of [['', POSTURES], ['40 px smaller, ', SMALL_POSTURES]]
           expect(inside(chart, box), 'the chart in the panel').toBe(true);
           expect(inside(await boxOf(page.locator('.event-log')), map), 'the log inside the map').toBe(true);
           expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([viewport.width, viewport.height]);
+          // the panel's other rows growing squeezes the chart, and its picture follows its box
+          const picture = (): Promise<number[]> => panel.locator('canvas.minimap').evaluate((c: HTMLCanvasElement) => [c.width, c.height, Math.round(c.clientWidth * devicePixelRatio), Math.round(c.clientHeight * devicePixelRatio)]);
+          await page.locator('.sidebar-info').evaluate((el: HTMLElement) => { el.style.paddingBottom = '40px'; });
+          await settled(page);
+          await expect.poll(async () => { const p = await picture(); return p[0] === p[2] && p[1] === p[3]; }).toBe(true);
+          expect((await boxOf(panel.locator('canvas.minimap'))).height).toBeLessThanOrEqual(chart.height); // (already at its least in the lowest window)
+          await page.locator('.sidebar-info').evaluate((el: HTMLElement) => { el.style.paddingBottom = ''; });
           // a command in the panel runs
           const zoom = (await viewOf(page)).zoom;
           await tap(page, panel.locator('[data-command="zoomOut"]'));
@@ -297,6 +304,12 @@ test.describe('a change of window in the middle of a turn', () => {
       const panel = compact && size.width > size.height && size.width >= 760 && size.height >= 540;
       await expect(page.locator('.dock'), what).toBeVisible({ visible: compact && !panel });
       await expect(page.locator('.sidebar'), what).toBeVisible({ visible: !compact || panel });
+      if (panel) {
+        // the chart's picture is as large as its box, at this screen's two pixels to one, however the panel has squeezed it
+        const chart = await page.locator('.sidebar canvas.minimap').evaluate((c: HTMLCanvasElement) => [c.width, c.height, Math.round(c.clientWidth * devicePixelRatio), Math.round(c.clientHeight * devicePixelRatio), c.clientHeight]);
+        expect(chart.slice(0, 2), what).toEqual(chart.slice(2, 4));
+        expect(chart[4], what).toBeLessThanOrEqual(232);
+      }
       await expect(canvasOf(page)).toHaveAttribute('data-turn', turn!);
       await expect(canvasOf(page)).toHaveAttribute('data-active', active!);
       const view = await viewOf(page);

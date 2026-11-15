@@ -209,8 +209,14 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
   screen.append(canvas, sheet.element, dock.element, sheet.backdrop, magnified.element, tooltip);
   root.replaceChildren(screen);
   // the canvas's box changes with the layout, the posture and the sheet, not only with the window
+  // (and the chart's with what stands round it in the panel, where it gives way to the rest)
   const resized = new ResizeObserver(() => {
-    if (canvas.clientWidth !== view.width || canvas.clientHeight !== view.height) resize();
+    const mini = sidebar.minimap;
+    const ratio = window.devicePixelRatio || 1;
+    if (canvas.clientWidth !== view.width || canvas.clientHeight !== view.height
+      || (mini.clientWidth > 0 && (mini.width !== Math.round(mini.clientWidth * ratio) || mini.height !== Math.round(mini.clientHeight * ratio)))) resize();
+    // a dock button that held the keyboard when the dock went (the window grew a panel or a sidebar) hands it to the map
+    if (document.activeElement && dock.element.contains(document.activeElement) && dock.element.offsetParent === null) canvas.focus();
   });
 
   const ctx = canvas.getContext('2d');
@@ -2218,6 +2224,7 @@ export function startGame(root: HTMLElement, initial: GameSession, { opening = f
 
   window.addEventListener('resize', onResize);
   resized.observe(canvas);
+  resized.observe(sidebar.minimap);
   resize();
   save();
   requestAnimationFrame(frame);
