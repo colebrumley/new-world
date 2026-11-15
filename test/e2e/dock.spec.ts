@@ -68,6 +68,45 @@ for (const [set, sizes] of [['', POSTURES], ['40 px smaller, ', SMALL_POSTURES]]
         await begin(page);
         await expect(html(page)).toHaveAttribute('data-layout', 'compact');
         const upright = viewport.height > viewport.width;
+        if (viewport.width >= 760 && viewport.height >= 540) {
+          // sideways with room for it, the sidebar itself stands at the map's right as a panel: no dock, no sheet
+          await expect(html(page)).toHaveAttribute('data-panel', 'side');
+          await expect(page.locator('.dock')).toBeHidden();
+          const panel = page.locator('.sidebar');
+          await expect(panel).toBeVisible();
+          const map = await boxOf(canvasOf(page));
+          const box = await boxOf(panel);
+          expect(map.width * map.height, 'the map has 55% of the window').toBeGreaterThanOrEqual(0.55 * viewport.width * viewport.height);
+          expect(Math.round(box.x)).toBe(Math.round(map.x + map.width));
+          expect(Math.round(box.x + box.width)).toBe(viewport.width);
+          expect(Math.round(box.height)).toBe(viewport.height);
+          const buttons = panel.locator('.command-bar button:not([hidden])');
+          expect(await buttons.count()).toBeGreaterThanOrEqual(20);
+          await allInWindow(page, buttons, 'panel button');
+          for (let i = 0; i < (await buttons.count()); i++) {
+            const b = await boxOf(buttons.nth(i));
+            expect(Math.min(b.width, b.height), `button ${i}`).toBeGreaterThanOrEqual(44);
+          }
+          for (const row of ['date', 'treasury', 'unit', 'location', 'terrain']) await expect(field(page, row)).toBeVisible();
+          const chart = await boxOf(panel.locator('canvas.minimap'));
+          expect(chart.height, 'the chart keeps a third of its height at the least').toBeGreaterThanOrEqual(84);
+          expect(inside(chart, box), 'the chart in the panel').toBe(true);
+          expect(inside(await boxOf(page.locator('.event-log')), map), 'the log inside the map').toBe(true);
+          expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([viewport.width, viewport.height]);
+          // the panel's other rows growing squeezes the chart, and its picture follows its box
+          const picture = (): Promise<number[]> => panel.locator('canvas.minimap').evaluate((c: HTMLCanvasElement) => [c.width, c.height, Math.round(c.clientWidth * devicePixelRatio), Math.round(c.clientHeight * devicePixelRatio)]);
+          await page.locator('.sidebar-info').evaluate((el: HTMLElement) => { el.style.paddingBottom = '40px'; });
+          await settled(page);
+          await expect.poll(async () => { const p = await picture(); return p[0] === p[2] && p[1] === p[3]; }).toBe(true);
+          expect((await boxOf(panel.locator('canvas.minimap'))).height).toBeLessThanOrEqual(chart.height); // (already at its least in the lowest window)
+          await page.locator('.sidebar-info').evaluate((el: HTMLElement) => { el.style.paddingBottom = ''; });
+          // a command in the panel runs
+          const zoom = (await viewOf(page)).zoom;
+          await tap(page, panel.locator('[data-command="zoomOut"]'));
+          await expect.poll(async () => (await viewOf(page)).zoom).toBeLessThan(zoom);
+          return;
+        }
+        await expect(html(page)).not.toHaveAttribute('data-panel');
         await expect(page.locator('.sidebar')).toBeHidden();
         const dock = page.locator('.dock');
         await expect(dock).toBeVisible();
@@ -112,9 +151,11 @@ test.describe('the slip, in the compact layout', () => {
       // (every square known, so that each has something to say)
       await begin(page, '&reveal');
       // the middle of the world, from the chart in the sheet: the map then reaches past every edge of the view
-      await dockButton(page, 'more').click();
+      // (or from the chart in the panel, where the window keeps one)
+      const docked = await page.locator('.dock').isVisible();
+      if (docked) await dockButton(page, 'more').click();
       await page.locator('.sheet canvas.minimap').click();
-      await expect(sheet(page)).toBeHidden();
+      if (docked) await expect(sheet(page)).toBeHidden();
       const map = await boxOf(canvasOf(page));
       const slip = page.locator('.map-tooltip');
       // a square at each corner of the map: the slip is pushed back inside it wherever the pointer rests
@@ -260,8 +301,15 @@ test.describe('a change of window in the middle of a turn', () => {
       const what = `${size.width} x ${size.height}`;
       await expect(html(page)).toHaveAttribute('data-layout', size.width >= 760 && size.height >= 640 ? 'full' : 'compact');
       const compact = (await html(page).getAttribute('data-layout')) === 'compact';
-      await expect(page.locator('.dock'), what).toBeVisible({ visible: compact });
-      await expect(page.locator('.sidebar'), what).toBeVisible({ visible: !compact });
+      const panel = compact && size.width > size.height && size.width >= 760 && size.height >= 540;
+      await expect(page.locator('.dock'), what).toBeVisible({ visible: compact && !panel });
+      await expect(page.locator('.sidebar'), what).toBeVisible({ visible: !compact || panel });
+      if (panel) {
+        // the chart's picture is as large as its box, at this screen's two pixels to one, however the panel has squeezed it
+        const chart = await page.locator('.sidebar canvas.minimap').evaluate((c: HTMLCanvasElement) => [c.width, c.height, Math.round(c.clientWidth * devicePixelRatio), Math.round(c.clientHeight * devicePixelRatio), c.clientHeight]);
+        expect(chart.slice(0, 2), what).toEqual(chart.slice(2, 4));
+        expect(chart[4], what).toBeLessThanOrEqual(232);
+      }
       await expect(canvasOf(page)).toHaveAttribute('data-turn', turn!);
       await expect(canvasOf(page)).toHaveAttribute('data-active', active!);
       const view = await viewOf(page);
@@ -281,7 +329,7 @@ test.describe('a change of window in the middle of a turn', () => {
       await settled(page);
       if ((await field(page, 'unit').textContent()) === 'No active unit') {
         // its last move: the turn ends, and the next begins with the ship where the tap sent it
-        await tap(page, compact ? dockButton(page, 'endTurn') : page.locator('.command-bar [data-command="endTurn"]'));
+        await tap(page, compact && !panel ? dockButton(page, 'endTurn') : page.locator('.command-bar [data-command="endTurn"]'));
         await settled(page);
       }
       await expect(field(page, 'location'), what).toHaveText(`(${to.x}, ${to.y})`);
@@ -331,4 +379,54 @@ test.describe('a change of window in the middle of a turn', () => {
     await tap(page, colony.locator('.colony-close'));
     await expect(colony).toHaveCount(0);
   });
+});
+
+// A window a fold divides in two (the browser tells its parts): the map keeps the first part, the
+// panel the second, in any layout. The fold is set through the debugging protocol.
+const FOLDS = [
+  { name: 'folded like a book', size: { width: 890, height: 626 }, orientation: 'vertical', offset: 445, mask: 0, place: 'side', form: 'column' },
+  { name: 'folded like a book, the hinge 24 px wide', size: { width: 914, height: 626 }, orientation: 'vertical', offset: 445, mask: 24, place: 'side', form: 'column' },
+  { name: 'half open on a table', size: { width: 626, height: 890 }, orientation: 'horizontal', offset: 445, mask: 0, place: 'below', form: 'spread' },
+  { name: 'a wide window with a mouse', size: { width: 1280, height: 800 }, orientation: 'vertical', offset: 640, mask: 0, place: 'side', form: 'column' },
+] as const;
+
+test.describe('a window a fold divides', () => {
+  for (const fold of FOLDS) {
+    test(`${fold.name}: the map on one side of the fold, the panel on the other`, async ({ page }) => {
+      await page.setViewportSize(fold.size);
+      const cdp = await page.context().newCDPSession(page);
+      const metrics = { ...fold.size, deviceScaleFactor: 1, mobile: false };
+      await cdp.send('Emulation.setDeviceMetricsOverride', { ...metrics, displayFeature: { orientation: fold.orientation, offset: fold.offset, maskLength: fold.mask } });
+      await begin(page);
+      await expect(html(page)).toHaveAttribute('data-panel', fold.place);
+      await expect(html(page)).toHaveAttribute('data-panel-form', fold.form);
+      await expect(page.locator('.dock')).toBeHidden();
+      const map = await boxOf(canvasOf(page));
+      const panel = await boxOf(page.locator('.sidebar'));
+      const far = fold.offset + fold.mask;
+      if (fold.place === 'side') {
+        expect([Math.round(map.x), Math.round(map.width)]).toEqual([0, fold.offset]);
+        expect([Math.round(panel.x), Math.round(panel.x + panel.width)]).toEqual([far, fold.size.width]);
+      } else {
+        expect([Math.round(map.y), Math.round(map.height)]).toEqual([0, fold.offset]);
+        expect([Math.round(panel.y), Math.round(panel.y + panel.height)]).toEqual([far, fold.size.height]);
+      }
+      const buttons = page.locator('.sidebar .command-bar button:not([hidden])');
+      await allInWindow(page, buttons, 'panel button');
+      expect(inside(await boxOf(page.locator('.sidebar canvas.minimap')), panel), 'the chart in the panel').toBe(true);
+      expect(inside(await boxOf(page.locator('.event-log')), map), 'the log inside the map').toBe(true);
+      // the map still takes orders, and a command in the panel runs
+      const zoom = (await viewOf(page)).zoom;
+      await page.locator('.sidebar [data-command="zoomOut"]').click();
+      await expect.poll(async () => (await viewOf(page)).zoom).toBeLessThan(zoom);
+
+      // laid flat again, the fold is gone and the window is laid out as its size calls for
+      await cdp.send('Emulation.setDeviceMetricsOverride', metrics);
+      await page.setViewportSize({ width: fold.size.width, height: fold.size.height - 1 });
+      await settled(page);
+      await expect(html(page)).not.toHaveAttribute('data-fold');
+      const flat = await html(page).getAttribute('data-panel');
+      expect(flat).toBe(fold.size.width > fold.size.height && fold.size.width < 1280 ? 'side' : null);
+    });
+  }
 });

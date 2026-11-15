@@ -379,21 +379,21 @@ canvas.minimap {
 .dock { display: none; }
 
 /* the map, and the dock under it when upright or at its right when sideways */
-:root[data-layout='compact'] .game {
+:root[data-layout='compact']:not([data-panel]) .game {
   display: grid;
   grid-template: 'map' minmax(0, 1fr) 'dock' auto / minmax(0, 1fr);
 }
-:root[data-layout='compact'][data-posture='sideways'] .game {
+:root[data-layout='compact']:not([data-panel])[data-posture='sideways'] .game {
   grid-template: 'map dock' minmax(0, 1fr) / minmax(0, 1fr) auto;
 }
-:root[data-layout='compact'] canvas.map {
+:root[data-layout='compact']:not([data-panel]) canvas.map {
   grid-area: map;
   width: 100%;
   height: 100%;
   min-height: 0;
 }
 
-:root[data-layout='compact'] .dock {
+:root[data-layout='compact']:not([data-panel]) .dock {
   grid-area: dock;
   display: flex;
   flex-direction: column;
@@ -406,7 +406,7 @@ canvas.minimap {
   border-top: 3px solid var(--brass);
   border-image: var(--trim-brass);
 }
-:root[data-layout='compact'][data-posture='sideways'] .dock {
+:root[data-layout='compact']:not([data-panel])[data-posture='sideways'] .dock {
   width: 188px;
   border-top: 0;
   border-left: 3px solid var(--brass);
@@ -476,8 +476,8 @@ canvas.minimap {
 
 /* More's sheet: the sidebar, laid over the map, with a Close at its head; the rest of the screen
    is veiled, and a tap on the veil closes it */
-:root[data-layout='compact'] .sheet { display: none; }
-:root[data-layout='compact'] .game[data-sheet='open'] .sheet {
+:root[data-layout='compact']:not([data-panel]) .sheet { display: none; }
+:root[data-layout='compact']:not([data-panel]) .game[data-sheet='open'] .sheet {
   grid-area: map;
   position: absolute;
   z-index: 7;
@@ -495,15 +495,15 @@ canvas.minimap {
   border-image: var(--trim-brass);
   box-shadow: var(--lift);
 }
-:root[data-layout='compact'][data-posture='sideways'] .game[data-sheet='open'] .sheet { top: 6px; }
-:root[data-layout='compact'] .game[data-sheet='open'] .sheet-backdrop {
+:root[data-layout='compact']:not([data-panel])[data-posture='sideways'] .game[data-sheet='open'] .sheet { top: 6px; }
+:root[data-layout='compact']:not([data-panel]) .game[data-sheet='open'] .sheet-backdrop {
   display: block;
   position: absolute;
   inset: 0;
   z-index: 6;
   background: var(--veil);
 }
-:root[data-layout='compact'] .sheet-close {
+:root[data-layout='compact']:not([data-panel]) .sheet-close {
   display: block;
   flex: 0 0 auto;
   align-self: flex-end;
@@ -514,7 +514,7 @@ canvas.minimap {
 }
 
 /* the sidebar inside it: no frame of its own, the commands the dock lacks first, then the chart and the lists */
-:root[data-layout='compact'] .sidebar {
+:root[data-layout='compact']:not([data-panel]) .sidebar {
   flex: 1 1 auto;
   height: auto;
   min-height: 0;
@@ -522,32 +522,70 @@ canvas.minimap {
   border: 0;
   background: none;
 }
-:root[data-layout='compact'] .sidebar > .command-bar {
+:root[data-layout='compact']:not([data-panel]) .sidebar > .command-bar {
   order: -1;
   grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
   gap: 4px;
 }
-:root[data-layout='compact'] .sidebar .command-bar button {
+:root[data-layout='compact']:not([data-panel]) .sidebar .command-bar button {
   min-height: var(--tap);
   font-size: 0.9rem;
 }
-:root[data-layout='compact'] .sidebar .command-bar [data-docked],
-:root[data-layout='compact'] .sidebar-status,
-:root[data-layout='compact'] .sidebar-info::after,
-:root[data-layout='compact'] .sidebar-info :is(dt:has(+ dd:is([data-field='date'], [data-field='treasury'], [data-field='unit'], [data-field='moves'], [data-field='orders'])), dd:is([data-field='date'], [data-field='treasury'], [data-field='unit'], [data-field='moves'], [data-field='orders'])) {
+:root[data-layout='compact']:not([data-panel]) .sidebar .command-bar [data-docked],
+:root[data-layout='compact']:not([data-panel]) .sidebar-status,
+:root[data-layout='compact']:not([data-panel]) .sidebar-info::after,
+:root[data-layout='compact']:not([data-panel]) .sidebar-info :is(dt:has(+ dd:is([data-field='date'], [data-field='treasury'], [data-field='unit'], [data-field='moves'], [data-field='orders'])), dd:is([data-field='date'], [data-field='treasury'], [data-field='unit'], [data-field='moves'], [data-field='orders'])) {
   display: none;
 }
-:root[data-layout='compact'] .sidebar canvas.minimap { align-self: center; }
+:root[data-layout='compact']:not([data-panel]) .sidebar canvas.minimap { align-self: center; }
 /* sideways the chart stands at the right of the rest, so the commands keep to the window's height */
-:root[data-layout='compact'][data-posture='sideways'] .sidebar {
+:root[data-layout='compact']:not([data-panel])[data-posture='sideways'] .sidebar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: repeat(4, auto) 1fr;
   align-content: start;
   column-gap: 8px;
 }
-:root[data-layout='compact'][data-posture='sideways'] .sidebar > * { grid-column: 1; }
-:root[data-layout='compact'][data-posture='sideways'] .sidebar canvas.minimap { grid-column: 2; grid-row: 1 / -1; align-self: start; }
+:root[data-layout='compact']:not([data-panel])[data-posture='sideways'] .sidebar > * { grid-column: 1; }
+:root[data-layout='compact']:not([data-panel])[data-posture='sideways'] .sidebar canvas.minimap { grid-column: 2; grid-row: 1 / -1; align-self: start; }
+
+/* The panel: the sidebar kept beside the map (data-panel="side") or under it ("below"), with every
+   command, so there is no dock and no sheet. A window a fold divides gives the map the first part
+   (--fold-map), leaves the fold itself bare (--fold-gap), and gives the panel the rest; a compact
+   window lying sideways with room for it has the panel at its right. */
+:root[data-panel] .game { display: grid; }
+:root[data-panel='side'] .game { grid-template: 'map . panel' minmax(0, 1fr) / var(--fold-map, minmax(0, 1fr)) var(--fold-gap, 0px) minmax(0, var(--panel-width, 1fr)); }
+/* the fold is told from the window's corner; the game starts inside the safe area */
+:root[data-panel='side'][data-fold] .game { grid-template-columns: calc(var(--fold-map) - var(--safe-left)) var(--fold-gap) minmax(0, 1fr); }
+:root[data-panel='below'][data-fold] .game { grid-template-rows: calc(var(--fold-map) - var(--safe-top)) var(--fold-gap) minmax(0, 1fr); }
+:root[data-panel='side']:not([data-fold]) .game { --panel-width: 320px; }
+:root[data-panel='below'] .game { grid-template: 'map' var(--fold-map, minmax(0, 1fr)) '.' var(--fold-gap, 0px) 'panel' minmax(0, 1fr) / minmax(0, 1fr); }
+:root[data-panel] canvas.map { grid-area: map; width: 100%; height: 100%; min-height: 0; }
+:root[data-panel] .event-log { grid-area: map; max-width: 62%; }
+/* what a fight came to is stamped on the map, not across the fold */
+:root[data-panel] .combat-flash { grid-area: map; }
+:root[data-panel] .sidebar {
+  grid-area: panel;
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+:root[data-panel='below'] .sidebar { border-left: 0; border-top: 3px solid var(--brass); border-image: var(--trim-brass); }
+:root[data-panel] .sidebar > .command-bar { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 4px; }
+:root[data-panel][data-pointer='coarse'] .sidebar .command-bar button { min-height: var(--tap); }
+/* one column: the chart gives way first, down to a third of its height, before the panel scrolls */
+:root[data-panel-form='column'] .sidebar canvas.minimap { flex: 0 1 232px; width: auto; min-height: 84px; aspect-ratio: 216 / 232; align-self: center; }
+/* spread: the chart at the right of the rest */
+:root[data-panel-form='spread'] .sidebar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: repeat(5, auto) 1fr;
+  align-content: start;
+  column-gap: 8px;
+}
+:root[data-panel-form='spread'] .sidebar > * { grid-column: 1; }
+:root[data-panel-form='spread'] .sidebar canvas.minimap { grid-column: 2; grid-row: 1 / -1; align-self: start; }
 
 /* --- dialogs --------------------------------------------------------------------------------- */
 .dialog-backdrop {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LONG_PRESS_MS, LONG_PRESS_TRAVEL, LOOK_UP, layoutOf, onLongPress, watchScreen } from '../../../src/ui/touch';
+import { LONG_PRESS_MS, LONG_PRESS_TRAVEL, LOOK_UP, layoutOf, onLongPress, panelOf, watchScreen } from '../../../src/ui/touch';
 
 describe('the layout a window calls for', () => {
   it('is compact below 760 wide or 640 high, full otherwise', () => {
@@ -41,6 +41,34 @@ function send(win: EventTarget, type: string, target: unknown, fields: Record<st
   win.dispatchEvent(event);
   return event;
 }
+
+describe('the panel beside or under the map', () => {
+  const part = (left: number, top: number, width: number, height: number) => ({ left, top, width, height });
+
+  it('is kept at the right of a compact window lying sideways with room for it, and nowhere else without a fold', () => {
+    expect(panelOf(890, 626)).toEqual({ place: 'side', form: 'column', fold: null });
+    expect(panelOf(850, 586)).toEqual({ place: 'side', form: 'column', fold: null });
+    expect(panelOf(760, 540)).toEqual({ place: 'side', form: 'column', fold: null });
+    expect(panelOf(759, 540)).toBeNull();
+    expect(panelOf(852, 393)).toBeNull(); // a phone on its side: too low
+    expect(panelOf(626, 890)).toBeNull(); // upright
+    expect(panelOf(1280, 800)).toBeNull(); // the full layout has its sidebar already
+    expect(panelOf(890, 626, [part(0, 0, 890, 626)])).toEqual({ place: 'side', form: 'column', fold: null });
+  });
+
+  it('follows a fold: the map in the first part, the panel in the second', () => {
+    expect(panelOf(890, 626, [part(0, 0, 445, 626), part(445, 0, 445, 626)])).toEqual({ place: 'side', form: 'column', fold: { map: 445, gap: 0 } });
+    expect(panelOf(914, 626, [part(0, 0, 445, 626), part(469, 0, 445, 626)])).toEqual({ place: 'side', form: 'column', fold: { map: 445, gap: 24 } });
+    expect(panelOf(626, 890, [part(0, 0, 626, 445), part(0, 445, 626, 445)])).toEqual({ place: 'below', form: 'spread', fold: { map: 445, gap: 0 } });
+    // in the full layout too
+    expect(panelOf(1280, 800, [part(0, 0, 640, 800), part(640, 0, 640, 800)])).toEqual({ place: 'side', form: 'column', fold: { map: 640, gap: 0 } });
+    // a part too small to hold the map or the panel is no fold to heed
+    expect(panelOf(500, 800, [part(0, 0, 250, 800), part(250, 0, 250, 800)])).toBeNull();
+    expect(panelOf(890, 626, [part(0, 0, 200, 626), part(200, 0, 690, 626)])).toEqual({ place: 'side', form: 'column', fold: null });
+    // three parts are not ours to divide
+    expect(panelOf(900, 400, [part(0, 0, 300, 400), part(300, 0, 300, 400), part(600, 0, 300, 400)])).toBeNull();
+  });
+});
 
 describe('the long press', () => {
   beforeEach(() => vi.useFakeTimers());
@@ -186,11 +214,53 @@ describe('the long press', () => {
   });
 });
 
+/** A stand-in for <html>: its attributes in `attributes`, its inline custom properties in the map returned as `style.set`. */
+function fakeRoot(attributes: Map<string, string>, properties = new Map<string, string>()) {
+  return {
+    getAttribute: (n: string) => attributes.get(n) ?? null,
+    setAttribute: (n: string, v: string) => attributes.set(n, v),
+    removeAttribute: (n: string) => attributes.delete(n),
+    style: { setProperty: (n: string, v: string) => properties.set(n, v), removeProperty: (n: string) => properties.delete(n) },
+  };
+}
+
 describe('the attributes on <html>', () => {
+  it('tell of the panel, and of a fold where the browser tells its parts, and forget both when they go', () => {
+    const posture = new EventTarget();
+    const viewport: { segments: { left: number; top: number; width: number; height: number }[] | null } = { segments: null };
+    const win = Object.assign(new EventTarget(), { innerWidth: 890, innerHeight: 626, matchMedia: () => ({ matches: true }), navigator: { devicePosture: posture }, viewport });
+    const attributes = new Map<string, string>();
+    const properties = new Map<string, string>();
+    const stop = watchScreen(fakeRoot(attributes, properties) as unknown as HTMLElement, win as unknown as Window);
+    expect(Object.fromEntries(attributes)).toMatchObject({ 'data-layout': 'compact', 'data-panel': 'side', 'data-panel-form': 'column' });
+    expect(attributes.has('data-fold')).toBe(false);
+    expect(properties.size).toBe(0);
+    // half folded: no change of size, only of posture
+    viewport.segments = [{ left: 0, top: 0, width: 433, height: 626 }, { left: 457, top: 0, width: 433, height: 626 }];
+    posture.dispatchEvent(new Event('change'));
+    expect(attributes.get('data-fold')).toBe('');
+    expect(Object.fromEntries(properties)).toEqual({ '--fold-map': '433px', '--fold-gap': '24px' });
+    // turned upright, still folded: the panel goes under the map
+    Object.assign(win, { innerWidth: 626, innerHeight: 890 });
+    viewport.segments = [{ left: 0, top: 0, width: 626, height: 445 }, { left: 0, top: 445, width: 626, height: 445 }];
+    win.dispatchEvent(new Event('resize'));
+    expect(Object.fromEntries(attributes)).toMatchObject({ 'data-panel': 'below', 'data-panel-form': 'spread', 'data-fold': '' });
+    expect(Object.fromEntries(properties)).toEqual({ '--fold-map': '445px', '--fold-gap': '0px' });
+    // laid flat
+    viewport.segments = null;
+    posture.dispatchEvent(new Event('change'));
+    expect(['data-panel', 'data-panel-form', 'data-fold'].some((name) => attributes.has(name))).toBe(false);
+    expect(properties.size).toBe(0);
+    stop();
+    viewport.segments = [{ left: 0, top: 0, width: 626, height: 445 }, { left: 0, top: 445, width: 626, height: 445 }];
+    posture.dispatchEvent(new Event('change'));
+    expect(attributes.has('data-panel')).toBe(false);
+  });
+
   it('are set at once, follow the window, and turn coarse at the first touch', () => {
     const win = Object.assign(new EventTarget(), { innerWidth: 1280, innerHeight: 800, matchMedia: () => ({ matches: false }) });
     const attributes = new Map<string, string>();
-    const root = { getAttribute: (n: string) => attributes.get(n) ?? null, setAttribute: (n: string, v: string) => attributes.set(n, v) };
+    const root = fakeRoot(attributes);
     const stop = watchScreen(root as unknown as HTMLElement, win as unknown as Window);
     expect(Object.fromEntries(attributes)).toEqual({ 'data-layout': 'full', 'data-posture': 'sideways', 'data-pointer': 'fine' });
     Object.assign(win, { innerWidth: 393, innerHeight: 852 });
@@ -209,7 +279,7 @@ describe('the attributes on <html>', () => {
   it('is coarse from the start where the browser says the pointer is', () => {
     const win = Object.assign(new EventTarget(), { innerWidth: 466, innerHeight: 678, matchMedia: () => ({ matches: true }) });
     const attributes = new Map<string, string>();
-    const root = { getAttribute: (n: string) => attributes.get(n) ?? null, setAttribute: (n: string, v: string) => attributes.set(n, v) };
+    const root = fakeRoot(attributes);
     watchScreen(root as unknown as HTMLElement, win as unknown as Window)();
     expect(attributes.get('data-pointer')).toBe('coarse');
   });
