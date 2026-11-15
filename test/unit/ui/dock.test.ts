@@ -71,8 +71,10 @@ describe('the dock in the stylesheet', () => {
 
   it('makes every dock button and every command in the sheet at least a finger high', () => {
     expect(rule('.dock-commands button')).toMatch(/min-width: var\(--tap\);[\s\S]*min-height: var\(--tap\);/);
-    expect(rule(":root[data-layout='compact'] .sidebar .command-bar button")).toContain('min-height: var(--tap)');
-    expect(rule(":root[data-layout='compact'] .sheet-close")).toContain('min-height: var(--tap)');
+    expect(rule(":root[data-layout='compact']:not([data-panel]) .sidebar .command-bar button")).toContain('min-height: var(--tap)');
+    expect(rule(":root[data-layout='compact']:not([data-panel]) .sheet-close")).toContain('min-height: var(--tap)');
+    // the panel's commands too, under a finger
+    expect(rule(":root[data-panel][data-pointer='coarse'] .sidebar .command-bar button")).toContain('min-height: var(--tap)');
   });
 
   it('marks More the way the Europe button is marked', () => {
@@ -82,6 +84,9 @@ describe('the dock in the stylesheet', () => {
   it('writes the compact layout against the attributes on <html>, never a media query on the window', () => {
     const section = css.slice(css.indexOf('.sheet { display: contents; }'), css.indexOf('.dialog-backdrop {'));
     expect(section).not.toMatch(/@media/);
-    expect(section).toContain(":root[data-layout='compact'] .dock {");
+    expect(section).toContain(":root[data-layout='compact']:not([data-panel]) .dock {");
+    // the panel takes the dock's and the sheet's place, so every rule of theirs stands aside for it
+    expect(section).not.toMatch(/:root\[data-layout='compact'\](?!:not\(\[data-panel\]\))[^{]*\.(dock|sheet|sidebar)/);
+    expect(section).toContain(":root[data-panel='side'] .game {");
   });
 });
