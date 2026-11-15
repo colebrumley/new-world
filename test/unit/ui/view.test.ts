@@ -80,6 +80,10 @@ describe('view math', () => {
     expect([turned.zoom, turned.tileSize]).toEqual([4, 32]);
     expect(resizeView(turned, map, 393, 700).tileSize).toBe(32);
 
+    // a low laptop window opens at 32 as it always did, and now has 64 one step in
+    expect([openingZoom(1100, 650), tileSizeFor(1100, 650, 3)]).toEqual([3, 32]);
+    expect(zoomBy(makeView(map, 1100, 650, 30, 40), map, 1).tileSize).toBe(64);
+
     // a window whose nearest of the four is 64 or more has nothing nearer
     expect(openingZoom(960, 768)).toBe(3);
     expect([4, 5].map((zoom) => tileSizeFor(960, 768, zoom))).toEqual([64, 64]);

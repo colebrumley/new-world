@@ -44,7 +44,7 @@ The keyboard is quicker once you know it. The tables below list every key, and e
 | V | View mode: move a cursor instead of a unit |
 | M | Move mode |
 | E | Open the Europe screen |
-| Z / X | Zoom in / zoom out (15x12, 30x24, 60x48, 120x96 squares; a small window zooms in further, to squares of 32 and 64 pixels) |
+| Z / X | Zoom in / zoom out (15x12, 30x24, 60x48, 120x96 squares; a window whose squares are still under 64 pixels zooms in further, to 32 and 64) |
 | H | Show hidden terrain until the next key |
 | C | Centre the view on the active unit |
 | Enter | End the turn |
