@@ -2,7 +2,9 @@
 // Reading and writing them to the browser is src/app/storage.ts; the dialog is options-dialog.ts.
 
 export const GAME_OPTIONS = [
-  { key: 'showIndianMoves', label: 'Show Indian moves', hint: 'Note in the log what native units were seen doing between our turns.', default: true },
+  // Off unless asked for: braves wander every turn, and their comings and goings bury the news that matters.
+  // The key was showIndianMoves while the option stood on; the new name lets the new default reach stored options.
+  { key: 'showNativeMoves', label: 'Show Indian moves', hint: 'Note in the log what native units were seen doing between our turns.', default: false },
   { key: 'showForeignMoves', label: 'Show foreign moves', hint: 'Note in the log what foreign units were seen doing between our turns.', default: true },
   { key: 'fastPieceSlide', label: 'Fast piece slide', hint: 'Pieces move at once instead of sliding.', default: false },
   { key: 'endOfTurn', label: 'End of turn', hint: 'Wait for Enter when every unit has moved, instead of ending the turn at once.', default: true },

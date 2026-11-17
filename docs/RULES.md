@@ -2090,7 +2090,8 @@ place on the map.
 
 - **Game options** (Alt+G): Show Indian moves, Show foreign moves (units of others seen to move
   near our units and colonies between our turns are noted in the log, three lines at most and a
-  count of the rest); Fast piece slide; End of turn (wait for Enter when every unit has moved;
+  count of the rest; native moves are off until asked for, since braves wander every turn and
+  their lines crowd out the rest); Fast piece slide; End of turn (wait for Enter when every unit has moved;
   off, the turn ends by itself after the last order); Autosave; Combat analysis; Water shimmer;
   Tutorial hints.
 - **Colony report options** (Alt+O): labels on buildings; labels on cargo and terrain; and

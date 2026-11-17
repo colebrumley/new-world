@@ -65,6 +65,7 @@ describe('new cargo', () => {
 });
 
 describe('moves seen', () => {
+  const all: Options = { ...DEFAULT_OPTIONS, showNativeMoves: true };
   const seen = (): { before: GameState; after: GameState } => {
     let before = withUnit(base(), { id: 'ours', type: 'soldier', x: 4, y: 2 });
     before = withUnit(before, { id: 'ship', owner: 'b', type: 'caravel', profession: null, x: 0, y: 3 });
@@ -78,19 +79,25 @@ describe('moves seen', () => {
 
   it('foreign and native units that moved near us are noted', () => {
     const { before, after } = seen();
-    expect(movementNotices(before, after, 'a', DEFAULT_OPTIONS)).toEqual([
+    expect(movementNotices(before, after, 'a', all)).toEqual([
       'A French Caravel has moved to (3, 4).',
       'Sioux braves have moved to (5, 3).',
       'A French Scout has appeared at (3, 1).',
     ]);
   });
 
+  it('native moves are left out unless the player asks for them', () => {
+    const { before, after } = seen();
+    expect(DEFAULT_OPTIONS.showNativeMoves).toBe(false);
+    expect(movementNotices(before, after, 'a', DEFAULT_OPTIONS)).toEqual(['A French Caravel has moved to (3, 4).', 'A French Scout has appeared at (3, 1).']);
+  });
+
   it('each kind only if asked for, never what lies in the dark, and a crowd is summed up', () => {
     const { before, after } = seen();
-    expect(movementNotices(before, after, 'a', off('showIndianMoves')).join(' ')).not.toContain('Sioux');
-    expect(movementNotices(before, after, 'a', off('showForeignMoves'))).toEqual(['Sioux braves have moved to (5, 3).']);
-    expect(movementNotices(before, setTile(after, 5, 3, { explored: 0 }), 'a', DEFAULT_OPTIONS).join(' ')).not.toContain('Sioux');
-    expect(movementNotices(before, after, 'a', DEFAULT_OPTIONS, 1)).toEqual(['A French Caravel has moved to (3, 4).', '2 more foreign or native units were seen on the move.']);
+    expect(movementNotices(before, after, 'a', { ...all, showNativeMoves: false }).join(' ')).not.toContain('Sioux');
+    expect(movementNotices(before, after, 'a', { ...all, showForeignMoves: false })).toEqual(['Sioux braves have moved to (5, 3).']);
+    expect(movementNotices(before, setTile(after, 5, 3, { explored: 0 }), 'a', all).join(' ')).not.toContain('Sioux');
+    expect(movementNotices(before, after, 'a', all, 1)).toEqual(['A French Caravel has moved to (3, 4).', '2 more foreign or native units were seen on the move.']);
     expect(movementNotices(before, before, 'a', DEFAULT_OPTIONS)).toEqual([]);
   });
 });

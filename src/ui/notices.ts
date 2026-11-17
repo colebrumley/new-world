@@ -140,7 +140,7 @@ export function movementNotices(before: GameState, after: GameState, playerId: P
   for (const unit of Object.values(after.units)) {
     if (unit.owner === playerId || unit.voyage !== null || unit.aboard !== null) continue;
     const tribe = tribeOfOwner(unit.owner);
-    if (tribe ? !options.showIndianMoves : !options.showForeignMoves) continue;
+    if (tribe ? !options.showNativeMoves : !options.showForeignMoves) continue;
     const was = before.units[unit.id];
     if (was && was.x === unit.x && was.y === unit.y) continue;
     const tile = after.map.tiles[unit.y * after.map.width + unit.x];
