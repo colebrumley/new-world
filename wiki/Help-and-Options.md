@@ -18,7 +18,7 @@ Open them from the keyboard, or with **Menu...** in the sidebar. Each option is 
 
 | Option | What it does | At first |
 | :--- | :--- | :--- |
-| Show Indian moves | Note in the log what native units were seen doing between our turns. | On |
+| Show Indian moves | Note in the log what native units were seen doing between our turns. | Off |
 | Show foreign moves | Note in the log what foreign units were seen doing between our turns. | On |
 | Fast piece slide | Pieces move at once instead of sliding. | Off |
 | End of turn | Wait for Enter when every unit has moved, instead of ending the turn at once. | On |

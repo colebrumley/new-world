@@ -3,7 +3,7 @@ import { COLONY_OPTIONS, DEFAULT_OPTIONS, GAME_OPTIONS, parseOptions, serializeO
 
 describe('options', () => {
   it('are the nine game options, the ten colony report options and the three sound options', () => {
-    expect(GAME_OPTIONS.map((o) => o.key)).toEqual(['showIndianMoves', 'showForeignMoves', 'fastPieceSlide', 'endOfTurn', 'autosave', 'combatAnalysis', 'waterShimmer', 'tutorialHints', 'terrainTooltips']);
+    expect(GAME_OPTIONS.map((o) => o.key)).toEqual(['showNativeMoves', 'showForeignMoves', 'fastPieceSlide', 'endOfTurn', 'autosave', 'combatAnalysis', 'waterShimmer', 'tutorialHints', 'terrainTooltips']);
     expect(COLONY_OPTIONS).toHaveLength(10);
     expect(SOUND_OPTIONS.map((o) => o.key)).toEqual(['backgroundMusic', 'eventMusic', 'soundEffects']);
     expect(new Set([...GAME_OPTIONS, ...COLONY_OPTIONS, ...SOUND_OPTIONS].map((o) => o.key)).size).toBe(22);

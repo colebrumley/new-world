@@ -19,7 +19,7 @@ exports[`options > are the nine game options, the ten colony report options and 
   "reportTools": true,
   "reportTrained": true,
   "showForeignMoves": true,
-  "showIndianMoves": true,
+  "showNativeMoves": false,
   "soundEffects": true,
   "terrainTooltips": true,
   "tutorialHints": true,
